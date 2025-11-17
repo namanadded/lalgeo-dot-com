@@ -347,12 +347,12 @@
 
     <div id="importPanel">
         <h3>Import LalGeo Survey</h3>
-        <p>Drag and drop a LalGeo survey .zip or folder, pick files, or load from Dropbox.</p>
+        <p>Drag and drop a LalGeo survey .zip/.lal or folder, pick files, or load from Dropbox.</p>
         <button id="projectPickerBtn" type="button">Select files…</button>
-        <input id="projectFileInput" type="file" accept=".zip,.csv,image/*" multiple webkitdirectory style="display:none">
+        <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,image/*" multiple webkitdirectory style="display:none">
         <div style="margin-top:10px;">
             <label style="font-size:12px; color:#5f6368;">Dropbox shared link (set <code>?dl=1</code>)</label>
-            <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.zip?dl=1" style="width:100%; padding:6px; border-radius:8px; border:1px solid #d5d7df; font-size:12px;">
+            <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.lal?dl=1" style="width:100%; padding:6px; border-radius:8px; border:1px solid #d5d7df; font-size:12px;">
             <button id="dropboxLoadBtn" type="button" style="margin-top:6px; width:100%; border:none; background:#0f9d58; color:#fff; border-radius:8px; padding:8px; font-weight:600; cursor:pointer;">Load from Dropbox link</button>
         </div>
         <div id="dropboxControls" style="margin-top:16px; padding:10px; border:1px solid #dfe1e6; border-radius:10px; background:#f7f9fb;">
@@ -392,7 +392,7 @@
     <div id="dropZone" class="drop-zone">
         <div class="drop-zone-inner">
             <h2>Drop survey export</h2>
-            <p>Drop a LalGeo Survey .zip file or folder to load photos and responses.</p>
+            <p>Drop a LalGeo Survey .zip/.lal file or folder to load photos and responses.</p>
         </div>
     </div>
     <div id="imageModal">
@@ -698,7 +698,7 @@
 
         async function buildSurveyPayload(files) {
             if (!files || !files.length) throw new Error("No files provided.");
-            const zipFile = files.find(file => file.name.toLowerCase().endsWith(".zip"));
+            const zipFile = files.find(file => isSurveyArchiveName(file.name));
             if (zipFile) {
                 return await extractZipPackage(zipFile, { projectName: stripExtension(zipFile.name) });
             }
@@ -711,7 +711,7 @@
             if (!response.ok) throw new Error("Dropbox download failed.");
             const contentType = response.headers.get("content-type") || "";
             const projectName = guessNameFromUrl(directUrl);
-            if (contentType.includes("zip") || directUrl.toLowerCase().endsWith(".zip")) {
+            if (contentType.includes("zip") || isSurveyArchiveName(directUrl)) {
                 const buffer = await response.arrayBuffer();
                 const extracted = await extractZipPackage(buffer, { projectName });
                 extracted.source = { type: "dropbox-link", url: directUrl, isZip: true };
@@ -726,7 +726,7 @@
                     source: { type: "dropbox-link", url: directUrl, isZip: false }
                 };
             }
-            throw new Error("Dropbox file must be a .zip or .csv export.");
+            throw new Error("Dropbox file must be a .zip/.lal or .csv export.");
         }
 
         async function refreshDropboxSurveyList() {
@@ -739,7 +739,7 @@
                     throw new Error(response.status === 401 ? "Connect your Dropbox account to list files." : "Unable to list Dropbox files.");
                 }
                 const data = await response.json();
-                const files = (data.entries || []).filter(entry => entry[".tag"] === "file" && entry.name.toLowerCase().endsWith(".zip"));
+                const files = (data.entries || []).filter(entry => entry[".tag"] === "file" && isSurveyArchiveName(entry.name || entry.path_display || ""));
                 dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
                 files.forEach(file => {
                     const option = document.createElement("option");
@@ -750,7 +750,7 @@
                 if (files.length === 0) {
                     const option = document.createElement("option");
                     option.value = "";
-                    option.textContent = "No .zip surveys found";
+                    option.textContent = "No .zip/.lal surveys found";
                     dropboxSurveySelect.appendChild(option);
                 }
                 showDropboxConnectedState();
@@ -853,7 +853,7 @@
                 }
                 throw new Error("Worker could not load the selected survey.");
             }
-            const sourceMeta = { type: "dropbox", path, isZip: path.toLowerCase().endsWith(".zip") };
+            const sourceMeta = { type: "dropbox", path, isZip: isSurveyArchiveName(path) };
             if (contentType.includes("zip")) {
                 const buffer = await response.arrayBuffer();
                 const extracted = await extractZipPackage(buffer, { projectName });
@@ -966,6 +966,17 @@
 
         function normalizeFileName(name = "") {
             return name.trim().replace(/^.*[\\/]/, "");
+        }
+
+        function isSurveyArchiveName(name = "") {
+            let target = (name || "").trim();
+            try {
+                const parsed = new URL(target);
+                target = parsed.pathname.split("/").pop() || target;
+            } catch {
+                target = target.split("/").pop() || target;
+            }
+            return /\.(zip|lal)$/i.test(target);
         }
 
         function isAnnotationElement(element) {
