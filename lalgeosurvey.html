@@ -101,6 +101,30 @@
         margin-top: 2px;
         text-align: center;
     }
+    #addSurveyPointBtn {
+        position: fixed;
+        bottom: 75px;
+        right: 12px;
+        width: 40px;
+        height: 40px;
+        border: none;
+        border-radius: 8px;
+        background: rgba(255, 255, 255, 0.95);
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        cursor: pointer;
+        font-size: 24px;
+        color: #1a73e8;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: transform 0.2s ease, background 0.2s ease;
+    }
+    #addSurveyPointBtn.active {
+        background: #1a73e8;
+        color: #fff;
+        transform: scale(1.05);
+    }
     #importPanel {
         position: absolute;
         top: 80px;
@@ -237,6 +261,10 @@
         background: #1a73e8;
         border-color: #1a73e8;
         color: #fff;
+    }
+    #surveyCallout .callout-actions button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
     }
     #surveyCallout .attribute-edit-row {
         display: flex;
@@ -382,6 +410,7 @@
         <img src="assets/img/share-icon.png" alt="Share">
         <div class="share-text">Share</div>
     </div>
+    <button id="addSurveyPointBtn" type="button" title="Add survey point">+</button>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="surveyCallout">
         <div class="card">
@@ -433,6 +462,8 @@
         const dropboxConnectedInfo = document.getElementById("dropboxConnectedInfo");
         const dropboxUserDetails = document.getElementById("dropboxUserDetails");
         let dropboxConnected = false;
+        const addSurveyPointBtn = document.getElementById("addSurveyPointBtn");
+        const mapElement = document.getElementById("map");
         const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
         const surveyCallout = document.getElementById("surveyCallout");
         const surveyCalloutCard = surveyCallout.querySelector(".callout-content");
@@ -488,6 +519,10 @@
         let currentSurveyData = null;
         let currentSurveySource = null;
         let isPersistingEdits = false;
+        let dropdownFieldOptions = {};
+        let requiredSurveyFields = new Set();
+        let isAddingSurveyPoint = false;
+        let pendingNewAnnotation = null;
         let isCalloutEditing = false;
 
         const readerPromises = new WeakMap();
@@ -596,6 +631,89 @@
                 .catch(() => alert("Unable to copy link."));
         });
 
+        addSurveyPointBtn.addEventListener("click", () => {
+            if (!currentSurveyData) {
+                alert("Load a survey before adding points.");
+                return;
+            }
+            toggleAddSurveyPointMode();
+        });
+
+        function toggleAddSurveyPointMode() {
+            isAddingSurveyPoint = !isAddingSurveyPoint;
+            addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
+            mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
+            if (!isAddingSurveyPoint) {
+                pendingNewAnnotation = null;
+            }
+        }
+
+        function exitAddSurveyPointMode() {
+            if (!isAddingSurveyPoint) return;
+            isAddingSurveyPoint = false;
+            addSurveyPointBtn.classList.remove("active");
+            mapElement.style.cursor = "";
+            pendingNewAnnotation = null;
+        }
+
+        function handleNewSurveyPointPlacement(coordinate) {
+            if (!currentSurveyData || !coordinate) return;
+            exitAddSurveyPointMode();
+            if (!Array.isArray(currentSurveyData.headers) || !currentSurveyData.headers.length) {
+                alert("Unable to determine survey schema.");
+                return;
+            }
+            const newRecord = {};
+            currentSurveyData.headers.forEach(header => {
+                newRecord[header] = "";
+            });
+            if (currentSurveyData.latKey) {
+                newRecord[currentSurveyData.latKey] = coordinate.latitude;
+            }
+            if (currentSurveyData.lonKey) {
+                newRecord[currentSurveyData.lonKey] = coordinate.longitude;
+            }
+            const rowIndex = currentSurveyData.records.length;
+            currentSurveyData.records.push(newRecord);
+            const markerTitle = computeLabelFromAttributes(newRecord, activeProjectName);
+            const annotation = new mapkit.MarkerAnnotation(coordinate, {
+                color: "#1a73e8",
+                glyphText: "+",
+                title: markerTitle || "New point"
+            });
+            annotation.surveyPoint = {
+                coordinate,
+                attributes: newRecord,
+                imageSrc: null,
+                title: markerTitle || "New point",
+                rowIndex,
+                isNew: true
+            };
+            surveyAnnotations.push(annotation);
+            map.addAnnotation(annotation);
+            pendingNewAnnotation = annotation;
+            showSurveyCallout(annotation, { forceEdit: true });
+        }
+
+        function removeNewSurveyPoint(annotation) {
+            if (!annotation) return;
+            const index = annotation.surveyPoint?.rowIndex;
+            if (Number.isInteger(index) && currentSurveyData?.records) {
+                currentSurveyData.records.splice(index, 1);
+                surveyAnnotations = surveyAnnotations.filter(item => item !== annotation);
+                map.removeAnnotation(annotation);
+                surveyAnnotations.forEach(item => {
+                    if (Number.isInteger(item?.surveyPoint?.rowIndex) && item.surveyPoint.rowIndex > index) {
+                        item.surveyPoint.rowIndex -= 1;
+                    }
+                });
+            }
+            pendingNewAnnotation = null;
+            surveyCallout.style.display = "none";
+            isCalloutEditing = false;
+            activeSurveyAnnotation = null;
+        }
+
         document.addEventListener("click", (event) => {
             if (surveyCallout.style.display === "block") {
                 const target = event.target;
@@ -687,6 +805,7 @@
             const parsed = parseSurveyCSV(payload.csvText);
             currentSurveyData = parsed;
             currentSurveySource = payload.source || null;
+            analyzeSurveySchema(parsed);
             renderSurveyProject({
                 parsed,
                 images: payload.images,
@@ -1005,6 +1124,24 @@
             }
         }
 
+        function validateCalloutForm() {
+            const form = surveyCalloutCard.querySelector("#attributeEditForm");
+            const saveBtn = surveyCalloutCard.querySelector("#calloutSaveBtn");
+            if (!form || !saveBtn) return;
+            let isValid = true;
+            form.querySelectorAll("[data-required=\"true\"]").forEach((input) => {
+                const value = input.value !== undefined ? String(input.value).trim() : "";
+                if (!value) isValid = false;
+            });
+            if (isValid) {
+                saveBtn.disabled = false;
+                saveBtn.classList.add("primary");
+            } else {
+                saveBtn.disabled = true;
+                saveBtn.classList.remove("primary");
+            }
+        }
+
         function parseSurveyCSV(csvText) {
             const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
@@ -1028,6 +1165,26 @@
                 return entry;
             });
             return { headers, records, latKey, lonKey };
+        }
+
+        function analyzeSurveySchema(parsed) {
+            dropdownFieldOptions = {};
+            requiredSurveyFields = new Set();
+            if (!parsed?.headers) return;
+            parsed.headers.forEach((header) => {
+                if (!header || header === parsed.latKey || header === parsed.lonKey) return;
+                const values = parsed.records.map(record => {
+                    const value = record?.[header];
+                    return value === undefined || value === null ? "" : String(value).trim();
+                });
+                if (values.length && values.every(value => value !== "")) {
+                    requiredSurveyFields.add(header);
+                }
+                const uniqueValues = [...new Set(values.filter(value => value !== ""))];
+                if (uniqueValues.length > 0 && uniqueValues.length <= 10) {
+                    dropdownFieldOptions[header] = uniqueValues;
+                }
+            });
         }
 
         function renderSurveyProject({ parsed, images, projectName }) {
@@ -1119,10 +1276,10 @@
             return (value !== undefined && value !== null && value !== "") ? value : fallback;
         }
 
-        function showSurveyCallout(annotation) {
+        function showSurveyCallout(annotation, options = {}) {
             if (!annotation || !annotation.surveyPoint) return;
             activeSurveyAnnotation = annotation;
-            isCalloutEditing = false;
+            isCalloutEditing = Boolean(options.forceEdit);
             renderSurveyCalloutContent();
             if (!document.getElementById("identifierSelectWrapper")) {
                 surveyCalloutCard.parentElement.appendChild(identifierWrapper);
@@ -1136,35 +1293,64 @@
             const { attributes = {}, imageSrc, title } = activeSurveyAnnotation.surveyPoint;
             const safeTitle = escapeHtml(title || "Survey photo");
             const imageSection = imageSrc ? `<img src="${imageSrc}" alt="${safeTitle}" class="survey-photo">` : "";
+            const headers = currentSurveyData?.headers?.length ? currentSurveyData.headers : Object.keys(attributes || {});
             if (isCalloutEditing) {
-                const editableFields = Object.entries(attributes).map(([key, value]) => `
-                    <label class="attribute-edit-row">
-                        <span>${escapeHtml(key)}</span>
-                        <input type="text" data-attr-field="${escapeHtml(key)}" value="${escapeHtml(value ?? "")}">
-                    </label>
-                `).join("") || "<div class=\"attributes\">No attributes</div>";
+                const editableFields = headers.map((header) => {
+                    const value = attributes?.[header] ?? "";
+                    const isCoordinate = header === currentSurveyData?.latKey || header === currentSurveyData?.lonKey;
+                    const isRequired = isCoordinate || requiredSurveyFields.has(header);
+                    const options = dropdownFieldOptions[header];
+                    const labelText = `${escapeHtml(header || "")}${isRequired ? " *" : ""}`;
+                    let control;
+                    if (Array.isArray(options) && options.length) {
+                        const optionMarkup = [`<option value="">Select…</option>`, ...options.map(opt => {
+                            const safeOpt = escapeHtml(opt);
+                            const selected = String(value) === opt ? "selected" : "";
+                            return `<option value="${safeOpt}" ${selected}>${safeOpt}</option>`;
+                        })].join("");
+                        control = `<select data-attr-field="${escapeHtml(header)}" ${isRequired ? "data-required=\"true\"" : ""}>${optionMarkup}</select>`;
+                    } else {
+                        control = `<input type="text" data-attr-field="${escapeHtml(header)}" value="${escapeHtml(value ?? "")}" ${isCoordinate ? "readonly" : ""} ${isRequired ? "data-required=\"true\"" : ""}>`;
+                    }
+                    return `
+                        <label class="attribute-edit-row">
+                            <span>${labelText}</span>
+                            ${control.replace("<input", `<input ${isRequired ? "data-required=\"true\"" : ""}`)
+                                .replace("<select", `<select ${isRequired ? "data-required=\"true\"" : ""}`)}
+                        </label>
+                    `;
+                }).join("") || "<div class=\"attributes\">No attributes</div>";
                 surveyCalloutCard.innerHTML = `
                     ${imageSection}
                     <form id="attributeEditForm" class="attributes">${editableFields}</form>
                     <div class="callout-actions">
                         <button type="button" id="calloutSaveBtn" class="primary">Save</button>
-                        <button type="button" id="calloutCancelBtn">Cancel</button>
+                        <button type="button" id="calloutCancelBtn">${activeSurveyAnnotation.surveyPoint?.isNew ? "Cancel point" : "Cancel"}</button>
                     </div>
                 `;
+                const form = surveyCalloutCard.querySelector("#attributeEditForm");
+                form?.addEventListener("input", validateCalloutForm);
+                form?.addEventListener("change", validateCalloutForm);
+                validateCalloutForm();
                 surveyCalloutCard.querySelector("#calloutSaveBtn")?.addEventListener("click", (event) => {
                     event.stopPropagation();
                     saveCalloutEdits();
                 });
                 surveyCalloutCard.querySelector("#calloutCancelBtn")?.addEventListener("click", (event) => {
                     event.stopPropagation();
-                    isCalloutEditing = false;
-                    renderSurveyCalloutContent();
+                    if (activeSurveyAnnotation?.surveyPoint?.isNew) {
+                        removeNewSurveyPoint(activeSurveyAnnotation);
+                    } else {
+                        isCalloutEditing = false;
+                        renderSurveyCalloutContent();
+                    }
                 });
             } else {
-                const attributeRows = Object.entries(attributes)
-                    .filter(([key, value]) => value !== undefined && value !== null && value !== "")
-                    .map(([key, value]) => `<div><strong>${escapeHtml(key)}:</strong> ${escapeHtml(value)}</div>`)
-                    .join("") || "<div>No attributes</div>";
+                const attributeRows = headers.map(header => {
+                    const value = attributes?.[header];
+                    if (value === undefined || value === null || value === "") return "";
+                    return `<div><strong>${escapeHtml(header)}:</strong> ${escapeHtml(value)}</div>`;
+                }).filter(Boolean).join("") || "<div>No attributes</div>";
                 surveyCalloutCard.innerHTML = `
                     ${imageSection}
                     <div class="attributes">${attributeRows}</div>
@@ -1197,10 +1383,15 @@
             if (Number.isInteger(rowIndex) && currentSurveyData?.records?.[rowIndex]) {
                 currentSurveyData.records[rowIndex] = { ...currentSurveyData.records[rowIndex], ...updatedAttributes };
             }
+            const wasNewPoint = !!activeSurveyAnnotation.surveyPoint.isNew;
             isCalloutEditing = false;
             updateAnnotationLabels();
             renderSurveyCalloutContent();
             await persistSurveyEditsIfNeeded();
+            if (wasNewPoint) {
+                activeSurveyAnnotation.surveyPoint.isNew = false;
+                pendingNewAnnotation = null;
+            }
         }
 
         async function persistSurveyEditsIfNeeded() {
@@ -1251,6 +1442,7 @@
         function hideSurveyCallout() {
             surveyCallout.style.display = "none";
             activeSurveyAnnotation = null;
+            isCalloutEditing = false;
         }
 
         function positionSurveyCallout(annotation) {
@@ -1674,7 +1866,11 @@
             }
         });
 
-        map.addEventListener("singleTap", () => {
+        map.addEventListener("singleTap", (event) => {
+            if (isAddingSurveyPoint && event?.coordinate) {
+                handleNewSurveyPointPlacement(event.coordinate);
+                return;
+            }
             document.getElementById("sidebar").style.display = "none";
             hideSurveyCallout();
         });
