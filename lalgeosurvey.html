@@ -1866,13 +1866,20 @@
             }
         });
 
-        map.addEventListener("singleTap", (event) => {
-            if (isAddingSurveyPoint && event?.coordinate) {
-                handleNewSurveyPointPlacement(event.coordinate);
-                return;
-            }
+        map.addEventListener("singleTap", () => {
+            if (isAddingSurveyPoint) return;
             document.getElementById("sidebar").style.display = "none";
             hideSurveyCallout();
+        });
+
+        mapElement.addEventListener("click", (event) => {
+            if (!isAddingSurveyPoint) return;
+            event.preventDefault();
+            const point = new DOMPoint(event.clientX, event.clientY);
+            const coordinate = map.convertPointOnPageToCoordinate(point);
+            if (coordinate) {
+                handleNewSurveyPointPlacement(coordinate);
+            }
         });
 
         let hasCenteredOnce = false;
