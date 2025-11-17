@@ -1136,6 +1136,17 @@
             return undefined;
         }
 
+        function getQuestionMeta(header, metaMap = currentSurveyData?.questionMeta || {}) {
+            if (!header || !metaMap) return null;
+            return metaMap[header] || metaMap[findHeaderInsensitive(header)] || null;
+        }
+
+        function isChoiceField(meta) {
+            if (!meta) return false;
+            const type = (meta.normalizedType || meta.type || "").toLowerCase();
+            return type.includes("dropdown") || type.includes("multiple");
+        }
+
         function isAnnotationElement(element) {
             return element?.closest?.(".mapkit-annotation, #surveyCallout");
         }
@@ -1187,6 +1198,21 @@
                 row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("latitude"))
             );
             if (headerIndex === -1) throw new Error("Unable to find Latitude column in CSV.");
+            const questionMeta = {};
+            for (let i = 0; i < headerIndex; i++) {
+                const row = rows[i];
+                const firstCell = (row[0] || "").trim();
+                if (!firstCell || /^question$/i.test(firstCell)) continue;
+                if (/^responses$/i.test(firstCell)) break;
+                const typeValue = (row[1] || "").trim();
+                const choicesValue = (row[2] || "").trim();
+                if (!typeValue) continue;
+                questionMeta[firstCell] = {
+                    type: typeValue,
+                    normalizedType: typeValue.toLowerCase(),
+                    choices: choicesValue ? choicesValue.split(/\s*\|\s*/).map(choice => choice.trim()).filter(Boolean) : []
+                };
+            }
             const headers = rows[headerIndex].map(cell => (cell || "").trim());
             const latKey = headers.find(h => /lat/i.test(h));
             const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
@@ -1202,7 +1228,7 @@
                 });
                 return entry;
             });
-            return { headers, records, latKey, lonKey };
+            return { headers, records, latKey, lonKey, questionMeta };
         }
 
         function analyzeSurveySchema(parsed) {
@@ -1214,18 +1240,12 @@
                 if (!header) return;
                 headerLookup.set(normalizeHeaderName(header), header);
             });
+            const questionMeta = parsed?.questionMeta || {};
             parsed.headers.forEach((header) => {
                 if (!header || isCoordinateField(header, parsed) || isAutoManagedField(header)) return;
-                const values = parsed.records.map(record => {
-                    const value = record?.[header];
-                    return value === undefined || value === null ? "" : String(value).trim();
-                });
-                if (values.length && values.every(value => value !== "")) {
-                    requiredSurveyFields.add(header);
-                }
-                const uniqueValues = [...new Set(values.filter(value => value !== ""))];
-                if (uniqueValues.length > 0 && uniqueValues.length <= 10) {
-                    dropdownFieldOptions[header] = uniqueValues;
+                const meta = getQuestionMeta(header, questionMeta);
+                if (meta && meta.choices?.length && isChoiceField(meta)) {
+                    dropdownFieldOptions[header] = meta.choices;
                 }
             });
         }
