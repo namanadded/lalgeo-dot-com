@@ -521,6 +521,7 @@
         let isPersistingEdits = false;
         let dropdownFieldOptions = {};
         let requiredSurveyFields = new Set();
+        let headerLookup = new Map();
         let isAddingSurveyPoint = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
@@ -673,6 +674,12 @@
             if (currentSurveyData.lonKey) {
                 newRecord[currentSurveyData.lonKey] = coordinate.longitude;
             }
+            currentSurveyData.headers.forEach(header => {
+                const autoValue = getAutoFieldValue(header);
+                if (autoValue !== undefined) {
+                    newRecord[header] = autoValue;
+                }
+            });
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
             const markerTitle = computeLabelFromAttributes(newRecord, activeProjectName);
@@ -1087,6 +1094,15 @@
             return name.trim().replace(/^.*[\\/]/, "");
         }
 
+        function normalizeHeaderName(name = "") {
+            return (name || "").trim().toLowerCase();
+        }
+
+        function findHeaderInsensitive(name = "") {
+            if (!name) return null;
+            return headerLookup.get(normalizeHeaderName(name)) || null;
+        }
+
         function isSurveyArchiveName(name = "") {
             let target = (name || "").trim();
             try {
@@ -1096,6 +1112,28 @@
                 target = target.split("/").pop() || target;
             }
             return /\.(zip|lal)$/i.test(target);
+        }
+
+        function isCoordinateField(header, parsed = currentSurveyData) {
+            if (!header || !parsed) return false;
+            return header === parsed.latKey || header === parsed.lonKey;
+        }
+
+        function isAutoManagedField(header) {
+            const normalized = normalizeHeaderName(header);
+            return normalized === "id" || normalized === "date";
+        }
+
+        function getAutoFieldValue(header) {
+            const normalized = normalizeHeaderName(header);
+            if (normalized === "id") {
+                if (crypto?.randomUUID) return crypto.randomUUID();
+                return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+            }
+            if (normalized === "date") {
+                return new Date().toISOString();
+            }
+            return undefined;
         }
 
         function isAnnotationElement(element) {
@@ -1170,9 +1208,14 @@
         function analyzeSurveySchema(parsed) {
             dropdownFieldOptions = {};
             requiredSurveyFields = new Set();
+            headerLookup = new Map();
             if (!parsed?.headers) return;
             parsed.headers.forEach((header) => {
-                if (!header || header === parsed.latKey || header === parsed.lonKey) return;
+                if (!header) return;
+                headerLookup.set(normalizeHeaderName(header), header);
+            });
+            parsed.headers.forEach((header) => {
+                if (!header || isCoordinateField(header, parsed) || isAutoManagedField(header)) return;
                 const values = parsed.records.map(record => {
                     const value = record?.[header];
                     return value === undefined || value === null ? "" : String(value).trim();
@@ -1297,8 +1340,10 @@
             if (isCalloutEditing) {
                 const editableFields = headers.map((header) => {
                     const value = attributes?.[header] ?? "";
-                    const isCoordinate = header === currentSurveyData?.latKey || header === currentSurveyData?.lonKey;
-                    const isRequired = isCoordinate || requiredSurveyFields.has(header);
+                    const isCoordinate = isCoordinateField(header, currentSurveyData);
+                    const isAutoField = isAutoManagedField(header);
+                    const isReadOnly = isCoordinate || isAutoField;
+                    const isRequired = (!isReadOnly && requiredSurveyFields.has(header));
                     const options = dropdownFieldOptions[header];
                     const labelText = `${escapeHtml(header || "")}${isRequired ? " *" : ""}`;
                     let control;
@@ -1308,9 +1353,9 @@
                             const selected = String(value) === opt ? "selected" : "";
                             return `<option value="${safeOpt}" ${selected}>${safeOpt}</option>`;
                         })].join("");
-                        control = `<select data-attr-field="${escapeHtml(header)}" ${isRequired ? "data-required=\"true\"" : ""}>${optionMarkup}</select>`;
+                        control = `<select data-attr-field="${escapeHtml(header)}" ${isRequired ? "data-required=\"true\"" : ""} ${isReadOnly ? "disabled" : ""}>${optionMarkup}</select>`;
                     } else {
-                        control = `<input type="text" data-attr-field="${escapeHtml(header)}" value="${escapeHtml(value ?? "")}" ${isCoordinate ? "readonly" : ""} ${isRequired ? "data-required=\"true\"" : ""}>`;
+                        control = `<input type="text" data-attr-field="${escapeHtml(header)}" value="${escapeHtml(value ?? "")}" ${isReadOnly ? "readonly" : ""} ${isRequired ? "data-required=\"true\"" : ""}>`;
                     }
                     return `
                         <label class="attribute-edit-row">
