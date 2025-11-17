@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>LalGeo Maps</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script> <style>
+
+    html, body, #map {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* prevents scrollbars */
+        overscroll-behavior: none;
+    }
+    #map {
+        height: 100%;
+        touch-action: none;
+    }
+    #search-bar {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        z-index: 10;
+        background: white;
+        padding: 10px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    #sidebar {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        width: 300px;
+        max-height: 300px;
+        background: white;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
+        border-radius: 8px;
+        padding: 16px;
+        display: none;
+        z-index: 999;
+        overflow-y: auto;
+        font-family: sans-serif;
+    }
+    #myLocationBtn {
+        position: absolute;
+        bottom: 20px;
+        right: 140px;
+        z-index: 1000;
+        width: 10px;
+        height: 10px;
+        border: none;
+        border-radius: 12px;
+        background-color: #fff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        cursor: pointer;
+    }
+
+    #myLocationBtn img {
+        width: 28px;
+        height: 28px;
+        transition: transform 0.2s ease;
+    }
+
+    #myLocationBtn:hover img {
+        transform: scale(1.2);
+    }
+    .share-button {
+        position: fixed;
+        bottom: 135px;
+        right: 12px;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        cursor: pointer;
+        user-select: none;
+        width: 40px;
+        z-index: 1000;
+        background: rgba(255, 255, 255, 0.9);
+        padding: 0;
+        border-radius: 8px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+    .share-button img {
+        width: 28px;
+        height: 28px;
+        transition: transform 0.2s ease;
+    }
+    .share-button:hover img {
+        transform: scale(1.2);
+    }
+    .share-text {
+        font-size: 10px;
+        color: #333;
+        margin-top: 2px;
+        text-align: center;
+    }
+    #importPanel {
+        position: absolute;
+        top: 80px;
+        left: 20px;
+        z-index: 1000;
+        background: rgba(255,255,255,0.95);
+        border-radius: 10px;
+        padding: 12px 16px;
+        box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        max-width: 320px;
+    }
+    #importPanel h3 {
+        margin: 0 0 6px;
+        font-size: 15px;
+    }
+    #importPanel p {
+        margin: 0 0 10px;
+        font-size: 12px;
+        color: #5f6368;
+    }
+    #projectPickerBtn {
+        border: none;
+        background: #1a73e8;
+        color: #fff;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        box-shadow: 0 3px 10px rgba(26,115,232,0.3);
+    }
+    #projectStatus {
+        display: block;
+        margin-top: 8px;
+        font-size: 12px;
+        color: #5f6368;
+    }
+    #projectStatus.success {
+        color: #0c8e5c;
+    }
+    #projectStatus.error {
+        color: #c62828;
+    }
+    .drop-zone {
+        position: fixed;
+        inset: 0;
+        background: rgba(6, 12, 24, 0.78);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 2000;
+        color: #fff;
+        text-align: center;
+    }
+    .drop-zone.visible {
+        display: flex;
+    }
+    .drop-zone-inner {
+        border: 2px dashed rgba(255,255,255,0.6);
+        border-radius: 16px;
+        padding: 32px 48px;
+        max-width: 420px;
+    }
+    .drop-zone-inner h2 {
+        margin: 0 0 10px;
+        font-size: 22px;
+        letter-spacing: 0.5px;
+    }
+    .drop-zone-inner p {
+        margin: 0;
+        font-size: 14px;
+        color: rgba(255,255,255,0.85);
+    }
+    #surveyCallout {
+        position: absolute;
+        z-index: 1500;
+        display: none;
+    }
+    #surveyCallout .card {
+        background: #fff;
+        border-radius: 12px;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.25);
+        border: 1px solid rgba(15,23,42,0.08);
+        padding: 12px;
+        width: 240px;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        position: relative;
+    }
+    #surveyCallout .close-btn {
+        position: absolute;
+        top: 6px;
+        right: 6px;
+        border: none;
+        background: transparent;
+        font-size: 16px;
+        cursor: pointer;
+        color: #5f6368;
+    }
+    #surveyCallout .close-btn:hover {
+        color: #111;
+    }
+    #surveyCallout img {
+        width: 100%;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        object-fit: cover;
+        max-height: 180px;
+        cursor: pointer;
+    }
+    #surveyCallout .attributes div {
+        font-size: 12px;
+        margin-bottom: 4px;
+        color: #222;
+    }
+    #surveyCallout .attributes strong {
+        color: #5f6368;
+        font-weight: 600;
+    }
+    #surveyCallout .callout-actions {
+        margin-top: 10px;
+        display: flex;
+        gap: 8px;
+    }
+    #surveyCallout .callout-actions button {
+        flex: 1;
+        border: 1px solid #d1d5db;
+        border-radius: 6px;
+        padding: 6px 8px;
+        cursor: pointer;
+        background: #f7f9fb;
+        font-weight: 600;
+    }
+    #surveyCallout .callout-actions button.primary {
+        background: #1a73e8;
+        border-color: #1a73e8;
+        color: #fff;
+    }
+    #surveyCallout .attribute-edit-row {
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+        margin-bottom: 8px;
+        font-size: 12px;
+    }
+    #surveyCallout .attribute-edit-row input {
+        border: 1px solid #d5d7df;
+        border-radius: 6px;
+        padding: 6px;
+        font-size: 12px;
+    }
+    #identifierSelectWrapper {
+        margin-top: 8px;
+    }
+    #identifierSelect {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #d5d7df;
+        padding: 6px;
+        font-size: 12px;
+    }
+    #customExpressionWrapper {
+        margin-top: 6px;
+        display: none;
+    }
+    #customExpressionWrapper label {
+        display: block;
+        font-size: 11px;
+        color: #5f6368;
+        margin-bottom: 2px;
+    }
+    #customExpressionInput {
+        width: 100%;
+        border-radius: 8px;
+        border: 1px solid #d5d7df;
+        padding: 6px;
+        font-size: 12px;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #imageModal {
+        position: fixed;
+        inset: 0;
+        background: rgba(3,10,24,0.85);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 3000;
+    }
+    #imageModal img {
+        max-width: 90vw;
+        max-height: 90vh;
+        border-radius: 12px;
+        box-shadow: 0 16px 45px rgba(0,0,0,0.55);
+    }
+    #imageModal button {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        background: transparent;
+        border: none;
+        color: #fff;
+        font-size: 28px;
+        cursor: pointer;
+    }
+    @keyframes pulse {
+        0% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(2); opacity: 0; }
+    }
+    
+    /* #data-search-bar {
+        position: absolute;
+        top: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 999;
+        background: white;
+        padding: 12px 16px;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        width: 400px;
+        display: flex;
+        align-items: center;
+    }
+
+    #data-search-bar input {
+        width: 100%;
+        padding: 10px;
+        font-size: 15px;
+        border-radius: 6px;
+        border: 1px solid #ccc;
+    } */
+
+</style>
+</head>
+<body>
+    <div id="search-bar">
+        <div style="position: relative; display: flex; align-items: center;">
+            <input type="text" id="searchInput" placeholder="Search by Address or Place" style="width: 200px; padding: 8px; padding-right: 25px;">
+            <span id="clearSearch" style=" display: none; position: absolute; right: 8px; cursor: pointer; font-weight: bold; color: #888; ">×</span>
+        </div>
+    </div>
+    <!-- <div id="data-search-bar">
+        <input type="text" id="dataSearchInput" placeholder="e.g., Create a map of countries by literacy rate">
+    </div> -->
+
+    <div id="importPanel">
+        <h3>Import LalGeo Survey</h3>
+        <p>Drag and drop a LalGeo survey .zip or folder, pick files, or load from Dropbox.</p>
+        <button id="projectPickerBtn" type="button">Select files…</button>
+        <input id="projectFileInput" type="file" accept=".zip,.csv,image/*" multiple webkitdirectory style="display:none">
+        <div style="margin-top:10px;">
+            <label style="font-size:12px; color:#5f6368;">Dropbox shared link (set <code>?dl=1</code>)</label>
+            <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.zip?dl=1" style="width:100%; padding:6px; border-radius:8px; border:1px solid #d5d7df; font-size:12px;">
+            <button id="dropboxLoadBtn" type="button" style="margin-top:6px; width:100%; border:none; background:#0f9d58; color:#fff; border-radius:8px; padding:8px; font-weight:600; cursor:pointer;">Load from Dropbox link</button>
+        </div>
+        <div id="dropboxControls" style="margin-top:16px; padding:10px; border:1px solid #dfe1e6; border-radius:10px; background:#f7f9fb;">
+            <label style="font-size:12px; font-weight:600; display:block; margin-bottom:6px;">Live Dropbox connection</label>
+            <button id="connectDropboxBtn" type="button" style="width:100%; border:none; background:#4285f4; color:#fff; border-radius:8px; padding:8px; font-weight:600; cursor:pointer; margin-bottom:8px;">Connect Dropbox Account</button>
+            <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:8px; margin-bottom:8px; font-size:12px; color:#1a73e8;">
+                <strong>Connected to Dropbox</strong>
+                <div id="dropboxUserDetails" style="margin-top:4px; color:#1967d2;"></div>
+            </div>
+            <select id="dropboxSurveySelect" style="width:100%; border-radius:8px; border:1px solid #d5d7df; padding:6px; font-size:12px; margin-bottom:6px;">
+                <option value="">— Select survey file —</option>
+            </select>
+            <button id="loadDropboxSurveyBtn" type="button" style="width:100%; border:none; background:#34a853; color:#fff; border-radius:8px; padding:8px; font-weight:600; cursor:pointer;">Load selected survey</button>
+            <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368; margin-top:6px;">Dropbox not connected.</span>
+        </div>
+        <span id="projectStatus">No project loaded.</span>
+    </div>
+
+    <div id="sidebar">
+        <span id="closeSidebar" style="cursor:pointer; float:right; font-size:18px; font-weight:bold;">×</span>
+        <div id="sidebar-content" style="clear:both; padding-top: 8px;"></div>
+    </div>
+    <button id="myLocationBtn" aria-label="My location">
+        <img src="assets/img/locate-icon.png" alt="Locate">
+    </button>
+    <div id="shareMapBtn" class="share-button">
+        <img src="assets/img/share-icon.png" alt="Share">
+        <div class="share-text">Share</div>
+    </div>
+    <div id="map" style="width: 100%; height: 100vh;"></div>
+    <div id="surveyCallout">
+        <div class="card">
+            <button class="close-btn" aria-label="Close">×</button>
+            <div class="callout-content"></div>
+        </div>
+    </div>
+    <div id="dropZone" class="drop-zone">
+        <div class="drop-zone-inner">
+            <h2>Drop survey export</h2>
+            <p>Drop a LalGeo Survey .zip file or folder to load photos and responses.</p>
+        </div>
+    </div>
+    <div id="imageModal">
+        <button type="button" aria-label="Close image">×</button>
+        <img src="" alt="Survey photo">
+    </div>
+
+    <script>
+        const hostname = window.location.hostname;
+
+        const token = hostname.includes("lalgeo.ca")
+          ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
+          : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw";
+
+        mapkit.init({
+          authorizationCallback: function(done) {
+            done(token);
+          }
+        });
+        
+
+        let locationWatcher = null;
+        let voiceLang = 'en-US'; // Your chosen language
+        let currentSteps = [];
+        let voiceNavActive = false;
+        let voiceTimeouts = [];
+        const projectFileInput = document.getElementById("projectFileInput");
+        const projectPickerBtn = document.getElementById("projectPickerBtn");
+        const projectStatus = document.getElementById("projectStatus");
+        const dropZone = document.getElementById("dropZone");
+        const shareButton = document.getElementById("shareMapBtn");
+        const dropboxUrlInput = document.getElementById("dropboxUrlInput");
+        const dropboxLoadBtn = document.getElementById("dropboxLoadBtn");
+        const connectDropboxBtn = document.getElementById("connectDropboxBtn");
+        const dropboxSurveySelect = document.getElementById("dropboxSurveySelect");
+        const loadDropboxSurveyBtn = document.getElementById("loadDropboxSurveyBtn");
+        const dropboxConnectStatus = document.getElementById("dropboxConnectStatus");
+        const dropboxConnectedInfo = document.getElementById("dropboxConnectedInfo");
+        const dropboxUserDetails = document.getElementById("dropboxUserDetails");
+        let dropboxConnected = false;
+        const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
+        const surveyCallout = document.getElementById("surveyCallout");
+        const surveyCalloutCard = surveyCallout.querySelector(".callout-content");
+        const surveyCalloutClose = surveyCallout.querySelector(".close-btn");
+        const identifierSelect = document.createElement("select");
+        identifierSelect.id = "identifierSelect";
+        const identifierWrapper = document.createElement("div");
+        identifierWrapper.id = "identifierSelectWrapper";
+        identifierWrapper.innerHTML = `<label style="font-size:12px;color:#5f6368;">Label field</label>`;
+        identifierWrapper.appendChild(identifierSelect);
+        const customExpressionWrapper = document.createElement("div");
+        customExpressionWrapper.id = "customExpressionWrapper";
+        customExpressionWrapper.innerHTML = `
+            <label>Custom expression (JavaScript, e.g., Name + ' ' + Type)</label>
+            <input id="customExpressionInput" type="text" placeholder="Name + ' ' + Type">
+        `;
+        identifierWrapper.appendChild(customExpressionWrapper);
+        const customExpressionInput = customExpressionWrapper.querySelector("#customExpressionInput");
+        const imageModal = document.getElementById("imageModal");
+        const imageModalImg = imageModal.querySelector("img");
+        const imageModalClose = imageModal.querySelector("button");
+        const urlParams = new URLSearchParams(window.location.search);
+        const dropboxStatusParam = urlParams.get("dropbox");
+        if (dropboxStatusParam === "connected") {
+            dropboxConnectStatus.textContent = "Dropbox connected.";
+            setProjectStatus("Dropbox account linked.", "success");
+        } else if (dropboxStatusParam === "error") {
+            dropboxConnectStatus.textContent = "Dropbox connection failed.";
+            setProjectStatus("Dropbox connection failed.", "error");
+        }
+        if (dropboxStatusParam) {
+            urlParams.delete("dropbox");
+            const newQuery = urlParams.toString();
+            const replacement = `${window.location.pathname}${newQuery ? `?${newQuery}` : ""}${window.location.hash}`;
+            window.history.replaceState({}, "", replacement);
+        }
+        identifierSelect.addEventListener("change", () => {
+            identifierField = identifierSelect.value;
+            toggleCustomExpressionUI(identifierField === "__custom__");
+            updateAnnotationLabels();
+        });
+        customExpressionInput.addEventListener("input", () => {
+            customIdentifierExpression = customExpressionInput.value;
+            if (identifierField === "__custom__") {
+                updateAnnotationLabels();
+            }
+        });
+        let surveyAnnotations = [];
+        let activeSurveyAnnotation = null;
+        let activeProjectName = "";
+        let identifierField = "";
+        let customIdentifierExpression = "";
+        let currentSurveyData = null;
+        let currentSurveySource = null;
+        let isPersistingEdits = false;
+        let isCalloutEditing = false;
+
+        const readerPromises = new WeakMap();
+
+        const setProjectStatus = (message, state = "") => {
+            projectStatus.textContent = message;
+            projectStatus.classList.remove("success", "error");
+            if (state) {
+                projectStatus.classList.add(state);
+            }
+        };
+
+        projectPickerBtn.addEventListener("click", () => projectFileInput.click());
+
+        projectFileInput.addEventListener("change", async (event) => {
+            if (!event.target.files.length) return;
+            await handleSurveyFiles(Array.from(event.target.files));
+            event.target.value = "";
+        });
+        dropboxLoadBtn.addEventListener("click", async () => {
+            const url = dropboxUrlInput.value.trim();
+            if (!url) {
+                alert("Enter a Dropbox shared link first.");
+                return;
+            }
+            try {
+                setProjectStatus("Downloading from Dropbox…");
+                const payload = await fetchDropboxSurvey(url);
+                await loadSurveyPayload(payload);
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Unable to fetch Dropbox file.", "error");
+            }
+        });
+
+        connectDropboxBtn?.addEventListener("click", async () => {
+            if (dropboxConnected) {
+                await disconnectDropboxAccount();
+                return;
+            }
+            const returnTo = encodeURIComponent(window.location.href.split("#")[0]);
+            window.location.href = `${WORKER_BASE}/api/auth?returnTo=${returnTo}`;
+        });
+
+        loadDropboxSurveyBtn?.addEventListener("click", async () => {
+            const selectedPath = dropboxSurveySelect.value;
+            if (!selectedPath) {
+                alert("Select a survey file first.");
+                return;
+            }
+            try {
+                setProjectStatus("Loading survey from Dropbox…");
+                const payload = await fetchSurveyFromWorker(selectedPath);
+                if (payload && payload.csvText) {
+                    await loadSurveyPayload(payload);
+                } else {
+                    setProjectStatus("Connected to Dropbox, but worker did not return survey data yet.", "error");
+                }
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Unable to load survey from worker.", "error");
+            }
+        });
+
+        window.addEventListener("focus", () => {
+            checkDropboxConnectionStatus();
+            refreshDropboxSurveyList();
+        });
+        checkDropboxConnectionStatus();
+        refreshDropboxSurveyList();
+
+        ["dragenter", "dragover"].forEach(evt =>
+            document.addEventListener(evt, (e) => {
+                e.preventDefault();
+                dropZone.classList.add("visible");
+            })
+        );
+
+        ["dragleave", "drop"].forEach(evt =>
+            document.addEventListener(evt, (e) => {
+                if (e.target === dropZone || e.target === document) {
+                    dropZone.classList.remove("visible");
+                }
+            })
+        );
+
+        dropZone.addEventListener("drop", async (event) => {
+            event.preventDefault();
+            dropZone.classList.remove("visible");
+            const files = await extractFilesFromDataTransfer(event);
+            if (!files.length) {
+                setProjectStatus("No files found in drop.", "error");
+                return;
+            }
+            await handleSurveyFiles(files);
+        });
+
+        shareButton.addEventListener("click", () => {
+            if (!activeProjectName) {
+                alert("Import a survey before sharing.");
+                return;
+            }
+            const url = `${window.location.origin}${window.location.pathname}#${encodeURIComponent(activeProjectName)}`;
+            navigator.clipboard.writeText(url)
+                .then(() => alert(`🔗 Link copied for ${activeProjectName}`))
+                .catch(() => alert("Unable to copy link."));
+        });
+
+        document.addEventListener("click", (event) => {
+            if (surveyCallout.style.display === "block") {
+                const target = event.target;
+                if (!surveyCallout.contains(target) && !isAnnotationElement(target)) {
+                    hideSurveyCallout();
+                }
+            }
+        });
+
+        // Helper to calculate distance between two coordinates
+        function getDistance(coord1, coord2) {
+            const R = 6371e3; // Earth radius in meters
+            const φ1 = coord1.latitude * Math.PI / 180;
+            const φ2 = coord2.latitude * Math.PI / 180;
+            const Δφ = (coord2.latitude - coord1.latitude) * Math.PI / 180;
+            const Δλ = (coord2.longitude - coord1.longitude) * Math.PI / 180;
+            const a = Math.sin(Δφ/2) * Math.sin(Δφ/2) + Math.cos(φ1) * Math.cos(φ2) * Math.sin(Δλ/2) * Math.sin(Δλ/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c; // in meters
+        }
+
+        async function extractFilesFromDataTransfer(event) {
+            const items = event.dataTransfer?.items;
+            if (!items || !items.length) {
+                return Array.from(event.dataTransfer?.files || []);
+            }
+            const files = [];
+            for (const item of items) {
+                if (item.kind === "file") {
+                    const entry = item.webkitGetAsEntry ? item.webkitGetAsEntry() : null;
+                    if (entry) {
+                        const entryFiles = await traverseEntry(entry);
+                        files.push(...entryFiles);
+                    } else if (item.getAsFile()) {
+                        files.push(item.getAsFile());
+                    }
+                }
+            }
+            return files.length ? files : Array.from(event.dataTransfer.files || []);
+        }
+
+        function traverseEntry(entry) {
+            return new Promise((resolve) => {
+                if (entry.isFile) {
+                    entry.file((file) => resolve([file]), () => resolve([]));
+                } else if (entry.isDirectory) {
+                    const reader = entry.createReader();
+                    readAllDirectoryEntries(reader).then(async (entries) => {
+                        const nested = await Promise.all(entries.map(traverseEntry));
+                        resolve(nested.flat());
+                    }).catch(() => resolve([]));
+                } else {
+                    resolve([]);
+                }
+            });
+        }
+
+        function readAllDirectoryEntries(directoryReader) {
+            return new Promise((resolve, reject) => {
+                const entries = [];
+                function readBatch() {
+                    directoryReader.readEntries((results) => {
+                        if (!results.length) {
+                            resolve(entries);
+                        } else {
+                            entries.push(...results);
+                            readBatch();
+                        }
+                    }, reject);
+                }
+                readBatch();
+            });
+        }
+
+        async function handleSurveyFiles(files) {
+            try {
+                setProjectStatus("Processing survey…");
+                const payload = await buildSurveyPayload(files);
+                payload.source = { type: "local" };
+                await loadSurveyPayload(payload);
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Unable to load survey.", "error");
+            }
+        }
+
+        async function loadSurveyPayload(payload) {
+            if (!payload || !payload.csvText) throw new Error("No CSV file found in package.");
+            const parsed = parseSurveyCSV(payload.csvText);
+            currentSurveyData = parsed;
+            currentSurveySource = payload.source || null;
+            renderSurveyProject({
+                parsed,
+                images: payload.images,
+                projectName: payload.projectName || "Survey"
+            });
+            setProjectStatus(`Loaded ${parsed.records.length} responses from ${payload.projectName || "survey"}.`, "success");
+            shareButton.style.display = "flex";
+        }
+
+        async function buildSurveyPayload(files) {
+            if (!files || !files.length) throw new Error("No files provided.");
+            const zipFile = files.find(file => file.name.toLowerCase().endsWith(".zip"));
+            if (zipFile) {
+                return await extractZipPackage(zipFile, { projectName: stripExtension(zipFile.name) });
+            }
+            return await extractLoosePackage(files);
+        }
+
+        async function fetchDropboxSurvey(url) {
+            const directUrl = normalizeDropboxLink(url);
+            const response = await fetch(directUrl);
+            if (!response.ok) throw new Error("Dropbox download failed.");
+            const contentType = response.headers.get("content-type") || "";
+            const projectName = guessNameFromUrl(directUrl);
+            if (contentType.includes("zip") || directUrl.toLowerCase().endsWith(".zip")) {
+                const buffer = await response.arrayBuffer();
+                const extracted = await extractZipPackage(buffer, { projectName });
+                extracted.source = { type: "dropbox-link", url: directUrl, isZip: true };
+                return extracted;
+            }
+            if (contentType.includes("csv") || directUrl.toLowerCase().endsWith(".csv")) {
+                const csvText = await response.text();
+                return {
+                    csvText,
+                    images: {},
+                    projectName,
+                    source: { type: "dropbox-link", url: directUrl, isZip: false }
+                };
+            }
+            throw new Error("Dropbox file must be a .zip or .csv export.");
+        }
+
+        async function refreshDropboxSurveyList() {
+            if (!dropboxSurveySelect) return;
+            dropboxSurveySelect.innerHTML = `<option value="">Loading…</option>`;
+            dropboxConnectStatus.textContent = "Checking Dropbox connection…";
+            try {
+                const response = await fetch(`${WORKER_BASE}/api/surveys/list`, { credentials: "include" });
+                if (!response.ok) {
+                    throw new Error(response.status === 401 ? "Connect your Dropbox account to list files." : "Unable to list Dropbox files.");
+                }
+                const data = await response.json();
+                const files = (data.entries || []).filter(entry => entry[".tag"] === "file" && entry.name.toLowerCase().endsWith(".zip"));
+                dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
+                files.forEach(file => {
+                    const option = document.createElement("option");
+                    option.value = file.path_display || file.path_lower;
+                    option.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
+                    dropboxSurveySelect.appendChild(option);
+                });
+                if (files.length === 0) {
+                    const option = document.createElement("option");
+                    option.value = "";
+                    option.textContent = "No .zip surveys found";
+                    dropboxSurveySelect.appendChild(option);
+                }
+                showDropboxConnectedState();
+                dropboxConnectStatus.textContent = "Dropbox connected.";
+            } catch (error) {
+                dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
+                dropboxConnectStatus.textContent = error.message;
+                console.error(error);
+                if (error.message && error.message.includes("Connect your Dropbox account")) {
+                    showDropboxDisconnectedState();
+                }
+            }
+        }
+
+        async function checkDropboxConnectionStatus() {
+            if (!dropboxConnectStatus) return;
+            try {
+                const response = await fetch(`${WORKER_BASE}/api/profile`, { credentials: "include" });
+                if (!response.ok) throw new Error("Unable to verify Dropbox status.");
+                const data = await response.json();
+                if (data.connected) {
+                    showDropboxConnectedState(data.profile || {});
+                    dropboxConnectStatus.textContent = "Dropbox connected.";
+                    return;
+                }
+                showDropboxDisconnectedState();
+                dropboxConnectStatus.textContent = "Dropbox not connected.";
+            } catch (error) {
+                console.error(error);
+                showDropboxDisconnectedState();
+                dropboxConnectStatus.textContent = error.message || "Unable to reach Dropbox worker.";
+            }
+        }
+
+        async function disconnectDropboxAccount() {
+            if (!connectDropboxBtn) return;
+            const previousLabel = connectDropboxBtn.textContent;
+            connectDropboxBtn.disabled = true;
+            connectDropboxBtn.textContent = "Disconnecting…";
+            try {
+                const response = await fetch(`${WORKER_BASE}/api/logout`, {
+                    method: "POST",
+                    credentials: "include"
+                });
+                if (!response.ok) throw new Error("Unable to sign out of Dropbox.");
+                showDropboxDisconnectedState();
+                dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
+                dropboxConnectStatus.textContent = "Dropbox disconnected.";
+            } catch (error) {
+                console.error(error);
+                dropboxConnectStatus.textContent = error.message || "Unable to sign out of Dropbox.";
+            } finally {
+                connectDropboxBtn.disabled = false;
+                connectDropboxBtn.textContent = dropboxConnected ? "Disconnect Dropbox Account" : "Connect Dropbox Account";
+            }
+        }
+
+        function showDropboxConnectedState(profile = {}) {
+            dropboxConnected = true;
+            if (connectDropboxBtn) {
+                connectDropboxBtn.style.display = "block";
+                connectDropboxBtn.textContent = "Disconnect Dropbox Account";
+                connectDropboxBtn.style.background = "#d93025";
+                connectDropboxBtn.style.border = "none";
+            }
+            if (dropboxConnectedInfo) dropboxConnectedInfo.style.display = "block";
+            if (dropboxUserDetails) {
+                const name = profile.name || profile.displayName;
+                const email = profile.email;
+                dropboxUserDetails.textContent = [name, email && `(${email})`].filter(Boolean).join(" ") || "Connected";
+            }
+        }
+
+        function showDropboxDisconnectedState() {
+            dropboxConnected = false;
+            if (connectDropboxBtn) {
+                connectDropboxBtn.style.display = "block";
+                connectDropboxBtn.textContent = "Connect Dropbox Account";
+                connectDropboxBtn.style.background = "#4285f4";
+                connectDropboxBtn.style.border = "none";
+            }
+            if (dropboxConnectedInfo) dropboxConnectedInfo.style.display = "none";
+            if (dropboxUserDetails) dropboxUserDetails.textContent = "";
+        }
+
+        async function fetchSurveyFromWorker(path) {
+            const response = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}`, {
+                credentials: "include"
+            });
+            const contentType = response.headers.get("content-type") || "";
+            const projectNameHeader = response.headers.get("x-project-name");
+            const projectName = projectNameHeader || stripExtension(path.split("/").filter(Boolean).pop() || "Survey");
+            if (!response.ok) {
+                if (contentType.includes("application/json")) {
+                    const data = await response.json().catch(() => null);
+                    const message = data?.error === "NOT_LINKED"
+                        ? "Connect your Dropbox account before loading surveys."
+                        : data?.error || "Worker could not load the selected survey.";
+                    throw new Error(message);
+                }
+                throw new Error("Worker could not load the selected survey.");
+            }
+            const sourceMeta = { type: "dropbox", path, isZip: path.toLowerCase().endsWith(".zip") };
+            if (contentType.includes("zip")) {
+                const buffer = await response.arrayBuffer();
+                const extracted = await extractZipPackage(buffer, { projectName });
+                extracted.source = sourceMeta;
+                return extracted;
+            }
+            if (contentType.includes("csv") || contentType.includes("text")) {
+                const csvText = await response.text();
+                return { csvText, images: {}, projectName, source: sourceMeta };
+            }
+            // Fallback: treat as binary zip payload
+            const buffer = await response.arrayBuffer();
+            const extracted = await extractZipPackage(buffer, { projectName });
+            extracted.source = sourceMeta;
+            return extracted;
+        }
+
+        function normalizeDropboxLink(url) {
+            try {
+                const parsed = new URL(url);
+                if (parsed.hostname.includes("dropbox.com")) {
+                    parsed.protocol = "https:";
+                    if (parsed.pathname.startsWith("/s/") || parsed.pathname.startsWith("/scl/")) {
+                        parsed.hostname = "dl.dropboxusercontent.com";
+                        const params = parsed.searchParams;
+                        parsed.search = params.toString() ? `?${params.toString()}` : "";
+                        return parsed.toString();
+                    }
+                    parsed.searchParams.set("dl", "1");
+                    return parsed.toString();
+                }
+                return url;
+            } catch {
+                return url;
+            }
+        }
+
+        function guessNameFromUrl(url) {
+            try {
+                const pathname = new URL(url).pathname;
+                return stripExtension(pathname.split("/").filter(Boolean).pop() || "Survey");
+            } catch {
+                return "Survey";
+            }
+        }
+
+        async function extractZipPackage(source, { projectName } = {}) {
+            const zip = await JSZip.loadAsync(source);
+            const images = {};
+            const csvTexts = [];
+            const entries = Object.keys(zip.files);
+            await Promise.all(entries.map(async (path) => {
+                const entry = zip.files[path];
+                if (entry.dir) return;
+                if (path.toLowerCase().endsWith(".csv")) {
+                    csvTexts.push(await entry.async("string"));
+                } else if (/\.(jpg|jpeg|png)$/i.test(path)) {
+                    const base64 = await entry.async("base64");
+                    const filename = normalizeFileName(path);
+                    const mime = path.toLowerCase().endsWith(".png") ? "image/png" : "image/jpeg";
+                    images[filename] = `data:${mime};base64,${base64}`;
+                }
+            }));
+            if (!csvTexts.length) throw new Error("No CSV file found inside zip.");
+            return {
+                csvText: csvTexts[0],
+                images,
+                projectName: projectName || "Survey"
+            };
+        }
+
+        async function extractLoosePackage(files) {
+            const csvFile = files.find(file => file.name.toLowerCase().endsWith(".csv"));
+            if (!csvFile) throw new Error("No CSV file found.");
+            const csvText = await readFileAsText(csvFile);
+            const images = {};
+            for (const file of files) {
+                if (/\.(jpg|jpeg|png)$/i.test(file.name)) {
+                    images[normalizeFileName(file.name)] = await readFileAsDataURL(file);
+                }
+            }
+            return {
+                csvText,
+                images,
+                projectName: stripExtension(csvFile.name)
+            };
+        }
+
+        function readFileAsText(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsText(file);
+            });
+        }
+
+        function readFileAsDataURL(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        function stripExtension(name = "") {
+            return name.replace(/\.[^/.]+$/, "");
+        }
+
+        function normalizeFileName(name = "") {
+            return name.trim().replace(/^.*[\\/]/, "");
+        }
+
+        function isAnnotationElement(element) {
+            return element?.closest?.(".mapkit-annotation, #surveyCallout");
+        }
+
+        function toggleCustomExpressionUI(show) {
+            customExpressionWrapper.style.display = show ? "block" : "none";
+            if (show) {
+                customExpressionInput.value = customIdentifierExpression;
+            }
+        }
+
+        function evaluateCustomExpression(attrs) {
+            if (!customIdentifierExpression.trim()) return "";
+            try {
+                const fn = new Function("attrs", `
+                    with (attrs) {
+                        return ${customIdentifierExpression};
+                    }
+                `);
+                return fn(attrs);
+            } catch (error) {
+                console.warn("Custom expression error:", error);
+                return "";
+            }
+        }
+
+        function parseSurveyCSV(csvText) {
+            const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
+            const rows = parsed.data;
+            const headerIndex = rows.findIndex(row =>
+                row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("latitude"))
+            );
+            if (headerIndex === -1) throw new Error("Unable to find Latitude column in CSV.");
+            const headers = rows[headerIndex].map(cell => (cell || "").trim());
+            const latKey = headers.find(h => /lat/i.test(h));
+            const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
+            if (!latKey || !lonKey) throw new Error("CSV missing latitude or longitude headers.");
+            const dataRows = rows.slice(headerIndex + 1).filter(row =>
+                row.some(cell => cell !== undefined && cell !== "")
+            );
+            const records = dataRows.map(row => {
+                const entry = {};
+                headers.forEach((header, idx) => {
+                    const key = header || `Field_${idx}`;
+                    entry[key] = row[idx];
+                });
+                return entry;
+            });
+            return { headers, records, latKey, lonKey };
+        }
+
+        function renderSurveyProject({ parsed, images, projectName }) {
+            clearSurveyLayers();
+            const coords = [];
+            if (identifierField !== "__custom__") {
+                identifierField = parsed.headers.find(h => h !== parsed.latKey && h !== parsed.lonKey) || parsed.latKey;
+            }
+            populateIdentifierOptions(parsed.headers, parsed.latKey, parsed.lonKey);
+            parsed.records.forEach((record, index) => {
+                const lat = parseFloat(record[parsed.latKey]);
+                const lon = parseFloat(record[parsed.lonKey]);
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+                const coord = new mapkit.Coordinate(lat, lon);
+                coords.push(coord);
+                const attributes = { ...record };
+                let imageSrc = null;
+                for (const value of Object.values(record)) {
+                    if (typeof value === "string") {
+                        const normalized = normalizeFileName(value);
+                        if (images[normalized]) {
+                            imageSrc = images[normalized];
+                            break;
+                        }
+                    }
+                }
+                const markerTitle = computeLabelFromAttributes(attributes, projectName);
+                const marker = new mapkit.MarkerAnnotation(coord, {
+                    color: "#EA4335",
+                    glyphText: "●",
+                    title: markerTitle
+                });
+                marker.surveyPoint = { coordinate: coord, attributes, imageSrc, title: markerTitle, rowIndex: index };
+                surveyAnnotations.push(marker);
+                map.addAnnotation(marker);
+            });
+            if (!coords.length) throw new Error("No valid coordinates found in CSV.");
+            activeProjectName = projectName;
+            if (coords.length === 1) {
+                map.region = new mapkit.CoordinateRegion(coords[0], new mapkit.CoordinateSpan(0.02, 0.02));
+            } else {
+                map.region = computeBounds(coords);
+            }
+            setTimeout(() => positionSurveyCallout(activeSurveyAnnotation), 10);
+        }
+
+        function clearSurveyLayers() {
+            hideSurveyCallout();
+            surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
+            surveyAnnotations = [];
+        }
+
+        function updateAnnotationLabels() {
+            surveyAnnotations.forEach(annotation => {
+                annotation.title = computeLabelFromAttributes(annotation.surveyPoint?.attributes, activeProjectName);
+            });
+        }
+
+        function populateIdentifierOptions(headers, latKey, lonKey) {
+            identifierSelect.innerHTML = "";
+            headers
+                .filter(header => header && header !== "")
+                .forEach(header => {
+                    const option = document.createElement("option");
+                    option.value = header;
+                    option.textContent = header;
+                    if (header === identifierField) option.selected = true;
+                    identifierSelect.appendChild(option);
+                });
+            const customOption = document.createElement("option");
+            customOption.value = "__custom__";
+            customOption.textContent = "Custom expression (JavaScript)";
+            identifierSelect.appendChild(customOption);
+            if (identifierField !== "__custom__" && !headers.includes(identifierField)) {
+                identifierField = headers.find(h => h !== latKey && h !== lonKey) || headers[0];
+            }
+            identifierSelect.value = identifierField || headers[0];
+            updateAnnotationLabels();
+            toggleCustomExpressionUI(identifierField === "__custom__");
+        }
+
+        function computeLabelFromAttributes(attributes = {}, fallback = activeProjectName) {
+            if (identifierField === "__custom__") {
+                const customVal = evaluateCustomExpression(attributes);
+                if (customVal !== undefined && customVal !== null && customVal !== "") return customVal;
+                return fallback;
+            }
+            const value = attributes?.[identifierField];
+            return (value !== undefined && value !== null && value !== "") ? value : fallback;
+        }
+
+        function showSurveyCallout(annotation) {
+            if (!annotation || !annotation.surveyPoint) return;
+            activeSurveyAnnotation = annotation;
+            isCalloutEditing = false;
+            renderSurveyCalloutContent();
+            if (!document.getElementById("identifierSelectWrapper")) {
+                surveyCalloutCard.parentElement.appendChild(identifierWrapper);
+            }
+            surveyCallout.style.display = "block";
+            positionSurveyCallout(annotation);
+        }
+
+        function renderSurveyCalloutContent() {
+            if (!activeSurveyAnnotation) return;
+            const { attributes = {}, imageSrc, title } = activeSurveyAnnotation.surveyPoint;
+            const safeTitle = escapeHtml(title || "Survey photo");
+            const imageSection = imageSrc ? `<img src="${imageSrc}" alt="${safeTitle}" class="survey-photo">` : "";
+            if (isCalloutEditing) {
+                const editableFields = Object.entries(attributes).map(([key, value]) => `
+                    <label class="attribute-edit-row">
+                        <span>${escapeHtml(key)}</span>
+                        <input type="text" data-attr-field="${escapeHtml(key)}" value="${escapeHtml(value ?? "")}">
+                    </label>
+                `).join("") || "<div class=\"attributes\">No attributes</div>";
+                surveyCalloutCard.innerHTML = `
+                    ${imageSection}
+                    <form id="attributeEditForm" class="attributes">${editableFields}</form>
+                    <div class="callout-actions">
+                        <button type="button" id="calloutSaveBtn" class="primary">Save</button>
+                        <button type="button" id="calloutCancelBtn">Cancel</button>
+                    </div>
+                `;
+                surveyCalloutCard.querySelector("#calloutSaveBtn")?.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    saveCalloutEdits();
+                });
+                surveyCalloutCard.querySelector("#calloutCancelBtn")?.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    isCalloutEditing = false;
+                    renderSurveyCalloutContent();
+                });
+            } else {
+                const attributeRows = Object.entries(attributes)
+                    .filter(([key, value]) => value !== undefined && value !== null && value !== "")
+                    .map(([key, value]) => `<div><strong>${escapeHtml(key)}:</strong> ${escapeHtml(value)}</div>`)
+                    .join("") || "<div>No attributes</div>";
+                surveyCalloutCard.innerHTML = `
+                    ${imageSection}
+                    <div class="attributes">${attributeRows}</div>
+                    <div class="callout-actions">
+                        <button type="button" id="calloutEditBtn">Edit attributes</button>
+                    </div>
+                `;
+                surveyCalloutCard.querySelector("#calloutEditBtn")?.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    isCalloutEditing = true;
+                    renderSurveyCalloutContent();
+                });
+            }
+            surveyCalloutCard.querySelector(".survey-photo")?.addEventListener("click", () => openImageModal(imageSrc, title));
+        }
+
+        async function saveCalloutEdits() {
+            if (!activeSurveyAnnotation) return;
+            const form = surveyCalloutCard.querySelector("#attributeEditForm");
+            if (!form) return;
+            const updatedAttributes = { ...(activeSurveyAnnotation.surveyPoint.attributes || {}) };
+            form.querySelectorAll("input[data-attr-field]").forEach((input) => {
+                const field = input.getAttribute("data-attr-field");
+                if (field) {
+                    updatedAttributes[field] = input.value;
+                }
+            });
+            activeSurveyAnnotation.surveyPoint.attributes = updatedAttributes;
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            if (Number.isInteger(rowIndex) && currentSurveyData?.records?.[rowIndex]) {
+                currentSurveyData.records[rowIndex] = { ...currentSurveyData.records[rowIndex], ...updatedAttributes };
+            }
+            isCalloutEditing = false;
+            updateAnnotationLabels();
+            renderSurveyCalloutContent();
+            await persistSurveyEditsIfNeeded();
+        }
+
+        async function persistSurveyEditsIfNeeded() {
+            if (!currentSurveyData || !currentSurveySource || currentSurveySource.type !== "dropbox") {
+                return;
+            }
+            if (isPersistingEdits) return;
+            const csvText = buildCsvFromCurrentSurvey();
+            if (!csvText) return;
+            isPersistingEdits = true;
+            try {
+                setProjectStatus("Saving edits to Dropbox…");
+                const response = await fetch(`${WORKER_BASE}/api/surveys/update`, {
+                    method: "POST",
+                    credentials: "include",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({
+                        path: currentSurveySource.path,
+                        csvText,
+                        isZip: !!currentSurveySource.isZip
+                    })
+                });
+                if (!response.ok) {
+                    throw new Error("Unable to save edits to Dropbox.");
+                }
+                setProjectStatus("Edits saved to Dropbox.", "success");
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Failed to save edits to Dropbox.", "error");
+            } finally {
+                isPersistingEdits = false;
+            }
+        }
+
+        function buildCsvFromCurrentSurvey() {
+            if (!currentSurveyData?.headers?.length || !Array.isArray(currentSurveyData.records)) {
+                return "";
+            }
+            const rows = currentSurveyData.records.map(record =>
+                currentSurveyData.headers.map(header => {
+                    const value = record?.[header];
+                    return value === undefined || value === null ? "" : value;
+                })
+            );
+            return Papa.unparse({ fields: currentSurveyData.headers, data: rows });
+        }
+
+        function hideSurveyCallout() {
+            surveyCallout.style.display = "none";
+            activeSurveyAnnotation = null;
+        }
+
+        function positionSurveyCallout(annotation) {
+            if (!annotation || surveyCallout.style.display !== "block") return;
+            const point = map.convertCoordinateToPointOnPage(annotation.coordinate);
+            const rect = surveyCallout.getBoundingClientRect();
+            surveyCallout.style.left = `${point.x - rect.width / 2}px`;
+            surveyCallout.style.top = `${point.y - rect.height - 14}px`;
+        }
+
+        window.addEventListener("resize", () => {
+            if (activeSurveyAnnotation) positionSurveyCallout(activeSurveyAnnotation);
+        });
+
+        surveyCalloutClose.addEventListener("click", hideSurveyCallout);
+
+        imageModalClose.addEventListener("click", closeImageModal);
+        imageModal.addEventListener("click", (event) => {
+            if (event.target === imageModal) {
+                closeImageModal();
+            }
+        });
+
+        function openImageModal(src, alt) {
+            if (!src) return;
+            imageModalImg.src = src;
+            imageModalImg.alt = alt || "Survey photo";
+            imageModal.style.display = "flex";
+        }
+
+        function closeImageModal() {
+            imageModal.style.display = "none";
+            imageModalImg.src = "";
+        }
+
+        function escapeHtml(value) {
+            if (value === undefined || value === null) return "";
+            return String(value)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#39;");
+        }
+
+        function startVoiceNavigation(steps) {
+            stopVoice(); // Stop any active voice nav
+            currentSteps = steps.map(step => ({ ...step, announced: false }));
+            voiceNavActive = true;
+            const destination = currentSteps[currentSteps.length - 1].path.slice(-1)[0]; // Approximate final destination
+
+            locationWatcher = navigator.geolocation.watchPosition(
+                (position) => {
+                    const userCoord = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+                    // 🔥 Follow user on map
+                    map.region = new mapkit.CoordinateRegion(
+                        new mapkit.Coordinate(userCoord.latitude, userCoord.longitude),
+                        new mapkit.CoordinateSpan(0.005, 0.005)
+                    );
+                    showUserLocation(new mapkit.Coordinate(userCoord.latitude, userCoord.longitude));
+
+                    let onCourse = false;
+                    for (let i = 0; i < currentSteps.length; i++) {
+                        const step = currentSteps[i];
+                        const stepCoord = step.path && step.path.length > 0 ? step.path[0] : (step.coordinate || userCoord);
+                        const distance = getDistance(userCoord, stepCoord);
+
+                        if (distance < 50 && !step.announced) {
+                            const instruction = naturalizeInstruction(step.instructions);
+                            speakDirection(instruction);
+                            currentSteps[i].announced = true;
+                        }
+                        if (distance < 200) onCourse = true; // 👈 Adjust threshold (200 meters) as needed
+                    }
+
+                    // 🔁 Re-route if off-course
+                    if (!onCourse) {
+                        console.warn("Off-course detected! Recalculating route...");
+                        getDirections(destination.latitude, destination.longitude); // Or use stored destination lat/lon
+                    }
+                },
+                (error) => {
+                    console.error("Geolocation error:", error);
+                    if (error.code === error.PERMISSION_DENIED) {
+                        alert("Please allow location access to enable navigation.");
+                    } else if (error.code === error.POSITION_UNAVAILABLE) {
+                        alert("Location position is unavailable.");
+                    } else if (error.code === error.TIMEOUT) {
+                        alert("Location request timed out.");
+                    }
+                },
+                { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
+            );
+        }
+
+        function stopVoice() {
+            speechSynthesis.cancel();
+            voiceNavActive = false;
+            currentSteps = [];
+            if (locationWatcher !== null) {
+                navigator.geolocation.clearWatch(locationWatcher);
+                locationWatcher = null;
+            }
+        }
+
+        // Replaces "Dr" with "Drive" and "SE" with "South East"
+        function naturalizeInstruction(text) {
+            if (typeof text !== 'string') {
+                console.warn("Instruction is not a valid string:", text);
+                return "Proceed to next step"; // Fallback default
+            }
+            return text
+                .replace(/\bDr\b/g, "Drive")
+                .replace(/\bSE\b/g, "South East")
+                .replace(/\bSW\b/g, "South West")
+                .replace(/\bNE\b/g, "North East")
+                .replace(/\bNW\b/g, "North West");
+        }
+
+        function speakDirection(text) {
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.lang = voiceLang;
+            speechSynthesis.speak(utterance);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById("closeSidebar").addEventListener("click", () => {
+                document.getElementById("sidebar").style.display = "none";
+            });
+        });
+
+        const map = new mapkit.Map("map", {
+            isZoomEnabled: true,
+            isScrollEnabled: true,
+            showsZoomControl: true,
+            showsCompass: mapkit.FeatureVisibility.Visible
+        });
+        map.addEventListener("region-change-end", () => {
+            if (activeSurveyAnnotation) {
+                positionSurveyCallout(activeSurveyAnnotation);
+            }
+        });
+
+        map.addEventListener("select", (event) => {
+            if (event?.annotation?.surveyPoint) {
+                showSurveyCallout(event.annotation);
+                return;
+            } else {
+                hideSurveyCallout();
+            }
+            if (!event || !event.overlay || event.overlay.routeIndex === undefined) return;
+
+            const selectedIndex = event.overlay.routeIndex;
+            allRouteOverlays.forEach((overlay, idx) => {
+                overlay.style = new mapkit.Style({
+                    strokeColor: idx === selectedIndex ? "#007aff" : "#999",
+                    lineWidth: idx === selectedIndex ? 10 : 6,
+                    lineDash: idx === selectedIndex ? [] : [6, 4],
+                    lineJoin: "round",
+                    lineCap: "round"
+                });
+
+                if (idx === selectedIndex && overlay.routeCoordinates?.length) {
+                    const bounds = computeBounds(overlay.routeCoordinates);
+                    map.region = bounds;
+
+                    document.getElementById("sidebar").style.display = "block";
+                    if (window.currentRouteData && window.currentRouteData[selectedIndex]) {
+                        const selectedRoute = window.currentRouteData[selectedIndex];
+                        const durationMinutes = Math.round(selectedRoute.expectedTravelTime / 60);
+                        const sidebarContent = document.getElementById("sidebar-content");
+                        const distanceKm = (selectedRoute.distance / 1000).toFixed(2);
+                        const arrivalTime = new Date(Date.now() + selectedRoute.expectedTravelTime * 1000);
+                        const arrivalTimeStr = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const routeName = selectedRoute.name || "Unnamed Route";
+                        const mode = {
+                            [mapkit.Directions.Transport.Automobile]: "Automobile",
+                            [mapkit.Directions.Transport.Walking]: "Walking",
+                            [mapkit.Directions.Transport.Transit]: "Transit"
+                        }[selectedRoute.transportType] || "Unknown";
+
+                        sidebarContent.innerHTML = `
+                            <p>⏱️ Estimated Time: ${durationMinutes} min</p>
+                            <p>📏 Distance: ${distanceKm} km</p>
+                            <p>🕒 Arrive by: ${arrivalTimeStr}</p>
+                            <p>🛣️ Route: ${routeName}</p>
+                            <p>🚗 Mode: ${mode}</p>
+                            <label for="langSelect">🌐 Language:</label>
+                            <select id="langSelect">
+                                <option value="en-US">English</option>
+                                <option value="fr-FR">French</option>
+                                <option value="hi-IN">Hindi</option>
+                            </select>
+                            <br><br>
+                            <button id="startVoiceNav">▶️ Start Voice Navigation</button>
+                            <button id="stopVoiceNav">⛔ Stop Voice</button>
+                        `;
+
+                        document.getElementById("startVoiceNav").addEventListener("click", () => {
+                            startVoiceNavigation(selectedRoute.steps);
+                        });
+                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                    }
+                }
+            });
+        });
+
+        let userLocationAnnotation = null;
+        function showUserLocation(coord) {
+            if (userLocationAnnotation) {
+                map.removeAnnotation(userLocationAnnotation);
+            }
+            // Create a dummy image as glyph (or use a custom pin image)
+            const annotation = new mapkit.MarkerAnnotation(coord, {
+                color: "#007aff",
+                glyphText: "⚪", // you could also use glyphImage: {url: "custom-icon.svg"}
+                title: "You are here",
+                subtitle: ""
+            });
+            userLocationAnnotation = annotation;
+            map.addAnnotation(userLocationAnnotation);
+        }
+
+        let isZooming = false;
+        document.getElementById("map").addEventListener("wheel", (e) => {
+            e.preventDefault();
+            if (isZooming) return;
+            isZooming = true;
+
+            const mapElement = document.getElementById("map");
+            const zoomDirection = e.deltaY > 0 ? 1 : -1;
+            const zoomScale = 0.3;
+            const steps = 12;
+            let step = 0;
+
+            const rect = mapElement.getBoundingClientRect();
+            const domPoint = new DOMPoint(e.clientX - rect.left, e.clientY - rect.top);
+            const anchor = map.convertPointOnPageToCoordinate(domPoint);
+
+            const startRegion = map.region;
+            const targetSpan = new mapkit.CoordinateSpan(
+                startRegion.span.latitudeDelta * (1 + zoomScale * zoomDirection),
+                startRegion.span.longitudeDelta * (1 + zoomScale * zoomDirection)
+            );
+
+            function interpolate(a, b, t) {
+                return a + (b - a) * t;
+            }
+
+            function animateZoom() {
+                step++;
+                const t = step / steps;
+
+                const latDelta = interpolate(startRegion.span.latitudeDelta, targetSpan.latitudeDelta, t);
+                const lonDelta = interpolate(startRegion.span.longitudeDelta, targetSpan.longitudeDelta, t);
+                const zoomRatio = latDelta / startRegion.span.latitudeDelta;
+
+                // Adjust center based on anchor (cursor) position
+                const newCenterLat = anchor.latitude - (anchor.latitude - startRegion.center.latitude) * zoomRatio;
+                const newCenterLon = anchor.longitude - (anchor.longitude - startRegion.center.longitude) * zoomRatio;
+
+                map.region = new mapkit.CoordinateRegion(
+                    new mapkit.Coordinate(newCenterLat, newCenterLon),
+                    new mapkit.CoordinateSpan(latDelta, lonDelta)
+                );
+
+                if (step < steps) {
+                    requestAnimationFrame(animateZoom);
+                } else {
+                    isZooming = false;
+                }
+            }
+            requestAnimationFrame(animateZoom);
+        }, { passive: false });
+
+        let myLocationCoord = null; // global variable to track your location
+        let currentStepIndex = 0;
+
+        const fallbackRegion = new mapkit.CoordinateRegion(
+            new mapkit.Coordinate(51.0447, -114.0719),
+            new mapkit.CoordinateSpan(0.05, 0.05)
+        );
+        map.region = fallbackRegion;
+
+        const searchField = document.getElementById("searchInput");
+        const search = new mapkit.Search({ region: map.region });
+        fetch("https://ipapi.co/json/")
+          .then(res => res.json())
+          .then(data => {
+            if (data && data.latitude && data.longitude) {
+              const approxCoord = new mapkit.Coordinate(data.latitude, data.longitude);
+              const approxRegion = new mapkit.CoordinateRegion(
+                approxCoord,
+                new mapkit.CoordinateSpan(0.2, 0.2)
+              );
+              map.region = approxRegion;
+              search.region = approxRegion;
+            }
+          })
+          .catch(err => {
+            console.warn("IP-based geolocation failed:", err);
+            map.region = fallbackRegion;
+            search.region = fallbackRegion;
+          });
+        const clearSearch = document.getElementById("clearSearch");
+
+        searchField.addEventListener("input", () => {
+            clearSearch.style.display = searchField.value ? "inline" : "none";
+        });
+
+        const resultsList = document.createElement("ul");
+        Object.assign(resultsList.style, {
+            position: "absolute",
+            top: "55px",
+            left: "20px",
+            zIndex: "999",
+            backgroundColor: "#fff",
+            border: "1px solid #ccc",
+            listStyle: "none",
+            padding: "0",
+            margin: "0",
+            width: "260px",
+            maxHeight: "300px",
+            overflowY: "auto",
+            fontSize: "14px",
+            boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
+            borderRadius: "6px",
+            display: "none"
+        });
+        document.body.appendChild(resultsList);
+
+        let currentAnnotation = null;
+
+        function showSidebar(place) {
+            const sidebar = document.getElementById("sidebar");
+            const content = document.getElementById("sidebar-content");
+            // Fallback UI using place properties
+            content.innerHTML = `
+                <h3>${place.name || "Unknown Place"}</h3>
+                <p>${place.formattedAddress || "No address available."}</p>
+                ${place.phoneNumber ? `<p>📞 ${place.phoneNumber}</p>` : ""}
+                ${place.url ? `<p><a href="${place.url}" target="_blank">Website</a></p>` : ""}
+                ${place.category ? `<p>📍 ${place.category}</p>` : ""}
+                <button onclick="getDirections(${place.coordinate.latitude}, ${place.coordinate.longitude})">📍 Get Directions</button>
+            `;
+            sidebar.style.display = "block";
+        }
+
+        function createAnnotation(place) {
+            const annotation = new mapkit.MarkerAnnotation(place.coordinate, {
+                title: place.name,
+                subtitle: place.formattedAddress
+            });
+            map.addAnnotation(annotation);
+            showSidebar(place);
+            return annotation;
+        }
+
+        searchField.addEventListener("input", () => {
+            const query = searchField.value;
+            if (!query) {
+                resultsList.style.display = "none";
+                return;
+            }
+            search.search(query, (error, data) => {
+                if (error || !data.places) return;
+
+                resultsList.innerHTML = "";
+                data.places.forEach(place => {
+                    const li = document.createElement("li");
+                    li.style.padding = "10px";
+                    li.style.cursor = "pointer";
+                    li.style.borderBottom = "1px solid #eee";
+                    li.innerHTML = `<strong>${place.name}</strong><br/><small>${place.formattedAddress || ""}</small>`;
+                    li.addEventListener("click", () => {
+                        resultsList.style.display = "none";
+                        searchField.value = place.name;
+                        map.region = new mapkit.CoordinateRegion(place.coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
+                        if (currentAnnotation) {
+                            map.removeAnnotation(currentAnnotation);
+                        }
+                        currentAnnotation = createAnnotation(place);
+                    });
+                    resultsList.appendChild(li);
+                });
+                resultsList.style.display = "block";
+            });
+        });
+
+        clearSearch.addEventListener("click", () => {
+            searchField.value = "";
+            clearSearch.style.display = "none";
+            resultsList.style.display = "none";
+            stopVoice(); // Stop voice navigation if active
+            document.getElementById("sidebar").style.display = "none"; // Hide sidebar
+            if (currentAnnotation) { // Remove current place annotation (if any)
+                map.removeAnnotation(currentAnnotation);
+                currentAnnotation = null;
+            }
+            if (allRouteOverlays.length > 0) { // Remove all route overlays
+                allRouteOverlays.forEach(o => map.removeOverlay(o));
+                allRouteOverlays = [];
+            }
+            document.getElementById("sidebar-content").innerHTML = ""; // Clear sidebar content
+            window.currentRouteData = null; // Optionally reset route data
+        });
+
+
+        searchField.addEventListener("keydown", function (e) {
+            if (e.key === "Enter") {
+                search.search(searchField.value, (error, data) => {
+                    if (error || data.places.length === 0) return;
+                    const place = data.places[0];
+                    map.region = new mapkit.CoordinateRegion(place.coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
+                    if (currentAnnotation) {
+                        map.removeAnnotation(currentAnnotation);
+                    }
+                    currentAnnotation = createAnnotation(place);
+                    resultsList.style.display = "none";
+                });
+            }
+        });
+
+        map.addEventListener("singleTap", () => {
+            document.getElementById("sidebar").style.display = "none";
+            hideSurveyCallout();
+        });
+
+        let hasCenteredOnce = false;
+        document.getElementById("myLocationBtn").addEventListener("click", () => {
+            if (!navigator.geolocation) {
+                alert("Geolocation is not supported by your browser.");
+                return;
+            }
+            navigator.geolocation.watchPosition(
+                (position) => {
+                    const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
+                    myLocationCoord = coord;
+                    showUserLocation(coord);
+                    if (!hasCenteredOnce) {
+                        map.region = new mapkit.CoordinateRegion(coord, new mapkit.CoordinateSpan(0.01, 0.01));
+                        hasCenteredOnce = true;
+                    }
+                },
+                () => {
+                    alert("Unable to retrieve your location.");
+                }
+            );
+        });
+
+        function computeBounds(coords) {
+            let minLat = coords[0].latitude, maxLat = coords[0].latitude;
+            let minLon = coords[0].longitude, maxLon = coords[0].longitude;
+
+            for (let i = 1; i < coords.length; i++) {
+                const pt = coords[i];
+                minLat = Math.min(minLat, pt.latitude);
+                maxLat = Math.max(maxLat, pt.latitude);
+                minLon = Math.min(minLon, pt.longitude);
+                maxLon = Math.max(maxLon, pt.longitude);
+            }
+
+            const centerLat = (minLat + maxLat) / 2;
+            const centerLon = (minLon + maxLon) / 2;
+            const latDelta = (maxLat - minLat) * 1.2;
+            const lonDelta = (maxLon - minLon) * 1.2;
+
+            return new mapkit.CoordinateRegion(
+                new mapkit.Coordinate(centerLat, centerLon),
+                new mapkit.CoordinateSpan(latDelta, lonDelta)
+            );
+        }
+
+        let allRouteOverlays = []; // stores all overlays so we can update styles
+        let routeOverlay = null;
+
+        function getDirections(destLat, destLon) {
+            if (!myLocationCoord) {
+                // Try to request location permission and get the location
+                if (navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
+                            myLocationCoord = coord;
+                            showUserLocation(coord);
+                            // Now, retry the directions with the updated location
+                            getDirections(destLat, destLon);
+                        },
+                        (error) => {
+                            alert("Unable to retrieve your location. Please allow location access.");
+                            console.error("Geolocation error:", error);
+                        }
+                    );
+                } else {
+                    alert("Geolocation is not supported by your browser.");
+                }
+                return; // Exit for now; will retry after location is retrieved
+            }
+
+            const directions = new mapkit.Directions();
+            const origin = myLocationCoord;
+            const destination = new mapkit.Coordinate(destLat, destLon);
+
+            const request = {
+                origin: origin,
+                destination: destination,
+                requestsAlternateRoutes: true,
+                transportType: mapkit.Directions.Transport.Automobile
+            };
+
+            directions.route(request, (error, data) => {
+                if (error || !data || !data.routes || data.routes.length === 0) {
+                    console.error("Routing error:", error);
+                    alert("Error getting route.");
+                    return;
+                }
+
+                speechSynthesis.cancel(); // cancel any previous speech
+
+                // Remove existing route overlays
+                if (routeOverlay) { // This `routeOverlay` variable seems unused or improperly managed, `allRouteOverlays` is better.
+                    map.removeOverlay(routeOverlay);
+                    routeOverlay = null;
+                }
+                allRouteOverlays.forEach(o => map.removeOverlay(o));
+                allRouteOverlays = [];
+
+                // Clear sidebar
+                const sidebarContent = document.getElementById("sidebar-content");
+                sidebarContent.innerHTML = "";
+                document.getElementById("sidebar").style.display = "block";
+
+                // Store for external reference
+                window.currentRouteData = data.routes;
+
+                let allCoords = [];
+                data.routes.forEach((route, index) => {
+                    let routeCoords = [];
+                    route.steps.forEach(step => {
+                        if (step.path && Array.isArray(step.path)) {
+                            routeCoords = routeCoords.concat(step.path);
+                        }
+                    });
+
+                    const overlay = new mapkit.PolylineOverlay(
+                        routeCoords.map(p => new mapkit.Coordinate(p.latitude, p.longitude))
+                    );
+                    overlay.routeIndex = index;
+                    overlay.routeCoordinates = routeCoords;
+                    overlay.style = new mapkit.Style({
+                        strokeColor: index === 0 ? "#007aff" : "#999",
+                        lineWidth: index === 0 ? 10 : 6,
+                        lineDash: index === 0 ? [] : [6, 4],
+                        lineJoin: "round",
+                        lineCap: "round"
+                    });
+                    map.addOverlay(overlay);
+                    allRouteOverlays.push(overlay);
+                    allCoords = allCoords.concat(routeCoords);
+
+                    if (index === 0) {
+                        const durationMinutes = Math.round(route.expectedTravelTime / 60);
+                        const distanceKm = (route.distance / 1000).toFixed(2);
+                        const arrivalTime = new Date(Date.now() + route.expectedTravelTime * 1000);
+                        const arrivalTimeStr = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const routeName = route.name || "Unnamed Route";
+                        const mode = {
+                            [mapkit.Directions.Transport.Automobile]: "Automobile",
+                            [mapkit.Directions.Transport.Walking]: "Walking",
+                            [mapkit.Directions.Transport.Transit]: "Transit"
+                        }[route.transportType] || "Unknown";
+
+                        sidebarContent.innerHTML = `
+                            <p>⏱️ Estimated Time: ${durationMinutes} min</p>
+                            <p>📏 Distance: ${distanceKm} km</p>
+                            <p>🕒 Arrive by: ${arrivalTimeStr}</p>
+                            <p>🛣️ Route: ${routeName}</p>
+                            <p>🚗 Mode: ${mode}</p>
+                            <label for="langSelect">🌐 Language:</label>
+                            <select id="langSelect">
+                                <option value="en-US">English</option>
+                                <option value="fr-FR">French</option>
+                                <option value="hi-IN">Hindi</option>
+                            </select>
+                            <br><br>
+                            <button id="startVoiceNav">▶️ Start Voice Navigation</button>
+                            <button id="stopVoiceNav">⛔ Stop Voice</button>
+                        `;
+                        document.getElementById("startVoiceNav").addEventListener("click", () => {
+                            startVoiceNavigation(route.steps);
+                        });
+                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                    }
+                });
+
+                // Zoom to fit all route coordinates
+                if (allCoords.length > 0) {
+                    const bounds = computeBounds(allCoords);
+                    map.region = bounds;
+                } else {
+                    console.warn("⚠️ No route points to zoom.");
+                }
+            });
+        }
+        
+        async function interpretNaturalQuery(userQuery) {
+                const response = await fetch("https://771a-2001-56a-7899-dd00-a590-8898-4d99-8adf.ngrok-free.app/api/interpret", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ query: userQuery })
+                });
+
+                if (!response.ok) {
+                    console.error("Failed to interpret query");
+                    return;
+                }
+
+                const result = await response.json();
+                console.log("Interpreted Result:", result);
+                handleMapTask(result);
+            }
+        
+        async function loadAndRenderFeatures(statField, geojsonUrl) {
+            try {
+                const response = await fetch(geojsonUrl);
+                const geojson = await response.json();
+
+                window.dynamicGeoJSON = geojson;
+
+                // Calculate centroids using turf
+                const centroids = {};
+                geojson.features.forEach(feature => {
+                    const center = turf.centroid(feature);
+                    const name = feature.properties.name;
+                    if (name && center?.geometry?.coordinates) {
+                        const [lon, lat] = center.geometry.coordinates;
+                        centroids[name] = [lat, lon];
+                    }
+                });
+
+                // Save to global for label placement or popups
+                window.dynamicCentroids = centroids;
+
+                // Build FeatureCollection with statistics
+                window.usStatistics = {
+                    type: "FeatureCollection",
+                    features: geojson.features.map(f => {
+                        const featureName = f.properties.name;
+                        const statValue = window.dynamicStatistics?.[featureName];
+
+                        return {
+                            type: "Feature",
+                            properties: {
+                                name: featureName,
+                                [statField]: statValue
+                            }
+                        };
+                    })
+                };
+
+
+
+                renderChoropleth(statField, geojson);
+            } catch (error) {
+                console.error("Failed to load GeoJSON:", error);
+            }
+        }
+
+        
+        
+        function getColorForValue(norm) {
+            const hue = (1 - norm) * 240; // blue (240) → red (0)
+            return `hsl(${hue}, 70%, 50%)`;
+        }
+        
+        function getFeatureCentroid(rings) {
+            const coords = rings.flat();
+            const validCoords = coords.filter(c => typeof c.latitude === "number" && typeof c.longitude === "number");
+
+            if (validCoords.length === 0) {
+                console.warn("Invalid coordinates in centroid calculation", coords);
+                return { lat: 0, lon: 0 };  // fallback to avoid crash
+            }
+
+            const lats = validCoords.map(c => c.latitude);
+            const lons = validCoords.map(c => c.longitude);
+            const avgLat = lats.reduce((a, b) => a + b) / lats.length;
+            const avgLon = lons.reduce((a, b) => a + b) / lons.length;
+            return { lat: avgLat, lon: avgLon };
+        }
+
+        
+        function renderChoropleth(statField) {
+            if (!window.dynamicGeoJSON || !window.usStatistics) {
+                console.warn("Missing GeoJSON or data");
+                return;
+            }
+            
+
+            // Remove previous overlays if any
+            if (window.stateOverlays) {
+                window.stateOverlays.forEach(o => map.removeOverlay(o));
+            }
+            window.stateOverlays = [];
+
+            if (window.stateAnnotations) {
+                window.stateAnnotations.forEach(a => map.removeAnnotation(a));
+            }
+            window.stateAnnotations = [];
+
+            const values = usStatistics.features.map(f => f.properties[statField]);
+            const min = Math.min(...values);
+            const max = Math.max(...values);
+
+            window.dynamicGeoJSON.features.forEach((feature) => {
+                const stateName = feature.properties.name;
+                const statFeature = usStatistics.features.find(f => f.properties.name === stateName);
+                if (!statFeature) {
+                    console.warn(`No statistics found for ${stateName}`);
+                    return;
+                }
+
+                const value = statFeature.properties[statField];
+                if (value === undefined) {
+                    console.warn(`No value for ${statField} in ${stateName}`);
+                    return;
+                }
+                const norm = (value - min) / (max - min);
+                const fillColor = getColorForValue(norm);
+
+                const rings = feature.geometry.coordinates.map(ring =>
+                    ring.map(coord => {
+                        // Flip [lon, lat] → [lat, lon]
+                        if (Array.isArray(coord) && coord.length >= 2) {
+                            const lon = coord[0];
+                            const lat = coord[1];
+
+                            if (typeof lat === "number" && typeof lon === "number") {
+                                return new mapkit.Coordinate(lat, lon);
+                            }
+                        }
+
+                        console.warn("Invalid coordinate:", coord);
+                        return null;
+                    }).filter(Boolean)
+                );
+
+
+                const polygon = new mapkit.PolygonOverlay(rings);
+
+                polygon.style = new mapkit.Style({
+                    fillColor: fillColor,
+                    fillOpacity: 0.5,
+                    strokeColor: "#333",
+                    lineWidth: 1    // ✅ Correct property
+                });
+
+                map.addOverlay(polygon);
+                window.stateOverlays.push(polygon);
+
+                // ✅ Add label at centroid
+                const centroid = window.dynamicCentroids?.[feature.properties.name];
+                const center = centroid
+                    ? { lat: centroid[0], lon: centroid[1] }
+                    : getFeatureCentroid(rings);  // fallback
+
+                
+                const annotation = new mapkit.MarkerAnnotation(
+                    new mapkit.Coordinate(center.lat, center.lon),
+                    {
+                        title: feature.properties.name,
+                        subtitle: `${statField.charAt(0).toUpperCase() + statField.slice(1)}: ${value}`
+                    }
+                );
+                map.addAnnotation(annotation);
+                window.stateAnnotations.push(annotation);
+            });
+            
+            const allCoords = [];
+
+            window.dynamicGeoJSON.features.forEach(f => {
+                const coords = f.geometry.coordinates;
+                const depth = f.geometry.type === "Polygon" ? 1 : 2;
+
+                const flattened = coords.flat(depth);
+                flattened.forEach(c => {
+                    if (Array.isArray(c) && c.length >= 2) {
+                        allCoords.push(new mapkit.Coordinate(c[1], c[0]));
+                    }
+                });
+            });
+
+
+            if (allCoords.length > 0) {
+                const lats = allCoords.map(c => c.latitude);
+                const lons = allCoords.map(c => c.longitude);
+
+                const minLat = Math.min(...lats);
+                const maxLat = Math.max(...lats);
+                const minLon = Math.min(...lons);
+                const maxLon = Math.max(...lons);
+
+                const centerLat = (minLat + maxLat) / 2;
+                const centerLon = (minLon + maxLon) / 2;
+
+                const region = new mapkit.CoordinateRegion(
+                    new mapkit.Coordinate(centerLat, centerLon),
+                    new mapkit.CoordinateSpan(maxLat - minLat, maxLon - minLon)
+                );
+
+                map.region = region;
+            }
+
+        }
+
+
+        function handleMapTask(task) {
+            if (task.task === "create_map" && task.statistics && task.geojson_url) {
+                window.dynamicStatField = task.overlay;
+                window.dynamicStatistics = task.statistics;
+                window.dynamicCentroids = task.centroids || {};
+                loadAndRenderFeatures(task.overlay, task.geojson_url);
+            } else {
+                alert("❌ Unsupported or malformed task");
+                console.warn("Unhandled task:", task);
+            }
+        }
+
+        document.getElementById("dataSearchInput").addEventListener("keydown", function(e) {
+            if (e.key === "Enter") {
+                const query = this.value;
+                interpretNaturalQuery(query);  // Ensure this function is already defined elsewhere
+            }
+        });
+    </script>
+</body>
+</html>

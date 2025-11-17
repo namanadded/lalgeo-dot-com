@@ -1,0 +1,12 @@
+
+/country/usa/state/boundary.geojson
+  Content-Type: application/json
+
+/country/usa/state/centroids.json
+  Content-Type: application/json
+  
+/country/canada/state/boundary.geojson
+  Content-Type: application/json
+
+/country/canada/state/centroids.json
+  Content-Type: application/json

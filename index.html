@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LalGeo — Maps, AI & Directions</title>
+  <meta name="description" content="LalGeo: build maps, get directions, and search with AI on Apple Maps." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0c10; --fg:#e7e9ee; --muted:#a2aabb; --card:#12141a; --line:#1c1f26; --accent:#4aa3ff; --accent2:#8b5cf6;
+    }
+    * { box-sizing:border-box }
+    html, body { height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--fg); background: radial-gradient(1200px 600px at 10% -10%, #162133 0%, transparent 60%), radial-gradient(800px 600px at 110% 10%, #221735 0%, transparent 60%), var(--bg); }
+    a { color: inherit; text-decoration: none }
+
+    .wrap { display:grid; grid-template-rows: auto 1fr auto; min-height:100%; }
+    header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 18px; border-bottom:1px solid var(--line); backdrop-filter: blur(6px); position:sticky; top:0; z-index:5; background: linear-gradient(#0b0c10cc,#0b0c10cc); }
+    .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:0.2px; }
+    .brand-logo { height:32px; width:auto; display:block }
+
+    .nav { display:flex; gap:8px; }
+    .nav a { padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#0f1117; color:#cfd6df; font-weight:600; }
+    .nav a:hover { border-color:#2a3042 }
+
+    .hero { display:grid; place-items:center; padding:60px 18px 30px; text-align:center; }
+    .hero h1 { font-size: clamp(28px, 4vw, 48px); margin:0 0 10px; font-weight:800; letter-spacing:0.2px }
+    .hero p { color: var(--muted); margin:0 auto; max-width: 720px; line-height:1.45 }
+
+    .cta { display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:14px; padding:30px 18px; max-width: 1100px; margin: 0 auto; }
+    @media (max-width: 860px){ .cta { grid-template-columns: 1fr } }
+
+    .card { position:relative; overflow:hidden; border-radius:18px; background: linear-gradient(180deg, #131722, #0f1219); border:1px solid #1a1f2d; box-shadow: 0 6px 30px rgba(0,0,0,.35); }
+    .card .glow { position:absolute; inset:auto -20% 40% -20%; height:160px; background: radial-gradient(50% 60% at 50% 50%, #1b66ff40, transparent 70%); filter: blur(24px); pointer-events:none }
+    .card .body { padding:20px }
+    .card h2 { margin:0 0 8px; font-size: 18px }
+    .card p { margin:0 0 16px; color:var(--muted) }
+
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; font-weight:700; border:1px solid #23304a; background: linear-gradient(180deg, #1b66ff, #164fc9); color:white; box-shadow: 0 10px 24px rgba(27,102,255,.25); }
+    .btn.secondary { background: #101623; border-color:#26334f; color:#d8deea; box-shadow:none }
+    .btn span.kbd { font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding:4px 6px; border:1px solid #33415e; border-radius:6px; background:#0c1220 }
+
+    .footer { padding:20px 18px; border-top:1px solid var(--line); color:#8c96a8; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
+    .pill { padding:6px 10px; border-radius:999px; background:#0f1117; border:1px solid #1e2230; color:#cfd6df; font-size:12px; }
+
+    .mini { display:flex; gap:8px; align-items:center; color:#a8b3c7 }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="brand">
+        <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+      </div>
+      <nav class="nav">
+        <a href="/ai.html">AI Search</a>
+        <a href="/directions.html">Directions</a>
+        <a href="/add-data.html">Create Your Own Map</a>
+      </nav>
+    </header>
+
+    <section class="hero">
+      <h1>Build maps. Ask with AI. Get there faster.</h1>
+      <p>Turn data into beautiful Apple Maps in seconds. Search with natural language, generate smart overlays, and share routes with one click. Designed for speed—and for people who love maps.</p>
+    </section>
+
+    <section class="cta">
+      <article class="card">
+        <div class="glow"></div>
+        <div class="body">
+          <h2>AI Search</h2>
+          <p>Type a question like “show median income by county in California” and let LalGeo fetch, map, and explain.</p>
+          <a class="btn" href="https://lalgeo.com/ai-search" aria-label="Open AI Search">Open AI Search</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #8b5cf640, transparent 70%)"></div>
+        <div class="body">
+          <h2>Directions</h2>
+          <p>Clean, voice-ready turn-by-turn, multiple routes, travel time, and mode switching—right on Apple Maps.</p>
+          <a class="btn" href="https://lalgeo.com/directions" aria-label="Open Directions">Open Directions</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #22c55e33, transparent 70%)"></div>
+        <div class="body">
+          <h2>Create Your Own Map</h2>
+          <p>Drag & drop CSV, GeoJSON, Shapefiles (.zip), KML, or GPX. Style layers and share in seconds.</p>
+          <a class="btn" href="https://lalgeo.com/createmap" aria-label="Create your own map">Create a Map</a>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #f9731633, transparent 70%)"></div>
+        <div class="body">
+          <h2>LalGeo Survey</h2>
+          <p>Gather on-the-ground insights fast with the LalGeo survey workflow and share results instantly.</p>
+          <a class="btn" href="https://lalgeo.com/lalgeosurvey" aria-label="Open LalGeo Survey">Open LalGeo Survey</a>
+        </div>
+      </article>
+    </section>
+
+    <section class="hero" style="padding-top:10px">
+      <p class="mini">
+        <span class="pill">New</span> &nbsp; Try the data drop page at <a href="/add-data.html" style="margin-left:6px; text-decoration:underline">/add-data.html</a>
+      </p>
+    </section>
+
+    <footer class="footer">
+      <div>© <span id="year"></span> LalGeo</div>
+    </footer>
+  </div>
+
+  <script>
+    // simple year updater + keyboard shortcuts for quick nav
+    document.getElementById('year').textContent = new Date().getFullYear();
+    window.addEventListener('keydown', (e)=>{
+      if (e.ctrlKey || e.metaKey) {
+        if (e.key.toLowerCase() === '1') window.location.href = '/ai.html';
+        if (e.key.toLowerCase() === '2') window.location.href = '/directions.html';
+        if (e.key.toLowerCase() === '3') window.location.href = '/add-data.html';
+      }
+    });
+  </script>
+</body>
+</html>
