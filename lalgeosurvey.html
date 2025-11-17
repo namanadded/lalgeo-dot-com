@@ -938,8 +938,10 @@
             surveyAnnotations.push(annotation);
             rowAnnotationMap.set(rowIndex, annotation);
             map.addAnnotation(annotation);
+            setAnnotationDraggable(annotation);
             pendingNewAnnotation = annotation;
             showSurveyCallout(annotation, { forceEdit: true });
+            setAnnotationDraggable(annotation);
             updateSurveyTable();
         }
 
@@ -1544,16 +1546,17 @@
                     }
                 }
                 const markerTitle = computeLabelFromAttributes(attributes, projectName);
-                const marker = new mapkit.MarkerAnnotation(coord, {
-                    color: "#EA4335",
-                    glyphText: "●",
-                    title: markerTitle
-                });
-                marker.surveyPoint = { coordinate: coord, attributes, imageSrc, title: markerTitle, rowIndex: index };
-                surveyAnnotations.push(marker);
-                rowAnnotationMap.set(index, marker);
-                map.addAnnotation(marker);
+            const marker = new mapkit.MarkerAnnotation(coord, {
+                color: "#EA4335",
+                glyphText: "●",
+                title: markerTitle
             });
+            marker.surveyPoint = { coordinate: coord, attributes, imageSrc, title: markerTitle, rowIndex: index };
+            surveyAnnotations.push(marker);
+            rowAnnotationMap.set(index, marker);
+            map.addAnnotation(marker);
+            setAnnotationDraggable(marker);
+        });
             if (!coords.length) throw new Error("No valid coordinates found in CSV.");
             activeProjectName = projectName;
             if (coords.length === 1) {
@@ -1902,6 +1905,9 @@
                 if (removedRecord) {
                     redoStack.push({ ...action });
                 }
+            } else if (action.type === "move") {
+                applyMove(action.rowIndex, action.from);
+                redoStack.push({ type: "move", rowIndex: action.rowIndex, from: action.to, to: action.from });
             }
             pendingChanges = true;
             updateHistoryButtons();
@@ -1913,9 +1919,24 @@
             if (action.type === "add") {
                 insertRecordAt(action.rowIndex, action.record);
             }
+            if (action.type === "move") {
+                applyMove(action.rowIndex, action.to);
+            }
             undoStack.push(action);
             pendingChanges = true;
             updateHistoryButtons();
+        }
+
+        function applyMove(rowIndex, coord) {
+            if (!currentSurveyData?.records?.[rowIndex]) return;
+            currentSurveyData.records[rowIndex][currentSurveyData.latKey] = coord.lat;
+            currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.lon;
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation) {
+                annotation.coordinate = new mapkit.Coordinate(coord.lat, coord.lon);
+                annotation.surveyPoint.coordinate = annotation.coordinate;
+            }
+            updateSurveyTable();
         }
 
         function removeRecordAt(index) {
@@ -1975,6 +1996,42 @@
                 if (Number.isInteger(item?.surveyPoint?.rowIndex)) {
                     rowAnnotationMap.set(item.surveyPoint.rowIndex, item);
                 }
+            });
+            setAnnotationDraggable(annotation);
+        }
+
+        function setAnnotationDraggable(annotation) {
+            if (!annotation || annotation._dragConfigured) return;
+            annotation._dragConfigured = true;
+            try {
+                annotation.draggable = true;
+            } catch {}
+            annotation.addEventListener?.("dragstart", () => {
+                annotation._dragStart = {
+                    lat: annotation.coordinate.latitude,
+                    lon: annotation.coordinate.longitude
+                };
+            });
+            annotation.addEventListener?.("dragend", (event) => {
+                const coord = event?.annotation?.coordinate || annotation.coordinate;
+                const start = annotation._dragStart;
+                if (!coord || !start) return;
+                const delta = Math.abs(coord.latitude - start.lat) + Math.abs(coord.longitude - start.lon);
+                if (delta < 1e-9) return;
+                const rowIndex = annotation.surveyPoint?.rowIndex;
+                if (!Number.isInteger(rowIndex) || !currentSurveyData?.records?.[rowIndex]) return;
+                currentSurveyData.records[rowIndex][currentSurveyData.latKey] = coord.latitude;
+                currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.longitude;
+                annotation.surveyPoint.coordinate = coord;
+                rowAnnotationMap.set(rowIndex, annotation);
+                recordAction({
+                    type: "move",
+                    rowIndex,
+                    from: start,
+                    to: { lat: coord.latitude, lon: coord.longitude }
+                });
+                pendingChanges = true;
+                updateSurveyTable();
             });
         }
 
