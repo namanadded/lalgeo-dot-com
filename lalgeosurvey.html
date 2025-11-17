@@ -662,6 +662,7 @@
         let hiddenFields = new Set();
         let draggedFieldName = null;
         let isAddingSurveyPoint = false;
+        let isReorderingFields = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
 
@@ -736,6 +737,7 @@
 
         ["dragenter", "dragover"].forEach(evt =>
             document.addEventListener(evt, (e) => {
+                if (isReorderingFields) return;
                 e.preventDefault();
                 dropZone.classList.add("visible");
             })
@@ -743,6 +745,7 @@
 
         ["dragleave", "drop"].forEach(evt =>
             document.addEventListener(evt, (e) => {
+                if (isReorderingFields) return;
                 if (e.target === dropZone || e.target === document) {
                     dropZone.classList.remove("visible");
                 }
@@ -788,6 +791,7 @@
             if (isOpen) {
                 updateSurveyTable();
             }
+            updateFloatingButtonLayer(isOpen);
         });
 
         surveyFieldsBtn.addEventListener("click", (event) => {
@@ -1540,7 +1544,7 @@
             const { attributes = {}, imageSrc, title } = activeSurveyAnnotation.surveyPoint;
             const safeTitle = escapeHtml(title || "Survey photo");
             const imageSection = imageSrc ? `<img src="${imageSrc}" alt="${safeTitle}" class="survey-photo">` : "";
-            const headers = currentSurveyData?.headers?.length ? currentSurveyData.headers : Object.keys(attributes || {});
+            const headers = getOrderedHeaders({ includeHidden: true });
             if (isCalloutEditing) {
                 const editableFields = headers.map((header) => {
                     const value = attributes?.[header] ?? "";
@@ -1695,20 +1699,12 @@
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">Load a survey to view responses.</div>";
                 return;
             }
-            const baseOrder = tableFieldOrder.length ? tableFieldOrder.slice() : currentSurveyData.headers.slice();
-            const existingSet = new Set(baseOrder);
-            currentSurveyData.headers.forEach(header => {
-                if (!existingSet.has(header)) {
-                    baseOrder.push(header);
-                    existingSet.add(header);
-                }
-            });
-            const visibleHeaders = baseOrder.filter(header => !hiddenFields.has(header));
+            tableFieldOrder = getOrderedHeaders({ includeHidden: true });
+            const visibleHeaders = getOrderedHeaders({ includeHidden: false });
             if (!visibleHeaders.length) {
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">All fields are hidden. Enable at least one field.</div>";
                 return;
             }
-            tableFieldOrder = baseOrder;
             const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + "<th>Photo</th>";
             const bodyRows = currentSurveyData.records.map((record, index) => {
                 const annotation = rowAnnotationMap.get(index);
@@ -1758,6 +1754,7 @@
             surveyTablePanel.hidden = !show;
             if (show) {
                 surveyFieldsBtn.hidden = false;
+                updateFloatingButtonLayer(surveyTablePanel.classList.contains("open"));
                 return;
             }
             surveyTablePanel.classList.remove("open");
@@ -1766,6 +1763,13 @@
             surveyTableToggleLabel.textContent = "Show survey table";
             surveyFieldsBtn.hidden = true;
             surveyFieldControls.hidden = true;
+            updateFloatingButtonLayer(false);
+        }
+
+        function updateFloatingButtonLayer(panelOpen) {
+            const zIndex = panelOpen ? "600" : "1000";
+            if (shareButton) shareButton.style.zIndex = zIndex;
+            if (addSurveyPointBtn) addSurveyPointBtn.style.zIndex = zIndex;
         }
 
         function renderSurveyFieldControls() {
@@ -1779,7 +1783,8 @@
                 }
             });
             tableFieldOrder = tableFieldOrder.filter(header => currentSurveyData.headers.includes(header));
-            surveyFieldList.innerHTML = tableFieldOrder.map(field => `
+            const orderedFields = getOrderedHeaders({ includeHidden: true });
+            surveyFieldList.innerHTML = orderedFields.map(field => `
                 <li data-field="${escapeHtml(field)}" draggable="true">
                     <span class="drag-handle">☰</span>
                     <label>
@@ -1808,12 +1813,13 @@
             if (!item) return;
             draggedFieldName = item.getAttribute("data-field");
             event.dataTransfer.effectAllowed = "move";
+            isReorderingFields = true;
         });
 
         surveyFieldList?.addEventListener("dragover", (event) => {
             if (!draggedFieldName) return;
             const item = event.target.closest("li[data-field]");
-            if (!item || item.getAttribute("data-field") === draggedFieldName) return;
+            if (!item) return;
             event.preventDefault();
         });
 
@@ -1836,6 +1842,8 @@
 
         surveyFieldList?.addEventListener("dragend", () => {
             draggedFieldName = null;
+            isReorderingFields = false;
+            dropZone.classList.remove("visible");
         });
 
         function hideSurveyCallout() {
@@ -2692,3 +2700,16 @@
     </script>
 </body>
 </html>
+        function getOrderedHeaders({ includeHidden = true } = {}) {
+            if (!currentSurveyData?.headers) return [];
+            const baseOrder = tableFieldOrder.length ? tableFieldOrder.slice() : currentSurveyData.headers.slice();
+            const seen = new Set(baseOrder);
+            currentSurveyData.headers.forEach(header => {
+                if (!seen.has(header)) {
+                    baseOrder.push(header);
+                    seen.add(header);
+                }
+            });
+            if (includeHidden) return baseOrder;
+            return baseOrder.filter(header => !hiddenFields.has(header));
+        }
