@@ -279,6 +279,54 @@
         padding: 6px;
         font-size: 12px;
     }
+    #surveyTablePanel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        max-height: 50vh;
+        transform: translateY(calc(100% - 36px));
+        transition: transform 0.25s ease;
+        z-index: 900;
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    #surveyTablePanel.open {
+        transform: translateY(0);
+    }
+    #surveyTableToggle {
+        width: 100%;
+        border: none;
+        background: rgba(15, 23, 42, 0.85);
+        color: #fff;
+        padding: 8px;
+        cursor: pointer;
+        font-weight: 600;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    #surveyTableWrapper {
+        background: rgba(255, 255, 255, 0.98);
+        max-height: calc(50vh - 36px);
+        overflow: auto;
+        border-top: 1px solid #d5d7df;
+    }
+    #surveyTableWrapper table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    #surveyTableWrapper th,
+    #surveyTableWrapper td {
+        padding: 6px 8px;
+        border-bottom: 1px solid #eceff3;
+        text-align: left;
+        white-space: nowrap;
+    }
+    #surveyTableWrapper tbody tr:hover {
+        background: #f3f6fb;
+    }
     #identifierSelectWrapper {
         margin-top: 8px;
     }
@@ -428,6 +476,15 @@
         <button type="button" aria-label="Close image">×</button>
         <img src="" alt="Survey photo">
     </div>
+    <div id="surveyTablePanel">
+        <button id="surveyTableToggle" type="button">
+            <span id="surveyTableToggleIcon">▲</span>
+            <span id="surveyTableToggleLabel">Show survey table</span>
+        </button>
+        <div id="surveyTableWrapper" hidden>
+            <div id="surveyTable"></div>
+        </div>
+    </div>
 
     <script>
         const hostname = window.location.hostname;
@@ -464,6 +521,12 @@
         let dropboxConnected = false;
         const addSurveyPointBtn = document.getElementById("addSurveyPointBtn");
         const mapElement = document.getElementById("map");
+        const surveyTablePanel = document.getElementById("surveyTablePanel");
+        const surveyTableToggle = document.getElementById("surveyTableToggle");
+        const surveyTableToggleIcon = document.getElementById("surveyTableToggleIcon");
+        const surveyTableToggleLabel = document.getElementById("surveyTableToggleLabel");
+        const surveyTableWrapper = document.getElementById("surveyTableWrapper");
+        const surveyTable = document.getElementById("surveyTable");
         const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
         const surveyCallout = document.getElementById("surveyCallout");
         const surveyCalloutCard = surveyCallout.querySelector(".callout-content");
@@ -522,6 +585,7 @@
         let dropdownFieldOptions = {};
         let requiredSurveyFields = new Set();
         let headerLookup = new Map();
+        let rowAnnotationMap = new Map();
         let isAddingSurveyPoint = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
@@ -640,6 +704,17 @@
             toggleAddSurveyPointMode();
         });
 
+        surveyTableToggle.addEventListener("click", () => {
+            if (!surveyTableWrapper) return;
+            const isOpen = surveyTablePanel.classList.toggle("open");
+            surveyTableWrapper.hidden = !isOpen;
+            surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
+            surveyTableToggleLabel.textContent = isOpen ? "Hide survey table" : "Show survey table";
+            if (isOpen) {
+                updateSurveyTable();
+            }
+        });
+
         function toggleAddSurveyPointMode() {
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
@@ -697,9 +772,11 @@
                 isNew: true
             };
             surveyAnnotations.push(annotation);
+            rowAnnotationMap.set(rowIndex, annotation);
             map.addAnnotation(annotation);
             pendingNewAnnotation = annotation;
             showSurveyCallout(annotation, { forceEdit: true });
+            updateSurveyTable();
         }
 
         function removeNewSurveyPoint(annotation) {
@@ -709,11 +786,14 @@
                 currentSurveyData.records.splice(index, 1);
                 surveyAnnotations = surveyAnnotations.filter(item => item !== annotation);
                 map.removeAnnotation(annotation);
+                rowAnnotationMap.delete(index);
                 surveyAnnotations.forEach(item => {
                     if (Number.isInteger(item?.surveyPoint?.rowIndex) && item.surveyPoint.rowIndex > index) {
                         item.surveyPoint.rowIndex -= 1;
+                        rowAnnotationMap.set(item.surveyPoint.rowIndex, item);
                     }
                 });
+                updateSurveyTable();
             }
             pendingNewAnnotation = null;
             surveyCallout.style.display = "none";
@@ -1252,6 +1332,7 @@
 
         function renderSurveyProject({ parsed, images, projectName }) {
             clearSurveyLayers();
+            rowAnnotationMap = new Map();
             const coords = [];
             if (identifierField !== "__custom__") {
                 identifierField = parsed.headers.find(h => h !== parsed.latKey && h !== parsed.lonKey) || parsed.latKey;
@@ -1282,6 +1363,7 @@
                 });
                 marker.surveyPoint = { coordinate: coord, attributes, imageSrc, title: markerTitle, rowIndex: index };
                 surveyAnnotations.push(marker);
+                rowAnnotationMap.set(index, marker);
                 map.addAnnotation(marker);
             });
             if (!coords.length) throw new Error("No valid coordinates found in CSV.");
@@ -1292,18 +1374,21 @@
                 map.region = computeBounds(coords);
             }
             setTimeout(() => positionSurveyCallout(activeSurveyAnnotation), 10);
+            updateSurveyTable();
         }
 
         function clearSurveyLayers() {
             hideSurveyCallout();
             surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyAnnotations = [];
+            rowAnnotationMap = new Map();
         }
 
         function updateAnnotationLabels() {
             surveyAnnotations.forEach(annotation => {
                 annotation.title = computeLabelFromAttributes(annotation.surveyPoint?.attributes, activeProjectName);
             });
+            updateSurveyTable();
         }
 
         function populateIdentifierOptions(headers, latKey, lonKey) {
@@ -1456,6 +1541,7 @@
             if (wasNewPoint) {
                 activeSurveyAnnotation.surveyPoint.isNew = false;
                 pendingNewAnnotation = null;
+                updateSurveyTable();
             }
         }
 
@@ -1502,6 +1588,57 @@
                 })
             );
             return Papa.unparse({ fields: currentSurveyData.headers, data: rows });
+        }
+
+        function updateSurveyTable() {
+            if (!surveyTable) return;
+            if (!currentSurveyData?.headers) {
+                surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">Load a survey to view responses.</div>";
+                return;
+            }
+            const headers = currentSurveyData.headers;
+            const headerRow = headers.map(header => `<th>${escapeHtml(header)}</th>`).join("") + "<th>Photo</th>";
+            const bodyRows = currentSurveyData.records.map((record, index) => {
+                const annotation = rowAnnotationMap.get(index);
+                const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
+                const cells = headers.map(header => `<td>${escapeHtml(record?.[header] ?? "")}</td>`).join("");
+                const photoCell = hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>";
+                return `<tr data-row-index="${index}">${cells}${photoCell}</tr>`;
+            }).join("");
+            surveyTable.innerHTML = `
+                <table>
+                    <thead><tr>${headerRow}</tr></thead>
+                    <tbody>${bodyRows || `<tr><td colspan="${headers.length + 1}" style="text-align:center; color:#5f6368;">No responses yet.</td></tr>`}</tbody>
+                </table>
+            `;
+        }
+
+        surveyTable?.addEventListener("click", (event) => {
+            const button = event.target.closest(".view-photo-btn");
+            if (!button) return;
+            const rowIndex = Number(button.dataset.rowIndex);
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation?.surveyPoint?.imageSrc) {
+                openImageModal(annotation.surveyPoint.imageSrc, annotation.surveyPoint.title);
+            }
+            event.stopPropagation();
+        });
+
+        surveyTable?.addEventListener("dblclick", (event) => {
+            const row = event.target.closest("tr[data-row-index]");
+            if (!row) return;
+            const rowIndex = Number(row.dataset.rowIndex);
+            focusAnnotationByRow(rowIndex);
+        });
+
+        function focusAnnotationByRow(rowIndex) {
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (!annotation) return;
+            const coordinate = annotation.coordinate;
+            if (coordinate) {
+                map.region = new mapkit.CoordinateRegion(coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
+            }
+            showSurveyCallout(annotation);
         }
 
         function hideSurveyCallout() {
