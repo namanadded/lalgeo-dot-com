@@ -509,7 +509,10 @@
 
     <div id="panelControls">
         <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
-        <button id="addSurveyPointBtn" type="button" class="control-btn">Add point</button>
+        <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
+        <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
+        <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
+        <button id="saveChangesBtn" type="button" class="control-btn" disabled>Save</button>
     </div>
     <div id="importPanel">
         <button id="importPanelClose" type="button" aria-label="Close import panel">×</button>
@@ -631,11 +634,18 @@
         const toggleImportBtn = document.getElementById("toggleImportBtn");
         const importPanelClose = document.getElementById("importPanelClose");
         const importPanel = document.getElementById("importPanel");
+        const undoBtn = document.getElementById("undoBtn");
+        const redoBtn = document.getElementById("redoBtn");
+        const saveChangesBtn = document.getElementById("saveChangesBtn");
         setSurveyTableVisibility(false);
         surveyFieldsBtn.hidden = true;
         surveyFieldControls.hidden = true;
         let isImportPanelVisible = true;
+        let undoStack = [];
+        let redoStack = [];
+        let pendingChanges = false;
         setAddButtonVisibility(false);
+        updateHistoryButtons();
         setSurveyTableVisibility(false);
         const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
         const surveyCallout = document.getElementById("surveyCallout");
@@ -825,6 +835,10 @@
         });
 
         importPanelClose?.addEventListener("click", () => setImportPanelVisibility(false));
+
+        undoBtn?.addEventListener("click", () => performUndo());
+        redoBtn?.addEventListener("click", () => performRedo());
+        saveChangesBtn?.addEventListener("click", () => persistSurveyEditsIfNeeded(true));
 
         surveyTableToggle.addEventListener("click", () => {
             if (!surveyTableWrapper) return;
@@ -1699,18 +1713,26 @@
             isCalloutEditing = false;
             updateAnnotationLabels();
             renderSurveyCalloutContent();
-            await persistSurveyEditsIfNeeded();
             if (wasNewPoint) {
                 activeSurveyAnnotation.surveyPoint.isNew = false;
                 pendingNewAnnotation = null;
-                updateSurveyTable();
+                recordAction({
+                    type: "add",
+                    rowIndex,
+                    record: { ...currentSurveyData.records[rowIndex] }
+                });
+            } else {
+                pendingChanges = true;
             }
+            updateSurveyTable();
+            updateHistoryButtons();
         }
 
-        async function persistSurveyEditsIfNeeded() {
+        async function persistSurveyEditsIfNeeded(forceSave = false) {
             if (!currentSurveyData || !currentSurveySource || currentSurveySource.type !== "dropbox") {
                 return;
             }
+            if (!pendingChanges && !forceSave) return;
             if (isPersistingEdits) return;
             const csvText = buildCsvFromCurrentSurvey();
             if (!csvText) return;
@@ -1731,6 +1753,10 @@
                     throw new Error("Unable to save edits to Dropbox.");
                 }
                 setProjectStatus("Edits saved to Dropbox.", "success");
+                pendingChanges = false;
+                undoStack = [];
+                redoStack = [];
+                updateHistoryButtons();
             } catch (error) {
                 console.error(error);
                 setProjectStatus(error.message || "Failed to save edits to Dropbox.", "error");
@@ -1842,6 +1868,103 @@
         function setAddButtonVisibility(show) {
             if (!addSurveyPointBtn) return;
             addSurveyPointBtn.style.display = show ? "inline-flex" : "none";
+        }
+
+        function recordAction(action) {
+            undoStack.push(action);
+            redoStack = [];
+            pendingChanges = true;
+            updateHistoryButtons();
+        }
+
+        function performUndo() {
+            if (!undoStack.length) return;
+            const action = undoStack.pop();
+            if (action.type === "add") {
+                const removedRecord = removeRecordAt(action.rowIndex);
+                if (removedRecord) {
+                    redoStack.push({ ...action });
+                }
+            }
+            pendingChanges = true;
+            updateHistoryButtons();
+        }
+
+        function performRedo() {
+            if (!redoStack.length) return;
+            const action = redoStack.pop();
+            if (action.type === "add") {
+                insertRecordAt(action.rowIndex, action.record);
+            }
+            undoStack.push(action);
+            pendingChanges = true;
+            updateHistoryButtons();
+        }
+
+        function removeRecordAt(index) {
+            if (!currentSurveyData?.records || index < 0 || index >= currentSurveyData.records.length) return null;
+            const record = currentSurveyData.records.splice(index, 1)[0];
+            const annotation = rowAnnotationMap.get(index);
+            if (annotation) {
+                map.removeAnnotation(annotation);
+                surveyAnnotations = surveyAnnotations.filter(a => a !== annotation);
+                rowAnnotationMap.delete(index);
+            }
+            surveyAnnotations.forEach(annotation => {
+                if (Number.isInteger(annotation?.surveyPoint?.rowIndex) && annotation.surveyPoint.rowIndex > index) {
+                    annotation.surveyPoint.rowIndex -= 1;
+                }
+            });
+            rowAnnotationMap = new Map();
+            surveyAnnotations.forEach(annotation => {
+                if (Number.isInteger(annotation?.surveyPoint?.rowIndex)) {
+                    rowAnnotationMap.set(annotation.surveyPoint.rowIndex, annotation);
+                }
+            });
+            updateSurveyTable();
+            return record;
+        }
+
+        function insertRecordAt(index, record) {
+            if (!currentSurveyData?.records) return;
+            const rowIndex = Math.min(Math.max(index, 0), currentSurveyData.records.length);
+            currentSurveyData.records.splice(rowIndex, 0, record);
+            adjustAnnotationsForInsert(rowIndex, record);
+            updateSurveyTable();
+        }
+
+        function adjustAnnotationsForInsert(rowIndex, record) {
+            surveyAnnotations.forEach(annotation => {
+                if (Number.isInteger(annotation?.surveyPoint?.rowIndex) && annotation.surveyPoint.rowIndex >= rowIndex) {
+                    annotation.surveyPoint.rowIndex += 1;
+                }
+            });
+            const lat = parseFloat(record[currentSurveyData.latKey]);
+            const lon = parseFloat(record[currentSurveyData.lonKey]);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+            const coord = new mapkit.Coordinate(lat, lon);
+            const attributes = { ...record };
+            const markerTitle = computeLabelFromAttributes(attributes, activeProjectName);
+            const annotation = new mapkit.MarkerAnnotation(coord, {
+                color: "#EA4335",
+                glyphText: "●",
+                title: markerTitle
+            });
+            annotation.surveyPoint = { coordinate: coord, attributes, imageSrc: null, title: markerTitle, rowIndex };
+            surveyAnnotations.push(annotation);
+            map.addAnnotation(annotation);
+            rowAnnotationMap = new Map();
+            surveyAnnotations.forEach(item => {
+                if (Number.isInteger(item?.surveyPoint?.rowIndex)) {
+                    rowAnnotationMap.set(item.surveyPoint.rowIndex, item);
+                }
+            });
+        }
+
+        function updateHistoryButtons() {
+            if (undoBtn) undoBtn.disabled = !undoStack.length;
+            if (redoBtn) redoBtn.disabled = !redoStack.length;
+            if (saveChangesBtn) saveChangesBtn.disabled = !pendingChanges;
         }
 
         function renderSurveyFieldControls() {
@@ -2764,10 +2887,19 @@
             }
         }
 
-        document.getElementById("dataSearchInput").addEventListener("keydown", function(e) {
-            if (e.key === "Enter") {
-                const query = this.value;
-                interpretNaturalQuery(query);  // Ensure this function is already defined elsewhere
+        const dataSearchInput = document.getElementById("dataSearchInput");
+        if (dataSearchInput) {
+            dataSearchInput.addEventListener("keydown", function(e) {
+                if (e.key === "Enter") {
+                    const query = this.value;
+                    interpretNaturalQuery(query);  // Ensure this function is already defined elsewhere
+                }
+            });
+        }
+        window.addEventListener("beforeunload", (event) => {
+            if (pendingChanges) {
+                event.preventDefault();
+                event.returnValue = "";
             }
         });
     </script>
