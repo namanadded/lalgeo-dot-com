@@ -28,6 +28,22 @@
         padding: 10px;
         border-radius: 8px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    #searchInput {
+        display: none;
+    }
+    #searchInput.active {
+        display: block;
+    }
+    #searchIconBtn {
+        border: none;
+        background: transparent;
+        cursor: pointer;
+        font-size: 18px;
+        padding: 0;
     }
     #panelControls {
         position: absolute;
@@ -498,6 +514,7 @@
 </head>
 <body>
     <div id="search-bar">
+        <button id="searchIconBtn" aria-label="Open search">🔍</button>
         <div style="position: relative; display: flex; align-items: center;">
             <input type="text" id="searchInput" placeholder="Search by Address or Place" style="width: 200px; padding: 8px; padding-right: 25px;">
             <span id="clearSearch" style=" display: none; position: absolute; right: 8px; cursor: pointer; font-weight: bold; color: #888; ">×</span>
@@ -2896,6 +2913,14 @@
                 }
             });
         }
+        const searchIconBtn = document.getElementById("searchIconBtn");
+        searchIconBtn?.addEventListener("click", () => {
+            const input = document.getElementById("searchInput");
+            input?.classList.toggle("active");
+            if (input && input.classList.contains("active")) {
+                input.focus();
+            }
+        });
         window.addEventListener("beforeunload", (event) => {
             if (pendingChanges) {
                 event.preventDefault();
