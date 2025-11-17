@@ -1281,6 +1281,20 @@
             return headerLookup.get(normalizeHeaderName(name)) || null;
         }
 
+        function getOrderedHeaders({ includeHidden = true } = {}) {
+            if (!currentSurveyData?.headers) return [];
+            const baseOrder = tableFieldOrder.length ? tableFieldOrder.slice() : currentSurveyData.headers.slice();
+            const seen = new Set(baseOrder);
+            currentSurveyData.headers.forEach(header => {
+                if (!seen.has(header)) {
+                    baseOrder.push(header);
+                    seen.add(header);
+                }
+            });
+            if (includeHidden) return baseOrder;
+            return baseOrder.filter(header => !hiddenFields.has(header));
+        }
+
         function isSurveyArchiveName(name = "") {
             let target = (name || "").trim();
             try {
@@ -2700,16 +2714,3 @@
     </script>
 </body>
 </html>
-        function getOrderedHeaders({ includeHidden = true } = {}) {
-            if (!currentSurveyData?.headers) return [];
-            const baseOrder = tableFieldOrder.length ? tableFieldOrder.slice() : currentSurveyData.headers.slice();
-            const seen = new Set(baseOrder);
-            currentSurveyData.headers.forEach(header => {
-                if (!seen.has(header)) {
-                    baseOrder.push(header);
-                    seen.add(header);
-                }
-            });
-            if (includeHidden) return baseOrder;
-            return baseOrder.filter(header => !hiddenFields.has(header));
-        }
