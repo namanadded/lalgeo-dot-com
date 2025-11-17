@@ -29,6 +29,30 @@
         border-radius: 8px;
         box-shadow: 0 2px 6px rgba(0,0,0,0.3);
     }
+    #panelControls {
+        position: absolute;
+        top: 70px;
+        left: 20px;
+        z-index: 1000;
+        display: flex;
+        gap: 8px;
+    }
+    .control-btn {
+        border: none;
+        border-radius: 20px;
+        padding: 8px 14px;
+        font-weight: 600;
+        cursor: pointer;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        background: rgba(255,255,255,0.95);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+    }
+    .control-btn.active {
+        background: #1a73e8;
+        color: #fff;
+    }
     #sidebar {
         position: absolute;
         top: 20px;
@@ -102,28 +126,11 @@
         text-align: center;
     }
     #addSurveyPointBtn {
-        position: fixed;
-        bottom: 75px;
-        right: 12px;
-        width: 40px;
-        height: 40px;
-        border: none;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.95);
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        cursor: pointer;
-        font-size: 24px;
-        color: #1a73e8;
-        z-index: 1000;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: transform 0.2s ease, background 0.2s ease;
+        display: none;
     }
     #addSurveyPointBtn.active {
         background: #1a73e8;
         color: #fff;
-        transform: scale(1.05);
     }
     #importPanel {
         position: absolute;
@@ -136,6 +143,19 @@
         box-shadow: 0 6px 18px rgba(0,0,0,0.15);
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         max-width: 320px;
+    }
+    #importPanelClose {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        border: none;
+        background: transparent;
+        font-size: 18px;
+        cursor: pointer;
+        color: #5f6368;
+    }
+    #importPanelClose:hover {
+        color: #111;
     }
     #importPanel h3 {
         margin: 0 0 6px;
@@ -487,7 +507,12 @@
         <input type="text" id="dataSearchInput" placeholder="e.g., Create a map of countries by literacy rate">
     </div> -->
 
+    <div id="panelControls">
+        <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
+        <button id="addSurveyPointBtn" type="button" class="control-btn">Add point</button>
+    </div>
     <div id="importPanel">
+        <button id="importPanelClose" type="button" aria-label="Close import panel">×</button>
         <h3>Import LalGeo Survey</h3>
         <p>Drag and drop a LalGeo survey .zip/.lal or folder, pick files, or load from Dropbox.</p>
         <button id="projectPickerBtn" type="button">Select files…</button>
@@ -524,7 +549,6 @@
         <img src="assets/img/share-icon.png" alt="Share">
         <div class="share-text">Share</div>
     </div>
-    <button id="addSurveyPointBtn" type="button" title="Add survey point">+</button>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="surveyCallout">
         <div class="card">
@@ -604,9 +628,14 @@
         const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
         const surveyFieldControls = document.getElementById("surveyFieldControls");
         const surveyFieldList = document.getElementById("surveyFieldList");
+        const toggleImportBtn = document.getElementById("toggleImportBtn");
+        const importPanelClose = document.getElementById("importPanelClose");
+        const importPanel = document.getElementById("importPanel");
         setSurveyTableVisibility(false);
         surveyFieldsBtn.hidden = true;
         surveyFieldControls.hidden = true;
+        let isImportPanelVisible = true;
+        setAddButtonVisibility(false);
         setSurveyTableVisibility(false);
         const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
         const surveyCallout = document.getElementById("surveyCallout");
@@ -790,6 +819,12 @@
             }
             toggleAddSurveyPointMode();
         });
+
+        toggleImportBtn?.addEventListener("click", () => {
+            setImportPanelVisibility(!isImportPanelVisible);
+        });
+
+        importPanelClose?.addEventListener("click", () => setImportPanelVisibility(false));
 
         surveyTableToggle.addEventListener("click", () => {
             if (!surveyTableWrapper) return;
@@ -1007,6 +1042,7 @@
             shareButton.style.display = "flex";
             setSurveyTableVisibility(true);
             updateSurveyTable();
+            setAddButtonVisibility(true);
         }
 
         async function buildSurveyPayload(files) {
@@ -1796,6 +1832,18 @@
             if (myLocationBtn) myLocationBtn.style.zIndex = zIndex;
         }
 
+        function setImportPanelVisibility(show) {
+            if (!importPanel) return;
+            isImportPanelVisible = show;
+            importPanel.hidden = !show;
+            toggleImportBtn?.classList.toggle("active", show);
+        }
+
+        function setAddButtonVisibility(show) {
+            if (!addSurveyPointBtn) return;
+            addSurveyPointBtn.style.display = show ? "inline-flex" : "none";
+        }
+
         function renderSurveyFieldControls() {
             if (!surveyFieldList || !currentSurveyData?.headers) return;
             if (!tableFieldOrder.length) tableFieldOrder = [...currentSurveyData.headers];
@@ -2301,6 +2349,7 @@
             if (isAddingSurveyPoint) return;
             document.getElementById("sidebar").style.display = "none";
             hideSurveyCallout();
+            setImportPanelVisibility(false);
         });
 
         mapElement.addEventListener("click", (event) => {
