@@ -32,6 +32,21 @@
         align-items: center;
         gap: 6px;
     }
+    #logoBadge {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        z-index: 1000;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        background: rgba(255,255,255,0.9);
+        padding: 4px 10px;
+        border-radius: 999px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+        font-size: 12px;
+        color: #1f2933;
+    }
     #searchInput {
         display: none;
     }
@@ -514,12 +529,15 @@
 </head>
 <body>
     <div id="search-bar">
-        <img src="assets/img/lalgeo-logo.png" alt="LalGeo" style="height:24px; margin-right:6px;">
         <button id="searchIconBtn" aria-label="Open search">🔍</button>
         <div style="position: relative; display: flex; align-items: center;">
             <input type="text" id="searchInput" placeholder="Search by Address or Place" style="width: 200px; padding: 8px; padding-right: 25px;">
             <span id="clearSearch" style=" display: none; position: absolute; right: 8px; cursor: pointer; font-weight: bold; color: #888; ">×</span>
         </div>
+    </div>
+    <div id="logoBadge">
+        <img src="assets/img/lalgeo-logo.png" alt="LalGeo" style="height:20px;">
+        <span>LalGeo</span>
     </div>
     <!-- <div id="data-search-bar">
         <input type="text" id="dataSearchInput" placeholder="e.g., Create a map of countries by literacy rate">
