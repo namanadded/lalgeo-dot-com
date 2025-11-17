@@ -327,6 +327,64 @@
     #surveyTableWrapper tbody tr:hover {
         background: #f3f6fb;
     }
+    #surveyPanelActions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        padding: 6px 10px;
+        background: rgba(15, 23, 42, 0.75);
+    }
+    .panel-action-btn {
+        border: none;
+        border-radius: 6px;
+        padding: 4px 10px;
+        background: rgba(255,255,255,0.9);
+        color: #111;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    #surveyFieldControls {
+        position: absolute;
+        bottom: calc(100% + 8px);
+        right: 16px;
+        width: 260px;
+        background: #fff;
+        border-radius: 10px;
+        box-shadow: 0 10px 30px rgba(15,23,42,0.25);
+        border: 1px solid #dfe3eb;
+        padding: 12px;
+        z-index: 901;
+    }
+    #surveyFieldControls h4 {
+        margin: 0 0 8px;
+        font-size: 13px;
+    }
+    #surveyFieldControls ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+        max-height: 220px;
+        overflow-y: auto;
+    }
+    #surveyFieldControls li {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 0;
+        border-bottom: 1px solid #f1f3f8;
+    }
+    #surveyFieldControls li:last-child {
+        border-bottom: none;
+    }
+    .drag-handle {
+        cursor: grab;
+        font-size: 14px;
+        color: #6b7280;
+    }
+    #surveyFieldControls label {
+        flex: 1;
+        font-size: 12px;
+    }
     #identifierSelectWrapper {
         margin-top: 8px;
     }
@@ -476,11 +534,18 @@
         <button type="button" aria-label="Close image">×</button>
         <img src="" alt="Survey photo">
     </div>
-    <div id="surveyTablePanel">
+    <div id="surveyTablePanel" hidden>
         <button id="surveyTableToggle" type="button">
             <span id="surveyTableToggleIcon">▲</span>
             <span id="surveyTableToggleLabel">Show survey table</span>
         </button>
+        <div id="surveyPanelActions">
+            <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
+        </div>
+        <div id="surveyFieldControls" hidden>
+            <h4>Table fields</h4>
+            <ul id="surveyFieldList"></ul>
+        </div>
         <div id="surveyTableWrapper" hidden>
             <div id="surveyTable"></div>
         </div>
@@ -527,6 +592,12 @@
         const surveyTableToggleLabel = document.getElementById("surveyTableToggleLabel");
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
+        const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
+        const surveyFieldControls = document.getElementById("surveyFieldControls");
+        const surveyFieldList = document.getElementById("surveyFieldList");
+        setSurveyTableVisibility(false);
+        surveyFieldsBtn.hidden = true;
+        surveyFieldControls.hidden = true;
         setSurveyTableVisibility(false);
         const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
         const surveyCallout = document.getElementById("surveyCallout");
@@ -587,6 +658,9 @@
         let requiredSurveyFields = new Set();
         let headerLookup = new Map();
         let rowAnnotationMap = new Map();
+        let tableFieldOrder = [];
+        let hiddenFields = new Set();
+        let draggedFieldName = null;
         let isAddingSurveyPoint = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
@@ -716,6 +790,16 @@
             }
         });
 
+        surveyFieldsBtn.addEventListener("click", (event) => {
+            if (!currentSurveyData) return;
+            event.stopPropagation();
+            const willShow = surveyFieldControls.hidden;
+            surveyFieldControls.hidden = !willShow;
+            if (willShow) {
+                renderSurveyFieldControls();
+            }
+        });
+
         function toggleAddSurveyPointMode() {
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
@@ -809,6 +893,9 @@
                     hideSurveyCallout();
                 }
             }
+            if (!surveyFieldControls.hidden && !surveyFieldControls.contains(event.target) && event.target !== surveyFieldsBtn) {
+                surveyFieldControls.hidden = true;
+            }
         });
 
         // Helper to calculate distance between two coordinates
@@ -893,6 +980,10 @@
             const parsed = parseSurveyCSV(payload.csvText);
             currentSurveyData = parsed;
             currentSurveySource = payload.source || null;
+            tableFieldOrder = [...parsed.headers];
+            hiddenFields = new Set();
+            surveyFieldsBtn.hidden = false;
+            surveyFieldControls.hidden = true;
             analyzeSurveySchema(parsed);
             renderSurveyProject({
                 parsed,
@@ -1385,6 +1476,10 @@
             surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyAnnotations = [];
             rowAnnotationMap = new Map();
+            tableFieldOrder = [];
+            hiddenFields = new Set();
+            surveyFieldsBtn.hidden = true;
+            surveyFieldControls.hidden = true;
             setSurveyTableVisibility(false);
         }
 
@@ -1600,12 +1695,25 @@
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">Load a survey to view responses.</div>";
                 return;
             }
-            const headers = currentSurveyData.headers;
-            const headerRow = headers.map(header => `<th>${escapeHtml(header)}</th>`).join("") + "<th>Photo</th>";
+            const baseOrder = tableFieldOrder.length ? tableFieldOrder.slice() : currentSurveyData.headers.slice();
+            const existingSet = new Set(baseOrder);
+            currentSurveyData.headers.forEach(header => {
+                if (!existingSet.has(header)) {
+                    baseOrder.push(header);
+                    existingSet.add(header);
+                }
+            });
+            const visibleHeaders = baseOrder.filter(header => !hiddenFields.has(header));
+            if (!visibleHeaders.length) {
+                surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">All fields are hidden. Enable at least one field.</div>";
+                return;
+            }
+            tableFieldOrder = baseOrder;
+            const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + "<th>Photo</th>";
             const bodyRows = currentSurveyData.records.map((record, index) => {
                 const annotation = rowAnnotationMap.get(index);
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
-                const cells = headers.map(header => `<td>${escapeHtml(record?.[header] ?? "")}</td>`).join("");
+                const cells = visibleHeaders.map(header => `<td>${escapeHtml(record?.[header] ?? "")}</td>`).join("");
                 const photoCell = hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>";
                 return `<tr data-row-index="${index}">${cells}${photoCell}</tr>`;
             }).join("");
@@ -1648,12 +1756,87 @@
         function setSurveyTableVisibility(show) {
             if (!surveyTablePanel) return;
             surveyTablePanel.hidden = !show;
-            if (show) return;
+            if (show) {
+                surveyFieldsBtn.hidden = false;
+                return;
+            }
             surveyTablePanel.classList.remove("open");
             surveyTableWrapper.hidden = true;
             surveyTableToggleIcon.textContent = "▲";
             surveyTableToggleLabel.textContent = "Show survey table";
+            surveyFieldsBtn.hidden = true;
+            surveyFieldControls.hidden = true;
         }
+
+        function renderSurveyFieldControls() {
+            if (!surveyFieldList || !currentSurveyData?.headers) return;
+            if (!tableFieldOrder.length) tableFieldOrder = [...currentSurveyData.headers];
+            const seen = new Set(tableFieldOrder);
+            currentSurveyData.headers.forEach(header => {
+                if (!seen.has(header)) {
+                    tableFieldOrder.push(header);
+                    seen.add(header);
+                }
+            });
+            tableFieldOrder = tableFieldOrder.filter(header => currentSurveyData.headers.includes(header));
+            surveyFieldList.innerHTML = tableFieldOrder.map(field => `
+                <li data-field="${escapeHtml(field)}" draggable="true">
+                    <span class="drag-handle">☰</span>
+                    <label>
+                        <input type="checkbox" data-field="${escapeHtml(field)}" ${hiddenFields.has(field) ? "" : "checked"}>
+                        ${escapeHtml(field)}
+                    </label>
+                </li>
+            `).join("");
+        }
+
+        surveyFieldList?.addEventListener("change", (event) => {
+            const input = event.target;
+            if (!input.matches("input[type=\"checkbox\"]")) return;
+            const field = input.getAttribute("data-field");
+            if (!field) return;
+            if (input.checked) {
+                hiddenFields.delete(field);
+            } else {
+                hiddenFields.add(field);
+            }
+            updateSurveyTable();
+        });
+
+        surveyFieldList?.addEventListener("dragstart", (event) => {
+            const item = event.target.closest("li[data-field]");
+            if (!item) return;
+            draggedFieldName = item.getAttribute("data-field");
+            event.dataTransfer.effectAllowed = "move";
+        });
+
+        surveyFieldList?.addEventListener("dragover", (event) => {
+            if (!draggedFieldName) return;
+            const item = event.target.closest("li[data-field]");
+            if (!item || item.getAttribute("data-field") === draggedFieldName) return;
+            event.preventDefault();
+        });
+
+        surveyFieldList?.addEventListener("drop", (event) => {
+            if (!draggedFieldName) return;
+            event.preventDefault();
+            const target = event.target.closest("li[data-field]");
+            if (!target) return;
+            const targetField = target.getAttribute("data-field");
+            if (!targetField || targetField === draggedFieldName) return;
+            const fromIdx = tableFieldOrder.indexOf(draggedFieldName);
+            const toIdx = tableFieldOrder.indexOf(targetField);
+            if (fromIdx === -1 || toIdx === -1) return;
+            tableFieldOrder.splice(fromIdx, 1);
+            tableFieldOrder.splice(toIdx, 0, draggedFieldName);
+            draggedFieldName = null;
+            renderSurveyFieldControls();
+            updateSurveyTable();
+        });
+
+        surveyFieldList?.addEventListener("dragend", () => {
+            draggedFieldName = null;
+        });
 
         function hideSurveyCallout() {
             surveyCallout.style.display = "none";
