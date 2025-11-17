@@ -527,6 +527,7 @@
         const surveyTableToggleLabel = document.getElementById("surveyTableToggleLabel");
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
+        setSurveyTableVisibility(false);
         const WORKER_BASE = "https://dropbox-lalgeo.namanadded.workers.dev";
         const surveyCallout = document.getElementById("surveyCallout");
         const surveyCalloutCard = surveyCallout.querySelector(".callout-content");
@@ -900,6 +901,8 @@
             });
             setProjectStatus(`Loaded ${parsed.records.length} responses from ${payload.projectName || "survey"}.`, "success");
             shareButton.style.display = "flex";
+            setSurveyTableVisibility(true);
+            updateSurveyTable();
         }
 
         async function buildSurveyPayload(files) {
@@ -1382,6 +1385,7 @@
             surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyAnnotations = [];
             rowAnnotationMap = new Map();
+            setSurveyTableVisibility(false);
         }
 
         function updateAnnotationLabels() {
@@ -1639,6 +1643,16 @@
                 map.region = new mapkit.CoordinateRegion(coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
             }
             showSurveyCallout(annotation);
+        }
+
+        function setSurveyTableVisibility(show) {
+            if (!surveyTablePanel) return;
+            surveyTablePanel.hidden = !show;
+            if (show) return;
+            surveyTablePanel.classList.remove("open");
+            surveyTableWrapper.hidden = true;
+            surveyTableToggleIcon.textContent = "▲";
+            surveyTableToggleLabel.textContent = "Show survey table";
         }
 
         function hideSurveyCallout() {
