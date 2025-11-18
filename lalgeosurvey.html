@@ -45,6 +45,19 @@
         height: 32px;
         width: auto;
     }
+    #printButton {
+        position: fixed;
+        bottom: 80px;
+        right: 12px;
+        border: none;
+        background: rgba(255,255,255,0.9);
+        border-radius: 8px;
+        padding: 6px 10px;
+        cursor: pointer;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+        font-weight: 600;
+        z-index: 1000;
+    }
     #searchInput {
         display: none;
     }
@@ -589,6 +602,7 @@
         <img src="assets/img/share-icon.png" alt="Share">
         <div class="share-text">Share</div>
     </div>
+    <button id="printButton" type="button">Print</button>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="surveyCallout">
         <div class="card">
@@ -1892,15 +1906,16 @@
             updateFloatingButtonLayer(false);
         }
 
-        function updateFloatingButtonLayer(panelOpen) {
-            const zIndex = panelOpen ? "600" : "1000";
-            if (shareButton) shareButton.style.zIndex = zIndex;
-            if (addSurveyPointBtn) addSurveyPointBtn.style.zIndex = zIndex;
-            if (myLocationBtn) myLocationBtn.style.zIndex = zIndex;
-            if (logoBadge) logoBadge.style.zIndex = zIndex;
-        }
+function updateFloatingButtonLayer(panelOpen) {
+    const zIndex = panelOpen ? "600" : "1000";
+    if (shareButton) shareButton.style.zIndex = zIndex;
+    if (addSurveyPointBtn) addSurveyPointBtn.style.zIndex = zIndex;
+    if (myLocationBtn) myLocationBtn.style.zIndex = zIndex;
+    if (logoBadge) logoBadge.style.zIndex = zIndex;
+    document.getElementById("printButton").style.zIndex = zIndex;
+}
 
-        function setImportPanelVisibility(show) {
+function setImportPanelVisibility(show) {
             if (!importPanel) return;
             isImportPanelVisible = show;
             importPanel.hidden = !show;
@@ -3007,6 +3022,7 @@
                 input.focus();
             }
         });
+        document.getElementById("printButton").addEventListener("click", () => window.print());
         window.addEventListener("beforeunload", (event) => {
             if (pendingChanges) {
                 event.preventDefault();
