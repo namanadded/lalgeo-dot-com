@@ -292,6 +292,10 @@
         color: #5f6368;
         font-weight: 600;
     }
+    #surveyCallout .callout-content {
+        max-height: 260px;
+        overflow-y: auto;
+    }
     #surveyCallout .callout-actions {
         margin-top: 10px;
         display: flex;
@@ -2143,8 +2147,15 @@
             if (!annotation || surveyCallout.style.display !== "block") return;
             const point = map.convertCoordinateToPointOnPage(annotation.coordinate);
             const rect = surveyCallout.getBoundingClientRect();
-            surveyCallout.style.left = `${point.x - rect.width / 2}px`;
-            surveyCallout.style.top = `${point.y - rect.height - 14}px`;
+            const margin = 10;
+            const maxLeft = window.innerWidth - rect.width - margin;
+            const maxTop = window.innerHeight - rect.height - margin;
+            let left = point.x - rect.width / 2;
+            let top = point.y - rect.height - 14;
+            left = Math.min(Math.max(margin, left), Math.max(margin, maxLeft));
+            top = Math.min(Math.max(margin, top), Math.max(margin, maxTop));
+            surveyCallout.style.left = `${left}px`;
+            surveyCallout.style.top = `${top}px`;
         }
 
         window.addEventListener("resize", () => {
