@@ -752,7 +752,12 @@
         let identifierField = "";
         let customIdentifierExpression = "";
         let currentSurveyData = null;
+        let currentSurveyDocument = null;
         let currentSurveySource = null;
+        let pointIdToRowIndex = new Map();
+        let pointIdToDocIndex = new Map();
+        let surveyNeedsSave = false;
+        let dropboxProfile = null;
         let isPersistingEdits = false;
         let dropdownFieldOptions = {};
         let requiredSurveyFields = new Set();
@@ -817,7 +822,7 @@
             try {
                 setProjectStatus("Loading survey from Dropbox…");
                 const payload = await fetchSurveyFromWorker(selectedPath);
-                if (payload && payload.csvText) {
+                if (payload && (payload.survey || payload.csvText)) {
                     await loadSurveyPayload(payload);
                 } else {
                     setProjectStatus("Connected to Dropbox, but worker did not return survey data yet.", "error");
@@ -923,6 +928,205 @@
             }
         }
 
+        function convertSurveyDocumentToParsed(doc) {
+            if (!doc) throw new Error("Missing survey document.");
+            const fields = Array.isArray(doc.fields) ? [...doc.fields] : [];
+            let latKey = doc.latField || fields.find(header => /lat/i.test(header));
+            let lonKey = doc.lonField || fields.find(header => /(lon|lng|long)/i.test(header));
+            if (latKey && !fields.includes(latKey)) fields.push(latKey);
+            if (lonKey && !fields.includes(lonKey)) fields.push(lonKey);
+            if (!latKey) {
+                latKey = "Latitude";
+                if (!fields.includes(latKey)) fields.push(latKey);
+            }
+            if (!lonKey) {
+                lonKey = "Longitude";
+                if (!fields.includes(lonKey)) fields.push(lonKey);
+            }
+            const pointMeta = [];
+            const records = (doc.points || []).map((point) => {
+                const record = {};
+                fields.forEach(field => {
+                    if (field === latKey) {
+                        record[field] = point.lat ?? point.attributes?.[field] ?? "";
+                        return;
+                    }
+                    if (field === lonKey) {
+                        record[field] = point.lon ?? point.attributes?.[field] ?? "";
+                        return;
+                    }
+                    record[field] = point.attributes?.[field] ?? "";
+                });
+                pointMeta.push({
+                    id: point.id,
+                    version: point.version ?? 1,
+                    updatedAt: point.updatedAt,
+                    updatedBy: point.updatedBy
+                });
+                return record;
+            });
+            return {
+                headers: fields,
+                records,
+                latKey,
+                lonKey,
+                questionMeta: {},
+                pointMeta,
+                version: doc.version ?? 1
+            };
+        }
+
+        function buildSurveyDocumentFromParsed(parsed) {
+            if (!parsed) return null;
+            const now = new Date().toISOString();
+            const fields = Array.isArray(parsed.headers) ? [...parsed.headers] : [];
+            const latKey = parsed.latKey;
+            const lonKey = parsed.lonKey;
+            const points = (parsed.records || []).map((record, index) => {
+                const attributes = { ...record };
+                const latValue = latKey ? parseFloat(attributes[latKey]) : NaN;
+                const lonValue = lonKey ? parseFloat(attributes[lonKey]) : NaN;
+                return {
+                    id: parsed.pointMeta?.[index]?.id || generateSurveyPointId(),
+                    lat: Number.isFinite(latValue) ? latValue : null,
+                    lon: Number.isFinite(lonValue) ? lonValue : null,
+                    attributes,
+                    version: parsed.pointMeta?.[index]?.version ?? 1,
+                    updatedAt: now,
+                    updatedBy: null
+                };
+            });
+            return {
+                version: parsed.version ?? 1,
+                updatedAt: now,
+                updatedBy: null,
+                fields,
+                latField: latKey,
+                lonField: lonKey,
+                points
+            };
+        }
+
+        function cloneSurveyDocument(doc) {
+            return JSON.parse(JSON.stringify(doc));
+        }
+
+        function rebuildPointIndexes(parsed) {
+            pointIdToRowIndex = new Map();
+            pointIdToDocIndex = new Map();
+            if (!parsed?.pointMeta) return;
+            parsed.pointMeta.forEach((meta, index) => {
+                if (meta?.id) {
+                    pointIdToRowIndex.set(meta.id, index);
+                    pointIdToDocIndex.set(meta.id, index);
+                }
+            });
+        }
+
+        function getPointMeta(rowIndex) {
+            return currentSurveyData?.pointMeta?.[rowIndex] || null;
+        }
+
+        function getDocumentPoint(pointId) {
+            if (!pointId) return null;
+            const docIndex = pointIdToDocIndex.get(pointId);
+            if (docIndex === undefined || !currentSurveyDocument?.points) return null;
+            return { point: currentSurveyDocument.points[docIndex], index: docIndex };
+        }
+
+        function updateDocumentPoint(point) {
+            if (!point?.id || !currentSurveyDocument?.points) return;
+            const docIndex = pointIdToDocIndex.get(point.id);
+            if (docIndex === undefined) {
+                pointIdToDocIndex.set(point.id, currentSurveyDocument.points.length);
+                currentSurveyDocument.points.push(point);
+                return;
+            }
+            currentSurveyDocument.points[docIndex] = point;
+        }
+
+        function generateSurveyPointId() {
+            if (window.crypto?.randomUUID) {
+                return window.crypto.randomUUID();
+            }
+            return `pt_${Date.now().toString(36)}_${Math.random().toString(36).slice(2, 10)}`;
+        }
+
+        function isDropboxSurvey() {
+            return currentSurveySource?.type === "dropbox";
+        }
+
+        function updateSurveyDocumentMetadata(version, updatedBy, updatedAt) {
+            if (!currentSurveyDocument) return;
+            if (typeof version === "number") currentSurveyDocument.version = version;
+            if (updatedAt) currentSurveyDocument.updatedAt = updatedAt;
+            if (updatedBy !== undefined) currentSurveyDocument.updatedBy = updatedBy;
+        }
+
+        function applyPointToRow(rowIndex, point) {
+            if (!currentSurveyData?.records?.[rowIndex] || !point) return;
+            if (!Array.isArray(currentSurveyData.headers)) currentSurveyData.headers = [];
+            const headers = currentSurveyData.headers;
+            Object.keys(point.attributes || {}).forEach(field => {
+                if (!field || headers.includes(field)) return;
+                headers.push(field);
+                if (!tableFieldOrder.includes(field)) {
+                    tableFieldOrder.push(field);
+                }
+                if (Array.isArray(currentSurveyDocument?.fields) && !currentSurveyDocument.fields.includes(field)) {
+                    currentSurveyDocument.fields.push(field);
+                }
+            });
+            const record = {};
+            headers.forEach(header => {
+                if (header === currentSurveyData.latKey) {
+                    record[header] = point.lat ?? point.attributes?.[header] ?? "";
+                    return;
+                }
+                if (header === currentSurveyData.lonKey) {
+                    record[header] = point.lon ?? point.attributes?.[header] ?? "";
+                    return;
+                }
+                record[header] = point.attributes?.[header] ?? "";
+            });
+            currentSurveyData.records[rowIndex] = record;
+            if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
+            currentSurveyData.pointMeta[rowIndex] = {
+                id: point.id,
+                version: point.version ?? 1,
+                updatedAt: point.updatedAt,
+                updatedBy: point.updatedBy
+            };
+            updateDocumentPoint(point);
+            pointIdToRowIndex.set(point.id, rowIndex);
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation) {
+                if (Number.isFinite(point.lat) && Number.isFinite(point.lon)) {
+                    const newCoord = new mapkit.Coordinate(point.lat, point.lon);
+                    annotation.coordinate = newCoord;
+                    annotation.surveyPoint.coordinate = newCoord;
+                }
+                annotation.surveyPoint.attributes = record;
+                annotation.surveyPoint.pointId = point.id;
+                annotation.surveyPoint.pointVersion = point.version ?? 1;
+                annotation.surveyPoint.title = computeLabelFromAttributes(record, activeProjectName);
+                annotation.title = annotation.surveyPoint.title;
+                rowAnnotationMap.set(rowIndex, annotation);
+            }
+        }
+
+        function markSurveyDirty() {
+            pendingChanges = true;
+            surveyNeedsSave = true;
+            updateHistoryButtons();
+        }
+
+        function getDropboxUpdatedBy() {
+            if (dropboxProfile?.name) return dropboxProfile.name;
+            if (dropboxProfile?.email) return dropboxProfile.email;
+            return null;
+        }
+
         function exitAddSurveyPointMode() {
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
@@ -931,13 +1135,14 @@
             pendingNewAnnotation = null;
         }
 
-        function handleNewSurveyPointPlacement(coordinate) {
+        async function handleNewSurveyPointPlacement(coordinate) {
             if (!currentSurveyData || !coordinate) return;
             exitAddSurveyPointMode();
             if (!Array.isArray(currentSurveyData.headers) || !currentSurveyData.headers.length) {
                 alert("Unable to determine survey schema.");
                 return;
             }
+            const dropboxMode = isDropboxSurvey();
             const newRecord = {};
             currentSurveyData.headers.forEach(header => {
                 newRecord[header] = "";
@@ -956,6 +1161,27 @@
             });
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
+            if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
+            const placeholderMeta = {
+                id: generateSurveyPointId(),
+                version: 1
+            };
+            currentSurveyData.pointMeta.push(placeholderMeta);
+            if (!dropboxMode && currentSurveyDocument) {
+                const now = new Date().toISOString();
+                const docPoint = {
+                    id: placeholderMeta.id,
+                    lat: coordinate.latitude,
+                    lon: coordinate.longitude,
+                    attributes: { ...newRecord },
+                    version: 1,
+                    updatedAt: now,
+                    updatedBy: null
+                };
+                currentSurveyDocument.points.push(docPoint);
+                pointIdToDocIndex.set(docPoint.id, currentSurveyDocument.points.length - 1);
+                pointIdToRowIndex.set(docPoint.id, rowIndex);
+            }
             const markerTitle = computeLabelFromAttributes(newRecord, activeProjectName);
             const annotation = new mapkit.MarkerAnnotation(coordinate, {
                 color: "#1a73e8",
@@ -968,13 +1194,44 @@
                 imageSrc: null,
                 title: markerTitle || "New point",
                 rowIndex,
-                isNew: true
+                isNew: !dropboxMode,
+                pointId: dropboxMode ? null : placeholderMeta.id,
+                pointVersion: placeholderMeta.version
             };
             surveyAnnotations.push(annotation);
             rowAnnotationMap.set(rowIndex, annotation);
             map.addAnnotation(annotation);
             setAnnotationDraggable(annotation);
-            pendingNewAnnotation = annotation;
+            if (dropboxMode) {
+                try {
+                    annotation.draggable = false;
+                } catch {}
+                try {
+                    setProjectStatus("Creating Dropbox point…");
+                    const response = await createDropboxPointRequest({
+                        lat: coordinate.latitude,
+                        lon: coordinate.longitude,
+                        attributes: newRecord
+                    });
+                    applyPointToRow(rowIndex, response.point);
+                    annotation.surveyPoint.isNew = false;
+                    updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
+                    setProjectStatus("Point saved to Dropbox.", "success");
+                    markSurveyDirty();
+                } catch (error) {
+                    console.error(error);
+                    removeNewSurveyPoint(annotation);
+                    setProjectStatus(error.message || "Unable to add Dropbox point.", "error");
+                    return;
+                } finally {
+                    try {
+                        annotation.draggable = true;
+                    } catch {}
+                }
+                pendingNewAnnotation = null;
+            } else {
+                pendingNewAnnotation = annotation;
+            }
             showSurveyCallout(annotation, { forceEdit: true });
             setAnnotationDraggable(annotation);
             updateSurveyTable();
@@ -985,6 +1242,9 @@
             const index = annotation.surveyPoint?.rowIndex;
             if (Number.isInteger(index) && currentSurveyData?.records) {
                 currentSurveyData.records.splice(index, 1);
+                if (Array.isArray(currentSurveyData.pointMeta)) {
+                    currentSurveyData.pointMeta.splice(index, 1);
+                }
                 surveyAnnotations = surveyAnnotations.filter(item => item !== annotation);
                 map.removeAnnotation(annotation);
                 rowAnnotationMap.delete(index);
@@ -1092,8 +1352,17 @@
         }
 
         async function loadSurveyPayload(payload) {
-            if (!payload || !payload.csvText) throw new Error("No CSV file found in package.");
-            const parsed = parseSurveyCSV(payload.csvText);
+            if (!payload) throw new Error("Missing survey data.");
+            let parsed;
+            if (payload.survey) {
+                currentSurveyDocument = cloneSurveyDocument(payload.survey);
+                parsed = convertSurveyDocumentToParsed(currentSurveyDocument);
+            } else if (payload.csvText) {
+                parsed = parseSurveyCSV(payload.csvText);
+                currentSurveyDocument = buildSurveyDocumentFromParsed(parsed);
+            } else {
+                throw new Error("No survey content found in package.");
+            }
             currentSurveyData = parsed;
             currentSurveySource = payload.source || null;
             tableFieldOrder = [...parsed.headers];
@@ -1101,9 +1370,10 @@
             surveyFieldsBtn.hidden = false;
             surveyFieldControls.hidden = true;
             analyzeSurveySchema(parsed);
+            rebuildPointIndexes(parsed);
             renderSurveyProject({
                 parsed,
-                images: payload.images,
+                images: payload.images || {},
                 projectName: payload.projectName || "Survey"
             });
             setProjectStatus(`Loaded ${parsed.records.length} responses from ${payload.projectName || "survey"}.`, "success");
@@ -1111,6 +1381,11 @@
             setSurveyTableVisibility(true);
             updateSurveyTable();
             setAddButtonVisibility(true);
+            undoStack = [];
+            redoStack = [];
+            pendingChanges = false;
+            surveyNeedsSave = false;
+            updateHistoryButtons();
         }
 
         async function buildSurveyPayload(files) {
@@ -1189,14 +1464,17 @@
                 if (!response.ok) throw new Error("Unable to verify Dropbox status.");
                 const data = await response.json();
                 if (data.connected) {
+                    dropboxProfile = data.profile || null;
                     showDropboxConnectedState(data.profile || {});
                     dropboxConnectStatus.textContent = "Dropbox connected.";
                     return;
                 }
+                dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = "Dropbox not connected.";
             } catch (error) {
                 console.error(error);
+                dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = error.message || "Unable to reach Dropbox worker.";
             }
@@ -1243,6 +1521,7 @@
 
         function showDropboxDisconnectedState() {
             dropboxConnected = false;
+            dropboxProfile = null;
             if (connectDropboxBtn) {
                 connectDropboxBtn.style.display = "block";
                 connectDropboxBtn.textContent = "Connect Dropbox Account";
@@ -1258,8 +1537,6 @@
                 credentials: "include"
             });
             const contentType = response.headers.get("content-type") || "";
-            const projectNameHeader = response.headers.get("x-project-name");
-            const projectName = projectNameHeader || stripExtension(path.split("/").filter(Boolean).pop() || "Survey");
             if (!response.ok) {
                 if (contentType.includes("application/json")) {
                     const data = await response.json().catch(() => null);
@@ -1270,22 +1547,92 @@
                 }
                 throw new Error("Worker could not load the selected survey.");
             }
-            const sourceMeta = { type: "dropbox", path, isZip: isSurveyArchiveName(path) };
-            if (contentType.includes("zip")) {
-                const buffer = await response.arrayBuffer();
-                const extracted = await extractZipPackage(buffer, { projectName });
-                extracted.source = sourceMeta;
-                return extracted;
+            if (!contentType.includes("application/json")) {
+                throw new Error("Worker returned unexpected data format.");
             }
-            if (contentType.includes("csv") || contentType.includes("text")) {
-                const csvText = await response.text();
-                return { csvText, images: {}, projectName, source: sourceMeta };
+            const data = await response.json();
+            if (!data?.survey) {
+                throw new Error("Worker response missing survey payload.");
             }
-            // Fallback: treat as binary zip payload
-            const buffer = await response.arrayBuffer();
-            const extracted = await extractZipPackage(buffer, { projectName });
-            extracted.source = sourceMeta;
-            return extracted;
+            const projectName = data.filename
+                ? stripExtension(data.filename)
+                : stripExtension(path.split("/").filter(Boolean).pop() || "Survey");
+            return {
+                survey: data.survey,
+                projectName,
+                images: {},
+                source: { type: "dropbox", path, isZip: true }
+            };
+        }
+
+        function requireDropboxPath() {
+            if (!currentSurveySource?.path) {
+                throw new Error("Dropbox survey path unavailable.");
+            }
+            return currentSurveySource.path;
+        }
+
+        async function createDropboxPointRequest(pointPayload) {
+            const path = requireDropboxPath();
+            const body = {
+                path,
+                point: {
+                    ...pointPayload,
+                    updatedBy: pointPayload.updatedBy ?? getDropboxUpdatedBy()
+                }
+            };
+            const response = await fetch(`${WORKER_BASE}/api/surveys/points`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(data?.error || "Dropbox worker could not create the point.");
+            }
+            return await response.json();
+        }
+
+        async function updateDropboxPointRequest(pointId, payload) {
+            const path = requireDropboxPath();
+            const body = {
+                path,
+                updatedBy: payload.updatedBy ?? getDropboxUpdatedBy(),
+                version: payload.version
+            };
+            if (payload.attributes) body.attributes = payload.attributes;
+            if ("lat" in payload) body.lat = payload.lat;
+            if ("lon" in payload) body.lon = payload.lon;
+            const response = await fetch(`${WORKER_BASE}/api/surveys/points/${encodeURIComponent(pointId)}`, {
+                method: "PATCH",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(body)
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                const message = data?.error === "VERSION_MISMATCH"
+                    ? "Point was updated elsewhere. Reload the survey."
+                    : data?.error || "Dropbox worker could not update the point.";
+                throw new Error(message);
+            }
+            return await response.json();
+        }
+
+        async function saveDropboxArchive() {
+            const path = requireDropboxPath();
+            const response = await fetch(`${WORKER_BASE}/api/surveys/save`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path })
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(data?.error || "Dropbox worker could not rebuild the archive.");
+            }
+            return await response.json();
         }
 
         function normalizeDropboxLink(url) {
@@ -1533,7 +1880,11 @@
                 });
                 return entry;
             });
-            return { headers, records, latKey, lonKey, questionMeta };
+            const pointMeta = records.map(() => ({
+                id: generateSurveyPointId(),
+                version: 1
+            }));
+            return { headers, records, latKey, lonKey, questionMeta, pointMeta };
         }
 
         function analyzeSurveySchema(parsed) {
@@ -1563,6 +1914,7 @@
                 identifierField = parsed.headers.find(h => h !== parsed.latKey && h !== parsed.lonKey) || parsed.latKey;
             }
             populateIdentifierOptions(parsed.headers, parsed.latKey, parsed.lonKey);
+            const pointMeta = parsed.pointMeta || [];
             parsed.records.forEach((record, index) => {
                 const lat = parseFloat(record[parsed.latKey]);
                 const lon = parseFloat(record[parsed.lonKey]);
@@ -1581,17 +1933,26 @@
                     }
                 }
                 const markerTitle = computeLabelFromAttributes(attributes, projectName);
-            const marker = new mapkit.MarkerAnnotation(coord, {
-                color: "#EA4335",
-                glyphText: "●",
-                title: markerTitle
+                const marker = new mapkit.MarkerAnnotation(coord, {
+                    color: "#EA4335",
+                    glyphText: "●",
+                    title: markerTitle
+                });
+                const meta = pointMeta[index] || {};
+                marker.surveyPoint = {
+                    coordinate: coord,
+                    attributes,
+                    imageSrc,
+                    title: markerTitle,
+                    rowIndex: index,
+                    pointId: meta.id || null,
+                    pointVersion: meta.version ?? 1
+                };
+                surveyAnnotations.push(marker);
+                rowAnnotationMap.set(index, marker);
+                map.addAnnotation(marker);
+                setAnnotationDraggable(marker);
             });
-            marker.surveyPoint = { coordinate: coord, attributes, imageSrc, title: markerTitle, rowIndex: index };
-            surveyAnnotations.push(marker);
-            rowAnnotationMap.set(index, marker);
-            map.addAnnotation(marker);
-            setAnnotationDraggable(marker);
-        });
             if (!coords.length) throw new Error("No valid coordinates found in CSV.");
             activeProjectName = projectName;
             if (coords.length === 1) {
@@ -1761,14 +2122,40 @@
             });
             activeSurveyAnnotation.surveyPoint.attributes = updatedAttributes;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            let originalRecord = null;
             if (Number.isInteger(rowIndex) && currentSurveyData?.records?.[rowIndex]) {
+                originalRecord = { ...currentSurveyData.records[rowIndex] };
                 currentSurveyData.records[rowIndex] = { ...currentSurveyData.records[rowIndex], ...updatedAttributes };
             }
             const wasNewPoint = !!activeSurveyAnnotation.surveyPoint.isNew;
             isCalloutEditing = false;
             updateAnnotationLabels();
             renderSurveyCalloutContent();
-            if (wasNewPoint) {
+            if (isDropboxSurvey()) {
+                try {
+                    const meta = getPointMeta(rowIndex);
+                    if (!meta?.id) {
+                        throw new Error("Missing Dropbox point metadata.");
+                    }
+                    const response = await updateDropboxPointRequest(meta.id, {
+                        attributes: updatedAttributes,
+                        version: meta.version,
+                        updatedBy: getDropboxUpdatedBy()
+                    });
+                    applyPointToRow(rowIndex, response.point);
+                    activeSurveyAnnotation.surveyPoint.isNew = false;
+                    pendingNewAnnotation = null;
+                    updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
+                    markSurveyDirty();
+                    setProjectStatus("Point updated on Dropbox.", "success");
+                } catch (error) {
+                    console.error(error);
+                    if (Number.isInteger(rowIndex) && originalRecord) {
+                        currentSurveyData.records[rowIndex] = originalRecord;
+                    }
+                    setProjectStatus(error.message || "Unable to update Dropbox point.", "error");
+                }
+            } else if (wasNewPoint) {
                 activeSurveyAnnotation.surveyPoint.isNew = false;
                 pendingNewAnnotation = null;
                 recordAction({
@@ -1784,39 +2171,27 @@
         }
 
         async function persistSurveyEditsIfNeeded(forceSave = false) {
-            if (!currentSurveyData || !currentSurveySource || currentSurveySource.type !== "dropbox") {
-                return;
-            }
-            if (!pendingChanges && !forceSave) return;
-            if (isPersistingEdits) return;
-            const csvText = buildCsvFromCurrentSurvey();
-            if (!csvText) return;
-            isPersistingEdits = true;
-            try {
-                setProjectStatus("Saving edits to Dropbox…");
-                const response = await fetch(`${WORKER_BASE}/api/surveys/update`, {
-                    method: "POST",
-                    credentials: "include",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        path: currentSurveySource.path,
-                        csvText,
-                        isZip: !!currentSurveySource.isZip
-                    })
-                });
-                if (!response.ok) {
-                    throw new Error("Unable to save edits to Dropbox.");
+            if (isDropboxSurvey()) {
+                if (!surveyNeedsSave && !forceSave) return;
+                if (isPersistingEdits) return;
+                isPersistingEdits = true;
+                try {
+                    setProjectStatus("Updating Dropbox archive…");
+                    const result = await saveDropboxArchive();
+                    updateSurveyDocumentMetadata(result?.version, currentSurveyDocument?.updatedBy, new Date().toISOString());
+                    setProjectStatus("Dropbox archive updated.", "success");
+                    surveyNeedsSave = false;
+                    pendingChanges = false;
+                    undoStack = [];
+                    redoStack = [];
+                    updateHistoryButtons();
+                } catch (error) {
+                    console.error(error);
+                    setProjectStatus(error.message || "Failed to update Dropbox archive.", "error");
+                } finally {
+                    isPersistingEdits = false;
                 }
-                setProjectStatus("Edits saved to Dropbox.", "success");
-                pendingChanges = false;
-                undoStack = [];
-                redoStack = [];
-                updateHistoryButtons();
-            } catch (error) {
-                console.error(error);
-                setProjectStatus(error.message || "Failed to save edits to Dropbox.", "error");
-            } finally {
-                isPersistingEdits = false;
+                return;
             }
         }
 
@@ -1928,6 +2303,10 @@ function setImportPanelVisibility(show) {
         }
 
         function recordAction(action) {
+            if (isDropboxSurvey()) {
+                markSurveyDirty();
+                return;
+            }
             undoStack.push(action);
             redoStack = [];
             pendingChanges = true;
@@ -1979,6 +2358,9 @@ function setImportPanelVisibility(show) {
         function removeRecordAt(index) {
             if (!currentSurveyData?.records || index < 0 || index >= currentSurveyData.records.length) return null;
             const record = currentSurveyData.records.splice(index, 1)[0];
+            if (Array.isArray(currentSurveyData.pointMeta)) {
+                currentSurveyData.pointMeta.splice(index, 1);
+            }
             const annotation = rowAnnotationMap.get(index);
             if (annotation) {
                 map.removeAnnotation(annotation);
@@ -2004,6 +2386,12 @@ function setImportPanelVisibility(show) {
             if (!currentSurveyData?.records) return;
             const rowIndex = Math.min(Math.max(index, 0), currentSurveyData.records.length);
             currentSurveyData.records.splice(rowIndex, 0, record);
+            if (Array.isArray(currentSurveyData.pointMeta)) {
+                currentSurveyData.pointMeta.splice(rowIndex, 0, {
+                    id: generateSurveyPointId(),
+                    version: 1
+                });
+            }
             adjustAnnotationsForInsert(rowIndex, record);
             updateSurveyTable();
         }
@@ -2057,6 +2445,34 @@ function setImportPanelVisibility(show) {
                 if (delta < 1e-9) return;
                 const rowIndex = annotation.surveyPoint?.rowIndex;
                 if (!Number.isInteger(rowIndex) || !currentSurveyData?.records?.[rowIndex]) return;
+                if (isDropboxSurvey()) {
+                    (async () => {
+                        try {
+                            const meta = getPointMeta(rowIndex);
+                            if (!meta?.id) throw new Error("Missing Dropbox point metadata.");
+                            const response = await updateDropboxPointRequest(meta.id, {
+                                version: meta.version,
+                                lat: coord.latitude,
+                                lon: coord.longitude,
+                                updatedBy: getDropboxUpdatedBy()
+                            });
+                            applyPointToRow(rowIndex, response.point);
+                            annotation.surveyPoint.coordinate = coord;
+                            rowAnnotationMap.set(rowIndex, annotation);
+                            updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
+                            markSurveyDirty();
+                            setProjectStatus("Point moved on Dropbox.", "success");
+                            updateSurveyTable();
+                        } catch (error) {
+                            console.error(error);
+                            setProjectStatus(error.message || "Unable to move point on Dropbox.", "error");
+                            annotation.coordinate = new mapkit.Coordinate(start.lat, start.lon);
+                            annotation.surveyPoint.coordinate = annotation.coordinate;
+                            updateSurveyTable();
+                        }
+                    })();
+                    return;
+                }
                 currentSurveyData.records[rowIndex][currentSurveyData.latKey] = coord.latitude;
                 currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.longitude;
                 annotation.surveyPoint.coordinate = coord;
