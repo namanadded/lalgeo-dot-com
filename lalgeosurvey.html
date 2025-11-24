@@ -754,6 +754,7 @@
         let currentSurveyData = null;
         let currentSurveyDocument = null;
         let currentSurveySource = null;
+        let currentSurveyImages = new Map();
         let pointIdToRowIndex = new Map();
         let pointIdToDocIndex = new Map();
         let surveyNeedsSave = false;
@@ -1365,6 +1366,7 @@
             }
             currentSurveyData = parsed;
             currentSurveySource = payload.source || null;
+            currentSurveyImages = buildImageLookup(payload.images || {});
             tableFieldOrder = [...parsed.headers];
             hiddenFields = new Set();
             surveyFieldsBtn.hidden = false;
@@ -1373,7 +1375,6 @@
             rebuildPointIndexes(parsed);
             renderSurveyProject({
                 parsed,
-                images: payload.images || {},
                 projectName: payload.projectName || "Survey"
             });
             setProjectStatus(`Loaded ${parsed.records.length} responses from ${payload.projectName || "survey"}.`, "success");
@@ -1732,6 +1733,28 @@
             return name.trim().replace(/^.*[\\/]/, "");
         }
 
+        function normalizeImageKey(name = "") {
+            return normalizeFileName(name).toLowerCase();
+        }
+
+        function buildImageLookup(images = {}) {
+            const lookup = new Map();
+            Object.entries(images).forEach(([name, src]) => {
+                if (!src) return;
+                const key = normalizeImageKey(name);
+                if (!key) return;
+                lookup.set(key, src);
+            });
+            return lookup;
+        }
+
+        function findImageSrc(value) {
+            if (typeof value !== "string" || !value) return null;
+            const key = normalizeImageKey(value);
+            if (!key) return null;
+            return currentSurveyImages.get(key) || null;
+        }
+
         function normalizeHeaderName(name = "") {
             return (name || "").trim().toLowerCase();
         }
@@ -1906,7 +1929,7 @@
             });
         }
 
-        function renderSurveyProject({ parsed, images, projectName }) {
+        function renderSurveyProject({ parsed, projectName }) {
             clearSurveyLayers();
             rowAnnotationMap = new Map();
             const coords = [];
@@ -1924,12 +1947,10 @@
                 const attributes = { ...record };
                 let imageSrc = null;
                 for (const value of Object.values(record)) {
-                    if (typeof value === "string") {
-                        const normalized = normalizeFileName(value);
-                        if (images[normalized]) {
-                            imageSrc = images[normalized];
-                            break;
-                        }
+                    const match = findImageSrc(value);
+                    if (match) {
+                        imageSrc = match;
+                        break;
                     }
                 }
                 const markerTitle = computeLabelFromAttributes(attributes, projectName);
