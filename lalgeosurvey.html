@@ -1560,8 +1560,8 @@
                 : stripExtension(path.split("/").filter(Boolean).pop() || "Survey");
             return {
                 survey: data.survey,
+                images: data.images || {},
                 projectName,
-                images: {},
                 source: { type: "dropbox", path, isZip: true }
             };
         }
