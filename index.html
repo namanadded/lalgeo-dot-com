@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LalGeo — Maps, AI & Directions</title>
-  <meta name="description" content="LalGeo: build maps, get directions, and search with AI on Apple Maps." />
+  <title>LalGeo — Mapping Simplified</title>
+  <meta name="description" content="LalGeo: mapping simplified—turn your data into clear maps and routes fast." />
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
@@ -55,16 +55,12 @@
       <div class="brand">
         <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
       </div>
-      <nav class="nav">
-        <a href="/ai.html">AI Search</a>
-        <a href="/directions.html">Directions</a>
-        <a href="/add-data.html">Create Your Own Map</a>
-      </nav>
+      <nav class="nav"></nav>
     </header>
 
     <section class="hero">
-      <h1>Easy Map Making for Everyone</h1>
-      <p>Turn data into beautiful Apple Maps in seconds. Search with natural language, generate smart overlays, and share routes with one click. Designed for speed—and for people who love maps.</p>
+      <h1>Mapping Simplified</h1>
+      <p>Drop your data, get a clean map, and share it. Faster routes, clearer layers, and no GIS hassle—built for anyone who needs a map that just works.</p>
     </section>
 
     <section class="cta">
@@ -123,13 +119,6 @@
   <script>
     // simple year updater + keyboard shortcuts for quick nav
     document.getElementById('year').textContent = new Date().getFullYear();
-    window.addEventListener('keydown', (e)=>{
-      if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === '1') window.location.href = '/ai-search.html';
-        if (e.key.toLowerCase() === '2') window.location.href = '/directions.html';
-        if (e.key.toLowerCase() === '3') window.location.href = '/add-data.html';
-      }
-    });
   </script>
 </body>
 </html>
