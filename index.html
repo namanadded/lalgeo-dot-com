@@ -38,8 +38,9 @@
     .card h2 { margin:0 0 8px; font-size: 18px }
     .card p { margin:0 0 16px; color:var(--muted) }
 
-    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; font-weight:700; border:1px solid #23304a; background: linear-gradient(180deg, #1b66ff, #164fc9); color:white; box-shadow: 0 10px 24px rgba(27,102,255,.25); }
+    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; font-weight:700; border:1px solid #23304a; background: linear-gradient(180deg, #1b66ff, #164fc9); color:white; box-shadow: 0 10px 24px rgba(27,102,255,.25); cursor:pointer; }
     .btn.secondary { background: #101623; border-color:#26334f; color:#d8deea; box-shadow:none }
+    .btn.disabled { background: #141824; border-color:#262c3c; color:#7c8496; box-shadow:none; cursor:not-allowed; }
     .btn span.kbd { font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding:4px 6px; border:1px solid #33415e; border-radius:6px; background:#0c1220 }
 
     .footer { padding:20px 18px; border-top:1px solid var(--line); color:#8c96a8; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
@@ -62,7 +63,7 @@
     </header>
 
     <section class="hero">
-      <h1>Build maps. Ask with AI. Get there faster.</h1>
+      <h1>Easy Map Making for Everyone</h1>
       <p>Turn data into beautiful Apple Maps in seconds. Search with natural language, generate smart overlays, and share routes with one click. Designed for speed—and for people who love maps.</p>
     </section>
 
@@ -88,9 +89,9 @@
       <article class="card">
         <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #22c55e33, transparent 70%)"></div>
         <div class="body">
-          <h2>Create Your Own Map</h2>
+          <h2>Create a Map</h2>
           <p>Drag & drop CSV, GeoJSON, Shapefiles (.zip), KML, or GPX. Style layers and share in seconds.</p>
-          <a class="btn" href="https://lalgeo.com/createmap" aria-label="Create your own map">Create a Map</a>
+          <span class="btn disabled" aria-label="Create a map (coming soon)">Coming soon</span>
         </div>
       </article>
 
@@ -112,6 +113,10 @@
 
     <footer class="footer">
       <div>© <span id="year"></span> LalGeo</div>
+      <div>
+        Created by: <a href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">Naman Malhotra</a> &nbsp;•&nbsp;
+        Contact: <a href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">www.linkedin.com/in/namanmalhotra</a>
+      </div>
     </footer>
   </div>
 
@@ -120,12 +125,11 @@
     document.getElementById('year').textContent = new Date().getFullYear();
     window.addEventListener('keydown', (e)=>{
       if (e.ctrlKey || e.metaKey) {
-        if (e.key.toLowerCase() === '1') window.location.href = '/ai.html';
+        if (e.key.toLowerCase() === '1') window.location.href = '/ai-search.html';
         if (e.key.toLowerCase() === '2') window.location.href = '/directions.html';
         if (e.key.toLowerCase() === '3') window.location.href = '/add-data.html';
       }
     });
   </script>
 </body>
-<a href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener" style="position:fixed; bottom:10px; right:10px; font-size:12px; color:#555; text-decoration:none;">Created by: Naman Malhotra</a>
 </html>
