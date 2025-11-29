@@ -1455,6 +1455,7 @@
                 }
                 showDropboxConnectedState();
                 dropboxConnectStatus.textContent = "Dropbox connected.";
+                startDropboxWatcher();
             } catch (error) {
                 dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
                 dropboxConnectStatus.textContent = error.message;
