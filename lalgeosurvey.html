@@ -2168,9 +2168,9 @@
             } else {
                 const attributeRows = headers.map(header => {
                     const value = attributes?.[header];
-                    if (value === undefined || value === null || value === "") return "";
-                    return `<div><strong>${escapeHtml(header)}:</strong> ${escapeHtml(value)}</div>`;
-                }).filter(Boolean).join("") || "<div>No attributes</div>";
+                    const shown = (value === undefined || value === null || value === "") ? "—" : escapeHtml(String(value));
+                    return `<div><strong>${escapeHtml(header)}:</strong> ${shown}</div>`;
+                }).join("") || "<div>No attributes</div>";
                 surveyCalloutCard.innerHTML = `
                     ${imageSection}
                     <div class="attributes">${attributeRows}</div>
