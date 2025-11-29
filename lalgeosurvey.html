@@ -1672,7 +1672,7 @@
                 const data = await response.json().catch(() => null);
                 const message = data?.error === "VERSION_MISMATCH"
                     ? "Point was updated elsewhere. Reload the survey."
-                    : data?.error || "Dropbox worker could not update the point.";
+                    : data?.error || (data?.details ? `Worker error: ${data.details}` : "Dropbox worker could not update the point.");
                 throw new Error(message);
             }
             return await response.json();
