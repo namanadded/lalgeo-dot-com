@@ -2225,6 +2225,7 @@
                     pendingNewAnnotation = null;
                     updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
                     markSurveyDirty();
+                    await persistSurveyEditsIfNeeded(true);
                     setProjectStatus("Point updated on Dropbox.", "success");
                 } catch (error) {
                     console.error(error);
