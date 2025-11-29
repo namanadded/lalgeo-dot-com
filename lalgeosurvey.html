@@ -1424,8 +1424,9 @@
             throw new Error("Dropbox file must be a .zip/.lal or .csv export.");
         }
 
-        async function refreshDropboxSurveyList() {
+        async function refreshDropboxSurveyList(preserveSelection = false) {
             if (!dropboxSurveySelect) return;
+            const previousValue = preserveSelection ? dropboxSurveySelect.value : "";
             dropboxSurveySelect.innerHTML = `<option value="">Loading…</option>`;
             dropboxConnectStatus.textContent = "Checking Dropbox connection…";
             try {
@@ -1443,6 +1444,9 @@
                     option.textContent = `${file.name} (${Math.round(file.size / 1024)} KB)`;
                     dropboxSurveySelect.appendChild(option);
                 });
+                if (preserveSelection && previousValue) {
+                    dropboxSurveySelect.value = previousValue;
+                }
                 if (files.length === 0) {
                     const option = document.createElement("option");
                     option.value = "";
@@ -1451,7 +1455,6 @@
                 }
                 showDropboxConnectedState();
                 dropboxConnectStatus.textContent = "Dropbox connected.";
-                startDropboxWatcher();
             } catch (error) {
                 dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
                 dropboxConnectStatus.textContent = error.message;
@@ -1544,7 +1547,25 @@
                     if (data.error) throw new Error(data.error);
                     if (data.changes) {
                         currentDropboxCursor = data.cursor || currentDropboxCursor;
-                        await refreshDropboxSurveyList();
+                        await refreshDropboxSurveyList(true);
+                        const changedPaths = new Set(
+                            (data.entries || [])
+                                .map(entry => entry.path_display || entry.path_lower)
+                                .filter(Boolean)
+                        );
+                        if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
+                            const activePath = currentSurveySource.path.toLowerCase();
+                            if (changedPaths.has(activePath)) {
+                                try {
+                                    const payload = await fetchSurveyFromWorker(currentSurveySource.path);
+                                    if (payload && (payload.survey || payload.csvText)) {
+                                        await loadSurveyPayload(payload);
+                                    }
+                                } catch (err) {
+                                    console.error("Failed to reload active Dropbox survey", err);
+                                }
+                            }
+                        }
                     } else {
                         if (data.cursor) currentDropboxCursor = data.cursor;
                         const backoff = typeof data.backoff === "number" ? data.backoff : 2;
