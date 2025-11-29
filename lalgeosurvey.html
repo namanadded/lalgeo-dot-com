@@ -1549,22 +1549,14 @@
                     if (data.changes) {
                         currentDropboxCursor = data.cursor || currentDropboxCursor;
                         await refreshDropboxSurveyList(true);
-                        const changedPaths = new Set(
-                            (data.entries || [])
-                                .map(entry => entry.path_display || entry.path_lower)
-                                .filter(Boolean)
-                        );
                         if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
-                            const activePath = currentSurveySource.path.toLowerCase();
-                            if (changedPaths.has(activePath)) {
-                                try {
-                                    const payload = await fetchSurveyFromWorker(currentSurveySource.path);
-                                    if (payload && (payload.survey || payload.csvText)) {
-                                        await loadSurveyPayload(payload);
-                                    }
-                                } catch (err) {
-                                    console.error("Failed to reload active Dropbox survey", err);
+                            try {
+                                const payload = await fetchSurveyFromWorker(currentSurveySource.path);
+                                if (payload && (payload.survey || payload.csvText)) {
+                                    await loadSurveyPayload(payload);
                                 }
+                            } catch (err) {
+                                console.error("Failed to reload active Dropbox survey", err);
                             }
                         }
                     } else {
