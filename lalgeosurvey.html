@@ -758,6 +758,8 @@
         let pointIdToRowIndex = new Map();
         let pointIdToDocIndex = new Map();
         let surveyNeedsSave = false;
+        let currentDropboxCursor = null;
+        let dropboxWatchAbort = null;
         let dropboxProfile = null;
         let isPersistingEdits = false;
         let dropdownFieldOptions = {};
@@ -1432,6 +1434,7 @@
                     throw new Error(response.status === 401 ? "Connect your Dropbox account to list files." : "Unable to list Dropbox files.");
                 }
                 const data = await response.json();
+                currentDropboxCursor = data.cursor || null;
                 const files = (data.entries || []).filter(entry => entry[".tag"] === "file" && isSurveyArchiveName(entry.name || entry.path_display || ""));
                 dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
                 files.forEach(file => {
@@ -1448,6 +1451,7 @@
                 }
                 showDropboxConnectedState();
                 dropboxConnectStatus.textContent = "Dropbox connected.";
+                startDropboxWatcher();
             } catch (error) {
                 dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
                 dropboxConnectStatus.textContent = error.message;
@@ -1518,6 +1522,41 @@
                 const email = profile.email;
                 dropboxUserDetails.textContent = [name, email && `(${email})`].filter(Boolean).join(" ") || "Connected";
             }
+        }
+
+        function startDropboxWatcher() {
+            if (!currentDropboxCursor) return;
+            if (dropboxWatchAbort) {
+                dropboxWatchAbort.abort();
+                dropboxWatchAbort = null;
+            }
+            const controller = new AbortController();
+            dropboxWatchAbort = controller;
+            const poll = async () => {
+                if (controller.signal.aborted) return;
+                try {
+                    const response = await fetch(`${WORKER_BASE}/api/surveys/watch?cursor=${encodeURIComponent(currentDropboxCursor)}`, {
+                        credentials: "include",
+                        signal: controller.signal
+                    });
+                    if (!response.ok) throw new Error("Watch failed");
+                    const data = await response.json();
+                    if (data.error) throw new Error(data.error);
+                    if (data.changes) {
+                        currentDropboxCursor = data.cursor || currentDropboxCursor;
+                        await refreshDropboxSurveyList();
+                    } else {
+                        if (data.cursor) currentDropboxCursor = data.cursor;
+                        const backoff = typeof data.backoff === "number" ? data.backoff : 2;
+                        setTimeout(poll, backoff * 1000);
+                    }
+                } catch (error) {
+                    if (controller.signal.aborted) return;
+                    console.error("Dropbox watch error", error);
+                    setTimeout(poll, 5000);
+                }
+            };
+            poll();
         }
 
         function showDropboxDisconnectedState() {
