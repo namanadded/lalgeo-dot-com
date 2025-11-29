@@ -1549,6 +1549,10 @@
                     if (data.changes) {
                         currentDropboxCursor = data.cursor || currentDropboxCursor;
                         await refreshDropboxSurveyList(true);
+                        if (surveyNeedsSave) {
+                            setTimeout(poll, 2000);
+                            return;
+                        }
                         if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
                             try {
                                 const payload = await fetchSurveyFromWorker(currentSurveySource.path);
