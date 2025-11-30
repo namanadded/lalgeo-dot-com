@@ -46,29 +46,28 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 10px;
+        gap: 8px;
         padding: 8px 20px;
         background: rgba(255,255,255,0.82);
         backdrop-filter: blur(20px);
         border-radius: 10px 10px 14px 14px;
-        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
+        box-shadow: 0 8px 32px rgba(0,0,0,0.05);
         flex-wrap: wrap;
         max-width: calc(100% - 24px);
     }
     .toolbar-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
     .toolbar-left { align-items: center; }
-    .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; }
-    .toolbar-title { font-weight: 700; color: #0f172a; letter-spacing: 0.2px; display: inline-block; vertical-align: middle; }
+    .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; object-fit: contain; }
     .toolbar-center { flex: 1 1 auto; justify-content: center; min-width: 220px; }
     .toolbar-placeholder { color: #64748b; font-size: 13px; }
-    .toolbar-right { justify-content: flex-end; gap: 4px; flex: 1 1 auto; }
+    .toolbar-right { justify-content: flex-end; gap: 3px; flex: 1 1 auto; }
     .control-btn {
-        border: 1px solid rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.08);
         border-radius: 8px;
-        padding: 6px 8px;
+        padding: 5px 7px;
         font-weight: 600;
         cursor: pointer;
-        background: rgba(255,255,255,0.55);
+        background: rgba(255,255,255,0.45);
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -76,7 +75,7 @@
         box-shadow: none;
         transition: background 0.15s ease, border-color 0.15s ease;
     }
-    .control-btn:hover { background: rgba(255,255,255,0.8); }
+    .control-btn:hover { background: rgba(255,255,255,0.75); }
     .control-btn.active { background: #1a73e8; color: #fff; border-color: #1a73e8; }
     .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .toolbar-btn.ghost { border: none; background: transparent; cursor: pointer; font-size: 16px; padding: 6px 10px; color: #0f172a; }
@@ -85,9 +84,9 @@
         align-items: center;
         gap: 8px;
         padding: 6px 12px;
-        border-radius: 30px;
-        background: rgba(255,255,255,0.65);
-        border: 1px solid rgba(0,0,0,0.15);
+        border-radius: 32px;
+        background: rgba(255,255,255,0.55);
+        border: 1px solid rgba(0,0,0,0.12);
         min-width: 260px;
     }
     .search-pill .search-icon { color: #475569; font-size: 14px; margin-left: 2px; }
@@ -538,7 +537,6 @@
     <div class="top-toolbar">
         <div class="toolbar-section toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
-            <span class="toolbar-title">LalGeo Survey</span>
         </div>
         <div class="toolbar-section toolbar-center">
             <div class="search-pill">
