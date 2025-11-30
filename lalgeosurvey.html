@@ -47,20 +47,21 @@
         align-items: center;
         justify-content: space-between;
         gap: 8px;
-        padding: 8px 20px;
+        padding: 8px 16px;
         background: rgba(255,255,255,0.82);
         backdrop-filter: blur(20px);
         border-radius: 10px 10px 14px 14px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.05);
         flex-wrap: wrap;
-        max-width: calc(100% - 24px);
+        max-width: calc(100% - 16px);
     }
     .toolbar-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .toolbar-left { align-items: center; }
-    .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; object-fit: contain; }
+    .toolbar-left { display: flex; align-items: center; gap: 24px; }
+    .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; object-fit: contain; margin: 0; }
     .toolbar-center { flex: 1 1 auto; justify-content: center; min-width: 220px; }
     .toolbar-placeholder { color: #64748b; font-size: 13px; }
-    .toolbar-right { justify-content: flex-end; gap: 2.7px; flex: 1 1 auto; }
+    .toolbar-right { justify-content: flex-end; flex: 1 1 auto; }
+    .toolbar-actions { display: flex; align-items: center; gap: 12px; }
     .control-btn {
         border: 1px solid rgba(0,0,0,0.05);
         border-radius: 6px;
@@ -566,8 +567,6 @@
     <div class="top-toolbar">
         <div class="toolbar-section toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
-        </div>
-        <div class="toolbar-section toolbar-center">
             <div class="search-pill">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="searchInput" placeholder="Search location or survey" aria-label="Search" />
@@ -576,13 +575,15 @@
             </div>
         </div>
         <div class="toolbar-section toolbar-right">
-            <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
-            <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
-            <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
-            <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
-            <button id="shareMapBtn" type="button" class="control-btn">Share</button>
-            <button id="printButton" type="button" class="control-btn">Print</button>
-            <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
+            <div class="toolbar-actions">
+                <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
+                <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
+                <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
+                <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
+                <button id="shareMapBtn" type="button" class="control-btn">Share</button>
+                <button id="printButton" type="button" class="control-btn">Print</button>
+                <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
+            </div>
         </div>
     </div>
     <div id="importPanel" hidden>
