@@ -19,82 +19,52 @@
         height: 100%;
         touch-action: none;
     }
-    #search-bar {
+    .top-toolbar {
         position: absolute;
         top: 10px;
-        left: 20px;
-        z-index: 10;
-        background: rgba(255,255,255,0.4);
-        padding: 6px 8px;
-        border-radius: 999px;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1200;
         display: flex;
         align-items: center;
-        gap: 6px;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 24px;
+        background: rgba(255,255,255,0.82);
+        backdrop-filter: blur(12px);
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        flex-wrap: wrap;
+        max-width: calc(100% - 24px);
     }
-    #logoBadge {
-        position: fixed;
-        bottom: 40px;
-        left: 5px;
-        z-index: 999;
-        padding: 0;
-        background: none;
-        box-shadow: none;
-    }
-    #logoBadge img {
-        height: 32px;
-        width: auto;
-    }
-    #printButton {
-        position: fixed;
-        bottom: 80px;
-        right: 12px;
-        border: none;
-        background: rgba(255,255,255,0.9);
-        border-radius: 8px;
-        padding: 6px 10px;
-        cursor: pointer;
-        box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        font-weight: 600;
-        z-index: 1000;
-    }
-    #searchInput {
-        display: none;
-    }
-    #searchInput.active {
-        display: block;
-    }
-    #searchIconBtn {
-        border: none;
-        background: transparent;
-        cursor: pointer;
-        font-size: 16px;
-        padding: 2px 4px;
-    }
-    #panelControls {
+    .top-toolbar {
         position: absolute;
-        top: 70px;
-        left: 20px;
-        z-index: 1000;
+        top: 10px;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 1200;
         display: flex;
-        gap: 8px;
-    }
-    .control-btn {
-        border: none;
-        border-radius: 20px;
-        padding: 8px 14px;
-        font-weight: 600;
-        cursor: pointer;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        background: rgba(255,255,255,0.95);
-        display: inline-flex;
         align-items: center;
-        gap: 6px;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 24px;
+        background: rgba(255,255,255,0.82);
+        backdrop-filter: blur(20px);
+        border-radius: 14px;
+        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        flex-wrap: wrap;
+        max-width: calc(100% - 24px);
     }
-    .control-btn.active {
-        background: #1a73e8;
-        color: #fff;
-    }
+    .toolbar-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .toolbar-left .brand-logo { height: 28px; width: auto; }
+    .toolbar-title { font-weight: 700; color: #0f172a; letter-spacing: 0.2px; }
+    .toolbar-center { flex: 1 1 auto; justify-content: center; min-width: 220px; }
+    .toolbar-placeholder { color: #64748b; font-size: 13px; }
+    .toolbar-right { justify-content: flex-end; gap: 8px; flex: 1 1 auto; }
+    .control-btn { border: none; border-radius: 12px; padding: 8px 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.12); background: rgba(255,255,255,0.95); display: inline-flex; align-items: center; gap: 6px; color: #0f172a; }
+    .control-btn.active { background: #1a73e8; color: #fff; }
+    .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .toolbar-btn.ghost { border: none; background: transparent; cursor: pointer; font-size: 16px; padding: 6px 10px; color: #0f172a; }
     #sidebar {
         position: absolute;
         top: 20px;
@@ -111,31 +81,18 @@
         font-family: sans-serif;
     }
     #myLocationBtn {
-        position: absolute;
-        bottom: 20px;
-        right: 140px;
-        z-index: 1000;
-        width: 10px;
-        height: 10px;
+        position: static;
+        width: auto;
+        height: auto;
         border: none;
         border-radius: 12px;
-        background-color: #fff;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.2);
-        display: flex;
+        background: transparent;
+        box-shadow: none;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
-        padding: 0;
+        padding: 6px 10px;
         cursor: pointer;
-    }
-
-    #myLocationBtn img {
-        width: 28px;
-        height: 28px;
-        transition: transform 0.2s ease;
-    }
-
-    #myLocationBtn:hover img {
-        transform: scale(1.2);
     }
     .share-button {
         position: fixed;
@@ -541,27 +498,28 @@
     } */
 
 </style>
-</head>
+    </head>
 <body>
-    <div id="search-bar">
-        <button id="searchIconBtn" aria-label="Open search">🔍</button>
-        <div style="position: relative; display: flex; align-items: center;">
-            <input type="text" id="searchInput" placeholder="Search by Address or Place" style="width: 200px; padding: 8px; padding-right: 25px;">
-            <span id="clearSearch" style=" display: none; position: absolute; right: 8px; cursor: pointer; font-weight: bold; color: #888; ">×</span>
+    <div class="top-toolbar">
+        <div class="toolbar-section toolbar-left">
+            <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+            <span class="toolbar-title">LalGeo Survey</span>
         </div>
-    </div>
-    <div id="logoBadge">
-        <img src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
-    </div>
-    <!-- <div id="data-search-bar">
-        <input type="text" id="dataSearchInput" placeholder="e.g., Create a map of countries by literacy rate">
-    </div> -->
-
-    <div id="panelControls">
-        <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
-        <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
-        <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
-        <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
+        <div class="toolbar-section toolbar-center">
+            <button id="searchIconBtn" class="toolbar-btn ghost" aria-label="Open search">🔍</button>
+            <span class="toolbar-placeholder">Search location or survey</span>
+            <input type="text" id="searchInput" placeholder="Search by Address or Place" style="display:none;">
+            <span id="clearSearch" style="display:none;">×</span>
+        </div>
+        <div class="toolbar-section toolbar-right">
+            <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
+            <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
+            <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
+            <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
+            <button id="shareMapBtn" type="button" class="control-btn">Share</button>
+            <button id="printButton" type="button" class="control-btn">Print</button>
+            <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
+        </div>
     </div>
     <div id="importPanel" hidden>
         <button id="importPanelClose" type="button" aria-label="Close import panel">×</button>
@@ -594,14 +552,6 @@
         <span id="closeSidebar" style="cursor:pointer; float:right; font-size:18px; font-weight:bold;">×</span>
         <div id="sidebar-content" style="clear:both; padding-top: 8px;"></div>
     </div>
-    <button id="myLocationBtn" aria-label="My location">
-        <img src="assets/img/locate-icon.png" alt="Locate">
-    </button>
-    <div id="shareMapBtn" class="share-button">
-        <img src="assets/img/share-icon.png" alt="Share">
-        <div class="share-text">Share</div>
-    </div>
-    <button id="printButton" type="button">Print</button>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="surveyCallout">
         <div class="card">
