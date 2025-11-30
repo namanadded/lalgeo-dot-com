@@ -46,28 +46,29 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
+        gap: 10px;
         padding: 8px 20px;
         background: rgba(255,255,255,0.82);
         backdrop-filter: blur(20px);
-        border-radius: 14px;
-        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+        border-radius: 10px 10px 14px 14px;
+        box-shadow: 0 4px 16px rgba(0,0,0,0.05);
         flex-wrap: wrap;
         max-width: calc(100% - 24px);
     }
     .toolbar-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .toolbar-left .brand-logo { height: 22px; width: auto; }
-    .toolbar-title { font-weight: 700; color: #0f172a; letter-spacing: 0.2px; }
+    .toolbar-left { align-items: center; }
+    .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; }
+    .toolbar-title { font-weight: 700; color: #0f172a; letter-spacing: 0.2px; display: inline-block; vertical-align: middle; }
     .toolbar-center { flex: 1 1 auto; justify-content: center; min-width: 220px; }
     .toolbar-placeholder { color: #64748b; font-size: 13px; }
-    .toolbar-right { justify-content: flex-end; gap: 6px; flex: 1 1 auto; }
+    .toolbar-right { justify-content: flex-end; gap: 4px; flex: 1 1 auto; }
     .control-btn {
-        border: 1px solid rgba(0,0,0,0.08);
+        border: 1px solid rgba(0,0,0,0.1);
         border-radius: 8px;
-        padding: 7px 10px;
+        padding: 6px 8px;
         font-weight: 600;
         cursor: pointer;
-        background: rgba(255,255,255,0.6);
+        background: rgba(255,255,255,0.55);
         display: inline-flex;
         align-items: center;
         gap: 6px;
@@ -84,12 +85,12 @@
         align-items: center;
         gap: 8px;
         padding: 6px 12px;
-        border-radius: 50px;
+        border-radius: 30px;
         background: rgba(255,255,255,0.65);
-        border: 1px solid rgba(0,0,0,0.1);
+        border: 1px solid rgba(0,0,0,0.15);
         min-width: 260px;
     }
-    .search-pill .search-icon { color: #475569; font-size: 14px; }
+    .search-pill .search-icon { color: #475569; font-size: 14px; margin-left: 2px; }
     .search-pill input {
         flex: 1 1 auto;
         border: none;
