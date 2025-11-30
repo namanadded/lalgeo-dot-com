@@ -47,24 +47,58 @@
         align-items: center;
         justify-content: space-between;
         gap: 12px;
-        padding: 12px 24px;
+        padding: 8px 20px;
         background: rgba(255,255,255,0.82);
         backdrop-filter: blur(20px);
         border-radius: 14px;
-        box-shadow: 0 6px 20px rgba(0,0,0,0.12);
+        box-shadow: 0 4px 20px rgba(0,0,0,0.06);
         flex-wrap: wrap;
         max-width: calc(100% - 24px);
     }
     .toolbar-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .toolbar-left .brand-logo { height: 28px; width: auto; }
+    .toolbar-left .brand-logo { height: 22px; width: auto; }
     .toolbar-title { font-weight: 700; color: #0f172a; letter-spacing: 0.2px; }
     .toolbar-center { flex: 1 1 auto; justify-content: center; min-width: 220px; }
     .toolbar-placeholder { color: #64748b; font-size: 13px; }
-    .toolbar-right { justify-content: flex-end; gap: 8px; flex: 1 1 auto; }
-    .control-btn { border: none; border-radius: 12px; padding: 8px 12px; font-weight: 600; cursor: pointer; box-shadow: 0 2px 6px rgba(0,0,0,0.12); background: rgba(255,255,255,0.95); display: inline-flex; align-items: center; gap: 6px; color: #0f172a; }
-    .control-btn.active { background: #1a73e8; color: #fff; }
+    .toolbar-right { justify-content: flex-end; gap: 6px; flex: 1 1 auto; }
+    .control-btn {
+        border: 1px solid rgba(0,0,0,0.08);
+        border-radius: 8px;
+        padding: 7px 10px;
+        font-weight: 600;
+        cursor: pointer;
+        background: rgba(255,255,255,0.6);
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        color: #0f172a;
+        box-shadow: none;
+        transition: background 0.15s ease, border-color 0.15s ease;
+    }
+    .control-btn:hover { background: rgba(255,255,255,0.8); }
+    .control-btn.active { background: #1a73e8; color: #fff; border-color: #1a73e8; }
     .control-btn:disabled { opacity: 0.5; cursor: not-allowed; }
     .toolbar-btn.ghost { border: none; background: transparent; cursor: pointer; font-size: 16px; padding: 6px 10px; color: #0f172a; }
+    .search-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px 12px;
+        border-radius: 50px;
+        background: rgba(255,255,255,0.65);
+        border: 1px solid rgba(0,0,0,0.1);
+        min-width: 260px;
+    }
+    .search-pill .search-icon { color: #475569; font-size: 14px; }
+    .search-pill input {
+        flex: 1 1 auto;
+        border: none;
+        background: transparent;
+        outline: none;
+        font-size: 13px;
+        color: #0f172a;
+    }
+    .search-pill input::placeholder { color: #94a3b8; }
     #sidebar {
         position: absolute;
         top: 20px;
@@ -506,10 +540,12 @@
             <span class="toolbar-title">LalGeo Survey</span>
         </div>
         <div class="toolbar-section toolbar-center">
-            <button id="searchIconBtn" class="toolbar-btn ghost" aria-label="Open search">🔍</button>
-            <span class="toolbar-placeholder">Search location or survey</span>
-            <input type="text" id="searchInput" placeholder="Search by Address or Place" style="display:none;">
-            <span id="clearSearch" style="display:none;">×</span>
+            <div class="search-pill">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="searchInput" placeholder="Search location or survey" aria-label="Search" />
+                <button id="searchIconBtn" class="toolbar-btn ghost" aria-label="Open search" style="display:none;">🔍</button>
+                <span id="clearSearch" style="display:none;">×</span>
+            </div>
         </div>
         <div class="toolbar-section toolbar-right">
             <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
