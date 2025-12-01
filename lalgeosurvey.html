@@ -25,22 +25,44 @@
         left: 50%;
         transform: translateX(-50%);
         z-index: 1200;
-        display: flex;
+        display: grid;
+        grid-template-columns: auto 1fr;
+        grid-template-rows: auto auto;
+        grid-template-areas:
+            "toolbar-left toolbar-center"
+            "toolbar-right toolbar-right";
         align-items: center;
-        justify-content: space-between;
-        padding: 8px 24px;
-        gap: 16px;
+        justify-items: center;
+        padding: 8px 16px;
+        gap: 12px;
         background: rgba(255,255,255,0.82);
         backdrop-filter: blur(20px);
         border-radius: 10px 10px 14px 14px;
         box-shadow: 0 8px 32px rgba(0,0,0,0.05);
-        flex-wrap: wrap;
         max-width: calc(100% - 16px);
     }
     .toolbar-left, .toolbar-center, .toolbar-right { display: flex; align-items: center; }
-    .toolbar-left { flex: 1; justify-content: flex-start; gap: 10px; }
-    .toolbar-center { flex: 2; justify-content: center; }
-    .toolbar-right { flex: 1; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
+    .toolbar-left {
+        grid-area: toolbar-left;
+        justify-content: flex-start;
+        gap: 10px;
+    }
+    .toolbar-center {
+        grid-area: toolbar-center;
+        justify-content: flex-start;
+        width: 100%;
+    }
+    .toolbar-right {
+        grid-area: toolbar-right;
+        justify-content: center;
+        align-items: center;
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 8px 12px;
+        width: 100%;
+        max-width: 720px;
+        margin: 0 auto;
+    }
     .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; object-fit: contain; margin: 0; }
     .toolbar-placeholder { color: #64748b; font-size: 13px; }
     .toolbar-actions { display: flex; align-items: center; gap: 12px; }
