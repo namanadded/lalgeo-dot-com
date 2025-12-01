@@ -205,44 +205,45 @@
         left: 20px;
         z-index: 1000;
         background: rgba(255,255,255,0.85);
-        border-radius: 16px;
-        padding: 24px 28px;
+        border-radius: 18px;
+        padding: 32px;
         box-shadow: 0 12px 36px rgba(0,0,0,0.12);
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        max-width: 500px;
+        max-width: 520px;
         width: 92vw;
-        backdrop-filter: blur(12px);
+        backdrop-filter: blur(14px);
     }
     #importPanelClose {
         position: absolute;
-        top: 12px;
-        right: 12px;
+        top: 14px;
+        right: 14px;
         width: 28px;
         height: 28px;
-        border: none;
-        background: rgba(0,0,0,0.05);
         border-radius: 50%;
-        font-size: 18px;
+        background: rgba(0,0,0,0.05);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 16px;
         cursor: pointer;
         color: #111;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
+        border: none;
+        transition: background 0.2s ease;
     }
     #importPanelClose:hover {
-        background: rgba(0,0,0,0.08);
+        background: rgba(0,0,0,0.12);
     }
     #importPanel h3 {
         margin: 0 0 12px;
         font-size: 18px;
     }
     #importPanel p {
-        margin: 0 0 16px;
-        font-size: 13px;
-        color: #5f6368;
+        margin: 0 0 20px;
+        font-size: 14px;
+        color: #666;
     }
     .import-section-title {
-        margin: 24px 0 16px;
+        margin: 28px 0 12px;
         font-size: 16px;
         font-weight: 600;
         color: #111;
@@ -250,8 +251,12 @@
     .import-section:first-of-type .import-section-title {
         margin-top: 0;
     }
-    .import-section {
-        margin-top: 24px;
+    .import-section + .import-section {
+        margin-top: 0;
+    }
+    .import-divider {
+        border-bottom: 1px solid rgba(0,0,0,0.07);
+        margin: 20px 0;
     }
     #importPanel input[type="url"],
     #importPanel input[type="file"],
@@ -264,9 +269,12 @@
         padding: 0 12px;
         font-size: 13px;
         color: #0f172a;
+        background: rgba(255,255,255,0.9);
+        margin-top: 8px;
+        margin-bottom: 12px;
     }
     #importPanel input[type="file"] {
-        padding: 8px 12px;
+        padding: 0 12px;
     }
     .import-primary-btn {
         background: #0A84FF;
@@ -275,9 +283,12 @@
         border-radius: 8px;
         padding: 10px 16px;
         font-weight: 500;
+        font-size: 15px;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(10,132,255,0.25);
+        box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         width: 100%;
+        margin-top: 8px;
+        margin-bottom: 12px;
     }
     .import-secondary-btn {
         background: rgba(0,0,0,0.05);
@@ -294,6 +305,17 @@
         flex-direction: column;
         gap: 12px;
         align-items: stretch;
+    }
+    .dropbox-selection {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    #dropboxConnectedInfo strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 14px;
+        color: #555;
     }
     #projectStatus {
         display: block;
@@ -664,21 +686,24 @@
                 <button id="dropboxLoadBtn" type="button" class="import-primary-btn">Load from Dropbox link</button>
             </div>
         </div>
+        <div class="import-divider"></div>
 
         <div class="import-section">
             <div class="import-section-title">From Dropbox account</div>
             <div id="dropboxControls" style="padding:18px; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background:rgba(247,249,251,0.9);">
-                <div style="font-size:12px; font-weight:700; margin-bottom:10px; color:#0f172a;">Live Dropbox connection</div>
+                <div style="font-size:14px; font-weight:500; margin-bottom:10px; margin-top:6px; color:#555;">Live Dropbox connection</div>
                 <div class="import-stack">
                     <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
-                    <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:8px; font-size:12px; color:#1a73e8; margin:4px 0 8px 0;">
-                        <strong style="display:block; margin-bottom:6px;">Connected to Dropbox</strong>
+                    <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:10px 12px; font-size:12px; color:#1a73e8;">
+                        <strong>Connected to Dropbox</strong>
                         <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
                     </div>
-                    <select id="dropboxSurveySelect">
-                        <option value="">— Select survey file —</option>
-                    </select>
-                    <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Load selected survey</button>
+                    <div class="dropbox-selection">
+                        <select id="dropboxSurveySelect">
+                            <option value="">— Select survey file —</option>
+                        </select>
+                        <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Load selected survey</button>
+                    </div>
                     <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
                 </div>
             </div>
