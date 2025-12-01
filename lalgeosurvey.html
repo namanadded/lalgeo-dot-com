@@ -28,8 +28,8 @@
         display: flex;
         align-items: center;
         justify-content: space-between;
-        gap: 12px;
-        padding: 8px 16px;
+        padding: 8px 24px;
+        gap: 16px;
         background: rgba(255,255,255,0.82);
         backdrop-filter: blur(20px);
         border-radius: 10px 10px 14px 14px;
@@ -37,10 +37,10 @@
         flex-wrap: wrap;
         max-width: calc(100% - 16px);
     }
-    .toolbar-section { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .toolbar-left { flex: 1; display: flex; align-items: center; justify-content: flex-start; gap: 10px; }
-    .toolbar-center { flex: 2; display: flex; justify-content: center; align-items: center; }
-    .toolbar-right { flex: 1; display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+    .toolbar-left, .toolbar-center, .toolbar-right { display: flex; align-items: center; }
+    .toolbar-left { flex: 1; justify-content: flex-start; gap: 10px; }
+    .toolbar-center { flex: 2; justify-content: center; }
+    .toolbar-right { flex: 1; justify-content: flex-end; gap: 12px; flex-wrap: wrap; }
     .toolbar-left .brand-logo { height: 24px; width: auto; display: inline-block; vertical-align: middle; object-fit: contain; margin: 0; }
     .toolbar-placeholder { color: #64748b; font-size: 13px; }
     .toolbar-actions { display: flex; align-items: center; gap: 12px; }
@@ -548,11 +548,11 @@
 </style>
     </head>
 <body>
-    <div id="toolbar" class="toolbar top-toolbar">
-        <div class="toolbar-section toolbar-left">
+    <div id="toolbar">
+        <div class="toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
         </div>
-        <div class="toolbar-section toolbar-center">
+        <div class="toolbar-center">
             <div class="search-pill">
                 <span class="search-icon">🔍</span>
                 <input type="text" id="searchInput" placeholder="Search location or survey" aria-label="Search" />
@@ -560,7 +560,7 @@
                 <span id="clearSearch" style="display:none;">×</span>
             </div>
         </div>
-        <div class="toolbar-section toolbar-right">
+        <div class="toolbar-right">
             <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
             <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
             <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
