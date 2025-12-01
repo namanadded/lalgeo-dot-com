@@ -204,14 +204,14 @@
         top: 80px;
         left: 20px;
         z-index: 1000;
-        background: rgba(255,255,255,0.94);
+        background: rgba(255,255,255,0.85);
         border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+        padding: 24px 28px;
+        box-shadow: 0 12px 36px rgba(0,0,0,0.12);
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         max-width: 500px;
         width: 92vw;
-        backdrop-filter: blur(6px);
+        backdrop-filter: blur(12px);
     }
     #importPanelClose {
         position: absolute;
@@ -222,7 +222,7 @@
         border: none;
         background: rgba(0,0,0,0.05);
         border-radius: 50%;
-        font-size: 16px;
+        font-size: 18px;
         cursor: pointer;
         color: #111;
         display: inline-flex;
@@ -233,29 +233,32 @@
         background: rgba(0,0,0,0.08);
     }
     #importPanel h3 {
-        margin: 0 0 10px;
+        margin: 0 0 12px;
         font-size: 18px;
     }
     #importPanel p {
-        margin: 0 0 12px;
+        margin: 0 0 16px;
         font-size: 13px;
         color: #5f6368;
     }
     .import-section-title {
-        margin: 0 0 8px;
-        font-size: 14px;
-        font-weight: 700;
-        color: #0f172a;
+        margin: 24px 0 16px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #111;
+    }
+    .import-section:first-of-type .import-section-title {
+        margin-top: 0;
     }
     .import-section {
-        margin-top: 20px;
+        margin-top: 24px;
     }
     #importPanel input[type="url"],
     #importPanel input[type="file"],
     #dropboxSurveySelect {
         width: 100%;
         box-sizing: border-box;
-        height: 42px;
+        height: 44px;
         border-radius: 8px;
         border: 1px solid rgba(0,0,0,0.15);
         padding: 0 12px;
@@ -266,14 +269,14 @@
         padding: 8px 12px;
     }
     .import-primary-btn {
-        background: rgba(0,122,255,1);
+        background: #0A84FF;
         color: #fff;
         border: none;
         border-radius: 8px;
         padding: 10px 16px;
-        font-weight: 600;
+        font-weight: 500;
         cursor: pointer;
-        box-shadow: 0 4px 12px rgba(0,122,255,0.25);
+        box-shadow: 0 4px 12px rgba(10,132,255,0.25);
         width: 100%;
     }
     .import-secondary-btn {
@@ -282,7 +285,7 @@
         border: 1px solid rgba(0,0,0,0.08);
         border-radius: 8px;
         padding: 10px 16px;
-        font-weight: 600;
+        font-weight: 500;
         cursor: pointer;
         width: 100%;
     }
@@ -664,13 +667,13 @@
 
         <div class="import-section">
             <div class="import-section-title">From Dropbox account</div>
-            <div id="dropboxControls" style="padding:14px; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background:rgba(247,249,251,0.9);">
+            <div id="dropboxControls" style="padding:18px; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background:rgba(247,249,251,0.9);">
                 <div style="font-size:12px; font-weight:700; margin-bottom:10px; color:#0f172a;">Live Dropbox connection</div>
                 <div class="import-stack">
                     <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
-                    <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:8px; font-size:12px; color:#1a73e8;">
-                        <strong>Connected to Dropbox</strong>
-                        <div id="dropboxUserDetails" style="margin-top:4px; color:#1967d2;"></div>
+                    <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:8px; font-size:12px; color:#1a73e8; margin:4px 0 8px 0;">
+                        <strong style="display:block; margin-bottom:6px;">Connected to Dropbox</strong>
+                        <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
                     </div>
                     <select id="dropboxSurveySelect">
                         <option value="">— Select survey file —</option>
