@@ -776,6 +776,7 @@
             <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
         </div>
     </div>
+    <div class="map-controls"></div>
     <div id="importPanel" hidden>
         <div class="import-panel-container">
             <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
@@ -847,10 +848,12 @@
         <img src="" alt="Survey photo">
     </div>
     <div id="surveyTablePanel" hidden>
-        <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
-            <span id="surveyTableToggleIcon">▲</span>
-            <span id="surveyTableToggleLabel">Show survey table</span>
-        </button>
+        <div class="bottom-bar">
+            <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
+                <span id="surveyTableToggleIcon">▲</span>
+                <span id="surveyTableToggleLabel">Show survey table</span>
+            </button>
+        </div>
         <div id="surveyPanelActions">
             <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
         </div>
