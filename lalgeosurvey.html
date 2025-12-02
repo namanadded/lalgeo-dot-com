@@ -218,6 +218,9 @@
         justify-content: center;
         pointer-events: none;
     }
+    #importPanel[hidden] {
+        display: none !important;
+    }
     .import-panel-container {
         max-width: min(520px, calc(100% - 32px));
         padding: 14px 16px;
@@ -226,7 +229,7 @@
         backdrop-filter: blur(10px);
         box-shadow: 0 6px 22px rgba(0,0,0,0.15);
         position: absolute;
-        top: 76px;
+        top: 96px;
         left: 50%;
         transform: translateX(-50%);
         right: auto;
