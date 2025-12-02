@@ -216,18 +216,19 @@
         border: none;
     }
     .import-panel-container {
-        max-width: 380px;
-        padding: 16px 20px;
-        border-radius: 14px;
+        max-width: 360px;
+        padding: 16px 18px;
+        border-radius: 12px;
         background: rgba(255,255,255,0.90);
-        backdrop-filter: blur(12px);
-        box-shadow: 0 6px 22px rgba(0,0,0,0.12);
+        backdrop-filter: blur(10px);
+        box-shadow: 0 4px 18px rgba(0,0,0,0.10);
         position: absolute;
         top: 20px;
         left: 20px;
         right: auto;
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 14px;
+        line-height: 1.25;
     }
     #importPanelClose {
         position: absolute;
@@ -249,9 +250,13 @@
     #importPanelClose:hover {
         background: rgba(0,0,0,0.12);
     }
-    .import-panel-container h3 {
-        margin: 0 0 10px;
-        font-size: 17px;
+    .import-panel-container h3,
+    .import-panel-container h2,
+    .import-panel-container .section-header {
+        margin-top: 16px;
+        margin-bottom: 6px;
+        font-size: 15px;
+        font-weight: 600;
     }
     .import-panel-container p {
         margin: 0 0 16px;
@@ -259,10 +264,10 @@
         color: #666;
     }
     .import-section {
-        margin-bottom: 20px;
+        margin-bottom: 16px;
     }
     .import-section-title {
-        margin: 20px 0 8px;
+        margin: 16px 0 6px;
         font-size: 15px;
         font-weight: 600;
         color: #111;
@@ -282,22 +287,26 @@
         border-bottom: 1px solid rgba(0,0,0,0.07);
         margin: 20px 0;
     }
+    .section-divider {
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        margin: 14px 0;
+    }
     .import-panel-container input[type="url"],
     .import-panel-container input[type="file"],
     .import-panel-container select {
         width: 100%;
         box-sizing: border-box;
-        height: 38px;
+        height: 36px;
         border-radius: 8px;
         border: 1px solid rgba(0,0,0,0.15);
-        padding: 8px 12px;
+        padding: 6px 10px;
         font-size: 14px;
         color: #0f172a;
         background: rgba(255,255,255,0.9);
-        margin: 8px 0;
+        margin: 6px 0;
     }
     .import-panel-container input[type="file"] {
-        padding: 0 12px;
+        padding: 0 10px;
     }
     .import-panel-container .close-btn {
         font-size: 16px;
@@ -307,26 +316,26 @@
         color: #fff;
         border: none;
         border-radius: 8px;
-        padding: 8px 12px;
-        height: 38px;
+        padding: 6px 10px;
+        height: 36px;
         font-weight: 500;
         font-size: 14px;
         cursor: pointer;
         box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         width: 100%;
-        margin: 8px 0;
+        margin: 6px 0;
     }
     .import-secondary-btn {
         background: rgba(0,0,0,0.05);
         color: #0f172a;
         border: 1px solid rgba(0,0,0,0.08);
         border-radius: 8px;
-        padding: 8px 12px;
-        height: 38px;
+        padding: 6px 10px;
+        height: 36px;
         font-weight: 500;
         cursor: pointer;
         width: 100%;
-        margin: 8px 0;
+        margin: 6px 0;
     }
     .import-stack {
         display: flex;
@@ -345,13 +354,12 @@
         align-items: stretch;
     }
     .dropbox-status-block > * {
-        margin-bottom: 10px;
+        margin-bottom: 8px;
     }
-    .dropbox-status-text {
+    .dropbox-status-label {
         font-size: 13px;
         color: #555;
-        margin-bottom: 8px;
-        font-weight: 500;
+        font-weight: 600;
     }
     #dropboxConnectedInfo strong {
         display: block;
@@ -690,13 +698,14 @@
             width: 92%;
             left: 50%;
             transform: translateX(-50%);
-            top: 10px;
+            top: 8px;
             padding: 14px;
-            border-radius: 12px;
+            border-radius: 10px;
         }
 
         .import-panel-container h3,
-        .import-panel-container .import-section-title {
+        .import-panel-container .import-section-title,
+        .import-panel-container .section-header {
             font-size: 14px;
         }
 
@@ -705,7 +714,7 @@
         .import-panel-container button {
             width: 100%;
             font-size: 13px;
-            height: 36px;
+            height: 32px;
         }
 
         .import-panel-container .close-btn {
@@ -786,10 +795,12 @@
             <div class="import-section">
                 <div class="import-section-title section-header">From file</div>
                 <div class="import-stack">
-                    <button id="projectPickerBtn" type="button" class="import-primary-btn">Select files…</button>
+                    <button id="projectPickerBtn" type="button" class="import-secondary-btn">Select files…</button>
                     <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,image/*" multiple webkitdirectory style="display:none">
                 </div>
             </div>
+
+            <div class="section-divider"></div>
 
             <div class="import-section">
                 <div class="import-section-title section-header">From Dropbox link</div>
@@ -798,7 +809,8 @@
                     <button id="dropboxLoadBtn" type="button" class="import-primary-btn">Load from Dropbox link</button>
                 </div>
             </div>
-            <div class="import-divider"></div>
+
+            <div class="section-divider"></div>
 
             <div class="import-section">
                 <div class="import-section-title section-header">From Dropbox account</div>
@@ -811,7 +823,7 @@
                             <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
                         </div>
                         <div class="dropbox-status-block">
-                            <div class="dropbox-status-text">Connected to Dropbox</div>
+                            <div class="dropbox-status-label">Connected to Dropbox</div>
                             <select id="dropboxSurveySelect">
                                 <option value="">— Select survey file —</option>
                             </select>
