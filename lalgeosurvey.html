@@ -214,12 +214,15 @@
         background: transparent;
         padding: 0;
         border: none;
-        display: flex;
+        display: none;
         justify-content: center;
         pointer-events: none;
     }
     #importPanel[hidden] {
         display: none !important;
+    }
+    #importPanel:not([hidden]) {
+        display: flex;
     }
     .import-panel-container {
         max-width: min(520px, calc(100% - 32px));
