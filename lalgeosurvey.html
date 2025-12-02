@@ -107,14 +107,16 @@
     }
     .search-pill input::placeholder { color: #94a3b8; }
     /* Map type selector (Standard / Hybrid / Satellite) */
-    #mapTypeControl {
+    #mapTypeControl,
+    .map-type-control {
         display: inline-flex;
         border-radius: 12px;
         overflow: hidden;
         border: 1px solid rgba(0,0,0,0.1);
         background: rgba(255,255,255,0.5);
     }
-    #mapTypeControl button {
+    #mapTypeControl button,
+    .map-type-control button {
         flex: 1 1 0;
         border: none;
         padding: 8px 10px;
@@ -123,14 +125,17 @@
         cursor: pointer;
         color: #0f172a;
     }
-    #mapTypeControl button.active {
+    #mapTypeControl button.active,
+    .map-type-control button.active {
         background: #fff;
         box-shadow: 0 2px 8px rgba(0,0,0,0.08);
     }
-    #mapTypeControl button:not(.active) {
+    #mapTypeControl button:not(.active),
+    .map-type-control button:not(.active) {
         background: rgba(255,255,255,0.35);
     }
-    #mapTypeControl button + button {
+    #mapTypeControl button + button,
+    .map-type-control button + button {
         border-left: 1px solid rgba(0,0,0,0.08);
     }
     #sidebar {
@@ -205,13 +210,14 @@
         left: 20px;
         z-index: 1000;
         background: rgba(255,255,255,0.85);
-        border-radius: 18px;
-        padding: 32px;
-        box-shadow: 0 12px 36px rgba(0,0,0,0.12);
+        border-radius: 16px;
+        padding: 20px 24px;
+        box-shadow: 0 8px 28px rgba(0,0,0,0.10);
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        max-width: 520px;
+        max-width: 420px;
         width: 92vw;
         backdrop-filter: blur(14px);
+        font-size: 14px;
     }
     #importPanelClose {
         position: absolute;
@@ -234,17 +240,20 @@
         background: rgba(0,0,0,0.12);
     }
     #importPanel h3 {
-        margin: 0 0 12px;
-        font-size: 18px;
+        margin: 0 0 10px;
+        font-size: 17px;
     }
     #importPanel p {
-        margin: 0 0 20px;
-        font-size: 14px;
+        margin: 0 0 16px;
+        font-size: 13px;
         color: #666;
     }
+    .import-section {
+        margin-bottom: 20px;
+    }
     .import-section-title {
-        margin: 28px 0 12px;
-        font-size: 16px;
+        margin: 20px 0 8px;
+        font-size: 15px;
         font-weight: 600;
         color: #111;
     }
@@ -267,35 +276,38 @@
         border-radius: 8px;
         border: 1px solid rgba(0,0,0,0.15);
         padding: 0 12px;
-        font-size: 13px;
+        font-size: 14px;
         color: #0f172a;
         background: rgba(255,255,255,0.9);
         margin-top: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
     #importPanel input[type="file"] {
         padding: 0 12px;
+    }
+    .import-panel-container .close-btn {
+        font-size: 16px;
     }
     .import-primary-btn {
         background: #0A84FF;
         color: #fff;
         border: none;
         border-radius: 8px;
-        padding: 10px 16px;
+        padding: 8px 14px;
         font-weight: 500;
-        font-size: 15px;
+        font-size: 14px;
         cursor: pointer;
         box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         width: 100%;
         margin-top: 8px;
-        margin-bottom: 12px;
+        margin-bottom: 10px;
     }
     .import-secondary-btn {
         background: rgba(0,0,0,0.05);
         color: #0f172a;
         border: 1px solid rgba(0,0,0,0.08);
         border-radius: 8px;
-        padding: 10px 16px;
+        padding: 8px 14px;
         font-weight: 500;
         cursor: pointer;
         width: 100%;
@@ -303,13 +315,27 @@
     .import-stack {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
         align-items: stretch;
     }
     .dropbox-selection {
         display: flex;
         flex-direction: column;
-        gap: 12px;
+        gap: 10px;
+    }
+    .dropbox-status-block {
+        display: flex;
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .dropbox-status-block > * {
+        margin-bottom: 10px;
+    }
+    .dropbox-status-text {
+        font-size: 13px;
+        color: #555;
+        margin-bottom: 8px;
+        font-weight: 500;
     }
     #dropboxConnectedInfo strong {
         display: block;
@@ -617,7 +643,7 @@
         0% { transform: scale(1); opacity: 1; }
         100% { transform: scale(2); opacity: 0; }
     }
-    
+
     /* #data-search-bar {
         position: absolute;
         top: 20px;
@@ -640,6 +666,72 @@
         border-radius: 6px;
         border: 1px solid #ccc;
     } */
+
+    @media (max-width: 600px) {
+        .import-panel-container {
+            max-width: 90%;
+            width: 90%;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 18px 16px;
+            border-radius: 12px;
+            top: 10px;
+        }
+
+        .import-panel-container h3,
+        .import-panel-container .import-section-title {
+            font-size: 14px;
+        }
+
+        .import-panel-container input,
+        .import-panel-container select,
+        .import-panel-container button {
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .import-panel-container .close-btn {
+            width: 24px;
+            height: 24px;
+            font-size: 14px;
+            top: 8px;
+            right: 8px;
+        }
+
+        #toolbar {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 8px;
+            padding: 10px;
+            width: 100%;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        #toolbar .toolbar-right {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        #toolbar input[type="text"] {
+            width: 100%;
+        }
+
+        .show-survey-table-btn {
+            bottom: 20px;
+            font-size: 14px;
+            padding: 8px 16px;
+        }
+
+        #mapTypeControl,
+        .map-type-control {
+            transform: scale(0.85);
+            right: 10px;
+            bottom: 80px;
+        }
+    }
 
 </style>
     </head>
@@ -666,8 +758,8 @@
             <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
         </div>
     </div>
-    <div id="importPanel" hidden>
-        <button id="importPanelClose" type="button" aria-label="Close import panel">×</button>
+    <div id="importPanel" class="import-panel-container" hidden>
+        <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
         <h3>Import LalGeo Survey</h3>
         <p>Drag and drop a LalGeo survey .zip/.lal or folder, pick files, or load from Dropbox.</p>
 
@@ -698,7 +790,8 @@
                         <strong>Connected to Dropbox</strong>
                         <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
                     </div>
-                    <div class="dropbox-selection">
+                    <div class="dropbox-status-block">
+                        <div class="dropbox-status-text">Connected to Dropbox</div>
                         <select id="dropboxSurveySelect">
                             <option value="">— Select survey file —</option>
                         </select>
@@ -734,7 +827,7 @@
         <img src="" alt="Survey photo">
     </div>
     <div id="surveyTablePanel" hidden>
-        <button id="surveyTableToggle" type="button">
+        <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
             <span id="surveyTableToggleIcon">▲</span>
             <span id="surveyTableToggleLabel">Show survey table</span>
         </button>
