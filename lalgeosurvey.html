@@ -209,11 +209,14 @@
         top: 0;
         left: 0;
         z-index: 1000;
-        width: auto;
+        width: 100%;
         height: auto;
         background: transparent;
         padding: 0;
         border: none;
+        display: flex;
+        justify-content: center;
+        pointer-events: none;
     }
     .import-panel-container {
         max-width: min(520px, calc(100% - 32px));
@@ -223,7 +226,7 @@
         backdrop-filter: blur(10px);
         box-shadow: 0 6px 22px rgba(0,0,0,0.15);
         position: absolute;
-        top: 64px;
+        top: 76px;
         left: 50%;
         transform: translateX(-50%);
         right: auto;
@@ -233,6 +236,7 @@
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 14px;
         line-height: 1.25;
+        pointer-events: auto;
     }
     #importPanelClose {
         position: absolute;
