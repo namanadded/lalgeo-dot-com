@@ -206,17 +206,27 @@
     }
     #importPanel {
         position: absolute;
-        top: 80px;
-        left: 20px;
+        top: 0;
+        left: 0;
         z-index: 1000;
-        background: rgba(255,255,255,0.85);
-        border-radius: 16px;
-        padding: 20px 24px;
-        box-shadow: 0 8px 28px rgba(0,0,0,0.10);
+        width: auto;
+        height: auto;
+        background: transparent;
+        padding: 0;
+        border: none;
+    }
+    .import-panel-container {
+        max-width: 380px;
+        padding: 16px 20px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.90);
+        backdrop-filter: blur(12px);
+        box-shadow: 0 6px 22px rgba(0,0,0,0.12);
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        right: auto;
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        max-width: 420px;
-        width: 92vw;
-        backdrop-filter: blur(14px);
         font-size: 14px;
     }
     #importPanelClose {
@@ -239,11 +249,11 @@
     #importPanelClose:hover {
         background: rgba(0,0,0,0.12);
     }
-    #importPanel h3 {
+    .import-panel-container h3 {
         margin: 0 0 10px;
         font-size: 17px;
     }
-    #importPanel p {
+    .import-panel-container p {
         margin: 0 0 16px;
         font-size: 13px;
         color: #666;
@@ -257,6 +267,11 @@
         font-weight: 600;
         color: #111;
     }
+    .import-panel-container .section-header {
+        margin-top: 18px;
+        margin-bottom: 6px;
+        font-size: 15px;
+    }
     .import-section:first-of-type .import-section-title {
         margin-top: 0;
     }
@@ -267,22 +282,21 @@
         border-bottom: 1px solid rgba(0,0,0,0.07);
         margin: 20px 0;
     }
-    #importPanel input[type="url"],
-    #importPanel input[type="file"],
-    #dropboxSurveySelect {
+    .import-panel-container input[type="url"],
+    .import-panel-container input[type="file"],
+    .import-panel-container select {
         width: 100%;
         box-sizing: border-box;
-        height: 44px;
+        height: 38px;
         border-radius: 8px;
         border: 1px solid rgba(0,0,0,0.15);
-        padding: 0 12px;
+        padding: 8px 12px;
         font-size: 14px;
         color: #0f172a;
         background: rgba(255,255,255,0.9);
-        margin-top: 8px;
-        margin-bottom: 10px;
+        margin: 8px 0;
     }
-    #importPanel input[type="file"] {
+    .import-panel-container input[type="file"] {
         padding: 0 12px;
     }
     .import-panel-container .close-btn {
@@ -293,35 +307,37 @@
         color: #fff;
         border: none;
         border-radius: 8px;
-        padding: 8px 14px;
+        padding: 8px 12px;
+        height: 38px;
         font-weight: 500;
         font-size: 14px;
         cursor: pointer;
         box-shadow: 0 2px 6px rgba(0,0,0,0.08);
         width: 100%;
-        margin-top: 8px;
-        margin-bottom: 10px;
+        margin: 8px 0;
     }
     .import-secondary-btn {
         background: rgba(0,0,0,0.05);
         color: #0f172a;
         border: 1px solid rgba(0,0,0,0.08);
         border-radius: 8px;
-        padding: 8px 14px;
+        padding: 8px 12px;
+        height: 38px;
         font-weight: 500;
         cursor: pointer;
         width: 100%;
+        margin: 8px 0;
     }
     .import-stack {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
         align-items: stretch;
     }
     .dropbox-selection {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 8px;
     }
     .dropbox-status-block {
         display: flex;
@@ -669,13 +685,14 @@
 
     @media (max-width: 600px) {
         .import-panel-container {
-            max-width: 90%;
-            width: 90%;
+            position: fixed;
+            max-width: 92%;
+            width: 92%;
             left: 50%;
             transform: translateX(-50%);
-            padding: 18px 16px;
-            border-radius: 12px;
             top: 10px;
+            padding: 14px;
+            border-radius: 12px;
         }
 
         .import-panel-container h3,
@@ -687,7 +704,8 @@
         .import-panel-container select,
         .import-panel-container button {
             width: 100%;
-            font-size: 14px;
+            font-size: 13px;
+            height: 36px;
         }
 
         .import-panel-container .close-btn {
@@ -758,51 +776,53 @@
             <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
         </div>
     </div>
-    <div id="importPanel" class="import-panel-container" hidden>
-        <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-        <h3>Import LalGeo Survey</h3>
-        <p>Drag and drop a LalGeo survey .zip/.lal or folder, pick files, or load from Dropbox.</p>
+    <div id="importPanel" hidden>
+        <div class="import-panel-container">
+            <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
+            <h3>Import LalGeo Survey</h3>
+            <p>Drag and drop a LalGeo survey .zip/.lal or folder, pick files, or load from Dropbox.</p>
 
-        <div class="import-section">
-            <div class="import-section-title">From file</div>
-            <div class="import-stack">
-                <button id="projectPickerBtn" type="button" class="import-primary-btn">Select files…</button>
-                <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,image/*" multiple webkitdirectory style="display:none">
-            </div>
-        </div>
-
-        <div class="import-section">
-            <div class="import-section-title">From Dropbox link</div>
-            <div class="import-stack">
-                <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.lal?dl=1">
-                <button id="dropboxLoadBtn" type="button" class="import-primary-btn">Load from Dropbox link</button>
-            </div>
-        </div>
-        <div class="import-divider"></div>
-
-        <div class="import-section">
-            <div class="import-section-title">From Dropbox account</div>
-            <div id="dropboxControls" style="padding:18px; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background:rgba(247,249,251,0.9);">
-                <div style="font-size:14px; font-weight:500; margin-bottom:10px; margin-top:6px; color:#555;">Live Dropbox connection</div>
+            <div class="import-section">
+                <div class="import-section-title section-header">From file</div>
                 <div class="import-stack">
-                    <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
-                    <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:10px 12px; font-size:12px; color:#1a73e8;">
-                        <strong>Connected to Dropbox</strong>
-                        <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
-                    </div>
-                    <div class="dropbox-status-block">
-                        <div class="dropbox-status-text">Connected to Dropbox</div>
-                        <select id="dropboxSurveySelect">
-                            <option value="">— Select survey file —</option>
-                        </select>
-                        <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Load selected survey</button>
-                    </div>
-                    <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
+                    <button id="projectPickerBtn" type="button" class="import-primary-btn">Select files…</button>
+                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,image/*" multiple webkitdirectory style="display:none">
                 </div>
             </div>
-        </div>
 
-        <span id="projectStatus">No project loaded.</span>
+            <div class="import-section">
+                <div class="import-section-title section-header">From Dropbox link</div>
+                <div class="import-stack">
+                    <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.lal?dl=1">
+                    <button id="dropboxLoadBtn" type="button" class="import-primary-btn">Load from Dropbox link</button>
+                </div>
+            </div>
+            <div class="import-divider"></div>
+
+            <div class="import-section">
+                <div class="import-section-title section-header">From Dropbox account</div>
+                <div id="dropboxControls" style="padding:18px; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background:rgba(247,249,251,0.9);">
+                    <div style="font-size:14px; font-weight:500; margin-bottom:10px; margin-top:6px; color:#555;">Live Dropbox connection</div>
+                    <div class="import-stack">
+                        <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
+                        <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:10px 12px; font-size:12px; color:#1a73e8;">
+                            <strong>Connected to Dropbox</strong>
+                            <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
+                        </div>
+                        <div class="dropbox-status-block">
+                            <div class="dropbox-status-text">Connected to Dropbox</div>
+                            <select id="dropboxSurveySelect">
+                                <option value="">— Select survey file —</option>
+                            </select>
+                            <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Load selected survey</button>
+                        </div>
+                        <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
+                    </div>
+                </div>
+            </div>
+
+            <span id="projectStatus">No project loaded.</span>
+        </div>
     </div>
 
     <div id="sidebar">
