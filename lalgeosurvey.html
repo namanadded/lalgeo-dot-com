@@ -218,14 +218,16 @@
     .import-panel-container {
         max-width: 360px;
         padding: 16px 18px;
-        border-radius: 12px;
-        background: rgba(255,255,255,0.90);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.92);
         backdrop-filter: blur(10px);
-        box-shadow: 0 4px 18px rgba(0,0,0,0.10);
+        box-shadow: 0 6px 22px rgba(0,0,0,0.15);
         position: absolute;
-        top: 20px;
-        left: 20px;
+        top: 80px;
+        left: 50%;
+        transform: translateX(-50%);
         right: auto;
+        height: auto;
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         font-size: 14px;
         line-height: 1.25;
@@ -254,7 +256,7 @@
     .import-panel-container h2,
     .import-panel-container .section-header {
         margin-top: 16px;
-        margin-bottom: 6px;
+        margin-bottom: 4px;
         font-size: 15px;
         font-weight: 600;
     }
@@ -286,6 +288,10 @@
     .import-divider {
         border-bottom: 1px solid rgba(0,0,0,0.07);
         margin: 20px 0;
+    }
+    .divider {
+        border-bottom: 1px solid rgba(0,0,0,0.08);
+        margin: 12px 0;
     }
     .section-divider {
         border-bottom: 1px solid rgba(0,0,0,0.08);
@@ -337,6 +343,12 @@
         width: 100%;
         margin: 6px 0;
     }
+    .import-panel-container button,
+    .import-panel-container input,
+    .import-panel-container select {
+        margin: 6px 0;
+        height: 36px;
+    }
     .import-stack {
         display: flex;
         flex-direction: column;
@@ -356,10 +368,14 @@
     .dropbox-status-block > * {
         margin-bottom: 8px;
     }
-    .dropbox-status-label {
-        font-size: 13px;
-        color: #555;
-        font-weight: 600;
+    .dropbox-block > * {
+        display: block;
+        margin-bottom: 10px;
+    }
+    .dropbox-label {
+        font-size: 14px;
+        color: #666;
+        margin-bottom: 6px;
     }
     #dropboxConnectedInfo strong {
         display: block;
@@ -800,7 +816,7 @@
                 </div>
             </div>
 
-            <div class="section-divider"></div>
+            <div class="divider"></div>
 
             <div class="import-section">
                 <div class="import-section-title section-header">From Dropbox link</div>
@@ -810,7 +826,7 @@
                 </div>
             </div>
 
-            <div class="section-divider"></div>
+            <div class="divider"></div>
 
             <div class="import-section">
                 <div class="import-section-title section-header">From Dropbox account</div>
@@ -822,8 +838,8 @@
                             <strong>Connected to Dropbox</strong>
                             <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
                         </div>
-                        <div class="dropbox-status-block">
-                            <div class="dropbox-status-label">Connected to Dropbox</div>
+                        <div class="dropbox-block">
+                            <div class="dropbox-label">Connected to Dropbox</div>
                             <select id="dropboxSurveySelect">
                                 <option value="">— Select survey file —</option>
                             </select>
