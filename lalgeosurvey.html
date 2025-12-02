@@ -1623,7 +1623,7 @@
             }
         }
 
-        async function loadSurveyPayload(payload) {
+        async function loadSurveyPayload(payload, { preserveRegion = false } = {}) {
             if (!payload) throw new Error("Missing survey data.");
             let parsed;
             if (payload.survey) {
@@ -1646,7 +1646,8 @@
             rebuildPointIndexes(parsed);
             renderSurveyProject({
                 parsed,
-                projectName: payload.projectName || "Survey"
+                projectName: payload.projectName || "Survey",
+                preserveRegion
             });
             setProjectStatus(`Loaded ${parsed.records.length} responses from ${payload.projectName || "survey"}.`, "success");
             shareButton.style.display = "flex";
@@ -1826,7 +1827,7 @@
                             try {
                                 const payload = await fetchSurveyFromWorker(currentSurveySource.path);
                                 if (payload && (payload.survey || payload.csvText)) {
-                                    await loadSurveyPayload(payload);
+                                    await loadSurveyPayload(payload, { preserveRegion: true });
                                 }
                             } catch (err) {
                                 console.error("Failed to reload active Dropbox survey", err);
@@ -2255,7 +2256,7 @@
             });
         }
 
-        function renderSurveyProject({ parsed, projectName }) {
+        function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
             clearSurveyLayers();
             rowAnnotationMap = new Map();
             const coords = [];
@@ -2302,10 +2303,12 @@
             });
             if (!coords.length) throw new Error("No valid coordinates found in CSV.");
             activeProjectName = projectName;
-            if (coords.length === 1) {
-                map.region = new mapkit.CoordinateRegion(coords[0], new mapkit.CoordinateSpan(0.02, 0.02));
-            } else {
-                map.region = computeBounds(coords);
+            if (!preserveRegion) {
+                if (coords.length === 1) {
+                    map.region = new mapkit.CoordinateRegion(coords[0], new mapkit.CoordinateSpan(0.02, 0.02));
+                } else {
+                    map.region = computeBounds(coords);
+                }
             }
             setTimeout(() => positionSurveyCallout(activeSurveyAnnotation), 10);
             updateSurveyTable();
