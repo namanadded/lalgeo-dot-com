@@ -2126,6 +2126,25 @@
             return normalized === "id" || normalized === "date";
         }
 
+        function normalizeMetaType(meta) {
+            return (meta?.normalizedType || meta?.type || "").toLowerCase();
+        }
+
+        function isNumericField(meta) {
+            const t = normalizeMetaType(meta);
+            return t.includes("number");
+        }
+
+        function isPictureField(meta) {
+            const t = normalizeMetaType(meta);
+            return t.includes("picture") || t.includes("photo") || t.includes("image");
+        }
+
+        function isMultipleChoiceField(meta) {
+            const t = normalizeMetaType(meta);
+            return t.includes("multiple");
+        }
+
         function getAutoFieldValue(header) {
             const normalized = normalizeHeaderName(header);
             if (normalized === "id") {
@@ -2391,26 +2410,53 @@
                     const isAutoField = isAutoManagedField(header);
                     const isReadOnly = isCoordinate || isAutoField;
                     const isRequired = (!isReadOnly && requiredSurveyFields.has(header));
+                    const meta = getQuestionMeta(header, currentSurveyData?.questionMeta || {});
                     const options = dropdownFieldOptions[header];
+                    const multiOptions = isMultipleChoiceField(meta) ? (meta?.choices || []) : null;
+                    const typeHint = normalizeMetaType(meta);
                     const labelText = `${escapeHtml(header || "")}${isRequired ? " *" : ""}`;
                     let control;
-                    if (Array.isArray(options) && options.length) {
+                    if (isPictureField(meta)) {
+                        const currentLabel = value ? `Current: ${escapeHtml(String(value))}` : "No file selected";
+                        control = `
+                            <div class="picture-input">
+                                <input type="file" accept="image/*" data-attr-field="${escapeHtml(header)}" data-attr-type="picture" ${isRequired ? "data-required=\"true\"" : ""} ${isReadOnly ? "disabled" : ""}>
+                                <div class="picture-meta">${currentLabel}</div>
+                            </div>
+                        `;
+                    } else if (Array.isArray(multiOptions) && multiOptions.length) {
+                        const selectedValues = typeof value === "string"
+                            ? value.split(/\s*\|\s*/).map(v => v.trim()).filter(Boolean)
+                            : [];
+                        const optionsMarkup = multiOptions.map(opt => {
+                            const checked = selectedValues.includes(opt) ? "checked" : "";
+                            return `
+                                <label class="choice-option">
+                                    <input type="checkbox" data-attr-field="${escapeHtml(header)}" data-attr-type="multiple" value="${escapeHtml(opt)}" ${checked} ${isReadOnly ? "disabled" : ""}>
+                                    ${escapeHtml(opt)}
+                                </label>
+                            `;
+                        }).join("");
+                        control = `<div class="multiple-choice-group">${optionsMarkup}</div>`;
+                    } else if (Array.isArray(options) && options.length) {
                         const optionMarkup = [`<option value="">Select…</option>`, ...options.map(opt => {
                             const safeOpt = escapeHtml(opt);
                             const selected = String(value) === opt ? "selected" : "";
                             return `<option value="${safeOpt}" ${selected}>${safeOpt}</option>`;
                         })].join("");
                         control = `<select data-attr-field="${escapeHtml(header)}" ${isRequired ? "data-required=\"true\"" : ""} ${isReadOnly ? "disabled" : ""}>${optionMarkup}</select>`;
+                    } else if (isNumericField(meta)) {
+                        control = `<input type="number" data-attr-field="${escapeHtml(header)}" value="${escapeHtml(value ?? "")}" ${isReadOnly ? "readonly" : ""} ${isRequired ? "data-required=\"true\"" : ""}>`;
                     } else {
                         control = `<input type="text" data-attr-field="${escapeHtml(header)}" value="${escapeHtml(value ?? "")}" ${isReadOnly ? "readonly" : ""} ${isRequired ? "data-required=\"true\"" : ""}>`;
                     }
                     return `
                         <label class="attribute-edit-row">
                             <span>${labelText}</span>
-                            ${control.replace("<input", `<input ${isRequired ? "data-required=\"true\"" : ""}`)
-                                .replace("<select", `<select ${isRequired ? "data-required=\"true\"" : ""}`)}
-                        </label>
-                    `;
+                    ${control.replace("<input", `<input ${isRequired ? "data-required=\"true\"" : ""}`)
+                        .replace("<select", `<select ${isRequired ? "data-required=\"true\"" : ""}`)}
+                </label>
+            `;
                 }).join("") || "<div class=\"attributes\">No attributes</div>";
                 surveyCalloutCard.innerHTML = `
                     ${imageSection}
@@ -2423,6 +2469,23 @@
                 const form = surveyCalloutCard.querySelector("#attributeEditForm");
                 form?.addEventListener("input", validateCalloutForm);
                 form?.addEventListener("change", validateCalloutForm);
+                form?.querySelectorAll('input[data-attr-type="picture"]').forEach((input) => {
+                    input.addEventListener("change", async (event) => {
+                        const file = event.target.files?.[0];
+                        if (!file) return;
+                        try {
+                            const dataUrl = await readFileAsDataURL(file);
+                            input.dataset.selectedValue = file.name;
+                            input.dataset.imageSrc = dataUrl;
+                            const metaEl = input.parentElement?.querySelector(".picture-meta");
+                            if (metaEl) {
+                                metaEl.textContent = `Selected: ${file.name}`;
+                            }
+                        } catch (error) {
+                            console.error("Image read failed", error);
+                        }
+                    });
+                });
                 validateCalloutForm();
                 surveyCalloutCard.querySelector("#calloutSaveBtn")?.addEventListener("click", (event) => {
                     event.stopPropagation();
@@ -2464,10 +2527,35 @@
             const form = surveyCalloutCard.querySelector("#attributeEditForm");
             if (!form) return;
             const updatedAttributes = { ...(activeSurveyAnnotation.surveyPoint.attributes || {}) };
-            form.querySelectorAll("input[data-attr-field]").forEach((input) => {
+            form.querySelectorAll("input[data-attr-field][type=\"text\"], input[data-attr-field][type=\"number\"], select[data-attr-field]").forEach((input) => {
                 const field = input.getAttribute("data-attr-field");
                 if (field) {
                     updatedAttributes[field] = input.value;
+                }
+            });
+            const multiGroups = {};
+            form.querySelectorAll("input[type=\"checkbox\"][data-attr-type=\"multiple\"]").forEach((checkbox) => {
+                const field = checkbox.getAttribute("data-attr-field");
+                if (!field) return;
+                if (!multiGroups[field]) multiGroups[field] = [];
+                if (checkbox.checked) {
+                    multiGroups[field].push(checkbox.value);
+                }
+            });
+            Object.entries(multiGroups).forEach(([field, values]) => {
+                updatedAttributes[field] = values.join("|");
+            });
+            form.querySelectorAll("input[data-attr-type=\"picture\"]").forEach((input) => {
+                const field = input.getAttribute("data-attr-field");
+                if (!field) return;
+                const selectedName = input.dataset.selectedValue || input.value || updatedAttributes[field];
+                if (selectedName) {
+                    updatedAttributes[field] = selectedName;
+                }
+                if (input.dataset.imageSrc && selectedName) {
+                    const key = normalizeImageKey(selectedName);
+                    currentSurveyImages.set(key, input.dataset.imageSrc);
+                    activeSurveyAnnotation.surveyPoint.imageSrc = input.dataset.imageSrc;
                 }
             });
             activeSurveyAnnotation.surveyPoint.attributes = updatedAttributes;
