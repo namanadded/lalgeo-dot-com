@@ -2264,15 +2264,19 @@
         function parseSurveyCSV(csvText) {
             const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
+            const cleanCell = (cell) => {
+                if (cell === undefined || cell === null) return "";
+                return String(cell).replace(/\u00a0/g, " ").trim();
+            };
             const responsesRowIndex = rows.findIndex(row =>
-                row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("responses"))
+                row.some(cell => cleanCell(cell).toLowerCase().includes("responses"))
             );
             let headerIndex = -1;
             if (responsesRowIndex !== -1 && rows[responsesRowIndex + 1]) {
                 headerIndex = responsesRowIndex + 1;
             } else {
                 headerIndex = rows.findIndex(row =>
-                    row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("latitude"))
+                    row.some(cell => cleanCell(cell).toLowerCase().includes("latitude"))
                 );
             }
             if (headerIndex === -1) throw new Error("Unable to find Latitude column in CSV.");
@@ -2281,11 +2285,11 @@
             const metaEnd = responsesRowIndex !== -1 ? responsesRowIndex : headerIndex;
             for (let i = metaStart; i < metaEnd; i++) {
                 const row = rows[i];
-                const firstCell = (row[0] || "").trim();
+                const firstCell = cleanCell(row[0]);
                 if (!firstCell || /^question$/i.test(firstCell)) continue;
                 if (/^responses$/i.test(firstCell)) break;
-                const typeValue = (row[1] || "").trim();
-                const choicesValue = (row[2] || "").trim();
+                const typeValue = cleanCell(row[1]);
+                const choicesValue = cleanCell(row[2]);
                 if (!typeValue) continue;
                 questionMeta[firstCell] = {
                     type: typeValue,
@@ -2293,18 +2297,20 @@
                     choices: choicesValue ? choicesValue.split(/\s*\|\s*/).map(choice => choice.trim()).filter(Boolean) : []
                 };
             }
-            const headers = rows[headerIndex].map(cell => (cell || "").trim());
-            const latKey = headers.find(h => /lat/i.test(h));
-            const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
+            const headers = rows[headerIndex].map(cell => cleanCell(cell));
+            const headerLookupLocal = new Map();
+            headers.forEach((h) => headerLookupLocal.set(normalizeHeaderName(h), h));
+            const latKey = headers.find(h => /lat/i.test(h)) || headerLookupLocal.get("latitude") || headerLookupLocal.get("lat");
+            const lonKey = headers.find(h => /(lon|lng|long)/i.test(h)) || headerLookupLocal.get("longitude") || headerLookupLocal.get("lon");
             if (!latKey || !lonKey) throw new Error("CSV missing latitude or longitude headers.");
             const dataRows = rows.slice(headerIndex + 1).filter(row =>
-                row && row.some(cell => String(cell ?? "").trim() !== "")
+                row && row.some(cell => cleanCell(cell) !== "")
             );
             const records = dataRows.map(row => {
                 const entry = {};
                 headers.forEach((header, idx) => {
                     const key = header || `Field_${idx}`;
-                    entry[key] = row[idx];
+                    entry[key] = cleanCell(row[idx]);
                 });
                 return entry;
             });
