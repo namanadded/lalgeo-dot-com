@@ -1668,12 +1668,20 @@
         async function loadSurveyPayload(payload, { preserveRegion = false } = {}) {
             if (!payload) throw new Error("Missing survey data.");
             let parsed;
+            let parsedFromDoc = null;
             if (payload.survey) {
                 currentSurveyDocument = cloneSurveyDocument(payload.survey);
-                parsed = convertSurveyDocumentToParsed(currentSurveyDocument);
-            } else if (payload.csvText) {
+                parsedFromDoc = convertSurveyDocumentToParsed(currentSurveyDocument);
+            }
+            if (payload.csvText) {
                 parsed = parseSurveyCSV(payload.csvText);
+                // If doc existed, merge question meta from doc into csv-derived parsed
+                if (parsedFromDoc?.questionMeta) {
+                    parsed.questionMeta = { ...parsedFromDoc.questionMeta, ...parsed.questionMeta };
+                }
                 currentSurveyDocument = buildSurveyDocumentFromParsed(parsed);
+            } else if (parsedFromDoc) {
+                parsed = parsedFromDoc;
             } else {
                 throw new Error("No survey content found in package.");
             }
