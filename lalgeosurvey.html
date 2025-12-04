@@ -1211,6 +1211,7 @@
 
             const questionMeta = {};
             const responsePoints = [];
+            const debugPoints = [];
             (doc.points || []).forEach((point) => {
                 const attrs = point.attributes || {};
                 const q = typeof attrs.Question === "string" ? attrs.Question.trim() : "";
@@ -1222,6 +1223,7 @@
                 const lonNum = Number(lonVal);
                 const hasCoords = Number.isFinite(latNum) && Number.isFinite(lonNum);
 
+                debugPoints.push({ q, t, c, latVal, lonVal, latNum, lonNum, hasCoords });
                 if (!hasCoords) {
                     if (q && t) {
                         questionMeta[q] = {
@@ -1277,6 +1279,13 @@
                     updatedAt: point.updatedAt,
                     updatedBy: point.updatedBy
                 });
+            });
+
+            console.log("DEBUG_DOC_PARSED", {
+                docPoints: doc.points?.length || 0,
+                responsePoints: responsePoints.length,
+                sampleResponse: responsePoints[0]?.attrs || null,
+                debugPoints
             });
 
             return {
