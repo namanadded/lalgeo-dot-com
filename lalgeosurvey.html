@@ -2041,12 +2041,26 @@
             if (!data?.survey) {
                 throw new Error("Worker response missing survey payload.");
             }
+            let csvText = data.csvText || null;
+            if (!csvText) {
+                try {
+                    const csvResp = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}&format=csv`, {
+                        credentials: "include"
+                    });
+                    if (csvResp.ok && (csvResp.headers.get("content-type") || "").includes("text/csv")) {
+                        csvText = await csvResp.text();
+                    }
+                } catch (err) {
+                    console.warn("CSV fetch fallback failed", err);
+                }
+            }
             const projectName = data.filename
                 ? stripExtension(data.filename)
                 : stripExtension(path.split("/").filter(Boolean).pop() || "Survey");
             return {
                 survey: data.survey,
                 images: data.images || {},
+                csvText: csvText || null,
                 projectName,
                 source: { type: "dropbox", path, isZip: true }
             };
