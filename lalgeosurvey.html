@@ -1283,6 +1283,9 @@
 
             console.log("DEBUG_DOC_PARSED", {
                 docPoints: doc.points?.length || 0,
+                docLatField: doc.latField,
+                docLonField: doc.lonField,
+                rawFields,
                 responsePoints: responsePoints.length,
                 sampleResponse: responsePoints[0]?.attrs || null,
                 debugPoints
