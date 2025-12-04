@@ -2800,7 +2800,7 @@
             surveyTable.innerHTML = `
                 <table>
                     <thead><tr>${headerRow}</tr></thead>
-                    <tbody>${bodyRows || `<tr><td colspan="${headers.length + 1}" style="text-align:center; color:#5f6368;">No responses yet.</td></tr>`}</tbody>
+                    <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#5f6368;">No responses yet.</td></tr>`}</tbody>
                 </table>
             `;
         }
