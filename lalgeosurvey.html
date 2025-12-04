@@ -2268,6 +2268,16 @@
                 if (cell === undefined || cell === null) return "";
                 return String(cell).replace(/\u00a0/g, " ").trim();
             };
+            const findHeaderRow = (startIndex = 0) => {
+                for (let i = startIndex; i < rows.length; i++) {
+                    const row = rows[i] || [];
+                    const hasLat = row.some(cell => /lat/i.test(cleanCell(cell)));
+                    const hasLon = row.some(cell => /(lon|lng|long)/i.test(cleanCell(cell)));
+                    if (hasLat && hasLon) return i;
+                }
+                return -1;
+            };
+
             const responsesRowIndex = rows.findIndex(row =>
                 row.some(cell => cleanCell(cell).toLowerCase().includes("responses"))
             );
@@ -2275,11 +2285,10 @@
             if (responsesRowIndex !== -1 && rows[responsesRowIndex + 1]) {
                 headerIndex = responsesRowIndex + 1;
             } else {
-                headerIndex = rows.findIndex(row =>
-                    row.some(cell => cleanCell(cell).toLowerCase().includes("latitude"))
-                );
+                headerIndex = findHeaderRow(0);
             }
             if (headerIndex === -1) throw new Error("Unable to find Latitude column in CSV.");
+
             const questionMeta = {};
             const metaStart = 0;
             const metaEnd = responsesRowIndex !== -1 ? responsesRowIndex : headerIndex;
@@ -2297,15 +2306,30 @@
                     choices: choicesValue ? choicesValue.split(/\s*\|\s*/).map(choice => choice.trim()).filter(Boolean) : []
                 };
             }
+
             const headers = rows[headerIndex].map(cell => cleanCell(cell));
             const headerLookupLocal = new Map();
             headers.forEach((h) => headerLookupLocal.set(normalizeHeaderName(h), h));
-            const latKey = headers.find(h => /lat/i.test(h)) || headerLookupLocal.get("latitude") || headerLookupLocal.get("lat");
-            const lonKey = headers.find(h => /(lon|lng|long)/i.test(h)) || headerLookupLocal.get("longitude") || headerLookupLocal.get("lon");
+            let latKey = headers.find(h => /lat/i.test(h)) || headerLookupLocal.get("latitude") || headerLookupLocal.get("lat");
+            let lonKey = headers.find(h => /(lon|lng|long)/i.test(h)) || headerLookupLocal.get("longitude") || headerLookupLocal.get("lon");
+            if (!latKey || !lonKey) {
+                const fallback = findLatLonKeys([{ ...headers.reduce((acc, h, idx) => ({ ...acc, [h]: rows[headerIndex + 1]?.[idx] }), {}) }]);
+                latKey = latKey || fallback.latKey;
+                lonKey = lonKey || fallback.lonKey;
+            }
             if (!latKey || !lonKey) throw new Error("CSV missing latitude or longitude headers.");
-            const dataRows = rows.slice(headerIndex + 1).filter(row =>
-                row && row.some(cell => cleanCell(cell) !== "")
-            );
+
+            const dataRows = [];
+            for (let i = headerIndex + 1; i < rows.length; i++) {
+                const row = rows[i];
+                if (!row || !row.some(cell => cleanCell(cell) !== "")) {
+                    // stop at first empty row after data begins
+                    if (dataRows.length) break;
+                    continue;
+                }
+                dataRows.push(row);
+            }
+
             const records = dataRows.map(row => {
                 const entry = {};
                 headers.forEach((header, idx) => {
