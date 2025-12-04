@@ -1645,12 +1645,16 @@
             analyzeSurveySchema(parsed);
             rebuildPointIndexes(parsed);
             parsed = ensureParsedCoordinates(parsed);
-            renderSurveyProject({
+            const rendered = renderSurveyProject({
                 parsed,
                 projectName: payload.projectName || "Survey",
                 preserveRegion
             });
-            setProjectStatus(`Loaded ${parsed.records.length} responses from ${payload.projectName || "survey"}.`, "success");
+            const validCount = collectValidCoords(parsed).length;
+            const count = validCount || parsed.records.length;
+            if (rendered) {
+                setProjectStatus(`Loaded ${count} responses from ${payload.projectName || "survey"}.`, "success");
+            }
             shareButton.style.display = "flex";
             setSurveyTableVisibility(true);
             updateSurveyTable();
@@ -2294,7 +2298,7 @@
             const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
             if (!latKey || !lonKey) throw new Error("CSV missing latitude or longitude headers.");
             const dataRows = rows.slice(headerIndex + 1).filter(row =>
-                row.some(cell => cell !== undefined && cell !== "")
+                row && row.some(cell => String(cell ?? "").trim() !== "")
             );
             const records = dataRows.map(row => {
                 const entry = {};
@@ -2378,7 +2382,7 @@
             if (!coords.length) {
                 setProjectStatus("No valid coordinates found in CSV.", "error");
                 updateSurveyTable();
-                return;
+                return false;
             }
             activeProjectName = projectName;
             if (!preserveRegion) {
@@ -2390,6 +2394,7 @@
             }
             setTimeout(() => positionSurveyCallout(activeSurveyAnnotation), 10);
             updateSurveyTable();
+            return true;
         }
 
         function clearSurveyLayers() {
