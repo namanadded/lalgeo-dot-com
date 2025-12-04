@@ -1685,6 +1685,14 @@
             } else {
                 throw new Error("No survey content found in package.");
             }
+            console.log("DEBUG_SURVEY_LOAD", {
+                source: payload.source || null,
+                headers: parsed?.headers,
+                latKey: parsed?.latKey,
+                lonKey: parsed?.lonKey,
+                recordCount: parsed?.records?.length || 0,
+                sample: parsed?.records?.[0] || null
+            });
             currentSurveyData = parsed;
             currentSurveySource = payload.source || null;
             currentSurveyImages = buildImageLookup(payload.images || {});
