@@ -2215,12 +2215,22 @@
         function parseSurveyCSV(csvText) {
             const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
-            const headerIndex = rows.findIndex(row =>
-                row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("latitude"))
+            const responsesRowIndex = rows.findIndex(row =>
+                row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("responses"))
             );
+            let headerIndex = -1;
+            if (responsesRowIndex !== -1 && rows[responsesRowIndex + 1]) {
+                headerIndex = responsesRowIndex + 1;
+            } else {
+                headerIndex = rows.findIndex(row =>
+                    row.some(cell => typeof cell === "string" && cell.toLowerCase().includes("latitude"))
+                );
+            }
             if (headerIndex === -1) throw new Error("Unable to find Latitude column in CSV.");
             const questionMeta = {};
-            for (let i = 0; i < headerIndex; i++) {
+            const metaStart = 0;
+            const metaEnd = responsesRowIndex !== -1 ? responsesRowIndex : headerIndex;
+            for (let i = metaStart; i < metaEnd; i++) {
                 const row = rows[i];
                 const firstCell = (row[0] || "").trim();
                 if (!firstCell || /^question$/i.test(firstCell)) continue;
