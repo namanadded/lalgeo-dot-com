@@ -1677,6 +1677,8 @@
             const count = validCount || parsed.records.length;
             if (rendered) {
                 setProjectStatus(`Loaded ${count} responses from ${payload.projectName || "survey"}.`, "success");
+            } else {
+                throw new Error("No valid coordinates found in CSV.");
             }
             shareButton.style.display = "flex";
             setSurveyTableVisibility(true);
