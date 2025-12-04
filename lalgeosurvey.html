@@ -1210,6 +1210,78 @@
             const questionMeta = {};
             const responsePoints = [];
             const debugPoints = [];
+            // If doc only has meta fields, try to reconstruct from CSV-style attributes after "Responses"
+            const points = Array.isArray(doc.points) ? doc.points : [];
+            let responseHeaderRow = null;
+            let responseRows = [];
+
+            points.forEach((pt, idx) => {
+                const attrs = pt.attributes || {};
+                const q = (attrs.Question || "").trim();
+                const t = (attrs.Type || "").trim();
+                const c = (attrs.Choices || "").trim();
+                const attrKeys = Object.keys(attrs);
+                // Detect the row that contains response headers (after "Responses")
+                if (q.toLowerCase() === "responses") {
+                    const next = points[idx + 1];
+                    if (next && next.attributes) {
+                        responseHeaderRow = Object.keys(next.attributes).map(k => next.attributes[k]);
+                    }
+                    return;
+                }
+                // If we already found header row, subsequent rows are responses
+                if (responseHeaderRow && q) {
+                    responseRows.push(attrs);
+                    return;
+                }
+                // Fallback to question meta
+                if (q && t && !responseHeaderRow) {
+                    questionMeta[q] = {
+                        type: t,
+                        normalizedType: t.toLowerCase(),
+                        choices: c ? c.split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean) : []
+                    };
+                }
+            });
+
+            if (responseHeaderRow && responseRows.length) {
+                const headers = responseHeaderRow;
+                const latGuess = headers.find(h => /lat/i.test(String(h)));
+                const lonGuess = headers.find(h => /(lon|lng|long)/i.test(String(h)));
+                if (latGuess) latKey = latGuess;
+                if (lonGuess) lonKey = lonGuess;
+
+                const records = responseRows.map(rowAttrs => {
+                    const record = {};
+                    headers.forEach((header, i) => {
+                        record[header] = rowAttrs[header] ?? "";
+                    });
+                    return record;
+                });
+                const pointMeta = records.map(() => ({
+                    id: generateSurveyPointId(),
+                    version: 1
+                }));
+                console.log("DEBUG_DOC_PARSED", {
+                    docPoints: points.length,
+                    docLatField: doc.latField,
+                    docLonField: doc.lonField,
+                    rawFields,
+                    responsePoints: records.length,
+                    sampleResponse: records[0] || null,
+                    debugPoints
+                });
+                return {
+                    headers: headers,
+                    records,
+                    latKey,
+                    lonKey,
+                    questionMeta,
+                    pointMeta,
+                    version: doc.version ?? 1
+                };
+            }
+
             // First pass: gather candidate headers from all attrs and detect coordinates
             const attrUnion = new Set();
             (doc.points || []).forEach((point) => {
