@@ -1644,6 +1644,7 @@
             surveyFieldControls.hidden = true;
             analyzeSurveySchema(parsed);
             rebuildPointIndexes(parsed);
+            parsed = ensureParsedCoordinates(parsed);
             renderSurveyProject({
                 parsed,
                 projectName: payload.projectName || "Survey",
@@ -2168,6 +2169,50 @@
             return type.includes("dropdown") || type.includes("multiple");
         }
 
+        function findLatLonKeys(records = []) {
+            if (!records.length) return { latKey: null, lonKey: null };
+            const allKeys = new Set();
+            records.forEach(r => Object.keys(r || {}).forEach(k => allKeys.add(k)));
+            const latCandidates = Array.from(allKeys).filter(k => /lat/i.test(k || ""));
+            const lonCandidates = Array.from(allKeys).filter(k => /(lon|lng|long)/i.test(k || ""));
+            for (const latKey of latCandidates) {
+                for (const lonKey of lonCandidates) {
+                    const hasPair = records.some(r => {
+                        const la = parseFloat(r?.[latKey]);
+                        const lo = parseFloat(r?.[lonKey]);
+                        return Number.isFinite(la) && Number.isFinite(lo);
+                    });
+                    if (hasPair) return { latKey, lonKey };
+                }
+            }
+            return { latKey: null, lonKey: null };
+        }
+
+        function ensureParsedCoordinates(parsed) {
+            if (!parsed) return parsed;
+            const coords = collectValidCoords(parsed);
+            if (coords.length) return parsed;
+            const fallback = findLatLonKeys(parsed.records || []);
+            if (fallback.latKey && fallback.lonKey) {
+                parsed.latKey = fallback.latKey;
+                parsed.lonKey = fallback.lonKey;
+            }
+            return parsed;
+        }
+
+        function collectValidCoords(parsed) {
+            if (!parsed?.records || !parsed.latKey || !parsed.lonKey) return [];
+            const coords = [];
+            parsed.records.forEach(record => {
+                const la = parseFloat(record?.[parsed.latKey]);
+                const lo = parseFloat(record?.[parsed.lonKey]);
+                if (Number.isFinite(la) && Number.isFinite(lo)) {
+                    coords.push({ latitude: la, longitude: lo });
+                }
+            });
+            return coords;
+        }
+
         function isAnnotationElement(element) {
             return element?.closest?.(".mapkit-annotation, #surveyCallout");
         }
@@ -2330,7 +2375,11 @@
                 map.addAnnotation(marker);
                 setAnnotationDraggable(marker);
             });
-            if (!coords.length) throw new Error("No valid coordinates found in CSV.");
+            if (!coords.length) {
+                setProjectStatus("No valid coordinates found in CSV.", "error");
+                updateSurveyTable();
+                return;
+            }
             activeProjectName = projectName;
             if (!preserveRegion) {
                 if (coords.length === 1) {
