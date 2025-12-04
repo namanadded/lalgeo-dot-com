@@ -2194,7 +2194,20 @@
 
         function ensureParsedCoordinates(parsed) {
             if (!parsed) return parsed;
-            const coords = collectValidCoords(parsed);
+            let coords = collectValidCoords(parsed);
+            if (coords.length) return parsed;
+            // Try explicit header-based detection
+            if (Array.isArray(parsed.headers)) {
+                const normHeaders = new Map();
+                parsed.headers.forEach(h => normHeaders.set(normalizeHeaderName(h), h));
+                const latGuess = normHeaders.get("latitude") || normHeaders.get("lat");
+                const lonGuess = normHeaders.get("longitude") || normHeaders.get("lon") || normHeaders.get("long");
+                if (latGuess && lonGuess) {
+                    parsed.latKey = latGuess;
+                    parsed.lonKey = lonGuess;
+                }
+            }
+            coords = collectValidCoords(parsed);
             if (coords.length) return parsed;
             const fallback = findLatLonKeys(parsed.records || []);
             if (fallback.latKey && fallback.lonKey) {
@@ -2271,7 +2284,7 @@
             const rows = parsed.data;
             const cleanCell = (cell) => {
                 if (cell === undefined || cell === null) return "";
-                return String(cell).replace(/\u00a0/g, " ").trim();
+                return String(cell).replace(/\u00a0/g, " ").replace(/^\ufeff/, "").trim();
             };
             const findHeaderRow = (startIndex = 0) => {
                 for (let i = startIndex; i < rows.length; i++) {
@@ -2316,7 +2329,7 @@
             const headerLookupLocal = new Map();
             headers.forEach((h) => headerLookupLocal.set(normalizeHeaderName(h), h));
             let latKey = headers.find(h => /lat/i.test(h)) || headerLookupLocal.get("latitude") || headerLookupLocal.get("lat");
-            let lonKey = headers.find(h => /(lon|lng|long)/i.test(h)) || headerLookupLocal.get("longitude") || headerLookupLocal.get("lon");
+            let lonKey = headers.find(h => /(lon|lng|long)/i.test(h)) || headerLookupLocal.get("longitude") || headerLookupLocal.get("lon") || headerLookupLocal.get("long");
             if (!latKey || !lonKey) {
                 const fallback = findLatLonKeys([{ ...headers.reduce((acc, h, idx) => ({ ...acc, [h]: rows[headerIndex + 1]?.[idx] }), {}) }]);
                 latKey = latKey || fallback.latKey;
