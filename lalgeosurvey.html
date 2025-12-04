@@ -1204,29 +1204,36 @@
             if (!doc) throw new Error("Missing survey document.");
             const metaFields = new Set(["question", "type", "choices"]);
             const rawFields = Array.isArray(doc.fields) ? [...doc.fields] : [];
-            let latKey = doc.latField || rawFields.find(header => /lat/i.test(header));
-            let lonKey = doc.lonField || rawFields.find(header => /(lon|lng|long)/i.test(header));
-            if (!latKey) latKey = "Latitude";
-            if (!lonKey) lonKey = "Longitude";
+            let latKey = doc.latField || rawFields.find(header => /lat/i.test(header)) || "Latitude";
+            let lonKey = doc.lonField || rawFields.find(header => /(lon|lng|long)/i.test(header)) || "Longitude";
 
             const questionMeta = {};
             const responsePoints = [];
             const debugPoints = [];
+            // First pass: gather candidate headers from all attrs and detect coordinates
+            const attrUnion = new Set();
+            (doc.points || []).forEach((point) => {
+                Object.keys(point.attributes || {}).forEach(k => attrUnion.add(k));
+            });
+            const attrLatLon = findLatLonKeys([(doc.points || []).reduce((acc, pt) => Object.assign(acc, pt.attributes || {}), {})]);
+            if (!doc.latField && attrLatLon.latKey) latKey = attrLatLon.latKey;
+            if (!doc.lonField && attrLatLon.lonKey) lonKey = attrLatLon.lonKey;
+
             (doc.points || []).forEach((point) => {
                 const attrs = point.attributes || {};
                 const q = typeof attrs.Question === "string" ? attrs.Question.trim() : "";
                 const t = typeof attrs.Type === "string" ? attrs.Type.trim() : "";
                 const c = typeof attrs.Choices === "string" ? attrs.Choices.trim() : "";
-                const attrLatLon = findLatLonKeys([attrs]);
-                const effectiveLatKey = latKey || attrLatLon.latKey;
-                const effectiveLonKey = lonKey || attrLatLon.lonKey;
+                const attrLatLonPoint = findLatLonKeys([attrs]);
+                const effectiveLatKey = latKey || attrLatLonPoint.latKey;
+                const effectiveLonKey = lonKey || attrLatLonPoint.lonKey;
                 const latVal = point.lat ?? (effectiveLatKey ? attrs[effectiveLatKey] : undefined);
                 const lonVal = point.lon ?? (effectiveLonKey ? attrs[effectiveLonKey] : undefined);
                 const latNum = parseNumber(latVal);
                 const lonNum = parseNumber(lonVal);
                 const hasCoords = Number.isFinite(latNum) && Number.isFinite(lonNum);
 
-                debugPoints.push({ q, t, c, latVal, lonVal, latNum, lonNum, hasCoords, effectiveLatKey, effectiveLonKey });
+                debugPoints.push({ q, t, c, latVal, lonVal, latNum, lonNum, hasCoords, effectiveLatKey, effectiveLonKey, attrs });
                 if (!hasCoords) {
                     if (q && t) {
                         questionMeta[q] = {
