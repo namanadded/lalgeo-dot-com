@@ -1217,13 +1217,16 @@
                 const q = typeof attrs.Question === "string" ? attrs.Question.trim() : "";
                 const t = typeof attrs.Type === "string" ? attrs.Type.trim() : "";
                 const c = typeof attrs.Choices === "string" ? attrs.Choices.trim() : "";
-                const latVal = point.lat ?? attrs[latKey];
-                const lonVal = point.lon ?? attrs[lonKey];
-                const latNum = Number(latVal);
-                const lonNum = Number(lonVal);
+                const attrLatLon = findLatLonKeys([attrs]);
+                const effectiveLatKey = latKey || attrLatLon.latKey;
+                const effectiveLonKey = lonKey || attrLatLon.lonKey;
+                const latVal = point.lat ?? (effectiveLatKey ? attrs[effectiveLatKey] : undefined);
+                const lonVal = point.lon ?? (effectiveLonKey ? attrs[effectiveLonKey] : undefined);
+                const latNum = parseNumber(latVal);
+                const lonNum = parseNumber(lonVal);
                 const hasCoords = Number.isFinite(latNum) && Number.isFinite(lonNum);
 
-                debugPoints.push({ q, t, c, latVal, lonVal, latNum, lonNum, hasCoords });
+                debugPoints.push({ q, t, c, latVal, lonVal, latNum, lonNum, hasCoords, effectiveLatKey, effectiveLonKey });
                 if (!hasCoords) {
                     if (q && t) {
                         questionMeta[q] = {
@@ -2291,11 +2294,6 @@
 
         function collectValidCoords(parsed) {
             if (!parsed?.records || !parsed.latKey || !parsed.lonKey) return [];
-            const parseNumber = (val) => {
-                if (val === undefined || val === null) return NaN;
-                const cleaned = String(val).replace(/,/g, "").trim();
-                return parseFloat(cleaned);
-            };
             const coords = [];
             parsed.records.forEach(record => {
                 const la = parseNumber(record?.[parsed.latKey]);
@@ -2305,6 +2303,13 @@
                 }
             });
             return coords;
+        }
+
+        function parseNumber(val) {
+            if (val === undefined || val === null) return NaN;
+            const cleaned = String(val).replace(/,/g, "").trim();
+            const num = Number(cleaned);
+            return Number.isFinite(num) ? num : NaN;
         }
 
         function isAnnotationElement(element) {
