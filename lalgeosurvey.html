@@ -2296,9 +2296,11 @@
                 return -1;
             };
 
-            const responsesRowIndex = rows.findIndex(row =>
-                row.some(cell => cleanCell(cell).toLowerCase().includes("responses"))
-            );
+            const responsesRowIndex = rows.findIndex(row => {
+                const first = cleanCell(row?.[0] || "");
+                if (first.toLowerCase() === "responses") return true;
+                return row.some(cell => cleanCell(cell).toLowerCase() === "responses");
+            });
             let headerIndex = -1;
             if (responsesRowIndex !== -1 && rows[responsesRowIndex + 1]) {
                 headerIndex = responsesRowIndex + 1;
@@ -2337,16 +2339,9 @@
             }
             if (!latKey || !lonKey) throw new Error("CSV missing latitude or longitude headers.");
 
-            const dataRows = [];
-            for (let i = headerIndex + 1; i < rows.length; i++) {
-                const row = rows[i];
-                if (!row || !row.some(cell => cleanCell(cell) !== "")) {
-                    // stop at first empty row after data begins
-                    if (dataRows.length) break;
-                    continue;
-                }
-                dataRows.push(row);
-            }
+            const dataRows = rows.slice(headerIndex + 1).filter(row =>
+                row && row.some(cell => cleanCell(cell) !== "")
+            );
 
             const records = dataRows.map(row => {
                 const entry = {};
