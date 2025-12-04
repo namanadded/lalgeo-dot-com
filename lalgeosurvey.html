@@ -2464,7 +2464,21 @@
                 };
             }
 
-            const headers = (rows[responsesRowIndex + 1] || []).map(cell => cleanCell(cell));
+            // Find the first non-empty row after "Responses" to use as headers
+            let headerRowIndex = responsesRowIndex + 1;
+            let headers = [];
+            for (let i = responsesRowIndex + 1; i < rows.length; i++) {
+                const candidate = rows[i] || [];
+                const cleaned = candidate.map(cell => cleanCell(cell));
+                const nonEmpty = cleaned.filter(v => v !== "");
+                if (nonEmpty.length >= 2) {
+                    headers = cleaned;
+                    headerRowIndex = i;
+                    break;
+                }
+            }
+            if (!headers.length) throw new Error("Unable to find header row after Responses.");
+
             const headerLookupLocal = new Map();
             headers.forEach((h) => headerLookupLocal.set(normalizeHeaderName(h), h));
             let latKey = headers.find(h => /lat/i.test(h)) || headerLookupLocal.get("latitude") || headerLookupLocal.get("lat");
@@ -2472,7 +2486,7 @@
             if (!latKey || !lonKey) throw new Error("CSV missing latitude or longitude headers.");
 
             const dataRows = [];
-            for (let i = responsesRowIndex + 2; i < rows.length; i++) {
+            for (let i = headerRowIndex + 1; i < rows.length; i++) {
                 const row = rows[i];
                 if (!row || !row.some(cell => cleanCell(cell) !== "")) {
                     if (dataRows.length) break;
@@ -2493,6 +2507,15 @@
                 id: generateSurveyPointId(),
                 version: 1
             }));
+            console.log("DEBUG_CSV_PARSED", {
+                responsesRowIndex,
+                headerRowIndex,
+                headers,
+                latKey,
+                lonKey,
+                recordCount: records.length,
+                sample: records[0] || null
+            });
             return { headers, records, latKey, lonKey, questionMeta, pointMeta };
         }
 
