@@ -1216,33 +1216,56 @@
                 if (!fields.includes(lonKey)) fields.push(lonKey);
             }
             const pointMeta = [];
-            const records = (doc.points || []).map((point) => {
+            const records = [];
+            const questionMeta = {};
+            (doc.points || []).forEach((point) => {
+                const attrs = point.attributes || {};
+                const q = typeof attrs.Question === "string" ? attrs.Question.trim() : "";
+                const t = typeof attrs.Type === "string" ? attrs.Type.trim() : "";
+                const c = typeof attrs.Choices === "string" ? attrs.Choices.trim() : "";
+                const latVal = point.lat ?? attrs[latKey];
+                const lonVal = point.lon ?? attrs[lonKey];
+                const latNum = Number(latVal);
+                const lonNum = Number(lonVal);
+                const hasCoords = Number.isFinite(latNum) && Number.isFinite(lonNum);
+
+                if (!hasCoords) {
+                    if (q && t) {
+                        questionMeta[q] = {
+                            type: t,
+                            normalizedType: t.toLowerCase(),
+                            choices: c ? c.split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean) : []
+                        };
+                    }
+                    return;
+                }
+
                 const record = {};
                 fields.forEach(field => {
                     if (field === latKey) {
-                        record[field] = point.lat ?? point.attributes?.[field] ?? "";
+                        record[field] = latNum;
                         return;
                     }
                     if (field === lonKey) {
-                        record[field] = point.lon ?? point.attributes?.[field] ?? "";
+                        record[field] = lonNum;
                         return;
                     }
-                    record[field] = point.attributes?.[field] ?? "";
+                    record[field] = attrs?.[field] ?? "";
                 });
+                records.push(record);
                 pointMeta.push({
                     id: point.id,
                     version: point.version ?? 1,
                     updatedAt: point.updatedAt,
                     updatedBy: point.updatedBy
                 });
-                return record;
             });
             return {
                 headers: fields,
                 records,
                 latKey,
                 lonKey,
-                questionMeta: {},
+                questionMeta,
                 pointMeta,
                 version: doc.version ?? 1
             };
