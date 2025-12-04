@@ -2206,10 +2206,15 @@
 
         function collectValidCoords(parsed) {
             if (!parsed?.records || !parsed.latKey || !parsed.lonKey) return [];
+            const parseNumber = (val) => {
+                if (val === undefined || val === null) return NaN;
+                const cleaned = String(val).replace(/,/g, "").trim();
+                return parseFloat(cleaned);
+            };
             const coords = [];
             parsed.records.forEach(record => {
-                const la = parseFloat(record?.[parsed.latKey]);
-                const lo = parseFloat(record?.[parsed.lonKey]);
+                const la = parseNumber(record?.[parsed.latKey]);
+                const lo = parseNumber(record?.[parsed.lonKey]);
                 if (Number.isFinite(la) && Number.isFinite(lo)) {
                     coords.push({ latitude: la, longitude: lo });
                 }
