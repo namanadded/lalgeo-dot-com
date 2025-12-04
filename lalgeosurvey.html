@@ -1202,22 +1202,15 @@
 
         function convertSurveyDocumentToParsed(doc) {
             if (!doc) throw new Error("Missing survey document.");
-            const fields = Array.isArray(doc.fields) ? [...doc.fields] : [];
-            let latKey = doc.latField || fields.find(header => /lat/i.test(header));
-            let lonKey = doc.lonField || fields.find(header => /(lon|lng|long)/i.test(header));
-            if (latKey && !fields.includes(latKey)) fields.push(latKey);
-            if (lonKey && !fields.includes(lonKey)) fields.push(lonKey);
-            if (!latKey) {
-                latKey = "Latitude";
-                if (!fields.includes(latKey)) fields.push(latKey);
-            }
-            if (!lonKey) {
-                lonKey = "Longitude";
-                if (!fields.includes(lonKey)) fields.push(lonKey);
-            }
-            const pointMeta = [];
-            const records = [];
+            const metaFields = new Set(["question", "type", "choices"]);
+            const rawFields = Array.isArray(doc.fields) ? [...doc.fields] : [];
+            let latKey = doc.latField || rawFields.find(header => /lat/i.test(header));
+            let lonKey = doc.lonField || rawFields.find(header => /(lon|lng|long)/i.test(header));
+            if (!latKey) latKey = "Latitude";
+            if (!lonKey) lonKey = "Longitude";
+
             const questionMeta = {};
+            const responsePoints = [];
             (doc.points || []).forEach((point) => {
                 const attrs = point.attributes || {};
                 const q = typeof attrs.Question === "string" ? attrs.Question.trim() : "";
@@ -1239,9 +1232,34 @@
                     }
                     return;
                 }
+                responsePoints.push({ point, attrs, latNum, lonNum });
+            });
 
+            // Build headers from response points (not meta rows)
+            const headers = [];
+            const addHeader = (name) => {
+                if (!name) return;
+                if (metaFields.has(normalizeHeaderName(name))) return;
+                if (!headers.includes(name)) headers.push(name);
+            };
+            addHeader(latKey);
+            addHeader(lonKey);
+            responsePoints.forEach(({ attrs }) => {
+                Object.keys(attrs || {}).forEach(key => {
+                    const norm = normalizeHeaderName(key);
+                    if (metaFields.has(norm)) return;
+                    if (key === latKey || key === lonKey) return;
+                    addHeader(key);
+                });
+            });
+            if (!headers.includes(latKey)) headers.unshift(latKey);
+            if (!headers.includes(lonKey)) headers.splice(1, 0, lonKey);
+
+            const records = [];
+            const pointMeta = [];
+            responsePoints.forEach(({ point, attrs, latNum, lonNum }) => {
                 const record = {};
-                fields.forEach(field => {
+                headers.forEach((field) => {
                     if (field === latKey) {
                         record[field] = latNum;
                         return;
@@ -1260,8 +1278,9 @@
                     updatedBy: point.updatedBy
                 });
             });
+
             return {
-                headers: fields,
+                headers,
                 records,
                 latKey,
                 lonKey,
