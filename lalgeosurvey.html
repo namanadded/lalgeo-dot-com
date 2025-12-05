@@ -2061,8 +2061,11 @@
                     const csvResp = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}&format=csv`, {
                         credentials: "include"
                     });
-                    if (csvResp.ok && (csvResp.headers.get("content-type") || "").includes("text/csv")) {
-                        csvText = await csvResp.text();
+                    const ct = csvResp.headers.get("content-type") || "";
+                    const bodyPreview = await csvResp.clone().text().catch(() => "");
+                    console.log("DEBUG_CSV_FALLBACK_RESPONSE", { status: csvResp.status, ok: csvResp.ok, contentType: ct, bodyPreview: bodyPreview.slice(0, 200) });
+                    if (csvResp.ok && ct.includes("text/csv")) {
+                        csvText = bodyPreview;
                     }
                 } catch (err) {
                     console.warn("CSV fetch fallback failed", err);
