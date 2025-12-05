@@ -1788,6 +1788,10 @@
                     parsed.questionMeta = { ...parsedFromDoc.questionMeta, ...parsed.questionMeta };
                 }
                 currentSurveyDocument = buildSurveyDocumentFromParsed(parsed);
+                // Ensure we have a survey JSON for downstream saving even if original archive lacked one
+                if (!payload.survey) {
+                    payload.survey = currentSurveyDocument;
+                }
             } else if (parsedFromDoc) {
                 parsed = parsedFromDoc;
             } else {
