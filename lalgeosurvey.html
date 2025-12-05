@@ -1319,6 +1319,14 @@
                 responsePoints.push({ point, attrs, latNum, lonNum });
             });
 
+            if (responsePoints.length === 0) {
+                console.warn("DEBUG_DOC_NO_RESPONSE_POINTS", {
+                    docPoints: points.length,
+                    samplePoint: points[0] || null,
+                    questionMeta
+                });
+            }
+
             // Build headers from response points (not meta rows)
             const headers = [];
             const addHeader = (name) => {
@@ -1761,6 +1769,12 @@
 
         async function loadSurveyPayload(payload, { preserveRegion = false } = {}) {
             if (!payload) throw new Error("Missing survey data.");
+            console.log("DEBUG_PAYLOAD_KEYS", {
+                keys: Object.keys(payload),
+                hasCsvText: Boolean(payload.csvText),
+                csvPreview: payload.csvText ? payload.csvText.slice(0, 200) : null,
+                surveyKeys: payload.survey ? Object.keys(payload.survey) : null
+            });
             let parsed;
             let parsedFromDoc = null;
             if (payload.survey) {
@@ -2562,6 +2576,7 @@
                 }
                 dataRows.push(row);
             }
+            console.log("DEBUG_CSV_ROWS_AFTER_HEADERS", dataRows);
 
             const records = dataRows.map(row => {
                 const entry = {};
