@@ -2468,6 +2468,11 @@
                     if (!line || !line.trim()) break;
                     dataLines.push(line);
                 }
+                console.log("DEBUG_CSV_RAW_AFTER_RESPONSES", {
+                    respIndex,
+                    headerLine,
+                    dataLines
+                });
                 const records = dataLines.map(line => {
                     const cols = line.split(",");
                     const entry = {};
