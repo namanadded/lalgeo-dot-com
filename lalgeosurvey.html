@@ -2450,12 +2450,59 @@
         }
 
         function parseSurveyCSV(csvText) {
-            const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
-            const rows = parsed.data;
             const cleanCell = (cell) => {
                 if (cell === undefined || cell === null) return "";
-                return String(cell).replace(/\u00a0/g, " ").replace(/^\ufeff/, "").trim();
+                return String(cell).replace(/\u00a0/g, " ").replace(/\r/g, "").replace(/^\ufeff/, "").trim();
             };
+
+            // Manual responses-based parsing to avoid malformed row detection
+            const manualParse = () => {
+                const lines = csvText.split(/\r?\n/).map(line => line.trim());
+                const respIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "responses");
+                if (respIndex === -1 || !lines[respIndex + 1]) return null;
+                const headerLine = lines[respIndex + 1];
+                const headers = headerLine.split(",").map(cleanCell);
+                const dataLines = [];
+                for (let i = respIndex + 2; i < lines.length; i++) {
+                    const line = lines[i];
+                    if (!line || !line.trim()) break;
+                    dataLines.push(line);
+                }
+                const records = dataLines.map(line => {
+                    const cols = line.split(",");
+                    const entry = {};
+                    headers.forEach((h, idx) => {
+                        entry[h || `Field_${idx}`] = cleanCell(cols[idx]);
+                    });
+                    return entry;
+                });
+                const latKey = headers.find(h => /lat/i.test(h));
+                const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
+                if (!latKey || !lonKey || !records.length) return null;
+                return {
+                    headers,
+                    records,
+                    latKey,
+                    lonKey,
+                    questionMeta: {},
+                    pointMeta: records.map(() => ({ id: generateSurveyPointId(), version: 1 }))
+                };
+            };
+
+            const manualResult = manualParse();
+            if (manualResult) {
+                console.log("DEBUG_CSV_PARSED_MANUAL", {
+                    headers: manualResult.headers,
+                    latKey: manualResult.latKey,
+                    lonKey: manualResult.lonKey,
+                    recordCount: manualResult.records.length,
+                    sample: manualResult.records[0] || null
+                });
+                return manualResult;
+            }
+
+            const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
+            const rows = parsed.data;
 
             const responsesRowIndex = rows.findIndex(row => cleanCell(row?.[0] || "").toLowerCase() === "responses");
             if (responsesRowIndex === -1 || !rows[responsesRowIndex + 1]) {
