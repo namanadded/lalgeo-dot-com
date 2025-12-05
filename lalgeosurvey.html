@@ -2505,9 +2505,11 @@
                 });
                 return manualResult;
             }
+            console.warn("DEBUG_CSV_MANUAL_FAILED");
 
             const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
+            console.log("DEBUG_CSV_RAW_ROWS", rows);
 
             const responsesRowIndex = rows.findIndex(row => cleanCell(row?.[0] || "").toLowerCase() === "responses");
             if (responsesRowIndex === -1 || !rows[responsesRowIndex + 1]) {
