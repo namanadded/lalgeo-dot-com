@@ -1210,8 +1210,60 @@
             const questionMeta = {};
             const responsePoints = [];
             const debugPoints = [];
-            // If doc only has meta fields, try to reconstruct from CSV-style attributes after "Responses"
             const points = Array.isArray(doc.points) ? doc.points : [];
+
+            // Special handling when fields are only Question/Type/Choices: treat points as rows
+            const isRowStyle = rawFields.length === 3 && rawFields.every(f => metaFields.has(normalizeHeaderName(f)));
+            if (isRowStyle) {
+                const rows = points.map(pt => {
+                    const attrs = pt.attributes || {};
+                    return [
+                        (attrs.Question || "").trim(),
+                        (attrs.Type || "").trim(),
+                        (attrs.Choices || "").trim()
+                    ];
+                });
+                const respIndex = rows.findIndex(r => normalizeHeaderName(r[0]) === "responses");
+                if (respIndex !== -1 && rows[respIndex + 1]) {
+                    const headers = rows[respIndex + 1].map(cell => cell.trim());
+                    const dataRows = rows.slice(respIndex + 2).filter(r => r.some(v => (v || "").trim() !== ""));
+                    const records = dataRows.map(r => {
+                        const rec = {};
+                        headers.forEach((h, i) => {
+                            rec[h] = r[i] !== undefined ? r[i] : "";
+                        });
+                        return rec;
+                    });
+                    const latGuess = headers.find(h => /lat/i.test(h));
+                    const lonGuess = headers.find(h => /(lon|lng|long)/i.test(h));
+                    if (latGuess) latKey = latGuess;
+                    if (lonGuess) lonKey = lonGuess;
+                    const pointMeta = records.map(() => ({
+                        id: generateSurveyPointId(),
+                        version: 1
+                    }));
+                    console.log("DEBUG_DOC_PARSED_ROW_STYLE", {
+                        rawFields,
+                        respIndex,
+                        headers,
+                        latKey,
+                        lonKey,
+                        recordCount: records.length,
+                        sample: records[0] || null
+                    });
+                    return {
+                        headers,
+                        records,
+                        latKey,
+                        lonKey,
+                        questionMeta,
+                        pointMeta,
+                        version: doc.version ?? 1
+                    };
+                }
+            }
+
+            // If doc only has meta fields, try to reconstruct from CSV-style attributes after "Responses"
             let responseHeaderRow = null;
             let responseRows = [];
 
@@ -1220,7 +1272,6 @@
                 const q = (attrs.Question || "").trim();
                 const t = (attrs.Type || "").trim();
                 const c = (attrs.Choices || "").trim();
-                const attrKeys = Object.keys(attrs);
                 // Detect the row that contains response headers (after "Responses")
                 if (q.toLowerCase() === "responses") {
                     const next = points[idx + 1];
