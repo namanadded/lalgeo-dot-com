@@ -2126,6 +2126,23 @@
                     console.warn("CSV fetch fallback failed", err);
                 }
             }
+            if (!csvText) {
+                try {
+                    const zipResp = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}&format=zip`, {
+                        credentials: "include"
+                    });
+                    if (zipResp.ok) {
+                        const buffer = await zipResp.arrayBuffer();
+                        const extracted = await extractZipPackage(buffer, { projectName });
+                        if (extracted?.csvText) {
+                            csvText = extracted.csvText;
+                            console.log("DEBUG_CSV_FROM_ZIP", { found: true, length: csvText.length });
+                        }
+                    }
+                } catch (err) {
+                    console.warn("ZIP fetch fallback failed", err);
+                }
+            }
             const projectName = data.filename
                 ? stripExtension(data.filename)
                 : stripExtension(path.split("/").filter(Boolean).pop() || "Survey");
