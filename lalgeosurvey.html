@@ -2943,6 +2943,7 @@
                     updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
                     markSurveyDirty();
                     await persistSurveyEditsIfNeeded(true);
+                    updateSurveyTable();
                     setProjectStatus("Point updated on Dropbox.", "success");
                 } catch (error) {
                     console.error(error);
@@ -2959,8 +2960,10 @@
                     rowIndex,
                     record: { ...currentSurveyData.records[rowIndex] }
                 });
+                updateSurveyTable();
             } else {
                 pendingChanges = true;
+                updateSurveyTable();
             }
             updateSurveyTable();
             updateHistoryButtons();
