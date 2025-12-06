@@ -2014,15 +2014,9 @@
                             setTimeout(poll, 2000);
                             return;
                         }
+                        // Avoid auto-refreshing while editing; inform user instead.
                         if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
-                            try {
-                                const payload = await fetchSurveyFromWorker(currentSurveySource.path);
-                                if (payload && (payload.survey || payload.csvText)) {
-                                    await loadSurveyPayload(payload, { preserveRegion: true });
-                                }
-                            } catch (err) {
-                                console.error("Failed to reload active Dropbox survey", err);
-                            }
+                            setProjectStatus("Remote updates detected. Click Load selected survey to refresh.", "success");
                         }
                     } else {
                         if (data.cursor) currentDropboxCursor = data.cursor;
