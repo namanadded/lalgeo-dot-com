@@ -1242,15 +1242,6 @@
                         id: generateSurveyPointId(),
                         version: 1
                     }));
-                    console.log("DEBUG_DOC_PARSED_ROW_STYLE", {
-                        rawFields,
-                        respIndex,
-                        headers,
-                        latKey,
-                        lonKey,
-                        recordCount: records.length,
-                        sample: records[0] || null
-                    });
                     return {
                         headers,
                         records,
@@ -1313,15 +1304,6 @@
                     id: generateSurveyPointId(),
                     version: 1
                 }));
-                console.log("DEBUG_DOC_PARSED", {
-                    docPoints: points.length,
-                    docLatField: doc.latField,
-                    docLonField: doc.lonField,
-                    rawFields,
-                    responsePoints: records.length,
-                    sampleResponse: records[0] || null,
-                    debugPoints
-                });
                 return {
                     headers: headers,
                     records,
@@ -1370,14 +1352,6 @@
                 responsePoints.push({ point, attrs, latNum, lonNum });
             });
 
-            if (responsePoints.length === 0) {
-                console.warn("DEBUG_DOC_NO_RESPONSE_POINTS", {
-                    docPoints: points.length,
-                    samplePoint: points[0] || null,
-                    questionMeta
-                });
-            }
-
             // Build headers from response points (not meta rows)
             const headers = [];
             const addHeader = (name) => {
@@ -1414,23 +1388,13 @@
                     record[field] = attrs?.[field] ?? "";
                 });
                 records.push(record);
-                pointMeta.push({
-                    id: point.id,
-                    version: point.version ?? 1,
-                    updatedAt: point.updatedAt,
-                    updatedBy: point.updatedBy
-                });
+            pointMeta.push({
+                id: point.id,
+                version: point.version ?? 1,
+                updatedAt: point.updatedAt,
+                updatedBy: point.updatedBy
             });
-
-            console.log("DEBUG_DOC_PARSED", {
-                docPoints: doc.points?.length || 0,
-                docLatField: doc.latField,
-                docLonField: doc.lonField,
-                rawFields,
-                responsePoints: responsePoints.length,
-                sampleResponse: responsePoints[0]?.attrs || null,
-                debugPoints
-            });
+        });
 
             return {
                 headers,
@@ -1820,12 +1784,6 @@
 
         async function loadSurveyPayload(payload, { preserveRegion = false } = {}) {
             if (!payload) throw new Error("Missing survey data.");
-            console.log("DEBUG_PAYLOAD_KEYS", {
-                keys: Object.keys(payload),
-                hasCsvText: Boolean(payload.csvText),
-                csvPreview: payload.csvText ? payload.csvText.slice(0, 200) : null,
-                surveyKeys: payload.survey ? Object.keys(payload.survey) : null
-            });
             let parsed;
             let parsedFromDoc = null;
             if (payload.survey) {
@@ -1848,14 +1806,6 @@
             } else {
                 throw new Error("No survey content found in package.");
             }
-            console.log("DEBUG_SURVEY_LOAD", {
-                source: payload.source || null,
-                headers: parsed?.headers,
-                latKey: parsed?.latKey,
-                lonKey: parsed?.lonKey,
-                recordCount: parsed?.records?.length || 0,
-                sample: parsed?.records?.[0] || null
-            });
             currentSurveyData = parsed;
             currentSurveySource = payload.source || null;
             currentSurveyImages = buildImageLookup(payload.images || {});
@@ -2122,7 +2072,6 @@
                     });
                     const ct = csvResp.headers.get("content-type") || "";
                     const bodyPreview = await csvResp.clone().text().catch(() => "");
-                    console.log("DEBUG_CSV_FALLBACK_RESPONSE", { status: csvResp.status, ok: csvResp.ok, contentType: ct, bodyPreview: bodyPreview.slice(0, 200) });
                     if (csvResp.ok && ct.includes("text/csv")) {
                         csvText = bodyPreview;
                     }
@@ -2140,7 +2089,6 @@
                         const extracted = await extractZipPackage(buffer, { projectName });
                         if (extracted?.csvText) {
                             csvText = extracted.csvText;
-                            console.log("DEBUG_CSV_FROM_ZIP", { found: true, length: csvText.length });
                         }
                     }
                 } catch (err) {
@@ -2558,11 +2506,6 @@
                     if (!line || !line.trim()) break;
                     dataLines.push(line);
                 }
-                console.log("DEBUG_CSV_RAW_AFTER_RESPONSES", {
-                    respIndex,
-                    headerLine,
-                    dataLines
-                });
                 const records = dataLines.map(line => {
                     const cols = line.split(",");
                     const entry = {};
@@ -2586,20 +2529,11 @@
 
             const manualResult = manualParse();
             if (manualResult) {
-                console.log("DEBUG_CSV_PARSED_MANUAL", {
-                    headers: manualResult.headers,
-                    latKey: manualResult.latKey,
-                    lonKey: manualResult.lonKey,
-                    recordCount: manualResult.records.length,
-                    sample: manualResult.records[0] || null
-                });
                 return manualResult;
             }
-            console.warn("DEBUG_CSV_MANUAL_FAILED");
 
             const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
-            console.log("DEBUG_CSV_RAW_ROWS", rows);
 
             const responsesRowIndex = rows.findIndex(row => cleanCell(row?.[0] || "").toLowerCase() === "responses");
             if (responsesRowIndex === -1 || !rows[responsesRowIndex + 1]) {
@@ -2652,8 +2586,6 @@
                 }
                 dataRows.push(row);
             }
-            console.log("DEBUG_CSV_ROWS_AFTER_HEADERS", dataRows);
-
             const records = dataRows.map(row => {
                 const entry = {};
                 headers.forEach((header, idx) => {
@@ -2666,15 +2598,6 @@
                 id: generateSurveyPointId(),
                 version: 1
             }));
-            console.log("DEBUG_CSV_PARSED", {
-                responsesRowIndex,
-                headerRowIndex,
-                headers,
-                latKey,
-                lonKey,
-                recordCount: records.length,
-                sample: records[0] || null
-            });
             return { headers, records, latKey, lonKey, questionMeta, pointMeta };
         }
 
