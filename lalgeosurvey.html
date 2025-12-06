@@ -2943,15 +2943,6 @@
                     updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
                     markSurveyDirty();
                     await persistSurveyEditsIfNeeded(true);
-                    // Reload from Dropbox to ensure CSV/JSON stay in sync and UI reflects saved data
-                    try {
-                        const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
-                        if (latest) {
-                            await loadSurveyPayload(latest, { preserveRegion: true });
-                        }
-                    } catch (reloadErr) {
-                        console.warn("Reload after save failed", reloadErr);
-                    }
                     setProjectStatus("Point updated on Dropbox.", "success");
                 } catch (error) {
                     console.error(error);
