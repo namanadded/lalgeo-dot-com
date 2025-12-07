@@ -1731,6 +1731,17 @@
                     setProjectStatus("Point saved to Dropbox.", "success");
                     markSurveyDirty();
                     await persistSurveyEditsIfNeeded(true);
+                    // Refresh project view without changing map extents
+                    try {
+                        if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
+                            const latest = await fetchSurveyFromWorker(currentSurveySource.path);
+                            if (latest) {
+                                await loadSurveyPayload(latest, { preserveRegion: true });
+                            }
+                        }
+                    } catch (refreshErr) {
+                        console.warn("Refresh after point add failed", refreshErr);
+                    }
                 } catch (error) {
                     console.error(error);
                     removeNewSurveyPoint(annotation);
