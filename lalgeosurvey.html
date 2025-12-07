@@ -1049,6 +1049,7 @@
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
+        let deferredReloadPath = null;
 
         const readerPromises = new WeakMap();
 
@@ -1732,17 +1733,7 @@
                     setProjectStatus("Point saved to Dropbox.", "success");
                     markSurveyDirty();
                     await persistSurveyEditsIfNeeded(true);
-                    // Refresh project view without changing map extents
-                    try {
-                        if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
-                            const latest = await fetchSurveyFromWorker(currentSurveySource.path);
-                            if (latest) {
-                                await loadSurveyPayload(latest, { preserveRegion: true });
-                            }
-                        }
-                    } catch (refreshErr) {
-                        console.warn("Refresh after point add failed", refreshErr);
-                    }
+                    requestDropboxReload(true);
                 } catch (error) {
                     console.error(error);
                     removeNewSurveyPoint(annotation);
@@ -2965,6 +2956,34 @@
             }
             surveyCallout.style.display = "block";
             positionSurveyCallout(annotation);
+            // If a reload was deferred while no callout was open, allow it now
+            flushDeferredReload();
+        }
+
+        function requestDropboxReload(preserveRegion = true) {
+            if (!currentSurveySource?.path) return;
+            // If user is actively editing/adding, defer reload to avoid closing the callout.
+            if (isCalloutEditing || pendingNewAnnotation || isAddingSurveyPoint) {
+                deferredReloadPath = currentSurveySource.path;
+                setProjectStatus("Remote updates queued; will refresh after you finish editing.", "success");
+                return;
+            }
+            (async () => {
+                try {
+                    const latest = await fetchSurveyFromWorker(currentSurveySource.path);
+                    if (latest) {
+                        await loadSurveyPayload(latest, { preserveRegion });
+                        deferredReloadPath = null;
+                    }
+                } catch (err) {
+                    console.warn("Deferred reload failed", err);
+                }
+            })();
+        }
+
+        function flushDeferredReload() {
+            if (!deferredReloadPath) return;
+            requestDropboxReload(true);
         }
 
         function renderSurveyCalloutContent() {
@@ -3235,10 +3254,7 @@
                         });
                     } else {
                         // Fallback: reload from worker
-                        const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
-                        if (latest) {
-                            await loadSurveyPayload(latest, { preserveRegion: true });
-                        }
+                        requestDropboxReload(true);
                     }
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
