@@ -1809,6 +1809,10 @@
                 if (parsedFromDoc?.questionMeta) {
                     parsed.questionMeta = { ...parsedFromDoc.questionMeta, ...parsed.questionMeta };
                 }
+                // Prefer stable point ids/versions from survey JSON when row counts match
+                if (parsedFromDoc?.pointMeta && parsedFromDoc.records?.length === parsed.records?.length) {
+                    parsed.pointMeta = parsedFromDoc.pointMeta;
+                }
                 currentSurveyDocument = buildSurveyDocumentFromParsed(parsed);
                 // Ensure we have a survey JSON for downstream saving even if original archive lacked one
                 if (!payload.survey) {
