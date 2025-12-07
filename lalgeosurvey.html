@@ -3190,13 +3190,38 @@
             if (isDropboxSurvey()) {
                 try {
                     setProjectStatus("Restoring point…");
-                    await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
-                    const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
-                    if (latest) {
-                        await loadSurveyPayload(latest, { preserveRegion: true });
+                    const restoreResp = await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
+                    // Optimistically remove from archive list
+                    if (archiveIndex >= 0 && archiveIndex < archiveData.records.length) {
+                        archiveData.records.splice(archiveIndex, 1);
+                        archiveData.pointMeta.splice(archiveIndex, 1);
+                    }
+                    // If we got the restored point back, merge into current dataset
+                    if (restoreResp?.point && currentSurveyData) {
+                        const attrs = restoreResp.point.attributes || {};
+                        currentSurveyData.records.push(attrs);
+                        if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
+                        currentSurveyData.pointMeta.push({
+                            id: restoreResp.point.id,
+                            version: restoreResp.point.version ?? 1,
+                            updatedAt: restoreResp.point.updatedAt,
+                            updatedBy: restoreResp.point.updatedBy
+                        });
+                    } else {
+                        // Fallback: reload from worker
+                        const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
+                        if (latest) {
+                            await loadSurveyPayload(latest, { preserveRegion: true });
+                        }
                     }
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
+                    renderSurveyProject({
+                        parsed: currentSurveyData,
+                        projectName: activeProjectName || "Survey",
+                        preserveRegion: true
+                    });
+                    updateSurveyTable();
                     setProjectStatus("Point restored.", "success");
                 } catch (error) {
                     console.error(error);
@@ -3210,6 +3235,13 @@
             if (record) {
                 currentSurveyData.records.push(record);
                 currentSurveyData.pointMeta.push(meta);
+                isArchiveView = false;
+                archiveToggleBtn.textContent = "Show archive";
+                renderSurveyProject({
+                    parsed: currentSurveyData,
+                    projectName: activeProjectName || "Survey",
+                    preserveRegion: true
+                });
                 updateSurveyTable();
             }
         }
