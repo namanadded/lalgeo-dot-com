@@ -1878,6 +1878,10 @@
 
         async function loadSurveyPayload(payload, { preserveRegion = false } = {}) {
             if (!payload) throw new Error("Missing survey data.");
+            if (dropboxAutoRefreshTimer) {
+                clearInterval(dropboxAutoRefreshTimer);
+                dropboxAutoRefreshTimer = null;
+            }
             let parsed;
             let parsedFromDoc = null;
             if (payload.survey) {
@@ -1944,27 +1948,6 @@
             pendingChanges = false;
             surveyNeedsSave = false;
             updateHistoryButtons();
-
-            // Set up lightweight auto-refresh for Dropbox surveys to pull in remote changes
-            if (isDropboxSurvey()) {
-                if (dropboxAutoRefreshTimer) {
-                    clearInterval(dropboxAutoRefreshTimer);
-                }
-                dropboxAutoRefreshTimer = setInterval(async () => {
-                    if (!currentSurveySource?.path) return;
-                    if (surveyNeedsSave || isCalloutEditing || pendingNewAnnotation || isAddingSurveyPoint) return;
-                    try {
-                        const latest = await fetchSurveyFromWorker(currentSurveySource.path);
-                        const latestVersion = latest?.survey?.version;
-                        const currentVersion = currentSurveyDocument?.version;
-                        if (latest && latestVersion !== currentVersion) {
-                            await loadSurveyPayload(latest, { preserveRegion: true });
-                        }
-                    } catch (err) {
-                        console.warn("Auto refresh pull failed", err);
-                    }
-                }, 10000);
-            }
         }
 
         async function buildSurveyPayload(files) {
