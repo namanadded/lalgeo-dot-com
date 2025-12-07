@@ -1041,6 +1041,8 @@
         let hiddenFields = new Set();
         let archiveData = { headers: [], records: [], pointMeta: [] };
         let isArchiveView = false;
+        let archiveAnnotations = [];
+        let archiveRowAnnotationMap = new Map();
         let draggedFieldName = null;
         let isAddingSurveyPoint = false;
         let isReorderingFields = false;
@@ -1198,6 +1200,15 @@
             if (!currentSurveyData) return;
             isArchiveView = !isArchiveView;
             archiveToggleBtn.textContent = isArchiveView ? "Show active" : "Show archive";
+            if (isArchiveView) {
+                renderArchiveAnnotations();
+            } else {
+                renderSurveyProject({
+                    parsed: currentSurveyData,
+                    projectName: activeProjectName || "Survey",
+                    preserveRegion: true
+                });
+            }
             updateSurveyTable();
         });
 
@@ -1884,7 +1895,9 @@
             archiveData = {
                 headers: parsed.archiveHeaders || parsed.headers || [],
                 records: parsed.archiveRecords || [],
-                pointMeta: parsed.archivePointMeta || []
+                pointMeta: parsed.archivePointMeta || [],
+                latKey: parsed.latKey,
+                lonKey: parsed.lonKey
             };
             isArchiveView = false;
             if (archiveToggleBtn) archiveToggleBtn.textContent = "Show archive";
@@ -2838,11 +2851,11 @@
                     pointId: meta.id || null,
                     pointVersion: meta.version ?? 1
                 };
-                surveyAnnotations.push(marker);
-                rowAnnotationMap.set(index, marker);
-                map.addAnnotation(marker);
-                setAnnotationDraggable(marker);
-            });
+            surveyAnnotations.push(marker);
+            rowAnnotationMap.set(index, marker);
+            map.addAnnotation(marker);
+            setAnnotationDraggable(marker);
+        });
             if (!coords.length) {
                 setProjectStatus("No valid coordinates found in CSV.", "error");
                 updateSurveyTable();
@@ -2864,8 +2877,11 @@
         function clearSurveyLayers() {
             hideSurveyCallout();
             surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
+            archiveAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyAnnotations = [];
+            archiveAnnotations = [];
             rowAnnotationMap = new Map();
+            archiveRowAnnotationMap = new Map();
             tableFieldOrder = [];
             hiddenFields = new Set();
             surveyFieldsBtn.hidden = true;
@@ -3303,6 +3319,54 @@
                 map.region = new mapkit.CoordinateRegion(coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
             }
             showSurveyCallout(annotation);
+        }
+
+        function renderArchiveAnnotations() {
+            surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
+            archiveAnnotations.forEach(annotation => map.removeAnnotation(annotation));
+            archiveAnnotations = [];
+            archiveRowAnnotationMap = new Map();
+            const headers = archiveData.headers || [];
+            const latKey = archiveData.latKey || currentSurveyData?.latKey;
+            const lonKey = archiveData.lonKey || currentSurveyData?.lonKey;
+            const pointMeta = archiveData.pointMeta || [];
+            const coords = [];
+            (archiveData.records || []).forEach((record, index) => {
+                const lat = parseFloat(record[latKey]);
+                const lon = parseFloat(record[lonKey]);
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+                const coord = new mapkit.Coordinate(lat, lon);
+                coords.push(coord);
+                const attributes = { ...record };
+                let imageSrc = null;
+                for (const value of Object.values(record)) {
+                    const match = findImageSrc(value);
+                    if (match) {
+                        imageSrc = match;
+                        break;
+                    }
+                }
+                const markerTitle = computeLabelFromAttributes(attributes, activeProjectName);
+                const meta = pointMeta[index] || {};
+                const marker = new mapkit.MarkerAnnotation(coord, {
+                    color: "#9ca3af",
+                    glyphText: "A",
+                    title: markerTitle
+                });
+                marker.surveyPoint = {
+                    coordinate: coord,
+                    attributes,
+                    imageSrc,
+                    title: markerTitle,
+                    rowIndex: index,
+                    pointId: meta.id || null,
+                    pointVersion: meta.version ?? 1
+                };
+                archiveAnnotations.push(marker);
+                archiveRowAnnotationMap.set(index, marker);
+                map.addAnnotation(marker);
+            });
+            rowAnnotationMap = archiveRowAnnotationMap;
         }
 
         function setSurveyTableVisibility(show) {
