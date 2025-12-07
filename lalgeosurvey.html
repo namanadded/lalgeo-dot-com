@@ -891,7 +891,7 @@
         <div class="bottom-bar">
             <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
                 <span id="surveyTableToggleIcon">▲</span>
-                <span id="surveyTableToggleLabel">Show survey table</span>
+                <span id="surveyTableToggleLabel">Show attributes table</span>
             </button>
         </div>
         <div id="surveyPanelActions">
@@ -1174,7 +1174,7 @@
             const isOpen = surveyTablePanel.classList.toggle("open");
             surveyTableWrapper.hidden = !isOpen;
             surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
-            surveyTableToggleLabel.textContent = isOpen ? "Hide survey table" : "Show survey table";
+            surveyTableToggleLabel.textContent = isOpen ? "Hide attributes table" : "Show attributes table";
             if (isOpen) {
                 updateSurveyTable();
             }
@@ -3139,7 +3139,7 @@
             surveyTablePanel.classList.remove("open");
             surveyTableWrapper.hidden = true;
             surveyTableToggleIcon.textContent = "▲";
-            surveyTableToggleLabel.textContent = "Show survey table";
+            surveyTableToggleLabel.textContent = "Show attributes table";
             surveyFieldsBtn.hidden = true;
             surveyFieldControls.hidden = true;
             updateFloatingButtonLayer(false);
