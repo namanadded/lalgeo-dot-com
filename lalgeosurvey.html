@@ -1886,6 +1886,8 @@
                 records: parsed.archiveRecords || [],
                 pointMeta: parsed.archivePointMeta || []
             };
+            isArchiveView = false;
+            if (archiveToggleBtn) archiveToggleBtn.textContent = "Show archive";
             currentSurveySource = payload.source || null;
             currentSurveyImages = buildImageLookup(payload.images || {});
             tableFieldOrder = [...parsed.headers];
@@ -3177,6 +3179,8 @@
                     if (latest) {
                         await loadSurveyPayload(latest, { preserveRegion: true });
                     }
+                    isArchiveView = false;
+                    archiveToggleBtn.textContent = "Show archive";
                     setProjectStatus("Point restored.", "success");
                 } catch (error) {
                     console.error(error);
