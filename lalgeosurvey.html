@@ -2506,6 +2506,22 @@
                 const lines = csvText.split(/\r?\n/).map(line => line.trim());
                 const respIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "responses");
                 if (respIndex === -1 || !lines[respIndex + 1]) return null;
+
+                const questionMeta = {};
+                for (let i = 0; i < respIndex; i++) {
+                    const cols = lines[i].split(",");
+                    const q = cleanCell(cols[0]);
+                    if (!q || /^question$/i.test(q)) continue;
+                    const t = cleanCell(cols[1]);
+                    const c = cleanCell(cols[2]);
+                    if (!t) continue;
+                    questionMeta[q] = {
+                        type: t,
+                        normalizedType: t.toLowerCase(),
+                        choices: c ? c.split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean) : []
+                    };
+                }
+
                 const headerLine = lines[respIndex + 1];
                 const headers = headerLine.split(",").map(cleanCell);
                 const dataLines = [];
@@ -2530,7 +2546,7 @@
                     records,
                     latKey,
                     lonKey,
-                    questionMeta: {},
+                    questionMeta,
                     pointMeta: records.map(() => ({ id: generateSurveyPointId(), version: 1 }))
                 };
             };
@@ -2944,16 +2960,6 @@
                     updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
                     markSurveyDirty();
                     await persistSurveyEditsIfNeeded(true);
-                    // Reload from Dropbox to reflect persisted CSV/JSON state
-                    try {
-                        const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
-                        if (latest) {
-                            await loadSurveyPayload(latest, { preserveRegion: true });
-                        }
-                    } catch (reloadErr) {
-                        console.warn("Reload after save failed", reloadErr);
-                        updateSurveyTable();
-                    }
                     setProjectStatus("Point updated on Dropbox.", "success");
                 } catch (error) {
                     console.error(error);
