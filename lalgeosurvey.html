@@ -1048,6 +1048,7 @@
         let isReorderingFields = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
+        let dropboxAutoRefreshTimer = null;
 
         const readerPromises = new WeakMap();
 
@@ -1943,6 +1944,25 @@
             pendingChanges = false;
             surveyNeedsSave = false;
             updateHistoryButtons();
+
+            // Set up lightweight auto-refresh for Dropbox surveys to pull in remote changes
+            if (isDropboxSurvey()) {
+                if (dropboxAutoRefreshTimer) {
+                    clearInterval(dropboxAutoRefreshTimer);
+                }
+                dropboxAutoRefreshTimer = setInterval(async () => {
+                    if (!currentSurveySource?.path) return;
+                    if (surveyNeedsSave || isCalloutEditing || pendingNewAnnotation || isAddingSurveyPoint) return;
+                    try {
+                        const latest = await fetchSurveyFromWorker(currentSurveySource.path);
+                        if (latest) {
+                            await loadSurveyPayload(latest, { preserveRegion: true });
+                        }
+                    } catch (err) {
+                        console.warn("Auto refresh pull failed", err);
+                    }
+                }, 10000);
+            }
         }
 
         async function buildSurveyPayload(files) {
@@ -2107,9 +2127,18 @@
                             setTimeout(poll, 2000);
                             return;
                         }
-                        // Avoid auto-refreshing while editing; inform user instead.
+                        // Auto-refresh current survey on remote changes while preserving map region
                         if (currentSurveySource?.type === "dropbox" && currentSurveySource?.path) {
-                            setProjectStatus("Remote updates detected. Click Load selected survey to refresh.", "success");
+                            try {
+                                const latest = await fetchSurveyFromWorker(currentSurveySource.path);
+                                if (latest) {
+                                    await loadSurveyPayload(latest, { preserveRegion: true });
+                                    setProjectStatus("Remote updates applied.", "success");
+                                }
+                            } catch (reloadErr) {
+                                console.warn("Auto-refresh failed", reloadErr);
+                                setProjectStatus("Remote updates detected. Click Load selected survey to refresh.", "success");
+                            }
                         }
                     } else {
                         if (data.cursor) currentDropboxCursor = data.cursor;
