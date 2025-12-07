@@ -2172,6 +2172,21 @@
             return await response.json();
         }
 
+        async function deleteDropboxPointRequest(pointId, payload) {
+            const path = requireDropboxPath();
+            const response = await fetch(`${WORKER_BASE}/api/surveys/points/${encodeURIComponent(pointId)}`, {
+                method: "DELETE",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path, ...payload })
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(data?.error || "Dropbox worker could not delete the point.");
+            }
+            return await response.json();
+        }
+
         async function saveDropboxArchive() {
             const path = requireDropboxPath();
             const response = await fetch(`${WORKER_BASE}/api/surveys/save`, {
@@ -2843,6 +2858,7 @@
                     <div class="callout-actions">
                         <button type="button" id="calloutSaveBtn" class="primary">Save</button>
                         <button type="button" id="calloutCancelBtn">${activeSurveyAnnotation.surveyPoint?.isNew ? "Cancel point" : "Cancel"}</button>
+                        <button type="button" id="calloutDeleteBtn" class="danger">Delete</button>
                     </div>
                 `;
                 const form = surveyCalloutCard.querySelector("#attributeEditForm");
@@ -2878,6 +2894,10 @@
                         isCalloutEditing = false;
                         renderSurveyCalloutContent();
                     }
+                });
+                surveyCalloutCard.querySelector("#calloutDeleteBtn")?.addEventListener("click", (event) => {
+                    event.stopPropagation();
+                    deleteActivePoint();
                 });
             } else {
                 const attributeRows = headers.map(header => {
@@ -2986,6 +3006,30 @@
                 pendingChanges = true;
                 updateSurveyTable();
             }
+            updateSurveyTable();
+            updateHistoryButtons();
+        }
+
+        async function deleteActivePoint() {
+            if (!activeSurveyAnnotation) return;
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const meta = getPointMeta(rowIndex);
+            if (isDropboxSurvey()) {
+                try {
+                    if (!meta?.id) throw new Error("Missing Dropbox point metadata.");
+                    setProjectStatus("Archiving point…");
+                    await deleteDropboxPointRequest(meta.id, { version: meta.version });
+                    removeRecordAt(rowIndex);
+                    setProjectStatus("Point archived.", "success");
+                    pendingChanges = false;
+                } catch (error) {
+                    console.error(error);
+                    setProjectStatus(error.message || "Unable to archive point.", "error");
+                }
+            } else {
+                removeRecordAt(rowIndex);
+            }
+            hideSurveyCallout();
             updateSurveyTable();
             updateHistoryButtons();
         }
