@@ -1955,7 +1955,9 @@
                     if (surveyNeedsSave || isCalloutEditing || pendingNewAnnotation || isAddingSurveyPoint) return;
                     try {
                         const latest = await fetchSurveyFromWorker(currentSurveySource.path);
-                        if (latest) {
+                        const latestVersion = latest?.survey?.version;
+                        const currentVersion = currentSurveyDocument?.version;
+                        if (latest && latestVersion !== currentVersion) {
                             await loadSurveyPayload(latest, { preserveRegion: true });
                         }
                     } catch (err) {
