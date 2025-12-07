@@ -1730,6 +1730,7 @@
                     updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
                     setProjectStatus("Point saved to Dropbox.", "success");
                     markSurveyDirty();
+                    await persistSurveyEditsIfNeeded(true);
                 } catch (error) {
                     console.error(error);
                     removeNewSurveyPoint(annotation);
