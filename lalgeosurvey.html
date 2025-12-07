@@ -1207,7 +1207,7 @@
             let latKey = doc.latField || rawFields.find(header => /lat/i.test(header)) || "Latitude";
             let lonKey = doc.lonField || rawFields.find(header => /(lon|lng|long)/i.test(header)) || "Longitude";
 
-            const questionMeta = {};
+            const questionMeta = { ...(doc.questionMeta || {}) };
             const responsePoints = [];
             const debugPoints = [];
             const points = Array.isArray(doc.points) ? doc.points : [];
@@ -1447,7 +1447,8 @@
                 fields,
                 latField: latKey,
                 lonField: lonKey,
-                points
+                points,
+                questionMeta: parsed.questionMeta || {}
             };
         }
 
