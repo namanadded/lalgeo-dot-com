@@ -896,6 +896,7 @@
         </div>
         <div id="surveyPanelActions">
             <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
+            <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
         </div>
         <div id="surveyFieldControls" hidden>
             <h4>Table fields</h4>
@@ -950,6 +951,7 @@
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
         const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
+        const archiveToggleBtn = document.getElementById("archiveToggleBtn");
         const surveyFieldControls = document.getElementById("surveyFieldControls");
         const surveyFieldList = document.getElementById("surveyFieldList");
         const toggleImportBtn = document.getElementById("toggleImportBtn");
@@ -1037,6 +1039,8 @@
         let rowAnnotationMap = new Map();
         let tableFieldOrder = [];
         let hiddenFields = new Set();
+        let archiveData = { headers: [], records: [], pointMeta: [] };
+        let isArchiveView = false;
         let draggedFieldName = null;
         let isAddingSurveyPoint = false;
         let isReorderingFields = false;
@@ -1190,6 +1194,12 @@
                 renderSurveyFieldControls();
             }
         });
+        archiveToggleBtn.addEventListener("click", () => {
+            if (!currentSurveyData) return;
+            isArchiveView = !isArchiveView;
+            archiveToggleBtn.textContent = isArchiveView ? "Show active" : "Show archive";
+            updateSurveyTable();
+        });
 
         function toggleAddSurveyPointMode() {
             isAddingSurveyPoint = !isAddingSurveyPoint;
@@ -1211,6 +1221,7 @@
             const responsePoints = [];
             const debugPoints = [];
             const points = Array.isArray(doc.points) ? doc.points : [];
+            const archivedPoints = Array.isArray(doc.archivedPoints) ? doc.archivedPoints : [];
 
             // Special handling when fields are only Question/Type/Choices: treat points as rows
             const isRowStyle = rawFields.length === 3 && rawFields.every(f => metaFields.has(normalizeHeaderName(f)));
@@ -1401,13 +1412,41 @@
                     record[field] = attrs?.[field] ?? "";
                 });
                 records.push(record);
-            pointMeta.push({
-                id: point.id,
-                version: point.version ?? 1,
-                updatedAt: point.updatedAt,
-                updatedBy: point.updatedBy
+                pointMeta.push({
+                    id: point.id,
+                    version: point.version ?? 1,
+                    updatedAt: point.updatedAt,
+                    updatedBy: point.updatedBy
+                });
             });
-        });
+
+            // Archived records
+            const archiveRecords = [];
+            const archivePointMeta = [];
+            archivedPoints.forEach((point) => {
+                const attrs = point.attributes || {};
+                const record = {};
+                headers.forEach((field) => {
+                    if (field === latKey) {
+                        const latNum = parseNumber(point.lat ?? attrs[latKey]);
+                        record[field] = Number.isFinite(latNum) ? latNum : "";
+                        return;
+                    }
+                    if (field === lonKey) {
+                        const lonNum = parseNumber(point.lon ?? attrs[lonKey]);
+                        record[field] = Number.isFinite(lonNum) ? lonNum : "";
+                        return;
+                    }
+                    record[field] = attrs?.[field] ?? "";
+                });
+                archiveRecords.push(record);
+                archivePointMeta.push({
+                    id: point.id || generateSurveyPointId(),
+                    version: point.version ?? 1,
+                    updatedAt: point.updatedAt,
+                    updatedBy: point.updatedBy
+                });
+            });
 
             return {
                 headers,
@@ -1416,7 +1455,9 @@
                 lonKey,
                 questionMeta,
                 pointMeta,
-                version: doc.version ?? 1
+                version: doc.version ?? 1,
+                archiveRecords,
+                archivePointMeta
             };
         }
 
@@ -1440,6 +1481,20 @@
                     updatedBy: null
                 };
             });
+            const archivedPoints = (parsed.archiveRecords || []).map((record, index) => {
+                const attributes = { ...record };
+                const latValue = latKey ? parseFloat(attributes[latKey]) : NaN;
+                const lonValue = lonKey ? parseFloat(attributes[lonKey]) : NaN;
+                return {
+                    id: parsed.archivePointMeta?.[index]?.id || generateSurveyPointId(),
+                    lat: Number.isFinite(latValue) ? latValue : null,
+                    lon: Number.isFinite(lonValue) ? lonValue : null,
+                    attributes,
+                    version: parsed.archivePointMeta?.[index]?.version ?? 1,
+                    updatedAt: now,
+                    updatedBy: null
+                };
+            });
             return {
                 version: parsed.version ?? 1,
                 updatedAt: now,
@@ -1448,6 +1503,7 @@
                 latField: latKey,
                 lonField: lonKey,
                 points,
+                archivedPoints,
                 questionMeta: parsed.questionMeta || {}
             };
         }
@@ -1825,6 +1881,11 @@
                 throw new Error("No survey content found in package.");
             }
             currentSurveyData = parsed;
+            archiveData = {
+                headers: parsed.archiveHeaders || parsed.headers || [],
+                records: parsed.archiveRecords || [],
+                pointMeta: parsed.archivePointMeta || []
+            };
             currentSurveySource = payload.source || null;
             currentSurveyImages = buildImageLookup(payload.images || {});
             tableFieldOrder = [...parsed.headers];
@@ -2187,6 +2248,21 @@
             return await response.json();
         }
 
+        async function restoreDropboxPointRequest(pointId, payload = {}) {
+            const path = requireDropboxPath();
+            const response = await fetch(`${WORKER_BASE}/api/surveys/restore`, {
+                method: "POST",
+                credentials: "include",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ path, pointId, ...payload })
+            });
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                throw new Error(data?.error || "Dropbox worker could not restore the point.");
+            }
+            return await response.json();
+        }
+
         async function saveDropboxArchive() {
             const path = requireDropboxPath();
             const response = await fetch(`${WORKER_BASE}/api/surveys/save`, {
@@ -2525,6 +2601,7 @@
             const manualParse = () => {
                 const lines = csvText.split(/\r?\n/).map(line => line.trim());
                 const respIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "responses");
+                const archiveIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "archive");
                 if (respIndex === -1 || !lines[respIndex + 1]) return null;
 
                 const questionMeta = {};
@@ -2546,6 +2623,7 @@
                 const headers = headerLine.split(",").map(cleanCell);
                 const dataLines = [];
                 for (let i = respIndex + 2; i < lines.length; i++) {
+                    if (archiveIndex !== -1 && i >= archiveIndex) break;
                     const line = lines[i];
                     if (!line || !line.trim()) break;
                     dataLines.push(line);
@@ -2560,6 +2638,22 @@
                 });
                 const latKey = headers.find(h => /lat/i.test(h));
                 const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
+                const archiveHeaders = archiveIndex !== -1 && lines[archiveIndex + 1]
+                    ? lines[archiveIndex + 1].split(",").map(cleanCell)
+                    : headers;
+                const archiveRecords = [];
+                if (archiveIndex !== -1) {
+                    for (let i = archiveIndex + 2; i < lines.length; i++) {
+                        const line = lines[i];
+                        if (!line || !line.trim()) break;
+                        const cols = line.split(",");
+                        const entry = {};
+                        archiveHeaders.forEach((h, idx) => {
+                            entry[h || `Field_${idx}`] = cleanCell(cols[idx]);
+                        });
+                        archiveRecords.push(entry);
+                    }
+                }
                 if (!latKey || !lonKey || !records.length) return null;
                 return {
                     headers,
@@ -2567,7 +2661,10 @@
                     latKey,
                     lonKey,
                     questionMeta,
-                    pointMeta: records.map(() => ({ id: generateSurveyPointId(), version: 1 }))
+                    pointMeta: records.map(() => ({ id: generateSurveyPointId(), version: 1 })),
+                    archiveRecords,
+                    archiveHeaders,
+                    archivePointMeta: archiveRecords.map(() => ({ id: generateSurveyPointId(), version: 1 }))
                 };
             };
 
@@ -2583,6 +2680,7 @@
             if (responsesRowIndex === -1 || !rows[responsesRowIndex + 1]) {
                 throw new Error("Unable to locate Responses section in CSV.");
             }
+            const archiveRowIndex = rows.findIndex(row => cleanCell(row?.[0] || "").toLowerCase() === "archive");
 
             // Meta rows above Responses
             const questionMeta = {};
@@ -2623,6 +2721,7 @@
 
             const dataRows = [];
             for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                if (archiveRowIndex !== -1 && i >= archiveRowIndex) break;
                 const row = rows[i];
                 if (!row || !row.some(cell => cleanCell(cell) !== "")) {
                     if (dataRows.length) break;
@@ -2638,11 +2737,44 @@
                 });
                 return entry;
             });
+            let archiveHeaders = headers;
+            let archiveRecords = [];
+            if (archiveRowIndex !== -1) {
+                for (let i = archiveRowIndex + 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (row && row.some(cell => cleanCell(cell) !== "")) {
+                        archiveHeaders = row.map(cell => cleanCell(cell));
+                        headerRowIndex = i;
+                        break;
+                    }
+                }
+                const archiveDataRows = [];
+                for (let i = headerRowIndex + 1; i < rows.length; i++) {
+                    const row = rows[i];
+                    if (!row || !row.some(cell => cleanCell(cell) !== "")) {
+                        if (archiveDataRows.length) break;
+                        continue;
+                    }
+                    archiveDataRows.push(row);
+                }
+                archiveRecords = archiveDataRows.map(row => {
+                    const entry = {};
+                    archiveHeaders.forEach((header, idx) => {
+                        const key = header || `Field_${idx}`;
+                        entry[key] = cleanCell(row[idx]);
+                    });
+                    return entry;
+                });
+            }
             const pointMeta = records.map(() => ({
                 id: generateSurveyPointId(),
                 version: 1
             }));
-            return { headers, records, latKey, lonKey, questionMeta, pointMeta };
+            const archivePointMeta = archiveRecords.map(() => ({
+                id: generateSurveyPointId(),
+                version: 1
+            }));
+            return { headers, records, latKey, lonKey, questionMeta, pointMeta, archiveRecords, archiveHeaders, archivePointMeta };
         }
 
         function analyzeSurveySchema(parsed) {
@@ -3034,6 +3166,34 @@
             updateHistoryButtons();
         }
 
+        async function restoreArchivedPoint(archiveIndex) {
+            const archiveMeta = archiveData.pointMeta?.[archiveIndex];
+            if (!archiveMeta) return;
+            if (isDropboxSurvey()) {
+                try {
+                    setProjectStatus("Restoring point…");
+                    await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
+                    const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
+                    if (latest) {
+                        await loadSurveyPayload(latest, { preserveRegion: true });
+                    }
+                    setProjectStatus("Point restored.", "success");
+                } catch (error) {
+                    console.error(error);
+                    setProjectStatus(error.message || "Unable to restore point.", "error");
+                }
+                return;
+            }
+            // Local mode: move from archiveData to currentSurveyData
+            const record = archiveData.records.splice(archiveIndex, 1)[0];
+            const meta = archiveData.pointMeta.splice(archiveIndex, 1)[0];
+            if (record) {
+                currentSurveyData.records.push(record);
+                currentSurveyData.pointMeta.push(meta);
+                updateSurveyTable();
+            }
+        }
+
         async function persistSurveyEditsIfNeeded(forceSave = false) {
             if (isDropboxSurvey()) {
                 if (!surveyNeedsSave && !forceSave) return;
@@ -3074,23 +3234,27 @@
 
         function updateSurveyTable() {
             if (!surveyTable) return;
-            if (!currentSurveyData?.headers) {
+            const dataset = isArchiveView ? archiveData : currentSurveyData;
+            if (!dataset?.headers) {
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">Load a survey to view responses.</div>";
                 return;
             }
+            const headerSource = isArchiveView ? archiveData.headers : dataset.headers;
             tableFieldOrder = getOrderedHeaders({ includeHidden: true });
             const visibleHeaders = getOrderedHeaders({ includeHidden: false });
             if (!visibleHeaders.length) {
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">All fields are hidden. Enable at least one field.</div>";
                 return;
             }
-            const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + "<th>Photo</th>";
-            const bodyRows = currentSurveyData.records.map((record, index) => {
-                const annotation = rowAnnotationMap.get(index);
+            const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
+            const bodyRows = (dataset.records || []).map((record, index) => {
+                const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
                 const cells = visibleHeaders.map(header => `<td>${escapeHtml(record?.[header] ?? "")}</td>`).join("");
-                const photoCell = hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>";
-                return `<tr data-row-index="${index}">${cells}${photoCell}</tr>`;
+                const actionCell = isArchiveView
+                    ? `<td><button type="button" class="restore-btn" data-archive-index="${index}">Restore</button></td>`
+                    : (hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>");
+                return `<tr data-row-index="${index}">${cells}${actionCell}</tr>`;
             }).join("");
             surveyTable.innerHTML = `
                 <table>
@@ -3102,6 +3266,15 @@
 
         surveyTable?.addEventListener("click", (event) => {
             const button = event.target.closest(".view-photo-btn");
+            const restoreButton = event.target.closest(".restore-btn");
+            if (restoreButton) {
+                const idx = Number(restoreButton.dataset.archiveIndex);
+                if (!Number.isNaN(idx)) {
+                    restoreArchivedPoint(idx);
+                }
+                event.stopPropagation();
+                return;
+            }
             if (!button) return;
             const rowIndex = Number(button.dataset.rowIndex);
             const annotation = rowAnnotationMap.get(rowIndex);
@@ -3133,6 +3306,7 @@
             surveyTablePanel.hidden = !show;
             if (show) {
                 surveyFieldsBtn.hidden = false;
+                archiveToggleBtn.hidden = false;
                 updateFloatingButtonLayer(surveyTablePanel.classList.contains("open"));
                 return;
             }
@@ -3141,6 +3315,7 @@
             surveyTableToggleIcon.textContent = "▲";
             surveyTableToggleLabel.textContent = "Show attributes table";
             surveyFieldsBtn.hidden = true;
+            archiveToggleBtn.hidden = true;
             surveyFieldControls.hidden = true;
             updateFloatingButtonLayer(false);
         }
