@@ -2103,8 +2103,8 @@
                 }
             }
             return {
-                // Prefer CSV truth; if we have csvText, ignore JSON doc for parsing
-                survey: csvText ? null : data.survey,
+                // Keep survey doc for metadata (question types), but prefer CSV for data rows
+                survey: data.survey,
                 images: data.images || {},
                 csvText: csvText || null,
                 projectName,
