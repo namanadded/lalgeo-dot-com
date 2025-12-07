@@ -1055,6 +1055,34 @@
             return surveyCallout && surveyCallout.style.display === "block";
         }
 
+        function restoreCalloutByPointId(pointId, { forceEdit = false } = {}) {
+            if (!pointId || !pointIdToRowIndex) return;
+            const rowIdx = pointIdToRowIndex.get(pointId);
+            if (rowIdx === undefined) return;
+            const annotation = rowAnnotationMap.get(rowIdx);
+            if (!annotation) return;
+            showSurveyCallout(annotation, { forceEdit });
+        }
+
+        function restoreCalloutByCoord(coord, { forceEdit = false } = {}) {
+            if (!coord) return;
+            let best = null;
+            let bestDist = Infinity;
+            surveyAnnotations.forEach(annotation => {
+                if (!annotation?.coordinate) return;
+                const dLat = annotation.coordinate.latitude - coord.latitude;
+                const dLon = annotation.coordinate.longitude - coord.longitude;
+                const dist = Math.abs(dLat) + Math.abs(dLon);
+                if (dist < bestDist) {
+                    bestDist = dist;
+                    best = annotation;
+                }
+            });
+            if (best) {
+                showSurveyCallout(best, { forceEdit });
+            }
+        }
+
         const readerPromises = new WeakMap();
 
         const setProjectStatus = (message, state = "") => {
@@ -1877,6 +1905,12 @@
                 clearInterval(dropboxAutoRefreshTimer);
                 dropboxAutoRefreshTimer = null;
             }
+            const prevCalloutOpen = isCalloutOpen();
+            const prevCalloutEdit = isCalloutEditing;
+            const prevCalloutPointId = activeSurveyAnnotation?.surveyPoint?.pointId || activeSurveyAnnotation?.surveyPoint?.id;
+            const prevCalloutCoord = activeSurveyAnnotation?.coordinate
+                ? { latitude: activeSurveyAnnotation.coordinate.latitude, longitude: activeSurveyAnnotation.coordinate.longitude }
+                : null;
             let parsed;
             let parsedFromDoc = null;
             if (payload.survey) {
@@ -1943,6 +1977,13 @@
             pendingChanges = false;
             surveyNeedsSave = false;
             updateHistoryButtons();
+
+            if (prevCalloutOpen && prevCalloutPointId) {
+                restoreCalloutByPointId(prevCalloutPointId, { forceEdit: prevCalloutEdit });
+                if (!isCalloutOpen() && prevCalloutCoord) {
+                    restoreCalloutByCoord(prevCalloutCoord, { forceEdit: prevCalloutEdit });
+                }
+            }
         }
 
         async function buildSurveyPayload(files) {
