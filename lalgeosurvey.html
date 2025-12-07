@@ -1051,6 +1051,10 @@
         let dropboxAutoRefreshTimer = null;
         let deferredReloadPath = null;
 
+        function isCalloutOpen() {
+            return surveyCallout && surveyCallout.style.display === "block";
+        }
+
         const readerPromises = new WeakMap();
 
         const setProjectStatus = (message, state = "") => {
@@ -2963,7 +2967,7 @@
         function requestDropboxReload(preserveRegion = true) {
             if (!currentSurveySource?.path) return;
             // If user is actively editing/adding, defer reload to avoid closing the callout.
-            if (isCalloutEditing || pendingNewAnnotation || isAddingSurveyPoint) {
+            if (isCalloutEditing || pendingNewAnnotation || isAddingSurveyPoint || isCalloutOpen()) {
                 deferredReloadPath = currentSurveySource.path;
                 setProjectStatus("Remote updates queued; will refresh after you finish editing.", "success");
                 return;
