@@ -3276,39 +3276,67 @@
 
         async function restoreArchivedPoint(archiveIndex) {
             const archiveMeta = archiveData.pointMeta?.[archiveIndex];
+            const archiveRecord = archiveData.records?.[archiveIndex];
             if (!archiveMeta) return;
+
+            const mergeRestoredPoint = (point) => {
+                if (!point || !currentSurveyData) return;
+                const attrs = point.attributes || archiveRecord || {};
+                // ensure headers include any new fields
+                Object.keys(attrs).forEach((h) => {
+                    if (h && !currentSurveyData.headers.includes(h)) {
+                        currentSurveyData.headers.push(h);
+                    }
+                });
+                currentSurveyData.records.push(attrs);
+                if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
+                currentSurveyData.pointMeta.push({
+                    id: point.id,
+                    version: point.version ?? 1,
+                    updatedAt: point.updatedAt,
+                    updatedBy: point.updatedBy
+                });
+                // keep document in sync if available
+                if (currentSurveyDocument) {
+                    const lat = currentSurveyData.latKey ? parseFloat(attrs[currentSurveyData.latKey]) : null;
+                    const lon = currentSurveyData.lonKey ? parseFloat(attrs[currentSurveyData.lonKey]) : null;
+                    const docPoint = {
+                        id: point.id,
+                        lat: Number.isFinite(lat) ? lat : null,
+                        lon: Number.isFinite(lon) ? lon : null,
+                        attributes: attrs,
+                        version: point.version ?? 1,
+                        updatedAt: point.updatedAt,
+                        updatedBy: point.updatedBy
+                    };
+                    currentSurveyDocument.points.push(docPoint);
+                }
+                rebuildPointIndexes(currentSurveyData);
+                renderSurveyProject({
+                    parsed: currentSurveyData,
+                    projectName: activeProjectName || "Survey",
+                    preserveRegion: true
+                });
+                updateSurveyTable();
+            };
+
+            // Remove from archive list immediately
+            if (archiveIndex >= 0 && archiveIndex < archiveData.records.length) {
+                archiveData.records.splice(archiveIndex, 1);
+                archiveData.pointMeta.splice(archiveIndex, 1);
+            }
+
             if (isDropboxSurvey()) {
                 try {
                     setProjectStatus("Restoring point…");
                     const restoreResp = await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
-                    // Optimistically remove from archive list
-                    if (archiveIndex >= 0 && archiveIndex < archiveData.records.length) {
-                        archiveData.records.splice(archiveIndex, 1);
-                        archiveData.pointMeta.splice(archiveIndex, 1);
-                    }
-                    // If we got the restored point back, merge into current dataset
-                    if (restoreResp?.point && currentSurveyData) {
-                        const attrs = restoreResp.point.attributes || {};
-                        currentSurveyData.records.push(attrs);
-                        if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
-                        currentSurveyData.pointMeta.push({
-                            id: restoreResp.point.id,
-                            version: restoreResp.point.version ?? 1,
-                            updatedAt: restoreResp.point.updatedAt,
-                            updatedBy: restoreResp.point.updatedBy
-                        });
+                    if (restoreResp?.point) {
+                        mergeRestoredPoint(restoreResp.point);
                     } else {
-                        // Fallback: reload from worker
                         requestDropboxReload(true);
                     }
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
-                    renderSurveyProject({
-                        parsed: currentSurveyData,
-                        projectName: activeProjectName || "Survey",
-                        preserveRegion: true
-                    });
-                    updateSurveyTable();
                     setProjectStatus("Point restored.", "success");
                 } catch (error) {
                     console.error(error);
@@ -3317,19 +3345,16 @@
                 return;
             }
             // Local mode: move from archiveData to currentSurveyData
-            const record = archiveData.records.splice(archiveIndex, 1)[0];
-            const meta = archiveData.pointMeta.splice(archiveIndex, 1)[0];
-            if (record) {
-                currentSurveyData.records.push(record);
-                currentSurveyData.pointMeta.push(meta);
+            if (archiveRecord) {
+                mergeRestoredPoint({
+                    id: archiveMeta.id,
+                    attributes: archiveRecord,
+                    version: archiveMeta.version,
+                    updatedAt: new Date().toISOString(),
+                    updatedBy: null
+                });
                 isArchiveView = false;
                 archiveToggleBtn.textContent = "Show archive";
-                renderSurveyProject({
-                    parsed: currentSurveyData,
-                    projectName: activeProjectName || "Survey",
-                    preserveRegion: true
-                });
-                updateSurveyTable();
             }
         }
 
