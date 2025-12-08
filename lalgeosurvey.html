@@ -3320,15 +3320,26 @@
                 updateSurveyTable();
             };
 
+            // Remove from archive list locally
+            let removedRecord = null;
+            let removedMeta = null;
+            if (archiveIndex >= 0 && archiveIndex < archiveData.records.length) {
+                removedRecord = archiveData.records.splice(archiveIndex, 1)[0] || archiveRecord;
+                removedMeta = archiveData.pointMeta.splice(archiveIndex, 1)[0] || archiveMeta;
+            }
+
             if (isDropboxSurvey()) {
                 try {
                     setProjectStatus("Restoring point…");
-                    await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
-                    // Reload fresh state so tables stay consistent without local moves
-                    const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
-                    if (latest) {
-                        await loadSurveyPayload(latest, { preserveRegion: true });
-                    }
+                    const restoreResp = await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
+                    const payloadPoint = restoreResp?.point || {
+                        id: archiveMeta.id,
+                        attributes: removedRecord || archiveRecord || {},
+                        version: (archiveMeta.version ?? 1) + 1,
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: getDropboxUpdatedBy()
+                    };
+                    mergeRestoredPoint(payloadPoint);
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
                     setProjectStatus("Point restored.", "success");
