@@ -3320,20 +3320,14 @@
                 updateSurveyTable();
             };
 
-            // Remove from archive list immediately
-            if (archiveIndex >= 0 && archiveIndex < archiveData.records.length) {
-                archiveData.records.splice(archiveIndex, 1);
-                archiveData.pointMeta.splice(archiveIndex, 1);
-            }
-
             if (isDropboxSurvey()) {
                 try {
                     setProjectStatus("Restoring point…");
-                    const restoreResp = await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
-                    if (restoreResp?.point) {
-                        mergeRestoredPoint(restoreResp.point);
-                    } else {
-                        requestDropboxReload(true);
+                    await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
+                    // Reload fresh state so tables stay consistent without local moves
+                    const latest = await fetchSurveyFromWorker(currentSurveySource?.path);
+                    if (latest) {
+                        await loadSurveyPayload(latest, { preserveRegion: true });
                     }
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
