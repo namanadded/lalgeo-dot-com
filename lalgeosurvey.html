@@ -577,10 +577,10 @@
         white-space: nowrap;
     }
     #surveyTableWrapper tbody tr:hover {
-        background: #e9eef9;
+        background: #e1e8f7;
     }
     #surveyTableWrapper tbody tr.selected {
-        background: #dce5f7;
+        background: #c8d3f1;
     }
     #surveyPanelActions {
         display: flex;
@@ -3515,11 +3515,14 @@
                 recenterPreservingZoom(coordinate);
             }
             setActiveTableRow(rowIndex);
+            // Ensure the same behavior as tapping the marker: select & open callout.
             if (typeof map.selectAnnotation === "function") {
                 map.selectAnnotation(annotation);
-            } else {
-                showSurveyCallout(annotation);
             }
+            try {
+                annotation.selected = true; // hint for MapKit selection visuals
+            } catch {}
+            showSurveyCallout(annotation);
         }
 
         function focusAnnotationByRow(rowIndex) {
