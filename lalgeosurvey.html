@@ -1050,6 +1050,7 @@
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
         let deferredReloadPath = null;
+        let suppressSurveyCalloutOnce = false;
 
         function isCalloutOpen() {
             return surveyCallout && surveyCallout.style.display === "block";
@@ -3444,13 +3445,19 @@
                 event.stopPropagation();
                 return;
             }
-            if (!button) return;
-            const rowIndex = Number(button.dataset.rowIndex);
-            const annotation = rowAnnotationMap.get(rowIndex);
-            if (annotation?.surveyPoint?.imageSrc) {
-                openImageModal(annotation.surveyPoint.imageSrc, annotation.surveyPoint.title);
+            if (button) {
+                const rowIndex = Number(button.dataset.rowIndex);
+                const annotation = rowAnnotationMap.get(rowIndex);
+                if (annotation?.surveyPoint?.imageSrc) {
+                    openImageModal(annotation.surveyPoint.imageSrc, annotation.surveyPoint.title);
+                }
+                event.stopPropagation();
+                return;
             }
-            event.stopPropagation();
+            const row = event.target.closest("tr[data-row-index]");
+            if (!row) return;
+            const rowIndex = Number(row.dataset.rowIndex);
+            previewAnnotationByRow(rowIndex);
         });
 
         surveyTable?.addEventListener("dblclick", (event) => {
@@ -3460,6 +3467,42 @@
             focusAnnotationByRow(rowIndex);
         });
 
+        function isCoordinateVisibleOnMap(coord) {
+            if (!coord || !map?.region?.span || !map?.region?.center) return false;
+            const { center, span } = map.region;
+            const halfLat = span.latitudeDelta / 2;
+            const halfLon = span.longitudeDelta / 2;
+            return Math.abs(coord.latitude - center.latitude) <= halfLat
+                && Math.abs(coord.longitude - center.longitude) <= halfLon;
+        }
+
+        function recenterPreservingZoom(coord) {
+            if (!coord || !map?.region?.span) return;
+            const currentRegion = map.region;
+            const span = new mapkit.CoordinateSpan(
+                currentRegion.span.latitudeDelta,
+                currentRegion.span.longitudeDelta
+            );
+            map.region = new mapkit.CoordinateRegion(coord, span);
+        }
+
+        function previewAnnotationByRow(rowIndex) {
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (!annotation) return;
+            const coordinate = annotation.coordinate;
+            if (coordinate && !isCoordinateVisibleOnMap(coordinate)) {
+                recenterPreservingZoom(coordinate);
+            }
+            hideSurveyCallout();
+            suppressSurveyCalloutOnce = true;
+            if (typeof map.selectAnnotation === "function") {
+                map.selectAnnotation(annotation);
+                setTimeout(() => { suppressSurveyCalloutOnce = false; }, 500);
+            } else {
+                suppressSurveyCalloutOnce = false;
+            }
+        }
+
         function focusAnnotationByRow(rowIndex) {
             const annotation = rowAnnotationMap.get(rowIndex);
             if (!annotation) return;
@@ -3467,7 +3510,11 @@
             if (coordinate) {
                 map.region = new mapkit.CoordinateRegion(coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
             }
-            showSurveyCallout(annotation);
+            if (typeof map.selectAnnotation === "function") {
+                map.selectAnnotation(annotation);
+            } else {
+                showSurveyCallout(annotation);
+            }
         }
 
         function renderArchiveAnnotations() {
@@ -3979,10 +4026,14 @@ function setImportPanelVisibility(show) {
         });
 
         map.addEventListener("select", (event) => {
+            const skipCallout = suppressSurveyCalloutOnce;
+            suppressSurveyCalloutOnce = false;
             if (event?.annotation?.surveyPoint) {
-                showSurveyCallout(event.annotation);
+                if (!skipCallout) {
+                    showSurveyCallout(event.annotation);
+                }
                 return;
-            } else {
+            } else if (!skipCallout) {
                 hideSurveyCallout();
             }
             if (!event || !event.overlay || event.overlay.routeIndex === undefined) return;
