@@ -2161,42 +2161,80 @@
             const response = await fetch(directUrl);
             if (!response.ok) throw new Error("Dropbox download failed.");
             const contentType = response.headers.get("content-type") || "";
-            const projectName = guessNameFromUrl(directUrl);
-            const lowerUrl = directUrl.toLowerCase();
-            const isZipLike = contentType.includes("zip") || lowerUrl.endsWith(".zip");
-            const isJsonLike = contentType.includes("json") || lowerUrl.endsWith(".lal") || lowerUrl.endsWith(".json");
-            const isCsvLike = contentType.includes("csv") || lowerUrl.endsWith(".csv");
+            const disposition = response.headers.get("content-disposition") || "";
+            const nameFromDisposition = (() => {
+                const match = disposition.match(/filename\\*=UTF-8''([^;]+)|filename=\"?([^\";]+)\"?/i);
+                const raw = match?.[1] || match?.[2];
+                if (raw) {
+                    try { return decodeURIComponent(raw); } catch { return raw; }
+                }
+                return null;
+            })();
+            const projectName = stripExtension(nameFromDisposition || guessNameFromUrl(directUrl));
+            const lowerPath = (nameFromDisposition || directUrl).toLowerCase();
+            const isZipLike = contentType.includes("zip") || lowerPath.endsWith(".zip") || contentType.includes("octet-stream");
+            const isJsonLike = contentType.includes("json") || lowerPath.endsWith(".lal") || lowerPath.endsWith(".json");
+            const isCsvLike = contentType.includes("csv") || lowerPath.endsWith(".csv");
+
+            const buffer = await response.arrayBuffer();
+            const textDecoder = new TextDecoder("utf-8", { fatal: false });
+            const asText = textDecoder.decode(new Uint8Array(buffer));
+
+            const tryZip = async () => {
+                try {
+                    const extracted = await extractZipPackage(buffer, { projectName });
+                    extracted.source = { type: "dropbox-link", url: directUrl, isZip: true };
+                    return extracted;
+                } catch {
+                    return null;
+                }
+            };
+
+            const tryJson = () => {
+                try {
+                    const survey = JSON.parse(asText);
+                    if (survey && typeof survey === "object") {
+                        return {
+                            survey,
+                            images: {},
+                            projectName,
+                            source: { type: "dropbox-link", url: directUrl, isZip: false }
+                        };
+                    }
+                } catch {}
+                return null;
+            };
+
+            const tryCsv = () => {
+                if (!asText || !asText.includes(",")) return null;
+                return {
+                    csvText: asText,
+                    images: {},
+                    projectName,
+                    source: { type: "dropbox-link", url: directUrl, isZip: false }
+                };
+            };
 
             if (isZipLike) {
-                const buffer = await response.arrayBuffer();
-                const extracted = await extractZipPackage(buffer, { projectName });
-                extracted.source = { type: "dropbox-link", url: directUrl, isZip: true };
-                return extracted;
+                const zipped = await tryZip();
+                if (zipped) return zipped;
             }
             if (isJsonLike) {
-                const text = await response.text();
-                let survey = null;
-                try {
-                    survey = JSON.parse(text);
-                } catch (err) {
-                    throw new Error("Dropbox file is not valid survey JSON.");
-                }
-                return {
-                    survey,
-                    images: {},
-                    projectName,
-                    source: { type: "dropbox-link", url: directUrl, isZip: false }
-                };
+                const json = tryJson();
+                if (json) return json;
             }
             if (isCsvLike) {
-                const csvText = await response.text();
-                return {
-                    csvText,
-                    images: {},
-                    projectName,
-                    source: { type: "dropbox-link", url: directUrl, isZip: false }
-                };
+                const csv = tryCsv();
+                if (csv) return csv;
             }
+            // Fallback sniff order when type is ambiguous (e.g., octet-stream or html)
+            const fallbackZip = await tryZip();
+            if (fallbackZip) return fallbackZip;
+            const fallbackJson = tryJson();
+            if (fallbackJson) return fallbackJson;
+            const fallbackCsv = tryCsv();
+            if (fallbackCsv) return fallbackCsv;
+
             throw new Error("Dropbox file must be a .zip/.lal or .csv export.");
         }
 
