@@ -577,7 +577,10 @@
         white-space: nowrap;
     }
     #surveyTableWrapper tbody tr:hover {
-        background: #f3f6fb;
+        background: #e9eef9;
+    }
+    #surveyTableWrapper tbody tr.selected {
+        background: #dce5f7;
     }
     #surveyPanelActions {
         display: flex;
@@ -2995,6 +2998,9 @@
             if (!annotation || !annotation.surveyPoint) return;
             activeSurveyAnnotation = annotation;
             isCalloutEditing = Boolean(options.forceEdit);
+            if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
+                setActiveTableRow(annotation.surveyPoint.rowIndex);
+            }
             renderSurveyCalloutContent();
             if (!document.getElementById("identifierSelectWrapper")) {
                 surveyCalloutCard.parentElement.appendChild(identifierWrapper);
@@ -3416,6 +3422,9 @@
                 return;
             }
             const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
+            const activeRowIndex = !isArchiveView && Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
+                ? activeSurveyAnnotation.surveyPoint.rowIndex
+                : null;
             const bodyRows = (dataset.records || []).map((record, index) => {
                 const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
@@ -3423,7 +3432,8 @@
                 const actionCell = isArchiveView
                     ? `<td><button type="button" class="restore-btn" data-archive-index="${index}">Restore</button></td>`
                     : (hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>");
-                return `<tr data-row-index="${index}">${cells}${actionCell}</tr>`;
+                const rowClass = activeRowIndex === index ? ' class="selected"' : "";
+                return `<tr data-row-index="${index}"${rowClass}>${cells}${actionCell}</tr>`;
             }).join("");
             surveyTable.innerHTML = `
                 <table>
@@ -3485,6 +3495,18 @@
             map.region = new mapkit.CoordinateRegion(coord, span);
         }
 
+        function setActiveTableRow(rowIndex) {
+            if (!surveyTable) return;
+            surveyTable.querySelectorAll("tr[data-row-index]").forEach(row => {
+                const idx = Number(row.dataset.rowIndex);
+                if (idx === rowIndex) {
+                    row.classList.add("selected");
+                } else {
+                    row.classList.remove("selected");
+                }
+            });
+        }
+
         function previewAnnotationByRow(rowIndex) {
             const annotation = rowAnnotationMap.get(rowIndex);
             if (!annotation) return;
@@ -3492,7 +3514,12 @@
             if (coordinate && !isCoordinateVisibleOnMap(coordinate)) {
                 recenterPreservingZoom(coordinate);
             }
-            showSurveyCallout(annotation);
+            setActiveTableRow(rowIndex);
+            if (typeof map.selectAnnotation === "function") {
+                map.selectAnnotation(annotation);
+            } else {
+                showSurveyCallout(annotation);
+            }
         }
 
         function focusAnnotationByRow(rowIndex) {
