@@ -2066,19 +2066,32 @@
                 parsedFromDoc = convertSurveyDocumentToParsed(currentSurveyDocument);
             }
             if (payload.csvText) {
-                parsed = parseSurveyCSV(payload.csvText);
+                let csvParseError = null;
+                try {
+                    parsed = parseSurveyCSV(payload.csvText);
+                } catch (err) {
+                    csvParseError = err;
+                    parsed = null;
+                }
+                if (!parsed && parsedFromDoc) {
+                    parsed = parsedFromDoc;
+                } else if (!parsed && csvParseError) {
+                    throw csvParseError;
+                }
                 // If doc existed, merge question meta from doc into csv-derived parsed
-                if (parsedFromDoc?.questionMeta) {
+                if (parsedFromDoc?.questionMeta && parsed) {
                     parsed.questionMeta = { ...parsedFromDoc.questionMeta, ...parsed.questionMeta };
                 }
                 // Prefer stable point ids/versions from survey JSON when row counts match
-                if (parsedFromDoc?.pointMeta && parsedFromDoc.records?.length === parsed.records?.length) {
+                if (parsedFromDoc?.pointMeta && parsedFromDoc.records?.length === parsed?.records?.length) {
                     parsed.pointMeta = parsedFromDoc.pointMeta;
                 }
-                currentSurveyDocument = buildSurveyDocumentFromParsed(parsed);
-                // Ensure we have a survey JSON for downstream saving even if original archive lacked one
-                if (!payload.survey) {
-                    payload.survey = currentSurveyDocument;
+                if (parsed) {
+                    currentSurveyDocument = buildSurveyDocumentFromParsed(parsed);
+                    // Ensure we have a survey JSON for downstream saving even if original archive lacked one
+                    if (!payload.survey) {
+                        payload.survey = currentSurveyDocument;
+                    }
                 }
             } else if (parsedFromDoc) {
                 parsed = parsedFromDoc;
@@ -2149,13 +2162,33 @@
             if (!response.ok) throw new Error("Dropbox download failed.");
             const contentType = response.headers.get("content-type") || "";
             const projectName = guessNameFromUrl(directUrl);
-            if (contentType.includes("zip") || isSurveyArchiveName(directUrl)) {
+            const lowerUrl = directUrl.toLowerCase();
+            const isZipLike = contentType.includes("zip") || lowerUrl.endsWith(".zip");
+            const isJsonLike = contentType.includes("json") || lowerUrl.endsWith(".lal") || lowerUrl.endsWith(".json");
+            const isCsvLike = contentType.includes("csv") || lowerUrl.endsWith(".csv");
+
+            if (isZipLike) {
                 const buffer = await response.arrayBuffer();
                 const extracted = await extractZipPackage(buffer, { projectName });
                 extracted.source = { type: "dropbox-link", url: directUrl, isZip: true };
                 return extracted;
             }
-            if (contentType.includes("csv") || directUrl.toLowerCase().endsWith(".csv")) {
+            if (isJsonLike) {
+                const text = await response.text();
+                let survey = null;
+                try {
+                    survey = JSON.parse(text);
+                } catch (err) {
+                    throw new Error("Dropbox file is not valid survey JSON.");
+                }
+                return {
+                    survey,
+                    images: {},
+                    projectName,
+                    source: { type: "dropbox-link", url: directUrl, isZip: false }
+                };
+            }
+            if (isCsvLike) {
                 const csvText = await response.text();
                 return {
                     csvText,
@@ -2536,12 +2569,23 @@
             const zip = await JSZip.loadAsync(source);
             const images = {};
             const csvTexts = [];
+            let surveyDoc = null;
             const entries = Object.keys(zip.files);
             await Promise.all(entries.map(async (path) => {
                 const entry = zip.files[path];
                 if (entry.dir) return;
                 if (path.toLowerCase().endsWith(".csv")) {
                     csvTexts.push(await entry.async("string"));
+                } else if (/\.(json|lal)$/i.test(path)) {
+                    try {
+                        const text = await entry.async("string");
+                        const doc = JSON.parse(text);
+                        if (doc && typeof doc === "object" && (doc.fields || doc.points)) {
+                            surveyDoc = doc;
+                        }
+                    } catch (err) {
+                        console.warn("Failed to parse survey JSON in zip", err);
+                    }
                 } else if (/\.(jpg|jpeg|png)$/i.test(path)) {
                     const base64 = await entry.async("base64");
                     const filename = normalizeFileName(path);
@@ -2549,9 +2593,10 @@
                     images[filename] = `data:${mime};base64,${base64}`;
                 }
             }));
-            if (!csvTexts.length) throw new Error("No CSV file found inside zip.");
+            if (!csvTexts.length && !surveyDoc) throw new Error("No CSV or survey JSON found inside zip.");
             return {
-                csvText: csvTexts[0],
+                csvText: csvTexts[0] || null,
+                survey: surveyDoc || null,
                 images,
                 projectName: projectName || "Survey"
             };
@@ -2559,8 +2604,21 @@
 
         async function extractLoosePackage(files) {
             const csvFile = files.find(file => file.name.toLowerCase().endsWith(".csv"));
-            if (!csvFile) throw new Error("No CSV file found.");
-            const csvText = await readFileAsText(csvFile);
+            const jsonFile = files.find(file => file.name.toLowerCase().endsWith(".lal") || file.name.toLowerCase().endsWith(".json"));
+            let csvText = null;
+            let survey = null;
+            if (csvFile) {
+                csvText = await readFileAsText(csvFile);
+            }
+            if (!csvFile && jsonFile) {
+                try {
+                    const text = await readFileAsText(jsonFile);
+                    survey = JSON.parse(text);
+                } catch (err) {
+                    console.error("Failed to parse survey JSON", err);
+                }
+            }
+            if (!csvText && !survey) throw new Error("No CSV or survey JSON found.");
             const images = {};
             for (const file of files) {
                 if (/\.(jpg|jpeg|png)$/i.test(file.name)) {
@@ -2569,8 +2627,9 @@
             }
             return {
                 csvText,
+                survey,
                 images,
-                projectName: stripExtension(csvFile.name)
+                projectName: stripExtension((csvFile || jsonFile).name)
             };
         }
 
