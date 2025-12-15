@@ -1050,7 +1050,6 @@
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
         let deferredReloadPath = null;
-        let suppressSurveyCalloutOnce = false;
 
         function isCalloutOpen() {
             return surveyCallout && surveyCallout.style.display === "block";
@@ -3493,14 +3492,7 @@
             if (coordinate && !isCoordinateVisibleOnMap(coordinate)) {
                 recenterPreservingZoom(coordinate);
             }
-            hideSurveyCallout();
-            suppressSurveyCalloutOnce = true;
-            if (typeof map.selectAnnotation === "function") {
-                map.selectAnnotation(annotation);
-                setTimeout(() => { suppressSurveyCalloutOnce = false; }, 500);
-            } else {
-                suppressSurveyCalloutOnce = false;
-            }
+            showSurveyCallout(annotation);
         }
 
         function focusAnnotationByRow(rowIndex) {
@@ -4026,14 +4018,10 @@ function setImportPanelVisibility(show) {
         });
 
         map.addEventListener("select", (event) => {
-            const skipCallout = suppressSurveyCalloutOnce;
-            suppressSurveyCalloutOnce = false;
             if (event?.annotation?.surveyPoint) {
-                if (!skipCallout) {
-                    showSurveyCallout(event.annotation);
-                }
+                showSurveyCallout(event.annotation);
                 return;
-            } else if (!skipCallout) {
+            } else {
                 hideSurveyCallout();
             }
             if (!event || !event.overlay || event.overlay.routeIndex === undefined) return;
