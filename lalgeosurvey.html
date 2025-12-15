@@ -1087,6 +1087,7 @@
         const shareCloseBtn = document.getElementById("shareCloseBtn");
         const shareCopyBtn = document.getElementById("shareCopyBtn");
         const shareLinkInput = document.getElementById("shareLinkInput");
+        let autoOpenSharePanel = false;
         setSurveyTableVisibility(false);
         surveyFieldsBtn.hidden = true;
         surveyFieldControls.hidden = true;
@@ -1120,6 +1121,8 @@
         const imageModalClose = imageModal.querySelector("button");
         const urlParams = new URLSearchParams(window.location.search);
         const dropboxStatusParam = urlParams.get("dropbox");
+        const dropboxLinkParam = urlParams.get("dropboxLink");
+        const shareParam = urlParams.get("share");
         if (dropboxStatusParam === "connected") {
             dropboxConnectStatus.textContent = "Dropbox connected.";
             setProjectStatus("Dropbox account linked.", "success");
@@ -1132,6 +1135,9 @@
             const newQuery = urlParams.toString();
             const replacement = `${window.location.pathname}${newQuery ? `?${newQuery}` : ""}${window.location.hash}`;
             window.history.replaceState({}, "", replacement);
+        }
+        if (shareParam === "1") {
+            autoOpenSharePanel = true;
         }
         identifierSelect.addEventListener("change", () => {
             identifierField = identifierSelect.value;
@@ -1227,6 +1233,22 @@
             await handleSurveyFiles(Array.from(event.target.files));
             event.target.value = "";
         });
+        if (dropboxLinkParam) {
+            dropboxUrlInput.value = dropboxLinkParam;
+            (async () => {
+                try {
+                    setProjectStatus("Loading Dropbox link…");
+                    const payload = await fetchDropboxSurvey(dropboxLinkParam);
+                    await loadSurveyPayload(payload);
+                    if (autoOpenSharePanel) {
+                        openSharePanel();
+                    }
+                } catch (err) {
+                    console.error(err);
+                    setProjectStatus(err.message || "Unable to load Dropbox link.", "error");
+                }
+            })();
+        }
         dropboxLoadBtn.addEventListener("click", async () => {
             const url = dropboxUrlInput.value.trim();
             if (!url) {
@@ -1316,11 +1338,18 @@
                 alert("Sharing is only available with a Dropbox link. Load the survey via Dropbox link to share.");
                 return;
             }
+            const shareUrl = buildShareUrl();
+            if (!shareUrl) {
+                alert("Dropbox link required to share.");
+                return;
+            }
+            navigator.clipboard.writeText(shareUrl)
+                .catch(() => null);
             openSharePanel();
         });
         shareCloseBtn?.addEventListener("click", closeSharePanel);
         shareCopyBtn?.addEventListener("click", () => {
-            const link = buildShareLinkValue();
+            const link = buildShareUrl();
             if (!link) {
                 alert("Dropbox link required to share.");
                 return;
@@ -3690,16 +3719,24 @@
             return currentSurveySource?.type === "dropbox-link";
         }
 
-        function buildShareLinkValue() {
+        function getCurrentDropboxLink() {
             if (isDropboxLinkSource() && currentSurveySource?.url) return currentSurveySource.url;
-            if (isDropboxSurvey() && currentSurveySource?.path) return currentSurveySource.path;
             if (dropboxUrlInput?.value) return dropboxUrlInput.value.trim();
             return "";
         }
 
+        function buildShareUrl() {
+            const dropboxLink = getCurrentDropboxLink();
+            if (!dropboxLink) return "";
+            const url = new URL(window.location.href);
+            url.searchParams.set("dropboxLink", dropboxLink);
+            url.searchParams.set("share", "1");
+            return url.toString();
+        }
+
         function openSharePanel() {
             if (!sharePanel) return;
-            const link = buildShareLinkValue();
+            const link = buildShareUrl() || getCurrentDropboxLink();
             shareLinkInput.value = link;
             sharePanel.hidden = false;
             sharePanel.classList.add("open");
@@ -3749,7 +3786,7 @@
         function refreshSharePanel() {
             if (sharePanel?.classList.contains("open")) {
                 renderShareList();
-                const link = buildShareLinkValue();
+                const link = buildShareUrl() || getCurrentDropboxLink();
                 shareLinkInput.value = link;
             }
         }
