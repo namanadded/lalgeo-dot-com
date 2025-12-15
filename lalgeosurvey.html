@@ -1088,6 +1088,19 @@
         const shareCopyBtn = document.getElementById("shareCopyBtn");
         const shareLinkInput = document.getElementById("shareLinkInput");
         let autoOpenSharePanel = false;
+        function resolveDropboxLink(input = "") {
+            if (!input) return "";
+            try {
+                const url = new URL(input);
+                const inner = url.searchParams.get("dropboxLink");
+                if (inner) {
+                    return decodeURIComponent(inner);
+                }
+                return input;
+            } catch {
+                return input;
+            }
+        }
         setSurveyTableVisibility(false);
         surveyFieldsBtn.hidden = true;
         surveyFieldControls.hidden = true;
@@ -1121,7 +1134,7 @@
         const imageModalClose = imageModal.querySelector("button");
         const urlParams = new URLSearchParams(window.location.search);
         const dropboxStatusParam = urlParams.get("dropbox");
-        const dropboxLinkParam = urlParams.get("dropboxLink");
+        const dropboxLinkParam = urlParams.get("dropboxLink") ? decodeURIComponent(urlParams.get("dropboxLink")) : null;
         const shareParam = urlParams.get("share");
         if (dropboxStatusParam === "connected") {
             dropboxConnectStatus.textContent = "Dropbox connected.";
@@ -1238,7 +1251,7 @@
             (async () => {
                 try {
                     setProjectStatus("Loading Dropbox link…");
-                    const payload = await fetchDropboxSurvey(dropboxLinkParam);
+                    const payload = await fetchDropboxSurvey(resolveDropboxLink(dropboxLinkParam));
                     await loadSurveyPayload(payload);
                     if (autoOpenSharePanel) {
                         openSharePanel();
@@ -1250,7 +1263,7 @@
             })();
         }
         dropboxLoadBtn.addEventListener("click", async () => {
-            const url = dropboxUrlInput.value.trim();
+            const url = resolveDropboxLink(dropboxUrlInput.value.trim());
             if (!url) {
                 alert("Enter a Dropbox shared link first.");
                 return;
@@ -2186,7 +2199,7 @@
         }
 
         async function fetchDropboxSurvey(url) {
-            const directUrl = normalizeDropboxLink(url);
+            const directUrl = normalizeDropboxLink(resolveDropboxLink(url));
             const response = await fetch(directUrl);
             if (!response.ok) throw new Error("Dropbox download failed.");
             const contentType = response.headers.get("content-type") || "";
@@ -3721,7 +3734,7 @@
 
         function getCurrentDropboxLink() {
             if (isDropboxLinkSource() && currentSurveySource?.url) return currentSurveySource.url;
-            if (dropboxUrlInput?.value) return dropboxUrlInput.value.trim();
+            if (dropboxUrlInput?.value) return resolveDropboxLink(dropboxUrlInput.value.trim());
             return "";
         }
 
