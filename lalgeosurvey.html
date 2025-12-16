@@ -685,8 +685,45 @@
         font-size: 12px;
         min-width: 86px;
     }
+    #sharePanel .share-link-row {
+        display: none;
+    }
     body.shared-view #toolbar .toolbar-right {
         display: none;
+    }
+    #shareToast {
+        position: fixed;
+        top: 84px;
+        right: 12px;
+        z-index: 1500;
+        background: #0f172a;
+        color: #fff;
+        padding: 10px 12px;
+        border-radius: 10px;
+        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35);
+        display: none;
+        align-items: center;
+        gap: 8px;
+        min-width: 240px;
+        max-width: 360px;
+    }
+    #shareToast.show { display: flex; }
+    #shareToast input {
+        flex: 1;
+        border: none;
+        border-radius: 6px;
+        padding: 6px 8px;
+        font-size: 12px;
+    }
+    #shareToast button {
+        border: none;
+        background: #1a73e8;
+        color: #fff;
+        padding: 6px 10px;
+        border-radius: 6px;
+        cursor: pointer;
+        font-weight: 700;
+        font-size: 12px;
     }
     #surveyPanelActions {
         display: flex;
@@ -986,6 +1023,10 @@
             <div class="callout-content"></div>
         </div>
     </div>
+    <div id="shareToast">
+        <input type="url" id="shareToastInput" readonly>
+        <button id="shareToastCopy" type="button">Copy</button>
+    </div>
     <div id="dropZone" class="drop-zone">
         <div class="drop-zone-inner">
             <h2>Drop survey export</h2>
@@ -1090,6 +1131,9 @@
         const shareCloseBtn = document.getElementById("shareCloseBtn");
         const shareCopyBtn = document.getElementById("shareCopyBtn");
         const shareLinkInput = document.getElementById("shareLinkInput");
+        const shareToast = document.getElementById("shareToast");
+        const shareToastInput = document.getElementById("shareToastInput");
+        const shareToastCopy = document.getElementById("shareToastCopy");
         let autoOpenSharePanel = false;
         let isSharedView = false;
         function resolveDropboxLink(input = "") {
@@ -1367,6 +1411,7 @@
             navigator.clipboard.writeText(shareUrl)
                 .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
                 .catch(() => setProjectStatus("Share link ready to copy: " + shareUrl, "success"));
+            showShareToast(shareUrl);
         });
         shareCloseBtn?.addEventListener("click", closeSharePanel);
         shareCopyBtn?.addEventListener("click", () => {
@@ -3764,7 +3809,7 @@
         function openSharePanel() {
             if (!sharePanel) return;
             const link = buildShareUrl() || getCurrentDropboxLink();
-            shareLinkInput.value = link;
+            if (shareLinkInput) shareLinkInput.value = link;
             sharePanel.hidden = false;
             sharePanel.classList.add("open");
             renderShareList();
@@ -3814,8 +3859,22 @@
             if (sharePanel?.classList.contains("open")) {
                 renderShareList();
                 const link = buildShareUrl() || getCurrentDropboxLink();
-                shareLinkInput.value = link;
+                if (shareLinkInput) shareLinkInput.value = link;
             }
+        }
+
+        function showShareToast(link) {
+            if (!shareToast || !shareToastInput || !shareToastCopy) return;
+            shareToastInput.value = link;
+            shareToast.classList.add("show");
+            shareToastCopy.onclick = () => {
+                navigator.clipboard.writeText(link)
+                    .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
+                    .catch(() => setProjectStatus("Unable to copy link. " + link, "error"));
+            };
+            setTimeout(() => {
+                shareToast.classList.remove("show");
+            }, 8000);
         }
 
         surveyTable?.addEventListener("click", (event) => {
