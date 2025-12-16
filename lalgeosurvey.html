@@ -3281,7 +3281,7 @@
         function showSurveyCallout(annotation, options = {}) {
             if (!annotation || !annotation.surveyPoint) return;
             activeSurveyAnnotation = annotation;
-            isCalloutEditing = Boolean(options.forceEdit);
+            isCalloutEditing = canEditAttributes() && Boolean(options.forceEdit);
             if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
                 setActiveTableRow(annotation.surveyPoint.rowIndex);
             }
@@ -3435,14 +3435,16 @@
                     const shown = (value === undefined || value === null || value === "") ? "—" : escapeHtml(String(value));
                     return `<div><strong>${escapeHtml(header)}:</strong> ${shown}</div>`;
                 }).join("") || "<div>No attributes</div>";
+                const editButton = canEditAttributes()
+                    ? `<div class="callout-actions"><button type="button" id="calloutEditBtn">Edit attributes</button></div>`
+                    : "";
                 surveyCalloutCard.innerHTML = `
                     ${imageSection}
                     <div class="attributes">${attributeRows}</div>
-                    <div class="callout-actions">
-                        <button type="button" id="calloutEditBtn">Edit attributes</button>
-                    </div>
+                    ${editButton}
                 `;
                 surveyCalloutCard.querySelector("#calloutEditBtn")?.addEventListener("click", (event) => {
+                    if (!canEditAttributes()) return;
                     event.stopPropagation();
                     isCalloutEditing = true;
                     renderSurveyCalloutContent();
@@ -3730,6 +3732,10 @@
 
         function isDropboxLinkSource() {
             return currentSurveySource?.type === "dropbox-link";
+        }
+
+        function canEditAttributes() {
+            return !isDropboxLinkSource();
         }
 
         function getCurrentDropboxLink() {
