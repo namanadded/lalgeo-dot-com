@@ -640,10 +640,31 @@
         box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
         cursor: pointer;
         transition: transform 0.1s ease, box-shadow 0.2s ease;
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 10px;
+        align-items: center;
     }
     .share-point-card:hover {
         transform: translateY(-1px);
         box-shadow: 0 10px 24px rgba(15, 23, 42, 0.12);
+    }
+    .share-point-card.has-thumb {
+        grid-template-columns: 72px 1fr;
+    }
+    .share-thumb {
+        width: 72px;
+        height: 72px;
+        border-radius: 10px;
+        object-fit: cover;
+        border: 1px solid #e4e7ef;
+        background: #f8fafc;
+    }
+    .share-point-body {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
     }
     .share-point-title {
         margin: 0 0 6px;
@@ -3834,6 +3855,17 @@
                 const title = computeLabelFromAttributes(record, activeProjectName);
                 const lat = record?.[latKey];
                 const lon = record?.[lonKey];
+                const annotation = rowAnnotationMap.get(index);
+                let imageSrc = annotation?.surveyPoint?.imageSrc || null;
+                if (!imageSrc) {
+                    for (const value of Object.values(record || {})) {
+                        const match = findImageSrc(value);
+                        if (match) {
+                            imageSrc = match;
+                            break;
+                        }
+                    }
+                }
                 const metaFields = [];
                 headers.forEach(header => {
                     if (!header || header === latKey || header === lonKey || header === identifierField) return;
@@ -3845,10 +3877,15 @@
                 });
                 const coords = (lat || lon) ? `<span>📍 ${escapeHtml(lat ?? "")}, ${escapeHtml(lon ?? "")}</span>` : "";
                 const meta = [coords, ...metaFields].filter(Boolean).join("");
+                const thumb = imageSrc ? `<img src="${imageSrc}" alt="${escapeHtml(title)}" class="share-thumb">` : "";
+                const cardClass = `share-point-card${thumb ? " has-thumb" : ""}`;
                 return `
-                    <div class="share-point-card" data-row-index="${index}">
-                        <p class="share-point-title">${escapeHtml(title)}</p>
-                        <div class="share-point-meta">${meta || "<span>—</span>"}</div>
+                    <div class="${cardClass}" data-row-index="${index}">
+                        ${thumb}
+                        <div class="share-point-body">
+                            <p class="share-point-title">${escapeHtml(title)}</p>
+                            <div class="share-point-meta">${meta || "<span>—</span>"}</div>
+                        </div>
                     </div>
                 `;
             }).join("");
