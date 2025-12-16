@@ -685,6 +685,9 @@
         font-size: 12px;
         min-width: 86px;
     }
+    body.shared-view #toolbar .toolbar-right {
+        display: none;
+    }
     #surveyPanelActions {
         display: flex;
         justify-content: flex-end;
@@ -1088,6 +1091,7 @@
         const shareCopyBtn = document.getElementById("shareCopyBtn");
         const shareLinkInput = document.getElementById("shareLinkInput");
         let autoOpenSharePanel = false;
+        let isSharedView = false;
         function resolveDropboxLink(input = "") {
             if (!input) return "";
             try {
@@ -1136,6 +1140,7 @@
         const dropboxStatusParam = urlParams.get("dropbox");
         const dropboxLinkParam = urlParams.get("dropboxLink") ? decodeURIComponent(urlParams.get("dropboxLink")) : null;
         const shareParam = urlParams.get("share");
+        isSharedView = shareParam === "1";
         if (dropboxStatusParam === "connected") {
             dropboxConnectStatus.textContent = "Dropbox connected.";
             setProjectStatus("Dropbox account linked.", "success");
@@ -1151,6 +1156,9 @@
         }
         if (shareParam === "1") {
             autoOpenSharePanel = true;
+        }
+        if (isSharedView) {
+            document.body.classList.add("shared-view");
         }
         identifierSelect.addEventListener("change", () => {
             identifierField = identifierSelect.value;
@@ -1357,8 +1365,8 @@
                 return;
             }
             navigator.clipboard.writeText(shareUrl)
-                .catch(() => null);
-            openSharePanel();
+                .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
+                .catch(() => setProjectStatus("Share link ready to copy: " + shareUrl, "success"));
         });
         shareCloseBtn?.addEventListener("click", closeSharePanel);
         shareCopyBtn?.addEventListener("click", () => {
@@ -1368,8 +1376,8 @@
                 return;
             }
             navigator.clipboard.writeText(link)
-                .then(() => alert("Dropbox link copied."))
-                .catch(() => alert("Unable to copy link."));
+                .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
+                .catch(() => setProjectStatus("Unable to copy link. " + link, "error"));
         });
         shareList?.addEventListener("click", (event) => {
             const card = event.target.closest(".share-point-card");
