@@ -2524,7 +2524,7 @@
         }
 
         async function fetchSurveyFromWorker(path) {
-            const response = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}`, {
+            const response = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}&images=1`, {
                 credentials: "include"
             });
             const contentType = response.headers.get("content-type") || "";
