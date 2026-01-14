@@ -61,6 +61,23 @@
     }
     .st-demo *, .st-demo *::before, .st-demo *::after { box-sizing: inherit; }
 
+    .st-demo .starfield {
+      position: absolute;
+      inset: 0;
+      background:
+        radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.7), transparent 60%),
+        radial-gradient(2px 2px at 20% 75%, rgba(255,255,255,0.6), transparent 60%),
+        radial-gradient(1.5px 1.5px at 70% 20%, rgba(255,255,255,0.5), transparent 60%),
+        radial-gradient(1.5px 1.5px at 82% 68%, rgba(255,255,255,0.5), transparent 60%),
+        radial-gradient(1px 1px at 35% 40%, rgba(255,255,255,0.6), transparent 60%),
+        radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.5), transparent 60%),
+        radial-gradient(2px 2px at 90% 30%, rgba(255,255,255,0.7), transparent 60%),
+        radial-gradient(1px 1px at 15% 50%, rgba(255,255,255,0.5), transparent 60%);
+      animation: st-stars 18s linear infinite;
+      opacity: 0.65;
+      pointer-events: none;
+    }
+
     .st-demo .intro {
       position: absolute;
       top: 50%;
@@ -131,7 +148,7 @@
       transform: scale(1.6);
       filter: blur(6px);
     }
-    .st-demo--play .lg-title { animation: st-title-zoom 10s ease forwards; }
+    .st-demo--play .lg-title { animation: st-title-zoom 8s ease forwards; }
     .st-demo .lg-title-main {
       font-size: clamp(48px, 16vw, 170px);
       line-height: 0.9;
@@ -155,7 +172,42 @@
     }
     .st-demo .lg-bar--top { top: 22%; }
     .st-demo .lg-bar--bottom { bottom: 22%; }
-    .st-demo--play .lg-bar { animation: st-bar 10s ease forwards; }
+    .st-demo--play .lg-bar { animation: st-bar 8s ease forwards; }
+
+    .st-demo .credits-track {
+      position: absolute;
+      left: 50%;
+      top: 100%;
+      transform: translateX(-50%);
+      width: min(620px, 90%);
+      display: grid;
+      gap: 16px;
+      opacity: 0;
+    }
+    .st-demo--play .credits-track {
+      animation: st-credits 42s linear forwards 1.5s;
+    }
+    .st-demo .credit-card {
+      background: rgba(0,0,0,0.78);
+      border: 1px solid rgba(255,255,255,0.22);
+      border-radius: 10px;
+      padding: 14px 16px 18px;
+      color: #d8d8d8;
+      text-align: center;
+      box-shadow: 0 0 30px rgba(255,255,255,0.06);
+    }
+    .st-demo .credit-label {
+      color: #9aa6b2;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      margin-bottom: 6px;
+    }
+    .st-demo .credit-text {
+      font-size: 18px;
+      line-height: 1.4;
+      text-shadow: 0 0 12px rgba(255,255,255,0.15);
+    }
 
     .st-demo .grain {
       position: absolute;
@@ -187,6 +239,17 @@
       15% { opacity: 1; transform: scaleX(1); }
       75% { opacity: 1; transform: scaleX(1); }
       100% { opacity: 0; transform: scaleX(0.4); }
+    }
+
+    @keyframes st-credits {
+      0% { opacity: 0; transform: translate(-50%, 0); }
+      5% { opacity: 1; }
+      100% { opacity: 1; transform: translate(-50%, -175%); }
+    }
+
+    @keyframes st-stars {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-40px); }
     }
 
     @keyframes st-grain-wiggle {
@@ -260,8 +323,67 @@
             </div>
             <div class="lg-bar lg-bar--top"></div>
             <div class="lg-bar lg-bar--bottom"></div>
+            <div class="credits-track" aria-label="LalGeo Survey credits">
+              <div class="credit-card">
+                <div class="credit-label">Credits #1</div>
+                <div class="credit-text">Introducing the New LalGeo Survey<br>A New Era of Field Data Collection</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #2</div>
+                <div class="credit-text">A Completely Redesigned Interface</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #3</div>
+                <div class="credit-text">Dropbox Sync<br>Multi-User Editing</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #4</div>
+                <div class="credit-text">Build Inspection &amp; Survey Forms<br>Directly on Your Device</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #5</div>
+                <div class="credit-text">Seamlessly Connected to<br>LalGeo Web</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #6</div>
+                <div class="credit-text">Share Survey Results<br>Instantly Online</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #7</div>
+                <div class="credit-text">CSV Import &amp; Export</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #8</div>
+                <div class="credit-text">Create or Import Asset IDs</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #9</div>
+                <div class="credit-text">Attach Photos to Every Survey</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #10</div>
+                <div class="credit-text">Smart Storage<br>Optimized Management</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #11</div>
+                <div class="credit-text">Offline Data Collection</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #12</div>
+                <div class="credit-text">All Features<br>Completely Free</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #13</div>
+                <div class="credit-text">Created By<br>Naman Malhotra</div>
+              </div>
+              <div class="credit-card">
+                <div class="credit-label">Credits #14</div>
+                <div class="credit-text">Download today at the Apple App Store<br>www.LALGEO.com</div>
+              </div>
+            </div>
           </div>
 
+          <div class="starfield"></div>
           <div class="grain"></div>
           <div class="vignette"></div>
         </div>
