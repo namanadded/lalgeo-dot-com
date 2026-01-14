@@ -33,7 +33,234 @@
     .showcase h2 { margin: 0 0 8px; font-size: 22px; }
     .showcase p { margin: 0 0 14px; color: var(--muted); }
     .showcase-frame { position: relative; width: 100%; padding-top: 56.25%; border-radius: 18px; overflow: hidden; border: 1px solid #1a1f2d; background: #0f1219; box-shadow: 0 6px 30px rgba(0,0,0,.35); }
-    .showcase-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+    @font-face {
+      font-family: "BenguiatITC";
+      src: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/161676/BenguiatProITC-BoldCond.woff") format("woff");
+      font-style: normal;
+      font-weight: 700;
+    }
+
+    .st-demo {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      overflow: hidden;
+      font-family: Arial, Helvetica, sans-serif;
+      -webkit-font-smoothing: subpixel-antialiased;
+      box-sizing: border-box;
+    }
+    .st-demo *, .st-demo *::before, .st-demo *::after { box-sizing: inherit; }
+
+    .st-demo .intro {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      padding: 0 20px;
+      width: 100%;
+      max-width: 440px;
+      transition: opacity 600ms ease, visibility 0ms linear 800ms;
+      color: #c8c6c7;
+      text-align: center;
+      z-index: 5;
+    }
+    .st-demo .intro--hide { opacity: 0; visibility: hidden; }
+    .st-demo .intro-title {
+      font-family: "BenguiatITC", Arial, Helvetica, sans-serif;
+      color: #c11b1f;
+      font-size: 34px;
+      margin: 0 0 15px;
+      letter-spacing: 0.5px;
+    }
+    .st-demo .intro-text { margin: 0; font-size: 16px; line-height: 22px; }
+    .st-demo .intro-text-play {
+      display: block;
+      cursor: pointer;
+      width: 100px;
+      height: 100px;
+      margin: 22px auto 0;
+      border: 3px solid #fff;
+      font-size: 34px;
+      text-indent: 8px;
+      color: #fff;
+      background: rgba(85, 85, 85, 0.2);
+      opacity: 0.7;
+      border-radius: 100%;
+      transition: color 100ms ease, opacity 100ms ease;
+    }
+    .st-demo .intro-text-play:hover,
+    .st-demo .intro-text-play:focus {
+      opacity: 1;
+      color: #c11b1f;
+      outline: 0;
+    }
+
+    .st-demo .viewport {
+      height: 100%;
+      width: 100%;
+      user-select: none;
+      display: none;
+    }
+    .st-demo .viewport--show { display: block; }
+
+    .st-demo .title {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -45%);
+      width: 100%;
+      font-size: 0;
+      font-family: "BenguiatITC", Arial, Helvetica, sans-serif;
+      color: #000;
+      letter-spacing: -1.3vmin;
+      font-weight: 700;
+      display: none;
+      -webkit-text-stroke-color: #c11b1f;
+      -webkit-text-stroke-width: 0.4vmin;
+      text-shadow: 0 0 2vmin rgba(193, 27, 31, 0.5);
+    }
+    .st-demo .title--show { display: block; }
+    .st-demo .title-word { position: relative; display: inline-block; }
+    .st-demo .title-word--second { transform: translateY(-38%); }
+    .st-demo .title-word-letter {
+      display: inline-block;
+      position: relative;
+      vertical-align: top;
+      font-size: 28vmin;
+    }
+    .st-demo .title-word-letter-large {
+      display: inline-block;
+      transform: translateY(-2.8%);
+      font-size: 34vmin;
+    }
+
+    .st-demo .titlebar {
+      position: absolute;
+      border-style: solid;
+      border-color: #c11b1f;
+      height: 1vmin;
+      border-width: 0.4vmin;
+      border-radius: 0.1vmin;
+      box-shadow: 0 0 1.2vmin rgba(193, 27, 31, 0.8),
+                  0 0 0.5vmin rgba(193, 27, 31, 0.8) inset;
+    }
+    .st-demo .titlebar--top { bottom: 100%; width: 100%; }
+    .st-demo .titlebar--left,
+    .st-demo .titlebar--right { top: 90%; }
+    .st-demo .titlebar--left { left: 0; right: -12%; }
+    .st-demo .titlebar--right { left: -15%; right: 0; }
+
+    .st-demo .letterbox {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      display: none;
+    }
+    .st-demo .letterbox--show { display: block; }
+    .st-demo .letterbox-cover {
+      position: absolute;
+      width: 5000px;
+      height: 5000px;
+      background: #000;
+    }
+    .st-demo .letterbox-cover--top,
+    .st-demo .letterbox-cover--bottom { left: 50%; transform: translateX(-50%); }
+    .st-demo .letterbox-cover--left,
+    .st-demo .letterbox-cover--right { top: 50%; transform: translateY(-50%); }
+    .st-demo .letterbox-cover--top { bottom: 100%; }
+    .st-demo .letterbox-cover--left { right: 100%; }
+    .st-demo .letterbox-cover--right { left: 100%; }
+    .st-demo .letterbox-cover--bottom { top: 100%; }
+
+    .st-demo .grain {
+      position: absolute;
+      top: -50%;
+      left: -50%;
+      height: 200%;
+      width: 200%;
+      background: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/161676/grain.png");
+      animation: st-grain-wiggle 5s steps(10) infinite;
+      pointer-events: none;
+      opacity: 0.35;
+    }
+
+    @keyframes st-grain-wiggle {
+      0%  { transform: translateX(8%) translateY(-5%); }
+      10% { transform: translateX(0%) translateY(0%); }
+      20% { transform: translateX(10%) translateY(-15%); }
+      30% { transform: translateX(-10%) translateY(0%); }
+      40% { transform: translateX(25%) translateY(15%); }
+      50% { transform: translateX(10%) translateY(-10%); }
+      60% { transform: translateX(-5%) translateY(5%); }
+      70% { transform: translateX(15%) translateY(0%); }
+      80% { transform: translateX(-20%) translateY(-10%); }
+      90% { transform: translateX(20%) translateY(15%); }
+      100% { transform: translateX(4%) translateY(7%); }
+    }
+
+    @keyframes st-full-title {
+      0% {
+        opacity: 1;
+        transform: translate(-50%, -41%) scale(0.8);
+      }
+      90% { opacity: 1; }
+      100% {
+        opacity: 0;
+        transform: translate(-50%, -45%) scale(0.06);
+      }
+    }
+
+    @keyframes st-full-s1 { 0%, 50% { transform: translateX(-200%); } 76%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-t1 { 0%, 40% { transform: translateY(-120%); } 75%, 100% { transform: translateY(0%); } }
+    @keyframes st-full-r1 { 0%, 25% { transform: translateX(-55%); } 72%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-a  { 0% { transform: translateX(-15%); } 40%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-n1 { 0% { transform: translateX(15%); } 40%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-g1 { 0% { transform: translateX(30%); } 55%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-e  { 0%, 50% { transform: translateY(-120%); } 75%, 100% { transform: translateY(0%); } }
+    @keyframes st-full-r2 { 0%, 45% { transform: translateX(200%); } 71%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-t2 { 0%, 30% { transform: translateX(-80%); } 60%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-h  { 0%, 36% { transform: translateY(200%); } 76%, 100% { transform: translateY(0%); } }
+    @keyframes st-full-i  { 0%, 25% { transform: translateX(-70%); } 75%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-n2 { 0%, 10% { transform: translateY(70%); } 40%, 100% { transform: translateY(0%); } }
+    @keyframes st-full-g2 { 0% { transform: translateX(30%); } 45%, 100% { transform: translateX(0%); } }
+    @keyframes st-full-s2 { 0%, 40% { transform: translateY(200%); } 80%, 100% { transform: translateY(0%); } }
+
+    @keyframes st-full-bar-top { 0%, 67% { transform: scaleX(0); } 72%, 100% { transform: scaleX(1); } }
+    @keyframes st-full-bar-side { 0%, 70% { transform: scaleX(0); } 75%, 100% { transform: scaleX(1); } }
+
+    .st-demo .title--full {
+      width: 1000vw;
+      animation: st-full-title 20s cubic-bezier(0.15, 0.7, 0.26, 0.88) forwards;
+      transform-origin: 50% 45%;
+    }
+    .st-demo .title--full .title-word-letter[data-letter="S1"] { animation: st-full-s1 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="T1"] { animation: st-full-t1 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="R1"] { animation: st-full-r1 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="A"] { animation: st-full-a 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="N1"] { animation: st-full-n1 20s ease forwards; letter-spacing: -15vmin; }
+    .st-demo .title--full .title-word-letter[data-letter="G1"] { animation: st-full-g1 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="E"] { animation: st-full-e 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="R2"] { animation: st-full-r2 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="T2"] { animation: st-full-t2 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="H"] { animation: st-full-h 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="I"] { animation: st-full-i 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="N2"] { animation: st-full-n2 20s ease forwards; letter-spacing: -15vmin; }
+    .st-demo .title--full .title-word-letter[data-letter="G2"] { animation: st-full-g2 20s ease forwards; }
+    .st-demo .title--full .title-word-letter[data-letter="S2"] { animation: st-full-s2 20s ease forwards; }
+
+    .st-demo .title--full .titlebar {
+      height: 10vmin;
+      border-width: 4vmin;
+      border-radius: 1vmin;
+      box-shadow: 0 0 12vmin rgba(193, 27, 31, 0.8),
+                  0 0 5vmin rgba(193, 27, 31, 0.8) inset;
+    }
+    .st-demo .title--full .titlebar--top { animation: st-full-bar-top 20s ease forwards; }
+    .st-demo .title--full .titlebar--left,
+    .st-demo .title--full .titlebar--right { animation: st-full-bar-side 20s ease forwards; }
+    .st-demo .title--full .titlebar--left { transform-origin: right; }
+    .st-demo .title--full .titlebar--right { transform-origin: left; }
 
     .cta { display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:14px; padding:30px 18px; max-width: 1100px; margin: 0 auto; }
     @media (max-width: 860px){ .cta { grid-template-columns: 1fr } }
@@ -75,13 +302,57 @@
       <h2 id="survey-intro-title">LalGeo Survey Intro</h2>
       <p>A cinematic intro inspired by the CodePen demo. Tap play to start.</p>
       <div class="showcase-frame">
-        <iframe
-          title="LalGeo Survey intro animation"
-          src="https://codepen.io/wbobeirne/full/pEjqGR"
-          loading="lazy"
-          allow="autoplay; fullscreen"
-          referrerpolicy="no-referrer-when-downgrade"
-        ></iframe>
+        <div class="st-demo" aria-label="LalGeo Survey intro animation">
+          <div class="intro">
+            <h3 class="intro-title">LalGeo Survey</h3>
+            <p class="intro-text">
+              A cinematic intro for the LalGeo Survey experience.
+              <br />
+              <button class="intro-text-play" type="button" data-play aria-label="Play intro">►</button>
+            </p>
+          </div>
+
+          <div class="viewport">
+            <div class="title title--full">
+              <div class="title-word">
+                <span class="title-word-letter" data-letter="S1">
+                  <span class="title-word-letter-large">L</span>
+                  <div class="titlebar titlebar--left"></div>
+                </span>
+                <span class="title-word-letter" data-letter="T1">A</span>
+                <span class="title-word-letter" data-letter="R1">L</span>
+                <span class="title-word-letter" data-letter="A">G</span>
+                <span class="title-word-letter" data-letter="N1">E</span>
+                <span class="title-word-letter" data-letter="G1">O</span>
+                <span class="title-word-letter" data-letter="E">S</span>
+                <span class="title-word-letter" data-letter="R2">
+                  <span class="title-word-letter-large">U</span>
+                  <div class="titlebar titlebar--right"></div>
+                </span>
+                <div class="titlebar titlebar--top"></div>
+              </div>
+
+              <div></div>
+
+              <div class="title-word title-word--second">
+                <span class="title-word-letter" data-letter="T2">R</span>
+                <span class="title-word-letter" data-letter="H">V</span>
+                <span class="title-word-letter" data-letter="I">E</span>
+                <span class="title-word-letter" data-letter="N2">Y</span>
+                <span class="title-word-letter" data-letter="G2">A</span>
+                <span class="title-word-letter" data-letter="S2">I</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="grain"></div>
+          <div class="letterbox">
+            <div class="letterbox-cover letterbox-cover--top"></div>
+            <div class="letterbox-cover letterbox-cover--left"></div>
+            <div class="letterbox-cover letterbox-cover--right"></div>
+            <div class="letterbox-cover letterbox-cover--bottom"></div>
+          </div>
+        </div>
       </div>
     </section>
 
@@ -152,6 +423,26 @@
   <script>
     // simple year updater + keyboard shortcuts for quick nav
     document.getElementById('year').textContent = new Date().getFullYear();
+
+    document.addEventListener("DOMContentLoaded", () => {
+      const intro = document.querySelector(".st-demo .intro");
+      const viewport = document.querySelector(".st-demo .viewport");
+      const letterbox = document.querySelector(".st-demo .letterbox");
+      const fullTitle = document.querySelector(".st-demo .title--full");
+      const playButtons = document.querySelectorAll(".st-demo [data-play]");
+      let started = false;
+
+      function startIntro() {
+        if (started) return;
+        started = true;
+        intro?.classList.add("intro--hide");
+        viewport?.classList.add("viewport--show");
+        letterbox?.classList.add("letterbox--show");
+        fullTitle?.classList.add("title--show");
+      }
+
+      playButtons.forEach((btn) => btn.addEventListener("click", startIntro));
+    });
   </script>
   <!-- Google tag (gtag.js) -->
 <script async src="https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B"></script>
