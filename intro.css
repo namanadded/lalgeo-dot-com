@@ -42,45 +42,6 @@
   opacity: 0;
 }
 
-.intro-guides {
-  background:
-    linear-gradient(90deg, transparent, rgba(255, 40, 70, 0.16), transparent),
-    linear-gradient(180deg, transparent, rgba(255, 40, 70, 0.12), transparent);
-  opacity: 0;
-  mix-blend-mode: screen;
-}
-
-.intro-streaks {
-  opacity: 0.3;
-  mix-blend-mode: screen;
-}
-.intro-streaks span {
-  position: absolute;
-  filter: blur(0.6px);
-  opacity: 0;
-}
-.intro-streaks .streak-h1 {
-  top: 38%;
-  left: -40%;
-  width: 150%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 30, 60, 0.5), transparent);
-}
-.intro-streaks .streak-h2 {
-  top: 58%;
-  left: -50%;
-  width: 160%;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, rgba(255, 30, 60, 0.45), transparent);
-}
-.intro-streaks .streak-v1 {
-  left: 45%;
-  top: -50%;
-  width: 1px;
-  height: 170%;
-  background: linear-gradient(180deg, transparent, rgba(255, 30, 60, 0.45), transparent);
-}
-
 .intro-fog {
   opacity: var(--intro-fog);
   filter: blur(12px);
@@ -119,25 +80,27 @@
   font-family: "Phosphate", "Georgia", "Times New Roman", serif;
   font-weight: 700;
   letter-spacing: 0.08em;
-  font-size: clamp(42px, 11vw, 150px);
+  font-size: clamp(48px, 10vw, 160px);
   text-transform: uppercase;
 }
 
-.title-text {
-  fill: var(--logo-red);
-  fill-opacity: 0;
-  stroke: var(--logo-red-dark);
-  stroke-width: 2.6;
+.title-outline {
+  fill: none;
+  stroke: var(--logo-red);
+  stroke-width: 2.4;
   stroke-linejoin: round;
   stroke-linecap: round;
-  filter: url(#bloom) drop-shadow(5px 5px 0 rgba(60, 0, 0, 0.7));
+  filter: url(#redGlow);
 }
 
-.title-pin {
-  fill: var(--logo-red);
-  stroke: var(--logo-red-dark);
-  stroke-width: 2;
-  filter: url(#bloom);
+.arc {
+  fill: none;
+  stroke: rgba(255, 40, 70, 0.9);
+  stroke-width: 10;
+  filter: url(#redGlow);
+  stroke-linecap: round;
+  stroke-dasharray: 1600;
+  stroke-dashoffset: 1600;
 }
 
 .intro-subtitle {
