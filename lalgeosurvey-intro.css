@@ -185,6 +185,17 @@ body *, body *:before, body *:after {
   }
 }
 
+.title-word-letter--space {
+  width: 8vmin;
+  font-size: 0;
+  line-height: 0;
+}
+@media screen and (max-aspect-ratio: 16/9) {
+  .title-word-letter--space {
+    width: 4.5vw;
+  }
+}
+
 .titlebar {
   position: absolute;
   border-style: solid;
@@ -1268,6 +1279,12 @@ body *, body *:before, body *:after {
 }
 .title--full .titlebar--right {
   transform-origin: left;
+}
+.title--full .titlebar--left {
+  right: -6%;
+}
+.title--full .titlebar--right {
+  left: -6%;
 }
 
 /*# sourceMappingURL=lalgeosurvey-intro.css.map */

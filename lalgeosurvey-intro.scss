@@ -264,6 +264,12 @@ body {
     }
   }
 }
+
+.title-word-letter--space {
+  @include v-rule(width, 8vmin);
+  font-size: 0;
+  line-height: 0;
+}
 .titlebar {
   position: absolute;
   border-style: solid;
@@ -873,6 +879,14 @@ body {
       &--right {
         transform-origin: left;
       }
+    }
+
+    .titlebar--left {
+      right: -6%;
+    }
+
+    .titlebar--right {
+      left: -6%;
     }
   }
 }
