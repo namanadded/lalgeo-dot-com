@@ -3,6 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!root) return;
 
   // Fix: bind play/replay buttons and use a single title element (no duplicate text layers).
+  // Fix: intro container must be absolutely positioned to avoid zero-height in aspect-ratio wrapper.
   const playButtons = Array.from(root.querySelectorAll("[data-play]"));
   const audioToggle = root.querySelector("[data-audio]");
   const titleText = root.querySelector(".title-text");
