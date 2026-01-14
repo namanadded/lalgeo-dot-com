@@ -18,18 +18,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const vignette = root.querySelector(".intro-vignette");
   const blurNode = root.querySelector("#bloomBlur");
 
-  if (!window.gsap) {
-    // If GSAP fails to load, reveal a static hero state so the box isn't blank.
-    bg.style.opacity = "1";
-    fog.style.opacity = "0.6";
-    grain.style.opacity = "0.06";
-    vignette.style.opacity = "1";
-    titleText.style.fillOpacity = "1";
-    subtitle.style.opacity = "1";
-    console.error("GSAP is required for the intro timeline.");
-    return;
-  }
-
   const length = titleText.getComputedTextLength ? titleText.getComputedTextLength() : 1200;
 
   let audioCtx = null;
@@ -142,13 +130,64 @@ document.addEventListener("DOMContentLoaded", () => {
     return tl;
   }
 
-  let timeline = buildTimeline();
+  let timeline = window.gsap ? buildTimeline() : null;
+  let fallbackAnimations = [];
+
+  function clearFallback() {
+    fallbackAnimations.forEach((anim) => anim.cancel());
+    fallbackAnimations = [];
+  }
+
+  function animateFallback(element, keyframes, options) {
+    if (!element) return;
+    const anim = element.animate(keyframes, options);
+    fallbackAnimations.push(anim);
+  }
+
+  function playFallback() {
+    // Fix: if GSAP fails to load, run a lightweight Web Animations fallback instead of doing nothing.
+    clearFallback();
+
+    bg.style.opacity = "0";
+    fog.style.opacity = "0.2";
+    grain.style.opacity = "0";
+    vignette.style.opacity = "0";
+    guides.style.opacity = "0";
+    titleText.style.strokeDasharray = length;
+    titleText.style.strokeDashoffset = length;
+    titleText.style.fillOpacity = "0";
+    subtitle.style.opacity = "0";
+    subtitle.style.transform = "translateY(12px)";
+
+    animateFallback(bg, [{ opacity: 0 }, { opacity: 1 }], { duration: 1200, fill: "forwards", easing: "ease-out" });
+    animateFallback(fog, [{ opacity: 0.2 }, { opacity: 0.6 }], { duration: 2400, delay: 200, fill: "forwards", easing: "ease-out" });
+    animateFallback(grain, [{ opacity: 0 }, { opacity: 0.06 }], { duration: 1600, delay: 400, fill: "forwards" });
+    animateFallback(vignette, [{ opacity: 0 }, { opacity: 1 }], { duration: 1600, delay: 400, fill: "forwards" });
+    animateFallback(guides, [{ opacity: 0 }, { opacity: 0.45 }], { duration: 1600, delay: 800, fill: "forwards" });
+
+    animateFallback(titleText, [{ strokeDashoffset: length }, { strokeDashoffset: 0 }], { duration: 3200, delay: 1100, fill: "forwards", easing: "ease-in-out" });
+    animateFallback(titleText, [{ fillOpacity: 0 }, { fillOpacity: 1 }], { duration: 2200, delay: 2400, fill: "forwards", easing: "ease-out" });
+
+    animateFallback(streakH1, [{ opacity: 0, transform: "translateX(0px)" }, { opacity: 0.7, transform: "translateX(20px)" }], { duration: 3600, delay: 3200, fill: "forwards", easing: "ease-in-out" });
+    animateFallback(streakH2, [{ opacity: 0, transform: "translateX(0px)" }, { opacity: 0.55, transform: "translateX(-10px)" }], { duration: 3800, delay: 3600, fill: "forwards", easing: "ease-in-out" });
+    animateFallback(streakV1, [{ opacity: 0, transform: "translateY(0px)" }, { opacity: 0.5, transform: "translateY(18px)" }], { duration: 4200, delay: 4000, fill: "forwards", easing: "ease-in-out" });
+
+    animateFallback(camera, [{ transform: "scale(0.98) translateX(0px)" }, { transform: "scale(1.04) translateX(6px)" }], { duration: 7500, delay: 600, fill: "forwards", easing: "ease-in-out" });
+
+    animateFallback(subtitle, [{ opacity: 0, transform: "translateY(12px)" }, { opacity: 1, transform: "translateY(0)" }], { duration: 2200, delay: 5200, fill: "forwards", easing: "ease-out" });
+  }
 
   function replay() {
-    timeline.kill();
-    timeline = buildTimeline();
+    if (window.gsap) {
+      timeline.kill();
+      timeline = buildTimeline();
+    } else {
+      playFallback();
+    }
     startAudio(3400); // Fix: audio hit synced to fill lock; controlled by Audio checkbox.
-    timeline.play(0);
+    if (window.gsap) {
+      timeline.play(0);
+    }
     root.classList.add("is-playing");
     playButtons.forEach((btn) => {
       btn.textContent = "Replay Intro";
@@ -160,4 +199,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (event.target.closest("[data-play]") || event.target.closest("[data-audio]")) return;
     replay();
   });
+
+  if (!window.gsap) {
+    // Fix: GSAP CDN blocked or failed; enable fallback + warn in console.
+    console.error("GSAP is required for the full intro timeline; running fallback animation.");
+  }
 });

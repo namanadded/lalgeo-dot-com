@@ -109,6 +109,7 @@
   font-family: "Georgia", "Times New Roman", serif;
   font-weight: 700;
   letter-spacing: 0.18em;
+  font-size: clamp(42px, 11vw, 150px);
 }
 
 .title-text {
