@@ -111,26 +111,14 @@
   letter-spacing: 0.18em;
 }
 
-.title-stroke {
-  fill: none;
+.title-text {
+  fill: var(--intro-red);
+  fill-opacity: 0;
   stroke: rgba(255, 55, 80, 0.85);
   stroke-width: 2.2;
   stroke-linejoin: round;
   stroke-linecap: round;
-  filter: url(#strokeGlow);
-}
-
-.title-fill {
-  fill: var(--intro-red);
-  filter: url(#bloom);
-  opacity: 0;
-}
-
-.title-depth {
-  fill: #4c060b;
-  opacity: 0.7;
-  transform: translate(6px, 6px);
-  filter: blur(0.5px);
+  filter: url(#bloom) drop-shadow(6px 6px 0 rgba(50, 0, 0, 0.7));
 }
 
 .intro-subtitle {

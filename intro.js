@@ -2,12 +2,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const root = document.querySelector("[data-intro]");
   if (!root) return;
 
-  // Fix: ensure a visible play control exists and binds to all play buttons.
+  // Fix: bind play/replay buttons and use a single title element (no duplicate text layers).
   const playButtons = Array.from(root.querySelectorAll("[data-play]"));
   const audioToggle = root.querySelector("[data-audio]");
-  const stroke = root.querySelector(".title-stroke");
-  const fill = root.querySelector(".title-fill");
-  const depth = root.querySelector(".title-depth");
+  const titleText = root.querySelector(".title-text");
   const subtitle = root.querySelector(".intro-subtitle");
   const bg = root.querySelector(".intro-bg");
   const guides = root.querySelector(".intro-guides");
@@ -26,14 +24,13 @@ document.addEventListener("DOMContentLoaded", () => {
     fog.style.opacity = "0.6";
     grain.style.opacity = "0.06";
     vignette.style.opacity = "1";
-    fill.style.opacity = "1";
-    depth.style.opacity = "0.7";
+    titleText.style.fillOpacity = "1";
     subtitle.style.opacity = "1";
     console.error("GSAP is required for the intro timeline.");
     return;
   }
 
-  const length = stroke.getComputedTextLength ? stroke.getComputedTextLength() : 1200;
+  const length = titleText.getComputedTextLength ? titleText.getComputedTextLength() : 1200;
 
   let audioCtx = null;
 
@@ -98,8 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
     gsap.set(guides, { opacity: 0 });
     gsap.set([grain, vignette], { opacity: 0 });
     gsap.set([streakH1, streakH2, streakV1], { opacity: 0, x: 0, y: 0 });
-    gsap.set(stroke, { strokeDasharray: length, strokeDashoffset: length, opacity: 1 });
-    gsap.set([fill, depth], { opacity: 0 });
+    gsap.set(titleText, { strokeDasharray: length, strokeDashoffset: length, fillOpacity: 0, opacity: 1 });
     gsap.set(subtitle, { opacity: 0, y: 12 });
     gsap.set(camera, { scale: 0.98, x: 0, y: 0 });
     gsap.set(fog, { opacity: 0.2 });
@@ -116,11 +112,10 @@ document.addEventListener("DOMContentLoaded", () => {
     tl.to(guides, { opacity: 0.45, duration: 1.6 }, 0.8);
 
     // 3) Stroke reveal left-to-right
-    tl.to(stroke, { strokeDashoffset: 0, duration: 3.2, ease: "power2.inOut" }, 1.1);
+    tl.to(titleText, { strokeDashoffset: 0, duration: 3.2, ease: "power2.inOut" }, 1.1);
 
     // 4) Fill bloom + depth lock
-    tl.to(fill, { opacity: 1, duration: 2.2, ease: "power2.out" }, 2.4);
-    tl.to(depth, { opacity: 0.7, duration: 2.0, ease: "power2.out" }, 2.6);
+    tl.to(titleText, { fillOpacity: 1, duration: 2.2, ease: "power2.out" }, 2.4);
 
     // Bloom intensity ramp
     if (blurNode) {
@@ -152,7 +147,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function replay() {
     timeline.kill();
     timeline = buildTimeline();
-    startAudio(3400); // tweak: lock time for audio hit
+    startAudio(3400); // Fix: audio hit synced to fill lock; controlled by Audio checkbox.
     timeline.play(0);
     root.classList.add("is-playing");
     playButtons.forEach((btn) => {
