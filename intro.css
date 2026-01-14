@@ -1,10 +1,21 @@
 :root {
-  --intro-red: #b10f1d;
+  --logo-red: #c11b1f; /* tweak: match header logo red */
+  --logo-red-dark: #7f0f16;
   --intro-red-soft: rgba(255, 40, 70, 0.6);
   --intro-glow: rgba(255, 40, 70, 0.35);
   --intro-fog: 0.55; /* tweak: fog opacity */
   --intro-flicker: 0.16; /* tweak: flicker strength */
   --intro-duration: 10.5s; /* tweak: total duration */
+}
+
+@font-face {
+  font-family: "Phosphate";
+  src:
+    local("Phosphate"),
+    local("Phosphate Solid"),
+    local("Phosphate Inline");
+  font-weight: 700;
+  font-style: normal;
 }
 
 .intro-cinematic {
@@ -105,20 +116,28 @@
   overflow: visible;
 }
 .intro-title-svg text {
-  font-family: "Georgia", "Times New Roman", serif;
+  font-family: "Phosphate", "Georgia", "Times New Roman", serif;
   font-weight: 700;
-  letter-spacing: 0.18em;
+  letter-spacing: 0.08em;
   font-size: clamp(42px, 11vw, 150px);
+  text-transform: uppercase;
 }
 
 .title-text {
-  fill: var(--intro-red);
+  fill: var(--logo-red);
   fill-opacity: 0;
-  stroke: rgba(255, 55, 80, 0.85);
-  stroke-width: 2.2;
+  stroke: var(--logo-red-dark);
+  stroke-width: 2.6;
   stroke-linejoin: round;
   stroke-linecap: round;
-  filter: url(#bloom) drop-shadow(6px 6px 0 rgba(50, 0, 0, 0.7));
+  filter: url(#bloom) drop-shadow(5px 5px 0 rgba(60, 0, 0, 0.7));
+}
+
+.title-pin {
+  fill: var(--logo-red);
+  stroke: var(--logo-red-dark);
+  stroke-width: 2;
+  filter: url(#bloom);
 }
 
 .intro-subtitle {
