@@ -34,241 +34,186 @@
     .showcase p { margin: 0 0 14px; color: var(--muted); }
     .showcase-frame { position: relative; width: 100%; padding-top: 56.25%; border-radius: 18px; overflow: hidden; border: 1px solid #1a1f2d; background: #0f1219; box-shadow: 0 6px 30px rgba(0,0,0,.35); }
 
-    @font-face {
-      font-family: "BenguiatITC";
-      src: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/161676/BenguiatProITC-BoldCond.woff") format("woff");
-      font-style: normal;
-      font-weight: 700;
-    }
-
-    .st-demo {
+    .cinema-intro {
       position: absolute;
       inset: 0;
-      background: #000;
+      background: #050509;
+      color: #e6e7ea;
       overflow: hidden;
-      font-family: Arial, Helvetica, sans-serif;
-      -webkit-font-smoothing: subpixel-antialiased;
+      font-family: "Avenir Next", "Segoe UI", "Helvetica Neue", Arial, sans-serif;
+      letter-spacing: 0.02em;
       box-sizing: border-box;
     }
-    .st-demo::before {
-      content: "";
+    .cinema-intro *, .cinema-intro *::before, .cinema-intro *::after { box-sizing: inherit; }
+
+    .cinema-intro__layer {
       position: absolute;
-      inset: 0;
-      background:
-        radial-gradient(80% 60% at 50% 45%, rgba(193, 27, 31, 0.08), transparent 60%),
-        radial-gradient(120% 80% at 50% 60%, rgba(255, 255, 255, 0.05), transparent 70%);
+      inset: -10%;
       pointer-events: none;
     }
-    .st-demo *, .st-demo *::before, .st-demo *::after { box-sizing: inherit; }
-
-    .st-demo .starfield {
-      position: absolute;
-      inset: 0;
+    .cinema-intro__bg {
       background:
-        radial-gradient(2px 2px at 10% 15%, rgba(255,255,255,0.7), transparent 60%),
-        radial-gradient(2px 2px at 20% 75%, rgba(255,255,255,0.6), transparent 60%),
-        radial-gradient(1.5px 1.5px at 70% 20%, rgba(255,255,255,0.5), transparent 60%),
-        radial-gradient(1.5px 1.5px at 82% 68%, rgba(255,255,255,0.5), transparent 60%),
-        radial-gradient(1px 1px at 35% 40%, rgba(255,255,255,0.6), transparent 60%),
-        radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.5), transparent 60%),
-        radial-gradient(2px 2px at 90% 30%, rgba(255,255,255,0.7), transparent 60%),
-        radial-gradient(1px 1px at 15% 50%, rgba(255,255,255,0.5), transparent 60%);
-      animation: st-stars 18s linear infinite;
+        radial-gradient(120% 90% at 50% 40%, rgba(149, 0, 0, 0.2), transparent 60%),
+        radial-gradient(80% 60% at 30% 70%, rgba(255, 255, 255, 0.04), transparent 60%),
+        linear-gradient(180deg, #040407 0%, #0b0b12 45%, #06060b 100%);
+    }
+    .cinema-intro__stars {
+      background:
+        radial-gradient(2px 2px at 12% 18%, rgba(255,255,255,0.5), transparent 60%),
+        radial-gradient(2px 2px at 24% 72%, rgba(255,255,255,0.4), transparent 60%),
+        radial-gradient(1.5px 1.5px at 70% 22%, rgba(255,255,255,0.4), transparent 60%),
+        radial-gradient(1.5px 1.5px at 82% 68%, rgba(255,255,255,0.35), transparent 60%),
+        radial-gradient(1px 1px at 35% 40%, rgba(255,255,255,0.5), transparent 60%),
+        radial-gradient(1px 1px at 55% 55%, rgba(255,255,255,0.35), transparent 60%),
+        radial-gradient(2px 2px at 90% 30%, rgba(255,255,255,0.45), transparent 60%),
+        radial-gradient(1px 1px at 15% 50%, rgba(255,255,255,0.35), transparent 60%);
       opacity: 0.65;
-      pointer-events: none;
+    }
+    .cinema-intro__glow {
+      background:
+        radial-gradient(70% 60% at 50% 40%, rgba(170, 20, 20, 0.25), transparent 60%),
+        radial-gradient(120% 80% at 50% 70%, rgba(255, 255, 255, 0.06), transparent 70%);
+      mix-blend-mode: screen;
+      opacity: 0.6;
+    }
+    .cinema-intro__fog {
+      background:
+        radial-gradient(60% 50% at 40% 60%, rgba(180, 180, 200, 0.08), transparent 70%),
+        radial-gradient(70% 60% at 70% 40%, rgba(120, 120, 140, 0.08), transparent 70%);
+      filter: blur(12px);
+      opacity: 0.55;
+    }
+    .cinema-intro__grain {
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140' viewBox='0 0 140 140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='140' height='140' filter='url(%23n)' opacity='0.35'/%3E%3C/svg%3E");
+      opacity: 0.06;
+      animation: cinema-grain 6s steps(10) infinite;
+    }
+    .cinema-intro__vignette {
+      background: radial-gradient(circle at center, rgba(0, 0, 0, 0.1) 45%, rgba(0, 0, 0, 0.7) 78%, rgba(0, 0, 0, 0.9) 100%);
     }
 
-    .st-demo .intro {
+    .cinema-intro__ui {
       position: absolute;
-      top: 50%;
-      left: 50%;
-      transform: translate(-50%, -50%);
-      padding: 0 20px;
-      width: 100%;
-      max-width: 440px;
-      transition: opacity 600ms ease, visibility 0ms linear 800ms;
-      color: #c8c6c7;
-      text-align: center;
-      z-index: 3;
-    }
-    .st-demo--play .intro { opacity: 0; visibility: hidden; }
-    .st-demo .intro-title {
-      font-family: "BenguiatITC", Arial, Helvetica, sans-serif;
-      color: #c11b1f;
-      font-size: 34px;
-      margin: 0 0 15px;
-      letter-spacing: 0.5px;
-    }
-    .st-demo .intro-text { margin: 0; font-size: 16px; line-height: 22px; }
-    .st-demo .intro-text-play {
-      display: block;
-      cursor: pointer;
-      width: 100px;
-      height: 100px;
-      margin: 22px auto 0;
-      border: 3px solid #fff;
-      font-size: 34px;
-      text-indent: 8px;
-      color: #fff;
-      background: rgba(85, 85, 85, 0.2);
-      opacity: 0.7;
-      border-radius: 100%;
-      transition: color 100ms ease, opacity 100ms ease;
-    }
-    .st-demo .intro-text-play:hover,
-    .st-demo .intro-text-play:focus {
-      opacity: 1;
-      color: #c11b1f;
-      outline: 0;
-    }
-
-    .st-demo .viewport {
-      height: 100%;
-      width: 100%;
-      user-select: none;
-      opacity: 0;
-      transition: opacity 600ms ease;
-    }
-    .st-demo--play .viewport { opacity: 1; }
-
-    .st-demo .lg-title {
-      position: absolute;
-      inset: 0;
+      top: 12px;
+      left: 12px;
+      right: 12px;
       display: flex;
-      flex-direction: column;
-      justify-content: center;
+      justify-content: space-between;
       align-items: center;
-      font-family: "BenguiatITC", Arial, Helvetica, sans-serif;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      color: #000;
-      -webkit-text-stroke: 3px #c11b1f;
-      text-shadow: 0 0 32px rgba(193, 27, 31, 0.5);
-      opacity: 0;
-      transform: scale(1.6);
-      filter: blur(6px);
+      gap: 12px;
+      z-index: 6;
     }
-    .st-demo--play .lg-title { animation: st-title-zoom 8s ease forwards; }
-    .st-demo .lg-title-main {
-      font-size: clamp(48px, 16vw, 170px);
-      line-height: 0.9;
+    .cinema-intro__controls {
+      display: flex;
+      gap: 12px;
+      flex-wrap: wrap;
+      align-items: center;
+      padding: 6px 10px;
+      border-radius: 10px;
+      background: rgba(7, 7, 12, 0.8);
+      border: 1px solid rgba(255,255,255,0.12);
+      backdrop-filter: blur(6px);
+      font-size: 12px;
+      color: #c7cbd6;
     }
-    .st-demo .lg-title-sub {
-      font-size: clamp(28px, 8vw, 90px);
-      margin-top: -0.1em;
-      letter-spacing: 0.22em;
+    .cinema-intro__controls label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      cursor: pointer;
     }
-
-    .st-demo .lg-bar {
-      position: absolute;
-      left: 8%;
-      right: 8%;
-      height: 12px;
-      border: 3px solid #c11b1f;
+    .cinema-intro__controls input,
+    .cinema-intro__controls select {
+      accent-color: #c94b4b;
+      background: #0b0b12;
+      color: #e2e3e7;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 6px;
+      padding: 2px 6px;
+      font-size: 12px;
+    }
+    .cinema-intro__btn {
+      border: 1px solid rgba(255,255,255,0.2);
+      background: rgba(10,10,16,0.8);
+      color: #f0f1f4;
+      padding: 6px 12px;
       border-radius: 8px;
-      box-shadow: 0 0 30px rgba(193, 27, 31, 0.7), inset 0 0 12px rgba(193, 27, 31, 0.8);
-      transform: scaleX(0);
-      opacity: 0;
+      cursor: pointer;
+      font-size: 12px;
+      letter-spacing: 0.05em;
     }
-    .st-demo .lg-bar--top { top: 22%; }
-    .st-demo .lg-bar--bottom { bottom: 22%; }
-    .st-demo--play .lg-bar { animation: st-bar 8s ease forwards; }
+    .cinema-intro__btn:hover { border-color: rgba(255,255,255,0.4); }
+    .cinema-intro__btn[disabled] { opacity: 0.5; cursor: not-allowed; }
 
-    .st-demo .credits-track {
+    .cinema-intro__center {
       position: absolute;
       inset: 0;
+      display: grid;
+      place-items: center;
+      z-index: 5;
       pointer-events: none;
     }
-    .st-demo .credit-card {
+    .cinema-intro__play {
+      pointer-events: auto;
+      padding: 14px 26px;
+      border-radius: 999px;
+      background: rgba(10, 10, 16, 0.85);
+      border: 1px solid rgba(255,255,255,0.3);
+      color: #f5f6fa;
+      font-size: 14px;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      box-shadow: 0 0 24px rgba(201, 75, 75, 0.35);
+      cursor: pointer;
+    }
+    .cinema-intro.is-playing .cinema-intro__center { opacity: 0; pointer-events: none; }
+
+    .cinema-intro__card {
       position: absolute;
       left: 50%;
       top: 52%;
       transform: translate(-50%, -50%);
-      width: min(620px, 88%);
-      background: rgba(0,0,0,0.85);
-      border: 1px solid rgba(255,255,255,0.28);
-      border-radius: 8px;
+      width: min(640px, 88%);
+      background: rgba(7, 7, 12, 0.86);
+      border: 1px solid rgba(255,255,255,0.24);
+      border-radius: 12px;
       padding: 16px 18px 20px;
-      color: #d8d8d8;
+      color: #d8d9dc;
       text-align: center;
-      box-shadow: 0 0 40px rgba(255,255,255,0.08),
-                  inset 0 0 20px rgba(255,255,255,0.04);
+      box-shadow: 0 0 32px rgba(255,255,255,0.08),
+                  inset 0 0 18px rgba(255,255,255,0.04),
+                  0 0 24px rgba(145, 20, 20, 0.2);
       opacity: 0;
+      z-index: 4;
     }
-    .st-demo--play .credit-card {
-      animation: st-credit 3.6s ease forwards;
-      animation-delay: calc(var(--i) * 3.2s + 2.5s);
-    }
-    .st-demo .credit-label {
-      color: #9aa6b2;
+    .cinema-intro__label {
+      color: #9aa4b4;
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.18em;
       margin-bottom: 8px;
       text-align: left;
     }
-    .st-demo .credit-text {
+    .cinema-intro__text {
       font-size: 18px;
       line-height: 1.4;
-      text-shadow: 0 0 12px rgba(255,255,255,0.15);
+      text-shadow: 0 0 12px rgba(255,255,255,0.12);
+      white-space: pre-line;
     }
-
-    .st-demo .grain {
+    .cinema-intro__status {
       position: absolute;
-      top: -50%;
-      left: -50%;
-      height: 200%;
-      width: 200%;
-      background: url("https://s3-us-west-2.amazonaws.com/s.cdpn.io/161676/grain.png");
-      animation: st-grain-wiggle 5s steps(10) infinite;
-      pointer-events: none;
-      opacity: 0.35;
-    }
-    .st-demo .vignette {
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 75%, rgba(0, 0, 0, 0.8) 100%);
-      pointer-events: none;
+      bottom: 12px;
+      right: 16px;
+      font-size: 11px;
+      color: #9aa4b4;
+      letter-spacing: 0.08em;
+      z-index: 5;
     }
 
-    @keyframes st-title-zoom {
-      0% { opacity: 0; transform: scale(1.6); filter: blur(6px); }
-      20% { opacity: 1; transform: scale(1.05); filter: blur(0); }
-      75% { opacity: 1; transform: scale(1); }
-      100% { opacity: 0; transform: scale(0.4); filter: blur(2px); }
-    }
-
-    @keyframes st-bar {
-      0% { opacity: 0; transform: scaleX(0); }
-      15% { opacity: 1; transform: scaleX(1); }
-      75% { opacity: 1; transform: scaleX(1); }
-      100% { opacity: 0; transform: scaleX(0.4); }
-    }
-
-    @keyframes st-credit {
-      0% { opacity: 0; transform: translate(-50%, -47%) scale(0.98); }
-      12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
-      100% { opacity: 0; transform: translate(-50%, -53%) scale(1.02); }
-    }
-
-    @keyframes st-stars {
-      0% { transform: translateY(0); }
-      100% { transform: translateY(-40px); }
-    }
-
-    @keyframes st-grain-wiggle {
-      0%  { transform: translateX(8%) translateY(-5%); }
-      10% { transform: translateX(0%) translateY(0%); }
-      20% { transform: translateX(10%) translateY(-15%); }
-      30% { transform: translateX(-10%) translateY(0%); }
-      40% { transform: translateX(25%) translateY(15%); }
-      50% { transform: translateX(10%) translateY(-10%); }
-      60% { transform: translateX(-5%) translateY(5%); }
-      70% { transform: translateX(15%) translateY(0%); }
-      80% { transform: translateX(-20%) translateY(-10%); }
-      90% { transform: translateX(20%) translateY(15%); }
-      100% { transform: translateX(4%) translateY(7%); }
+    @keyframes cinema-grain {
+      0% { transform: translate3d(0, 0, 0); }
+      50% { transform: translate3d(-3%, 2%, 0); }
+      100% { transform: translate3d(2%, -2%, 0); }
     }
 
     .cta { display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:14px; padding:30px 18px; max-width: 1100px; margin: 0 auto; }
@@ -309,88 +254,42 @@
 
     <section class="showcase" aria-labelledby="survey-intro-title">
       <h2 id="survey-intro-title">LalGeo Survey Intro</h2>
-      <p>A cinematic intro inspired by the CodePen demo. Tap play to start.</p>
+      <p>An original cinematic intro for LalGeo Survey. Tap play to start.</p>
       <div class="showcase-frame">
-        <div class="st-demo" aria-label="LalGeo Survey intro animation">
-          <div class="intro">
-            <h3 class="intro-title">LalGeo Survey</h3>
-            <p class="intro-text">
-              A cinematic intro for the LalGeo Survey experience.
-              <br />
-              <button class="intro-text-play" type="button" data-play aria-label="Play intro">►</button>
-            </p>
+        <div class="cinema-intro" data-cinema aria-label="LalGeo Survey cinematic intro">
+          <div class="cinema-intro__layer cinema-intro__bg" data-parallax="0.12"></div>
+          <div class="cinema-intro__layer cinema-intro__stars" data-parallax="0.28"></div>
+          <div class="cinema-intro__layer cinema-intro__glow" data-parallax="0.18"></div>
+          <div class="cinema-intro__layer cinema-intro__fog" data-parallax="0.45"></div>
+          <div class="cinema-intro__layer cinema-intro__grain"></div>
+          <div class="cinema-intro__layer cinema-intro__vignette"></div>
+
+          <div class="cinema-intro__ui">
+            <div class="cinema-intro__controls">
+              <label>Auto-play <input type="checkbox" data-autoplay></label>
+              <label>Show skip <input type="checkbox" data-show-skip checked></label>
+              <label>Speed
+                <select data-speed>
+                  <option value="0.75">0.75x</option>
+                  <option value="1" selected>1x</option>
+                  <option value="1.25">1.25x</option>
+                </select>
+              </label>
+            </div>
+            <button class="cinema-intro__btn" type="button" data-skip>Skip</button>
           </div>
 
-          <div class="viewport">
-            <div class="lg-title">
-              <div class="lg-title-main">LalGeo</div>
-              <div class="lg-title-sub">Survey</div>
-            </div>
-            <div class="lg-bar lg-bar--top"></div>
-            <div class="lg-bar lg-bar--bottom"></div>
-            <div class="credits-track" aria-label="LalGeo Survey credits">
-              <div class="credit-card" style="--i: 0;">
-                <div class="credit-label">Credits #1</div>
-                <div class="credit-text">Introducing the New LalGeo Survey<br>A New Era of Field Data Collection</div>
-              </div>
-              <div class="credit-card" style="--i: 1;">
-                <div class="credit-label">Credits #2</div>
-                <div class="credit-text">A Completely Redesigned Interface</div>
-              </div>
-              <div class="credit-card" style="--i: 2;">
-                <div class="credit-label">Credits #3</div>
-                <div class="credit-text">Dropbox Sync<br>Multi-User Editing</div>
-              </div>
-              <div class="credit-card" style="--i: 3;">
-                <div class="credit-label">Credits #4</div>
-                <div class="credit-text">Build Inspection &amp; Survey Forms<br>Directly on Your Device</div>
-              </div>
-              <div class="credit-card" style="--i: 4;">
-                <div class="credit-label">Credits #5</div>
-                <div class="credit-text">Seamlessly Connected to<br>LalGeo Web</div>
-              </div>
-              <div class="credit-card" style="--i: 5;">
-                <div class="credit-label">Credits #6</div>
-                <div class="credit-text">Share Survey Results<br>Instantly Online</div>
-              </div>
-              <div class="credit-card" style="--i: 6;">
-                <div class="credit-label">Credits #7</div>
-                <div class="credit-text">CSV Import &amp; Export</div>
-              </div>
-              <div class="credit-card" style="--i: 7;">
-                <div class="credit-label">Credits #8</div>
-                <div class="credit-text">Create or Import Asset IDs</div>
-              </div>
-              <div class="credit-card" style="--i: 8;">
-                <div class="credit-label">Credits #9</div>
-                <div class="credit-text">Attach Photos to Every Survey</div>
-              </div>
-              <div class="credit-card" style="--i: 9;">
-                <div class="credit-label">Credits #10</div>
-                <div class="credit-text">Smart Storage<br>Optimized Management</div>
-              </div>
-              <div class="credit-card" style="--i: 10;">
-                <div class="credit-label">Credits #11</div>
-                <div class="credit-text">Offline Data Collection</div>
-              </div>
-              <div class="credit-card" style="--i: 11;">
-                <div class="credit-label">Credits #12</div>
-                <div class="credit-text">All Features<br>Completely Free</div>
-              </div>
-              <div class="credit-card" style="--i: 12;">
-                <div class="credit-label">Credits #13</div>
-                <div class="credit-text">Created By<br>Naman Malhotra</div>
-              </div>
-              <div class="credit-card" style="--i: 13;">
-                <div class="credit-label">Credits #14</div>
-                <div class="credit-text">Download today at the Apple App Store<br>www.LALGEO.com</div>
-              </div>
-            </div>
+          <div class="cinema-intro__center">
+            <button class="cinema-intro__play" type="button" data-play-center>Play Intro</button>
           </div>
 
-          <div class="starfield"></div>
-          <div class="grain"></div>
-          <div class="vignette"></div>
+          <div class="cinema-intro__card" data-credit-card>
+            <div class="cinema-intro__label" data-credit-label>Credits #1</div>
+            <div class="cinema-intro__text" data-credit-text>Introducing the New LalGeo Survey
+A New Era of Field Data Collection</div>
+          </div>
+
+          <div class="cinema-intro__status" data-status>Ready</div>
         </div>
       </div>
     </section>
@@ -464,17 +363,227 @@
     document.getElementById('year').textContent = new Date().getFullYear();
 
     document.addEventListener("DOMContentLoaded", () => {
-      const demo = document.querySelector(".st-demo");
-      const playButtons = document.querySelectorAll(".st-demo [data-play]");
-      let started = false;
+      const root = document.querySelector("[data-cinema]");
+      if (!root) return;
 
-      function startIntro() {
-        if (started || !demo) return;
-        started = true;
-        demo.classList.add("st-demo--play");
+      const autoplayToggle = root.querySelector("[data-autoplay]");
+      const showSkipToggle = root.querySelector("[data-show-skip]");
+      const speedSelect = root.querySelector("[data-speed]");
+      const skipBtn = root.querySelector("[data-skip]");
+      const playBtn = root.querySelector("[data-play-center]");
+      const card = root.querySelector("[data-credit-card]");
+      const label = root.querySelector("[data-credit-label]");
+      const text = root.querySelector("[data-credit-text]");
+      const status = root.querySelector("[data-status]");
+      const parallaxLayers = Array.from(root.querySelectorAll("[data-parallax]"));
+
+      const credits = [
+        { label: "Credits #1", lines: ["Introducing the New LalGeo Survey", "A New Era of Field Data Collection"] },
+        { label: "Credits #2", lines: ["A Completely Redesigned Interface"] },
+        { label: "Credits #3", lines: ["Dropbox Sync", "Multi-User Editing"] },
+        { label: "Credits #4", lines: ["Build Inspection & Survey Forms", "Directly on Your Device"] },
+        { label: "Credits #5", lines: ["Seamlessly Connected to", "LalGeo Web"] },
+        { label: "Credits #6", lines: ["Share Survey Results", "Instantly Online"] },
+        { label: "Credits #7", lines: ["CSV Import & Export"] },
+        { label: "Credits #8", lines: ["Create or Import Asset IDs"] },
+        { label: "Credits #9", lines: ["Attach Photos to Every Survey"] },
+        { label: "Credits #10", lines: ["Smart Storage", "Optimized Management"] },
+        { label: "Credits #11", lines: ["Offline Data Collection"] },
+        { label: "Credits #12", lines: ["All Features", "Completely Free"] },
+        { label: "Credits #13", lines: ["Created By", "Naman Malhotra"] },
+        { label: "Credits #14", lines: ["Download today at the Apple App Store", "www.LALGEO.com"] }
+      ];
+
+      const baseTiming = {
+        fadeIn: 500,
+        hold: 1700,
+        fadeOut: 500,
+        extraHold: 150,
+        endHold: 3000
+      };
+
+      let timeline = [];
+      let totalCreditsMs = 0;
+      let totalMs = 0;
+      let startTime = 0;
+      let rafId = null;
+      let activeIndex = -1;
+      let playing = false;
+      let audioCtx = null;
+      let audioNodes = [];
+
+      function buildTimeline() {
+        const speed = parseFloat(speedSelect.value) || 1;
+        timeline = [];
+        let t = 0;
+        credits.forEach((credit, index) => {
+          const extra = credit.lines.length > 1 ? baseTiming.extraHold : 0;
+          const fadeIn = baseTiming.fadeIn / speed;
+          const hold = (baseTiming.hold + extra) / speed;
+          const fadeOut = baseTiming.fadeOut / speed;
+          const total = fadeIn + hold + fadeOut;
+          timeline.push({ index, start: t, fadeIn, hold, fadeOut, total });
+          t += total;
+        });
+        totalCreditsMs = t;
+        totalMs = totalCreditsMs + baseTiming.endHold / speed;
       }
 
-      playButtons.forEach((btn) => btn.addEventListener("click", startIntro));
+      function setCard(index) {
+        if (index === activeIndex) return;
+        activeIndex = index;
+        label.textContent = credits[index].label;
+        text.textContent = credits[index].lines.join("\n");
+      }
+
+      function updateParallax(elapsed) {
+        const t = elapsed / 1000;
+        parallaxLayers.forEach((layer) => {
+          const speed = parseFloat(layer.dataset.parallax) || 0.1;
+          const x = Math.sin(t * 0.12 + speed) * 12 * speed;
+          const y = Math.cos(t * 0.1 + speed * 2) * 10 * speed;
+          layer.style.transform = `translate3d(${x}px, ${y}px, 0)`;
+        });
+      }
+
+      function render(elapsed) {
+        updateParallax(elapsed);
+
+        if (elapsed >= totalMs) {
+          finish();
+          return;
+        }
+
+        if (elapsed >= totalCreditsMs) {
+          const lastIndex = credits.length - 1;
+          setCard(lastIndex);
+          card.style.opacity = "1";
+          card.style.transform = "translate(-50%, -50%)";
+          return;
+        }
+
+        for (let i = 0; i < timeline.length; i++) {
+          const item = timeline[i];
+          if (elapsed >= item.start && elapsed < item.start + item.total) {
+            setCard(item.index);
+            const local = elapsed - item.start;
+            let opacity = 1;
+            if (local < item.fadeIn) {
+              opacity = local / item.fadeIn;
+            } else if (local > item.fadeIn + item.hold) {
+              opacity = 1 - (local - item.fadeIn - item.hold) / item.fadeOut;
+            }
+            const float = Math.sin((elapsed / 1000) * 1.1 + item.index) * 8;
+            const drift = ((local / item.total) - 0.5) * 8;
+            card.style.opacity = opacity.toFixed(3);
+            card.style.transform = `translate(-50%, calc(-50% + ${float + drift}px))`;
+            break;
+          }
+        }
+      }
+
+      function animate(now) {
+        if (!playing) return;
+        const elapsed = now - startTime;
+        render(elapsed);
+        rafId = requestAnimationFrame(animate);
+      }
+
+      function startSound() {
+        if (audioCtx) return;
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtx) return;
+        audioCtx = new AudioCtx();
+        const master = audioCtx.createGain();
+        master.gain.value = 0.04;
+
+        const filter = audioCtx.createBiquadFilter();
+        filter.type = "lowpass";
+        filter.frequency.value = 600;
+
+        const osc1 = audioCtx.createOscillator();
+        osc1.type = "sawtooth";
+        osc1.frequency.value = 110;
+
+        const osc2 = audioCtx.createOscillator();
+        osc2.type = "triangle";
+        osc2.frequency.value = 220;
+
+        const lfo = audioCtx.createOscillator();
+        lfo.frequency.value = 0.12;
+        const lfoGain = audioCtx.createGain();
+        lfoGain.gain.value = 60;
+
+        osc1.connect(filter);
+        osc2.connect(filter);
+        filter.connect(master);
+        master.connect(audioCtx.destination);
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+
+        osc1.start();
+        osc2.start();
+        lfo.start();
+        audioNodes = [osc1, osc2, lfo];
+      }
+
+      function stopSound() {
+        if (!audioCtx) return;
+        audioNodes.forEach((node) => {
+          try { node.stop(); } catch (err) {}
+        });
+        audioCtx.close();
+        audioCtx = null;
+        audioNodes = [];
+      }
+
+      function start({ playSound } = {}) {
+        buildTimeline();
+        if (playing) cancelAnimationFrame(rafId);
+        playing = true;
+        root.classList.add("is-playing");
+        root.classList.remove("is-done");
+        skipBtn.disabled = false;
+        activeIndex = -1;
+        startTime = performance.now();
+        if (playSound) startSound();
+        status.textContent = `Playing • ${speedSelect.value}x`;
+        rafId = requestAnimationFrame(animate);
+      }
+
+      function finish() {
+        playing = false;
+        root.classList.remove("is-playing");
+        root.classList.add("is-done");
+        skipBtn.disabled = true;
+        card.style.opacity = "0";
+        status.textContent = "Complete";
+        playBtn.textContent = "Replay Intro";
+        stopSound();
+      }
+
+      function skipToEnd() {
+        if (!playing) {
+          start({ playSound: false });
+        }
+        startTime = performance.now() - totalCreditsMs;
+      }
+
+      function updateSkipVisibility() {
+        skipBtn.style.display = showSkipToggle.checked ? "inline-flex" : "none";
+      }
+
+      playBtn.addEventListener("click", () => start({ playSound: true }));
+      skipBtn.addEventListener("click", skipToEnd);
+      showSkipToggle.addEventListener("change", updateSkipVisibility);
+      speedSelect.addEventListener("change", () => {
+        if (playing) start({ playSound: false });
+      });
+
+      updateSkipVisibility();
+      if (autoplayToggle.checked) {
+        start({ playSound: false });
+      }
     });
   </script>
   <!-- Google tag (gtag.js) -->
