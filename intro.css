@@ -153,6 +153,32 @@
   z-index: 4;
 }
 
+.intro-start {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  z-index: 4;
+  pointer-events: none;
+}
+.intro-start__btn {
+  pointer-events: auto;
+  padding: 12px 22px;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.28);
+  background: rgba(10, 10, 16, 0.75);
+  color: #f4eef0;
+  font-size: 12px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 0 22px rgba(255, 40, 70, 0.25);
+}
+.intro-cinematic.is-playing .intro-start {
+  opacity: 0;
+  pointer-events: none;
+}
+
 .intro-btn,
 .intro-audio {
   padding: 8px 14px;

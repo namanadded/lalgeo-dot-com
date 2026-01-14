@@ -2,7 +2,8 @@ document.addEventListener("DOMContentLoaded", () => {
   const root = document.querySelector("[data-intro]");
   if (!root) return;
 
-  const playBtn = root.querySelector("[data-play]");
+  // Fix: ensure a visible play control exists and binds to all play buttons.
+  const playButtons = Array.from(root.querySelectorAll("[data-play]"));
   const audioToggle = root.querySelector("[data-audio]");
   const stroke = root.querySelector(".title-stroke");
   const fill = root.querySelector(".title-fill");
@@ -20,6 +21,14 @@ document.addEventListener("DOMContentLoaded", () => {
   const blurNode = root.querySelector("#bloomBlur");
 
   if (!window.gsap) {
+    // If GSAP fails to load, reveal a static hero state so the box isn't blank.
+    bg.style.opacity = "1";
+    fog.style.opacity = "0.6";
+    grain.style.opacity = "0.06";
+    vignette.style.opacity = "1";
+    fill.style.opacity = "1";
+    depth.style.opacity = "0.7";
+    subtitle.style.opacity = "1";
     console.error("GSAP is required for the intro timeline.");
     return;
   }
@@ -145,8 +154,15 @@ document.addEventListener("DOMContentLoaded", () => {
     timeline = buildTimeline();
     startAudio(3400); // tweak: lock time for audio hit
     timeline.play(0);
-    playBtn.textContent = "Replay Intro";
+    root.classList.add("is-playing");
+    playButtons.forEach((btn) => {
+      btn.textContent = "Replay Intro";
+    });
   }
 
-  playBtn.addEventListener("click", replay);
+  playButtons.forEach((btn) => btn.addEventListener("click", replay));
+  root.addEventListener("click", (event) => {
+    if (event.target.closest("[data-play]") || event.target.closest("[data-audio]")) return;
+    replay();
+  });
 });
