@@ -176,32 +176,36 @@
 
     .st-demo .credits-track {
       position: absolute;
-      left: 50%;
-      top: 100%;
-      transform: translateX(-50%);
-      width: min(620px, 90%);
-      display: grid;
-      gap: 16px;
-      opacity: 0;
-    }
-    .st-demo--play .credits-track {
-      animation: st-credits 42s linear forwards 1.5s;
+      inset: 0;
+      pointer-events: none;
     }
     .st-demo .credit-card {
-      background: rgba(0,0,0,0.78);
-      border: 1px solid rgba(255,255,255,0.22);
-      border-radius: 10px;
-      padding: 14px 16px 18px;
+      position: absolute;
+      left: 50%;
+      top: 52%;
+      transform: translate(-50%, -50%);
+      width: min(620px, 88%);
+      background: rgba(0,0,0,0.85);
+      border: 1px solid rgba(255,255,255,0.28);
+      border-radius: 8px;
+      padding: 16px 18px 20px;
       color: #d8d8d8;
       text-align: center;
-      box-shadow: 0 0 30px rgba(255,255,255,0.06);
+      box-shadow: 0 0 40px rgba(255,255,255,0.08),
+                  inset 0 0 20px rgba(255,255,255,0.04);
+      opacity: 0;
+    }
+    .st-demo--play .credit-card {
+      animation: st-credit 3.6s ease forwards;
+      animation-delay: calc(var(--i) * 3.2s + 2.5s);
     }
     .st-demo .credit-label {
       color: #9aa6b2;
       font-size: 12px;
       text-transform: uppercase;
       letter-spacing: 0.18em;
-      margin-bottom: 6px;
+      margin-bottom: 8px;
+      text-align: left;
     }
     .st-demo .credit-text {
       font-size: 18px;
@@ -241,10 +245,11 @@
       100% { opacity: 0; transform: scaleX(0.4); }
     }
 
-    @keyframes st-credits {
-      0% { opacity: 0; transform: translate(-50%, 0); }
-      5% { opacity: 1; }
-      100% { opacity: 1; transform: translate(-50%, -175%); }
+    @keyframes st-credit {
+      0% { opacity: 0; transform: translate(-50%, -47%) scale(0.98); }
+      12% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      80% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+      100% { opacity: 0; transform: translate(-50%, -53%) scale(1.02); }
     }
 
     @keyframes st-stars {
@@ -324,59 +329,59 @@
             <div class="lg-bar lg-bar--top"></div>
             <div class="lg-bar lg-bar--bottom"></div>
             <div class="credits-track" aria-label="LalGeo Survey credits">
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 0;">
                 <div class="credit-label">Credits #1</div>
                 <div class="credit-text">Introducing the New LalGeo Survey<br>A New Era of Field Data Collection</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 1;">
                 <div class="credit-label">Credits #2</div>
                 <div class="credit-text">A Completely Redesigned Interface</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 2;">
                 <div class="credit-label">Credits #3</div>
                 <div class="credit-text">Dropbox Sync<br>Multi-User Editing</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 3;">
                 <div class="credit-label">Credits #4</div>
                 <div class="credit-text">Build Inspection &amp; Survey Forms<br>Directly on Your Device</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 4;">
                 <div class="credit-label">Credits #5</div>
                 <div class="credit-text">Seamlessly Connected to<br>LalGeo Web</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 5;">
                 <div class="credit-label">Credits #6</div>
                 <div class="credit-text">Share Survey Results<br>Instantly Online</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 6;">
                 <div class="credit-label">Credits #7</div>
                 <div class="credit-text">CSV Import &amp; Export</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 7;">
                 <div class="credit-label">Credits #8</div>
                 <div class="credit-text">Create or Import Asset IDs</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 8;">
                 <div class="credit-label">Credits #9</div>
                 <div class="credit-text">Attach Photos to Every Survey</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 9;">
                 <div class="credit-label">Credits #10</div>
                 <div class="credit-text">Smart Storage<br>Optimized Management</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 10;">
                 <div class="credit-label">Credits #11</div>
                 <div class="credit-text">Offline Data Collection</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 11;">
                 <div class="credit-label">Credits #12</div>
                 <div class="credit-text">All Features<br>Completely Free</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 12;">
                 <div class="credit-label">Credits #13</div>
                 <div class="credit-text">Created By<br>Naman Malhotra</div>
               </div>
-              <div class="credit-card">
+              <div class="credit-card" style="--i: 13;">
                 <div class="credit-label">Credits #14</div>
                 <div class="credit-text">Download today at the Apple App Store<br>www.LALGEO.com</div>
               </div>
