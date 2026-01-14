@@ -32,6 +32,21 @@ document.addEventListener("DOMContentLoaded", () => {
 
   if (text) text.classList.add("intro-text--show");
 
+  function fitScale() {
+    const frame = root.parentElement;
+    if (!frame) return;
+    const frameRect = frame.getBoundingClientRect();
+    const scale = Math.min(
+      1,
+      frameRect.width / window.innerWidth,
+      frameRect.height / window.innerHeight
+    );
+    root.style.setProperty("--intro-scale", scale.toFixed(4));
+  }
+
+  fitScale();
+  window.addEventListener("resize", fitScale);
+
   let started = false;
 
   function start() {
