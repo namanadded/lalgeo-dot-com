@@ -4,6 +4,12 @@
   font-style: normal;
   font-weight: bold;
 }
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   background: #000;
   text-align: center;
@@ -15,6 +21,23 @@ body {
 }
 body *, body *:before, body *:after {
   box-sizing: inherit;
+}
+
+.intro-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.intro-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translateX(-50%) translateY(-50%) scale(var(--intro-scale, 1));
+  transform-origin: 50% 50%;
 }
 
 .intro {
@@ -361,7 +384,7 @@ body *, body *:before, body *:after {
 }
 
 .grain {
-  position: fixed;
+  position: absolute;
   top: -50vh;
   left: -50vw;
   height: 200vh;
@@ -407,7 +430,7 @@ body *, body *:before, body *:after {
 }
 
 .vignette {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: radial-gradient(circle at center, rgba(0, 0, 0, 0) 40%, rgba(0, 0, 0, 0.55) 75%, rgba(0, 0, 0, 0.8) 100%);
   pointer-events: none;
@@ -418,7 +441,7 @@ body *, body *:before, body *:after {
   top: 50%;
   left: 50%;
   transform: translateX(-50%) translateY(-50%);
-  position: fixed;
+  position: absolute;
   height: 100vh;
   width: 177.7777777778vh;
   pointer-events: none;

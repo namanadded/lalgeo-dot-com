@@ -26,6 +26,23 @@
     }
   });
 
+  function fitStage() {
+    const host = document.querySelector('.intro-host');
+    const stage = document.querySelector('.intro-stage');
+    if (!host || !stage) {
+      return;
+    }
+
+    const hostRect = host.getBoundingClientRect();
+    const scale = Math.min(
+      1,
+      hostRect.width / window.innerWidth,
+      hostRect.height / window.innerHeight
+    );
+
+    stage.style.setProperty('--intro-scale', scale.toFixed(3));
+  }
+
   document.addEventListener("DOMContentLoaded", () => {
     let bind = false;
     let text = null;
@@ -46,6 +63,9 @@
     }
 
     text.className += " intro-text--show";
+
+    fitStage();
+    window.addEventListener("resize", fitStage);
 
     if (bind) {
       const btns = document.querySelectorAll("[data-play]");

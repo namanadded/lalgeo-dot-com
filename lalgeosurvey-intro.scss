@@ -88,6 +88,12 @@ $credits-shadow-blur: 0.15vmin;
 }
 
 // Styles
+html,
+body {
+  width: 100%;
+  height: 100%;
+}
+
 body {
   background: $color-bg;
   text-align: center;
@@ -100,6 +106,23 @@ body {
   *, *:before, *:after {
     box-sizing: inherit;
   }
+}
+
+.intro-host {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.intro-stage {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 100vw;
+  height: 100vh;
+  transform: translateX(-50%) translateY(-50%) scale(var(--intro-scale, 1));
+  transform-origin: 50% 50%;
 }
 
 .intro {
@@ -409,7 +432,7 @@ body {
     100%{ transform: translateX(4%)   translateY(7%);   }
   }
 
-  position: fixed;
+  position: absolute;
   top: -50vh;
   left: -50vw;
   height: 200vh;
@@ -420,7 +443,7 @@ body {
 }
 
 .vignette {
-  position: fixed;
+  position: absolute;
   inset: 0;
   background: radial-gradient(circle at center,
     rgba(#000, 0) 40%,
@@ -432,7 +455,7 @@ body {
 
 .letterbox {
   @include centerize;
-  position: fixed;
+  position: absolute;
   height: 100vh;
   width: 100vh / $desired-ratio-multiplier;
   pointer-events: none;
