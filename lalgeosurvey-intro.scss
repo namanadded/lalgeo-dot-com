@@ -727,6 +727,7 @@ body {
   }
 
   &--full {
+    color: rgba($color-title, 0.25);
     @keyframes full-title {
       0% {
         opacity: 1;
@@ -885,12 +886,12 @@ body {
     }
 
     .titlebar--left {
-      right: -22%;
+      right: -10%;
       top: 92%;
     }
 
     .titlebar--right {
-      left: -22%;
+      left: -10%;
       top: 92%;
     }
   }
