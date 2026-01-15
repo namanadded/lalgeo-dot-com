@@ -1284,10 +1284,12 @@ body *, body *:before, body *:after {
   transform-origin: left;
 }
 .title--full .titlebar--left {
-  right: -6%;
+  right: -22%;
+  top: 92%;
 }
 .title--full .titlebar--right {
-  left: -6%;
+  left: -22%;
+  top: 92%;
 }
 
 /*# sourceMappingURL=lalgeosurvey-intro.css.map */
