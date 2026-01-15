@@ -200,14 +200,21 @@ body *, body *:before, body *:after {
   }
 }
 
+.title-word-letter--pinwrap {
+  position: relative;
+}
+
 .title-word-letter-pin {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0.62em;
+  transform: translate(-50%, -52%);
+  pointer-events: none;
 }
 .title-word-letter-pin img {
   display: block;
-  width: 0.9em;
+  width: 100%;
   height: auto;
 }
 
