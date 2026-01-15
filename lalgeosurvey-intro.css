@@ -200,6 +200,17 @@ body *, body *:before, body *:after {
   }
 }
 
+.title-word-letter-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.title-word-letter-pin img {
+  display: block;
+  width: 0.9em;
+  height: auto;
+}
+
 .title-word-letter--space {
   width: 8vmin;
   font-size: 0;

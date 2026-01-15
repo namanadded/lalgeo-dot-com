@@ -287,6 +287,18 @@ body {
   }
 }
 
+.title-word-letter-pin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+
+  img {
+    display: block;
+    width: 0.9em;
+    height: auto;
+  }
+}
+
 .title-word-letter--space {
   @include v-rule(width, 8vmin);
   font-size: 0;
