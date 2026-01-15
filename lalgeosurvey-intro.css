@@ -1028,7 +1028,7 @@ body *, body *:before, body *:after {
   }
 }
 .title--full {
-  color: rgba(193, 27, 31, 0.25);
+  color: #7b0f12;
   width: 1000vw;
   animation: full-title 20s cubic-bezier(0.15, 0.7, 0.26, 0.88) forwards;
   transform-origin: 50% 45%;
@@ -1285,11 +1285,11 @@ body *, body *:before, body *:after {
   transform-origin: left;
 }
 .title--full .titlebar--left {
-  right: -10%;
+  right: -5%;
   top: 92%;
 }
 .title--full .titlebar--right {
-  left: -10%;
+  left: -5%;
   top: 92%;
 }
 
