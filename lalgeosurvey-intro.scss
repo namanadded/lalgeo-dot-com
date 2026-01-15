@@ -11,7 +11,7 @@ $color-credits-top: #D2D0D1;
 $color-credits-bottom: $color-credits;
 
 $font-title: 'BenguiatITCW01-BoldCn';
-$font-credits: Arial,Helvetica Neue,Helvetica,sans-serif; 
+$font-credits: 'Phosphate Solid', 'Phosphate Inline', Arial,Helvetica Neue,Helvetica,sans-serif; 
 
 $title-fsize: 28vmin;
 $title-fsize-large: 34vmin;
@@ -80,7 +80,7 @@ $credits-shadow-blur: 0.15vmin;
 
 // Font
 @font-face {
-  font-family: $font-title;
+  font-family: 'Phosphate Solid', 'Phosphate Inline', $font-title;
   src: url('intro-assets/BenguiatProITC-BoldCond.woff') format('woff'),
        url('intro-assets/BenguiatProITC-BoldCond.ttf') format('truetype');
   font-style: normal;
@@ -261,7 +261,7 @@ body {
   }
 
   &--scene {
-    color: #ff4d4d;
+    color: transparent;
   }
 
   &-word {
