@@ -156,6 +156,9 @@ body *, body *:before, body *:after {
 .title--show {
   display: block;
 }
+.title--scene {
+  color: #ff4d4d;
+}
 .title-word {
   position: relative;
   display: inline-block;
