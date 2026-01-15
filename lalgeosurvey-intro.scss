@@ -87,6 +87,14 @@ $credits-shadow-blur: 0.15vmin;
   font-weight: bold;
 }
 
+@font-face {
+  font-family: 'Phosphate';
+  src: local('Phosphate'),
+       url('intro-assets/Phosphate.ttc') format('truetype-collection');
+  font-style: normal;
+  font-weight: bold;
+}
+
 // Styles
 html,
 body {
@@ -732,6 +740,7 @@ body {
 
   &--full {
     color: #ff4d4d;
+    font-family: 'Phosphate', $font-title;
     @keyframes full-title {
       0% {
         opacity: 1;

@@ -4,6 +4,12 @@
   font-style: normal;
   font-weight: bold;
 }
+@font-face {
+  font-family: "Phosphate";
+  src: local("Phosphate"), url("intro-assets/Phosphate.ttc") format("truetype-collection");
+  font-style: normal;
+  font-weight: bold;
+}
 html,
 body {
   width: 100%;
@@ -1032,6 +1038,7 @@ body *, body *:before, body *:after {
 }
 .title--full {
   color: #ff4d4d;
+  font-family: "Phosphate", "BenguiatITCW01-BoldCn";
   width: 1000vw;
   animation: full-title 20s cubic-bezier(0.15, 0.7, 0.26, 0.88) forwards;
   transform-origin: 50% 45%;
