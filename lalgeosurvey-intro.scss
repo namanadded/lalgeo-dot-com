@@ -727,7 +727,7 @@ body {
   }
 
   &--full {
-    color: #7b0f12;
+    color: #ff4d4d;
     @keyframes full-title {
       0% {
         opacity: 1;
@@ -886,12 +886,12 @@ body {
     }
 
     .titlebar--left {
-      right: -5%;
+      right: 25%;
       top: 92%;
     }
 
     .titlebar--right {
-      left: -5%;
+      left: 25%;
       top: 92%;
     }
   }
