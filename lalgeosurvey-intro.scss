@@ -88,11 +88,21 @@ $credits-shadow-blur: 0.15vmin;
 }
 
 @font-face {
-  font-family: 'Phosphate';
-  src: local('Phosphate'),
+  font-family: 'Phosphate Solid';
+  src: local('Phosphate Solid'),
+       local('PhosphateSolid'),
        url('intro-assets/Phosphate.ttc') format('truetype-collection');
   font-style: normal;
-  font-weight: bold;
+  font-weight: 700;
+}
+
+@font-face {
+  font-family: 'Phosphate Inline';
+  src: local('Phosphate Inline'),
+       local('PhosphateInline'),
+       url('intro-assets/Phosphate.ttc') format('truetype-collection');
+  font-style: normal;
+  font-weight: 700;
 }
 
 // Styles
@@ -739,8 +749,8 @@ body {
   }
 
   &--full {
-    color: #ff4d4d;
-    font-family: 'Phosphate', $font-title;
+    color: transparent;
+    font-family: 'Phosphate Solid', 'Phosphate Inline', $font-title;
     @keyframes full-title {
       0% {
         opacity: 1;
