@@ -1347,12 +1347,8 @@ body *, body *:before, body *:after {
 .title--full .titlebar--left,
 .title--full .titlebar--right {
   top: 92%;
-}
-.title--full .titlebar--left {
-  right: 25%;
-}
-.title--full .titlebar--right {
-  left: 25%;
+  left: 50%;
+  right: 50%;
 }
 
 /*# sourceMappingURL=lalgeosurvey-intro.css.map */

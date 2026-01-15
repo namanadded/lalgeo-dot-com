@@ -956,14 +956,8 @@ body {
     .titlebar--left,
     .titlebar--right {
       top: 92%;
-    }
-
-    .titlebar--left {
-      right: 25%;
-    }
-
-    .titlebar--right {
-      left: 25%;
+      left: 50%;
+      right: 50%;
     }
   }
 }
