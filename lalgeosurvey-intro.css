@@ -528,24 +528,26 @@ body *, body *:before, body *:after {
   top: 100%;
 }
 
-.intro-controls {
+.intro-overlay {
   position: fixed;
-  right: 20px;
-  bottom: 20px;
+  inset: 0;
   display: flex;
-  gap: 10px;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease;
+  pointer-events: none;
   z-index: 5;
 }
 
-.intro-control {
-  cursor: pointer;
-  padding: 8px 12px;
-  border-radius: 10px;
-  border: 1px solid #2b2f38;
-  background: rgba(15, 17, 23, 0.85);
-  color: #e7e9ee;
-  font-family: "Phosphate Solid", "Phosphate Inline", Arial, Helvetica Neue, Helvetica, sans-serif;
-  font-size: 14px;
+.intro-overlay--show {
+  opacity: 1;
+  visibility: visible;
+}
+
+.intro-overlay-play {
+  pointer-events: auto;
 }
 
 .intro-paused * {

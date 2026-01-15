@@ -28,20 +28,39 @@
 
   let started = false;
   let paused = false;
+  let ended = false;
   let music = null;
-  const timeouts = [];
+  let rafId = null;
+  let startTime = 0;
+  let pausedDuration = 0;
+  let pauseStart = 0;
 
-  function schedule(fn, delay) {
-    const id = setTimeout(fn, delay);
-    timeouts.push(id);
-    return id;
-  }
+  const creditsMs = 3000;
+  const scenesMs = [
+    creditsMs,
+    creditsMs * 2,
+    creditsMs,
+    creditsMs,
+    creditsMs,
+    creditsMs,
+    creditsMs * 2,
+    19500,
+  ];
+  const introDelay = 1500;
 
-  function clearScheduled() {
-    while (timeouts.length) {
-      clearTimeout(timeouts.pop());
-    }
-  }
+  let viewport = null;
+  let letterbox = null;
+  let scenes = null;
+  let fullTitle = null;
+  let credits = null;
+  let finalCredit = null;
+  let overlay = null;
+  let overlayBtn = null;
+  let viewportShown = false;
+  let currentCreditIndex = -1;
+  let currentSceneIndex = -1;
+  let fullTitleShown = false;
+  let finalCreditShown = false;
 
   function fitStage() {
     const host = document.querySelector('.intro-host');
@@ -58,6 +77,182 @@
     );
 
     stage.style.setProperty('--intro-scale', scale.toFixed(3));
+  }
+
+  function showOverlay(icon) {
+    if (!overlay || !overlayBtn) {
+      return;
+    }
+    overlayBtn.innerHTML = icon;
+    overlay.classList.add("intro-overlay--show");
+  }
+
+  function hideOverlay() {
+    if (!overlay) {
+      return;
+    }
+    overlay.classList.remove("intro-overlay--show");
+  }
+
+  function resetTimelineState() {
+    viewportShown = false;
+    currentCreditIndex = -1;
+    currentSceneIndex = -1;
+    fullTitleShown = false;
+    finalCreditShown = false;
+
+    if (viewport) {
+      viewport.className = "viewport";
+    }
+    if (letterbox) {
+      letterbox.className = "letterbox";
+    }
+    if (fullTitle) {
+      fullTitle.className = "title title--full";
+    }
+    if (credits) {
+      for (let i = 0; i < credits.length; i++) {
+        credits[i].className = "credits-group";
+      }
+    }
+    if (finalCredit) {
+      finalCredit.className = "credits-final";
+    }
+    if (scenes) {
+      for (let i = 0; i < scenes.length; i++) {
+        scenes[i].className = scenes[i].className.replace(" title--show", "");
+      }
+    }
+  }
+
+  function pausePlayback() {
+    if (!started || paused || ended) {
+      return;
+    }
+    paused = true;
+    pauseStart = performance.now();
+    document.body.classList.add("intro-paused");
+    showOverlay("&#9654;");
+    if (music) {
+      music.pause();
+    }
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+    }
+  }
+
+  function resumePlayback() {
+    if (!paused || ended) {
+      return;
+    }
+    paused = false;
+    pausedDuration += performance.now() - pauseStart;
+    document.body.classList.remove("intro-paused");
+    hideOverlay();
+    rafId = requestAnimationFrame(tick);
+    if (music) {
+      music.play();
+    }
+  }
+
+  function endPlayback() {
+    ended = true;
+    showOverlay("&#8635;");
+  }
+
+  function updateCredits(elapsed) {
+    const creditsDuration = credits.length * creditsMs;
+    if (elapsed >= creditsDuration) {
+      if (currentCreditIndex !== -1) {
+        credits[currentCreditIndex].className = "credits-group";
+        currentCreditIndex = -1;
+      }
+      return;
+    }
+
+    const index = Math.floor(elapsed / creditsMs);
+    if (index === currentCreditIndex) {
+      return;
+    }
+    if (currentCreditIndex !== -1) {
+      credits[currentCreditIndex].className = "credits-group";
+    }
+    currentCreditIndex = index;
+    credits[currentCreditIndex].className = "credits-group credits-group--show";
+  }
+
+  function updateScenes(elapsed) {
+    const sceneCount = scenes.length;
+    const sceneTimelineEnd = scenesMs.slice(0, sceneCount).reduce((sum, val) => sum + val, 0);
+
+    if (elapsed < sceneTimelineEnd) {
+      let acc = 0;
+      let index = 0;
+      for (; index < sceneCount; index++) {
+        acc += scenesMs[index];
+        if (elapsed < acc) {
+          break;
+        }
+      }
+      if (index !== currentSceneIndex) {
+        if (currentSceneIndex !== -1 && scenes[currentSceneIndex]) {
+          scenes[currentSceneIndex].className = scenes[currentSceneIndex].className.replace(" title--show", "");
+        }
+        currentSceneIndex = index;
+        scenes[currentSceneIndex].className += " title--show";
+      }
+    }
+    else {
+      if (currentSceneIndex !== -1 && scenes[currentSceneIndex]) {
+        scenes[currentSceneIndex].className = scenes[currentSceneIndex].className.replace(" title--show", "");
+        currentSceneIndex = -1;
+      }
+      if (!fullTitleShown) {
+        fullTitle.className += " title--show";
+        fullTitleShown = true;
+      }
+      if (!finalCreditShown && elapsed >= sceneTimelineEnd + scenesMs[sceneCount] + 1500) {
+        finalCredit.className += " credits-group--show";
+        finalCreditShown = true;
+      }
+    }
+  }
+
+  function tick(now) {
+    if (paused || ended) {
+      return;
+    }
+
+    const elapsed = now - startTime - pausedDuration;
+    if (elapsed < introDelay) {
+      rafId = requestAnimationFrame(tick);
+      return;
+    }
+
+    const timelineElapsed = elapsed - introDelay;
+
+    if (!viewportShown) {
+      viewport.className += " viewport--show";
+      letterbox.className += " letterbox--show";
+      viewportShown = true;
+    }
+
+    updateCredits(timelineElapsed);
+    updateScenes(timelineElapsed);
+
+    const sceneCount = scenes.length;
+    const sceneTimelineEnd = scenesMs.slice(0, sceneCount).reduce((sum, val) => sum + val, 0);
+    const endTime = Math.max(
+      credits.length * creditsMs,
+      sceneTimelineEnd + scenesMs[sceneCount] + 1500 + 3000
+    );
+
+    if (timelineElapsed >= endTime) {
+      endPlayback();
+      return;
+    }
+
+    rafId = requestAnimationFrame(tick);
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -81,6 +276,15 @@
 
     text.className += " intro-text--show";
 
+    viewport = document.getElementsByClassName("viewport")[0];
+    letterbox = document.getElementsByClassName("letterbox")[0];
+    scenes = document.getElementsByClassName("title--scene");
+    fullTitle = document.getElementsByClassName("title--full")[0];
+    credits = document.getElementsByClassName("credits-group");
+    finalCredit = document.getElementsByClassName("credits-final")[0];
+    overlay = document.querySelector(".intro-overlay");
+    overlayBtn = document.querySelector("[data-toggle-play]");
+
     fitStage();
     window.addEventListener("resize", fitStage);
 
@@ -93,27 +297,33 @@
       }
     }
 
-    const pauseBtn = document.querySelector("[data-pause]");
-    if (pauseBtn) {
-      pauseBtn.addEventListener("click", () => {
-        if (paused) {
+    const stage = document.querySelector(".intro-stage");
+    if (stage) {
+      stage.addEventListener("click", (event) => {
+        if (!started || ended) {
           return;
         }
-        paused = true;
-        document.body.classList.add("intro-paused");
-        pauseBtn.textContent = "Paused";
-        pauseBtn.disabled = true;
-        clearScheduled();
-        if (music) {
-          music.pause();
+        if (event.target && event.target.closest("[data-toggle-play]")) {
+          return;
+        }
+        if (paused) {
+          resumePlayback();
+        }
+        else {
+          pausePlayback();
         }
       });
     }
 
-    const restartBtn = document.querySelector("[data-restart]");
-    if (restartBtn) {
-      restartBtn.addEventListener("click", () => {
-        window.location.reload();
+    if (overlayBtn) {
+      overlayBtn.addEventListener("click", () => {
+        if (ended) {
+          resetTimelineState();
+          started = false;
+          start();
+          return;
+        }
+        resumePlayback();
       });
     }
   });
@@ -124,6 +334,11 @@
       return;
     }
     started = true;
+    ended = false;
+    paused = false;
+    pausedDuration = 0;
+    document.body.classList.remove("intro-paused");
+    hideOverlay();
 
     const intro = document.getElementsByClassName("intro")[0];
 
@@ -132,103 +347,17 @@
     intro.className += " intro--hide";
 
     music.addEventListener("canplay", () => {
-      schedule(() => {
-        if (paused) {
-          return;
+      resetTimelineState();
+      startTime = performance.now();
+      rafId = requestAnimationFrame(tick);
+      setTimeout(() => {
+        if (!paused) {
+          music.play();
         }
-        startAnimation();
-        schedule(() => {
-          if (!paused) {
-            music.play();
-          }
-        }, 200);
-      }, 1500);
+      }, introDelay + 200);
     });
   }
 
   // Kick off the animation
-  function startAnimation() {
-    // In milliseconds, how long each one is
-    const creditsMs = 3000;
-    const scenesMs = [
-      creditsMs,
-      creditsMs * 2,
-      creditsMs,
-      creditsMs,
-      creditsMs,
-      creditsMs,
-      creditsMs * 2,
-      19500,
-    ];
-
-    // Elements
-    const viewport = document.getElementsByClassName("viewport")[0];
-    const letterbox = document.getElementsByClassName("letterbox")[0];
-    const scenes = document.getElementsByClassName("title--scene");
-    const fullTitle = document.getElementsByClassName("title--full")[0];
-    const credits = document.getElementsByClassName("credits-group");
-    const finalCredit = document.getElementsByClassName("credits-final")[0];
-
-    viewport.className += " viewport--show";
-    letterbox.className += " letterbox--show";
-
-    // Set up credits to show every interval
-    let activeCredits = null;
-    for (let i = 0; i < credits.length; i++) {
-      schedule(() => {
-        if (paused) {
-          return;
-        }
-        if (credits[i - 1]) {
-          credits[i - 1].className = "credits-group";
-        }
-        credits[i].className = "credits-group credits-group--show";
-      }, i * creditsMs);
-
-      if (!credits[i + 1]) {
-        schedule(() => {
-          if (paused) {
-            return;
-          }
-          credits[i].className = "credits-group";
-        }, i * creditsMs + creditsMs);
-      }
-    }
-
-    // Set up scenes to show after each interval
-    let offset = 0;
-    for (let i = 0; i < scenes.length; i++) {
-      schedule(() => {
-        if (paused) {
-          return;
-        }
-        if (scenes[i - 1]) {
-          scenes[i - 1].className = scenes[i - 1]
-            .className.replace("title--show", "");
-        }
-        scenes[i].className += " title--show";
-      }, offset);
-
-      offset += scenesMs[i];
-
-      if (!scenes[i + 1]) {
-        // Show the last scene
-        schedule(() => {
-          if (paused) {
-            return;
-          }
-          scenes[i].className = scenes[i].className.replace("title--show", "");
-          fullTitle.className += " title--show";
-        }, offset);
-
-        // Show the final credits
-        schedule(() => {
-          if (paused) {
-            return;
-          }
-          finalCredit.className += " credits-group--show";
-        }, offset + scenesMs[i + 1] + 1500);
-      }
-    }
-  }
+  function startAnimation() {}
 })();
