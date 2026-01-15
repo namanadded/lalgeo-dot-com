@@ -1234,6 +1234,22 @@ body *, body *:before, body *:after {
     transform: scaleX(1);
   }
 }
+@keyframes full-bar-side-left {
+  0%, 70% {
+    transform: translateX(-50%) translateX(-24vmin) scaleX(0);
+  }
+  75%, 100% {
+    transform: translateX(-50%) translateX(-24vmin) scaleX(1);
+  }
+}
+@keyframes full-bar-side-right {
+  0%, 70% {
+    transform: translateX(-50%) translateX(24vmin) scaleX(0);
+  }
+  75%, 100% {
+    transform: translateX(-50%) translateX(24vmin) scaleX(1);
+  }
+}
 .title--full .title-word-letter[data-letter] {
   font-size: 280vmin;
 }
@@ -1346,9 +1362,44 @@ body *, body *:before, body *:after {
 }
 .title--full .titlebar--left,
 .title--full .titlebar--right {
+  display: none;
+}
+.title--full .titlebar--side {
+  height: 10vmin;
+  border-width: 4vmin;
+  border-radius: 1vmin;
+  box-shadow: 0 0 12vmin rgba(193, 27, 31, 0.8), 0 0 5vmin rgba(193, 27, 31, 0.8) inset;
+  width: 22vmin;
   top: 92%;
-  left: 5%;
-  right: 5%;
+  left: 50%;
+}
+@media screen and (max-aspect-ratio: 16/9) {
+  .title--full .titlebar--side {
+    height: 5.625vw;
+  }
+}
+@media screen and (max-aspect-ratio: 16/9) {
+  .title--full .titlebar--side {
+    border-width: 2.25vw;
+  }
+}
+@media screen and (max-aspect-ratio: 16/9) {
+  .title--full .titlebar--side {
+    border-radius: 0.5625vw;
+  }
+}
+@media screen and (max-aspect-ratio: 16/9) {
+  .title--full .titlebar--side {
+    width: 12.375vw;
+  }
+}
+.title--full .titlebar--side-left {
+  animation: full-bar-side-left 20s ease forwards;
+  transform-origin: right;
+}
+.title--full .titlebar--side-right {
+  animation: full-bar-side-right 20s ease forwards;
+  transform-origin: left;
 }
 
 /*# sourceMappingURL=lalgeosurvey-intro.css.map */
