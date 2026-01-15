@@ -1,5 +1,5 @@
 @font-face {
-  font-family: "Phosphate Solid", "Phosphate Inline", "BenguiatITCW01-BoldCn";
+  font-family: "Phosphate Solid", "Phosphate Inline", "Phosphate Solid";
   src: url("intro-assets/BenguiatProITC-BoldCond.woff") format("woff"), url("intro-assets/BenguiatProITC-BoldCond.ttf") format("truetype");
   font-style: normal;
   font-weight: bold;
@@ -67,7 +67,7 @@ body *, body *:before, body *:after {
   visibility: hidden;
 }
 .intro-title {
-  font-family: "BenguiatITCW01-BoldCn";
+  font-family: "Phosphate Solid";
   color: #C11B1F;
   font-size: 34px;
   margin-bottom: 15px;
@@ -143,7 +143,7 @@ body *, body *:before, body *:after {
   transform: translateX(-50%) translateY(-45%);
   width: 100%;
   font-size: 0;
-  font-family: "BenguiatITCW01-BoldCn";
+  font-family: "Phosphate Solid", "Phosphate Inline", "Phosphate Solid";
   color: #000;
   letter-spacing: -1.3vmin;
   font-weight: bold;
@@ -1044,7 +1044,7 @@ body *, body *:before, body *:after {
 }
 .title--full {
   color: transparent;
-  font-family: "Phosphate Solid", "Phosphate Inline", "BenguiatITCW01-BoldCn";
+  font-family: "Phosphate Solid", "Phosphate Inline", "Phosphate Solid";
   width: 1000vw;
   animation: full-title 20s cubic-bezier(0.15, 0.7, 0.26, 0.88) forwards;
   transform-origin: 50% 45%;

@@ -10,7 +10,7 @@ $color-credits: #C8C6C7;
 $color-credits-top: #D2D0D1;
 $color-credits-bottom: $color-credits;
 
-$font-title: 'BenguiatITCW01-BoldCn';
+$font-title: 'Phosphate Solid';
 $font-credits: 'Phosphate Solid', 'Phosphate Inline', Arial,Helvetica Neue,Helvetica,sans-serif; 
 
 $title-fsize: 28vmin;
@@ -239,7 +239,7 @@ body {
   transform: translateX(-50%) translateY(-45%);
   width: 100%;
   font-size: 0;
-  font-family: $font-title;
+  font-family: 'Phosphate Solid', 'Phosphate Inline', $font-title;
   color: $color-bg;
   letter-spacing: $title-spacing;
   font-weight: bold;
