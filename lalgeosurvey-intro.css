@@ -176,7 +176,7 @@ body *, body *:before, body *:after {
   display: inline-block;
 }
 .title-word--second {
-  transform: translateY(-30%);
+  transform: translateY(-15%);
 }
 .title-word-letter {
   display: inline-block;
