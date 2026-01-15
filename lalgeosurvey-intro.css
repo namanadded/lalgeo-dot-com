@@ -1222,6 +1222,9 @@ body *, body *:before, body *:after {
 .title--full .title-word-letter[data-letter=G1] {
   animation: full-g1 20s ease forwards;
 }
+.title--full .title-word-letter[data-letter=A] {
+  margin-right: 8vmin;
+}
 .title--full .title-word-letter[data-letter=E] {
   animation: full-e 20s ease forwards;
 }

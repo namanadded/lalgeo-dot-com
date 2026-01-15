@@ -833,6 +833,9 @@ body {
     @include letter("G1") {
       animation: full-g1 20s ease forwards;
     }
+    @include letter("A") {
+      margin-right: 8vmin;
+    }
     @include letter("E") {
       animation: full-e 20s ease forwards;
     }
