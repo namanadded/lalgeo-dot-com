@@ -262,6 +262,7 @@ body {
 
   &--scene {
     color: transparent;
+    letter-spacing: 1vmin;
   }
 
   &-word {
@@ -295,8 +296,8 @@ body {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 0.62em;
-  transform: translate(-50%, -52%);
+  width: 0.99em;
+  transform: translate(-50%, -80%);
   pointer-events: none;
 
   img {
@@ -554,6 +555,30 @@ body {
   }
 }
 
+.intro-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.intro-control {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #2b2f38;
+  background: rgba(#0f1117, 0.85);
+  color: #e7e9ee;
+  font-family: $font-credits;
+  font-size: 14px;
+}
+
+.intro-paused * {
+  animation-play-state: paused !important;
+}
+
 
 // Title Animations
 @mixin letter($letter: null, $scale: null) {
@@ -770,6 +795,7 @@ body {
   &--full {
     color: transparent;
     font-family: 'Phosphate Solid', 'Phosphate Inline', $font-title;
+    letter-spacing: 1vmin;
     @keyframes full-title {
       0% {
         opacity: 1;
@@ -927,14 +953,17 @@ body {
       }
     }
 
+    .titlebar--left,
+    .titlebar--right {
+      top: 92%;
+    }
+
     .titlebar--left {
       right: 25%;
-      top: 92%;
     }
 
     .titlebar--right {
       left: 25%;
-      top: 92%;
     }
   }
 }

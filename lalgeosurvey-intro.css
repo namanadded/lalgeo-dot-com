@@ -170,6 +170,7 @@ body *, body *:before, body *:after {
 }
 .title--scene {
   color: transparent;
+  letter-spacing: 1vmin;
 }
 .title-word {
   position: relative;
@@ -208,8 +209,8 @@ body *, body *:before, body *:after {
   position: absolute;
   top: 50%;
   left: 50%;
-  width: 0.62em;
-  transform: translate(-50%, -52%);
+  width: 0.99em;
+  transform: translate(-50%, -80%);
   pointer-events: none;
 }
 .title-word-letter-pin img {
@@ -525,6 +526,30 @@ body *, body *:before, body *:after {
 }
 .letterbox-cover--bottom {
   top: 100%;
+}
+
+.intro-controls {
+  position: fixed;
+  right: 20px;
+  bottom: 20px;
+  display: flex;
+  gap: 10px;
+  z-index: 5;
+}
+
+.intro-control {
+  cursor: pointer;
+  padding: 8px 12px;
+  border-radius: 10px;
+  border: 1px solid #2b2f38;
+  background: rgba(15, 17, 23, 0.85);
+  color: #e7e9ee;
+  font-family: "Phosphate Solid", "Phosphate Inline", Arial, Helvetica Neue, Helvetica, sans-serif;
+  font-size: 14px;
+}
+
+.intro-paused * {
+  animation-play-state: paused !important;
 }
 
 .title--scene .title-word {
@@ -1063,6 +1088,7 @@ body *, body *:before, body *:after {
 .title--full {
   color: transparent;
   font-family: "Phosphate Solid", "Phosphate Inline", "Phosphate Solid";
+  letter-spacing: 1vmin;
   width: 1000vw;
   animation: full-title 20s cubic-bezier(0.15, 0.7, 0.26, 0.88) forwards;
   transform-origin: 50% 45%;
@@ -1318,13 +1344,15 @@ body *, body *:before, body *:after {
 .title--full .titlebar--right {
   transform-origin: left;
 }
+.title--full .titlebar--left,
+.title--full .titlebar--right {
+  top: 92%;
+}
 .title--full .titlebar--left {
   right: 25%;
-  top: 92%;
 }
 .title--full .titlebar--right {
   left: 25%;
-  top: 92%;
 }
 
 /*# sourceMappingURL=lalgeosurvey-intro.css.map */

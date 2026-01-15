@@ -26,6 +26,23 @@
     }
   });
 
+  let started = false;
+  let paused = false;
+  let music = null;
+  const timeouts = [];
+
+  function schedule(fn, delay) {
+    const id = setTimeout(fn, delay);
+    timeouts.push(id);
+    return id;
+  }
+
+  function clearScheduled() {
+    while (timeouts.length) {
+      clearTimeout(timeouts.pop());
+    }
+  }
+
   function fitStage() {
     const host = document.querySelector('.intro-host');
     const stage = document.querySelector('.intro-stage');
@@ -75,10 +92,33 @@
         });
       }
     }
+
+    const pauseBtn = document.querySelector("[data-pause]");
+    if (pauseBtn) {
+      pauseBtn.addEventListener("click", () => {
+        if (paused) {
+          return;
+        }
+        paused = true;
+        document.body.classList.add("intro-paused");
+        pauseBtn.textContent = "Paused";
+        pauseBtn.disabled = true;
+        clearScheduled();
+        if (music) {
+          music.pause();
+        }
+      });
+    }
+
+    const restartBtn = document.querySelector("[data-restart]");
+    if (restartBtn) {
+      restartBtn.addEventListener("click", () => {
+        window.location.reload();
+      });
+    }
   });
 
   // Fade out intro, start music and animation
-  let started = false;
   function start() {
     if (started) {
       return;
@@ -87,15 +127,20 @@
 
     const intro = document.getElementsByClassName("intro")[0];
 
-    const music = new Audio("intro-assets/music.mp3");
+    music = new Audio("intro-assets/music.mp3");
 
     intro.className += " intro--hide";
 
     music.addEventListener("canplay", () => {
-      setTimeout(() => {
+      schedule(() => {
+        if (paused) {
+          return;
+        }
         startAnimation();
-        setTimeout(() => {
-          music.play();
+        schedule(() => {
+          if (!paused) {
+            music.play();
+          }
         }, 200);
       }, 1500);
     });
@@ -130,7 +175,10 @@
     // Set up credits to show every interval
     let activeCredits = null;
     for (let i = 0; i < credits.length; i++) {
-      setTimeout(() => {
+      schedule(() => {
+        if (paused) {
+          return;
+        }
         if (credits[i - 1]) {
           credits[i - 1].className = "credits-group";
         }
@@ -138,7 +186,10 @@
       }, i * creditsMs);
 
       if (!credits[i + 1]) {
-        setTimeout(() => {
+        schedule(() => {
+          if (paused) {
+            return;
+          }
           credits[i].className = "credits-group";
         }, i * creditsMs + creditsMs);
       }
@@ -147,7 +198,10 @@
     // Set up scenes to show after each interval
     let offset = 0;
     for (let i = 0; i < scenes.length; i++) {
-      setTimeout(() => {
+      schedule(() => {
+        if (paused) {
+          return;
+        }
         if (scenes[i - 1]) {
           scenes[i - 1].className = scenes[i - 1]
             .className.replace("title--show", "");
@@ -159,13 +213,19 @@
 
       if (!scenes[i + 1]) {
         // Show the last scene
-        setTimeout(() => {
+        schedule(() => {
+          if (paused) {
+            return;
+          }
           scenes[i].className = scenes[i].className.replace("title--show", "");
           fullTitle.className += " title--show";
         }, offset);
 
         // Show the final credits
-        setTimeout(() => {
+        schedule(() => {
+          if (paused) {
+            return;
+          }
           finalCredit.className += " credits-group--show";
         }, offset + scenesMs[i + 1] + 1500);
       }
