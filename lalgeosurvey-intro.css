@@ -16,6 +16,12 @@
   font-style: normal;
   font-weight: 700;
 }
+body {
+  --side-bar-width: 8%;
+  --side-bar-offset: 340%;
+  --side-bar-top: 50%;
+}
+
 html,
 body {
   width: 100%;
@@ -1090,7 +1096,7 @@ body *, body *:before, body *:after {
 .title--full {
   color: transparent;
   font-family: "Phosphate Solid", "Phosphate Inline", "Phosphate Solid";
-  letter-spacing: 1vmin;
+  letter-spacing: 6vmin;
   width: 1000vw;
   animation: full-title 20s cubic-bezier(0.15, 0.7, 0.26, 0.88) forwards;
   transform-origin: 50% 45%;
@@ -1238,18 +1244,18 @@ body *, body *:before, body *:after {
 }
 @keyframes full-bar-side-left {
   0%, 70% {
-    transform: translateX(-50%) translateX(-24vmin) scaleX(0);
+    transform: translateX(-50%) translateX(calc(-1 * var(--side-bar-offset))) scaleX(0);
   }
   75%, 100% {
-    transform: translateX(-50%) translateX(-24vmin) scaleX(1);
+    transform: translateX(-50%) translateX(calc(-1 * var(--side-bar-offset))) scaleX(1);
   }
 }
 @keyframes full-bar-side-right {
   0%, 70% {
-    transform: translateX(-50%) translateX(24vmin) scaleX(0);
+    transform: translateX(-50%) translateX(var(--side-bar-offset)) scaleX(0);
   }
   75%, 100% {
-    transform: translateX(-50%) translateX(24vmin) scaleX(1);
+    transform: translateX(-50%) translateX(var(--side-bar-offset)) scaleX(1);
   }
 }
 .title--full .title-word-letter[data-letter] {
@@ -1295,36 +1301,41 @@ body *, body *:before, body *:after {
   animation: full-a 20s ease forwards;
 }
 .title--full .title-word-letter[data-letter=N1] {
-  letter-spacing: -15vmin;
   animation: full-n1 20s ease forwards;
 }
 .title--full .title-word-letter[data-letter=G1] {
   animation: full-g1 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=A] {
   margin-right: 8vmin;
 }
 .title--full .title-word-letter[data-letter=E] {
   animation: full-e 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=R2] {
   animation: full-r2 20s ease forwards;
 }
 .title--full .title-word-letter[data-letter=T2] {
   animation: full-t2 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=H] {
   animation: full-h 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=I] {
   animation: full-i 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=N2] {
-  letter-spacing: -15vmin;
   animation: full-n2 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=G2] {
   animation: full-g2 20s ease forwards;
+  margin-right: 4vmin;
 }
 .title--full .title-word-letter[data-letter=S2] {
   animation: full-s2 20s ease forwards;
@@ -1371,8 +1382,8 @@ body *, body *:before, body *:after {
   border-width: 4vmin;
   border-radius: 1vmin;
   box-shadow: 0 0 12vmin rgba(193, 27, 31, 0.8), 0 0 5vmin rgba(193, 27, 31, 0.8) inset;
-  width: 22vmin;
-  top: 92%;
+  width: var(--side-bar-width);
+  top: var(--side-bar-top);
   left: 50%;
 }
 @media screen and (max-aspect-ratio: 16/9) {
@@ -1388,11 +1399,6 @@ body *, body *:before, body *:after {
 @media screen and (max-aspect-ratio: 16/9) {
   .title--full .titlebar--side {
     border-radius: 0.5625vw;
-  }
-}
-@media screen and (max-aspect-ratio: 16/9) {
-  .title--full .titlebar--side {
-    width: 12.375vw;
   }
 }
 .title--full .titlebar--side-left {

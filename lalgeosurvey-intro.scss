@@ -106,6 +106,11 @@ $credits-shadow-blur: 0.15vmin;
 }
 
 // Styles
+body {
+  --side-bar-width: 8%;
+  --side-bar-offset: 340%;
+  --side-bar-top: 50%;
+}
 html,
 body {
   width: 100%;
@@ -797,7 +802,7 @@ body {
   &--full {
     color: transparent;
     font-family: 'Phosphate Solid', 'Phosphate Inline', $font-title;
-    letter-spacing: 1vmin;
+    letter-spacing: 6vmin;
     @keyframes full-title {
       0% {
         opacity: 1;
@@ -880,12 +885,12 @@ body {
       75%, 100% { transform: scaleX(1); }
     }
     @keyframes full-bar-side-left {
-      0%, 70%   { transform: translateX(-50%) translateX(-24vmin) scaleX(0); }
-      75%, 100% { transform: translateX(-50%) translateX(-24vmin) scaleX(1); }
+      0%, 70%   { transform: translateX(-50%) translateX(calc(-1 * var(--side-bar-offset))) scaleX(0); }
+      75%, 100% { transform: translateX(-50%) translateX(calc(-1 * var(--side-bar-offset))) scaleX(1); }
     }
     @keyframes full-bar-side-right {
-      0%, 70%   { transform: translateX(-50%) translateX(24vmin) scaleX(0); }
-      75%, 100% { transform: translateX(-50%) translateX(24vmin) scaleX(1); }
+      0%, 70%   { transform: translateX(-50%) translateX(var(--side-bar-offset)) scaleX(0); }
+      75%, 100% { transform: translateX(-50%) translateX(var(--side-bar-offset)) scaleX(1); }
     }
 
     width: 1000vw;
@@ -906,17 +911,18 @@ body {
       animation: full-a 20s ease forwards;
     }
     @include letter("N1") {
-      letter-spacing: -15vmin;
       animation: full-n1 20s ease forwards;
     }
     @include letter("G1") {
       animation: full-g1 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("A") {
       margin-right: 8vmin;
     }
     @include letter("E") {
       animation: full-e 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("R2") {
       animation: full-r2 20s ease forwards;
@@ -924,19 +930,23 @@ body {
 
     @include letter("T2") {
       animation: full-t2 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("H") {
       animation: full-h 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("I") {
       animation: full-i 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("N2") {
-      letter-spacing: -15vmin;
       animation: full-n2 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("G2") {
       animation: full-g2 20s ease forwards;
+      margin-right: 4vmin;
     }
     @include letter("S2") {
       animation: full-s2 20s ease forwards;
@@ -970,8 +980,8 @@ body {
 
     .titlebar--side {
       @include scaled-bar(10);
-      @include v-rule(width, 22vmin);
-      top: 92%;
+      width: var(--side-bar-width);
+      top: var(--side-bar-top);
       left: 50%;
     }
 
