@@ -157,7 +157,6 @@
 
   function endPlayback() {
     ended = true;
-    showOverlay("&#8635;");
   }
 
   function updateCredits(elapsed) {
@@ -317,12 +316,6 @@
 
     if (overlayBtn) {
       overlayBtn.addEventListener("click", () => {
-        if (ended) {
-          resetTimelineState();
-          started = false;
-          start();
-          return;
-        }
         resumePlayback();
       });
     }
