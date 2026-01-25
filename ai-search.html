@@ -550,89 +550,39 @@
 
 
         
-async function interpretNaturalQuery(userQuery) {
-  showSpinner();
+        async function interpretNaturalQuery(userQuery) {
+            showSpinner();
 
-  // small status label (optional)
-  function setStatus(msg) {
-    let el = document.getElementById("status-text");
-    if (!el) {
-      el = document.createElement("div");
-      el.id = "status-text";
-      el.style.position = "fixed";
-      el.style.top = "70px";
-      el.style.left = "50%";
-      el.style.transform = "translateX(-50%)";
-      el.style.background = "rgba(255,255,255,0.95)";
-      el.style.padding = "8px 12px";
-      el.style.borderRadius = "10px";
-      el.style.boxShadow = "0 2px 8px rgba(0,0,0,0.15)";
-      el.style.zIndex = "9999";
-      el.style.fontFamily = "system-ui, sans-serif";
-      el.style.fontSize = "13px";
-      document.body.appendChild(el);
-    }
-    el.textContent = msg || "";
-    el.style.display = msg ? "block" : "none";
-  }
+            try {
+                const response = await fetch("https://api.lalgeo.ca/api/interpret", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json"
+                    },
+                    body: JSON.stringify({ query: userQuery })
+                });
 
-  try {
-    // SSE endpoint (GET)
-    const sseUrl = `https://api.lalgeo.ca/api/interpret_stream?q=${encodeURIComponent(userQuery)}`;
-    const es = new EventSource(sseUrl);
+                if (!response.ok) {
+                    showErrorPopup("❌ Failed to interpret query.");
+                    return;
+                }
 
-    es.addEventListener("status", (e) => {
-      setStatus(e.data);
-    });
+                const result = await response.json();
+                console.log("Interpreted Result:", result);
 
-    es.addEventListener("result", (e) => {
-      es.close();
-      setStatus("");
-      hideSpinner();
+                if (!result || !result.statistics || !result.geojson_url) {
+                    showErrorPopup("❌ No results found or unsupported query.");
+                    return;
+                }
 
-      const result = JSON.parse(e.data);
-      console.log("Interpreted Result:", result);
-      handleMapTask(result);
-    });
-
-    es.addEventListener("error", () => {
-      // SSE errors can happen if proxy closes; fallback to POST
-      es.close();
-      setStatus("");
-      fallbackInterpretPOST(userQuery);
-    });
-
-  } catch (err) {
-    console.warn("SSE failed, falling back to POST:", err);
-    fallbackInterpretPOST(userQuery);
-  }
-}
-
-async function fallbackInterpretPOST(userQuery) {
-  showSpinner();
-  try {
-    const response = await fetch("https://api.lalgeo.ca/api/interpret", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ query: userQuery })
-    });
-
-    if (!response.ok) {
-      showErrorPopup("❌ Failed to interpret query.");
-      return;
-    }
-
-    const result = await response.json();
-    console.log("Interpreted Result (POST):", result);
-    handleMapTask(result);
-  } catch (err) {
-    console.error(err);
-    showErrorPopup("❌ Error processing query.");
-  } finally {
-    hideSpinner();
-  }
-}
-
+                handleMapTask(result);
+            } catch (error) {
+                console.error("Query error:", error);
+                showErrorPopup("❌ Error processing query.");
+            } finally {
+                hideSpinner();
+            }
+        }
 
         
         async function loadAndRenderFeatures(statField, geojson_url, centroids_url) {
@@ -929,93 +879,46 @@ async function fallbackInterpretPOST(userQuery) {
 
 
         function handleMapTask(task) {
-        // POI mode
-        if (task.task === "show_points") {
-            hideSpinner();
+            if (task.task === "create_map" && task.statistics && task.geojson_url) {
+                window.dynamicStatField = task.overlay;
+                window.dynamicStatUnit = task.unit || "";
+                window.dynamicStatistics = Object.fromEntries(
+                    Object.entries(task.statistics).map(([k, v]) => [k.toLowerCase(), v])
+                );
 
-            if (!task.points || task.points.length === 0) {
-            showErrorPopup("❌ No matching places found.");
-            return;
-            }
+                // ✅ Dynamically adjust the domain based on current site
+                const localGeojsonUrl = task.geojson_url.startsWith("/")
+                    ? window.location.origin + task.geojson_url
+                    : task.geojson_url.replace(/^https:\/\/[^/]+/, window.location.origin);
 
-            // Clear old annotations/overlays (optional)
-            if (window.stateOverlays) window.stateOverlays.forEach(o => map.removeOverlay(o));
-            if (window.stateAnnotations) window.stateAnnotations.forEach(a => map.removeAnnotation(a));
-            window.stateOverlays = [];
-            window.stateAnnotations = [];
+                const localCentroidsUrl = task.centroids_url
+                    ? task.centroids_url.startsWith("/")
+                        ? window.location.origin + task.centroids_url
+                        : task.centroids_url.replace(/^https:\/\/[^/]+/, window.location.origin)
+                    : undefined;
 
-            // Add pins
-            const coords = [];
-            task.points.forEach(p => {
-            const coord = new mapkit.Coordinate(p.lat, p.lon);
-            coords.push(coord);
+                loadAndRenderFeatures(task.overlay, localGeojsonUrl, localCentroidsUrl);
 
-            const ann = new mapkit.MarkerAnnotation(coord, {
-                title: p.name,
-                subtitle: p.address || ""
-            });
-            map.addAnnotation(ann);
-            window.stateAnnotations.push(ann);
-            });
-
-            // Zoom to bounds
-            if (coords.length > 1) {
-            map.region = computeBounds(coords);
+                // 👇 Show disclaimer based on source
+                const disclaimerBox = document.getElementById("data-disclaimer");
+                if (task.source && task.source.toLowerCase().includes("census")) {
+                    disclaimerBox.innerHTML = `
+                        Data provided by the <a href="https://www.census.gov/" target="_blank" style="color:#007aff; text-decoration: underline;">
+                        U.S. Census Bureau</a>.<br>
+                        Accuracy based on official government statistics.
+                    `;
+                } else {
+                    disclaimerBox.innerHTML = `
+                        ⚠️ Data generated by a large language model (LLM).<br>
+                        It may be outdated, incomplete, or inaccurate. Use with caution.
+                    `;
+                }
+                disclaimerBox.style.display = "block";
             } else {
-            map.region = new mapkit.CoordinateRegion(coords[0], new mapkit.CoordinateSpan(0.05, 0.05));
+                alert("❌ Unsupported or malformed task");
+                console.warn("Unhandled task:", task);
             }
-
-            document.querySelector(".share-button").style.display = "flex";
-            return;
         }
-
-        // create_map mode
-        if (task.task === "create_map" && task.geojson_url) {
-            // If statistics are empty, it means "intent-only" (unsupported overlay right now)
-            if (!task.statistics || Object.keys(task.statistics).length === 0) {
-            showErrorPopup("⚠️ That overlay isn’t supported yet. Try: population, median income, bachelor’s degree.");
-            return;
-            }
-
-            window.dynamicStatField = task.overlay;
-            window.dynamicStatUnit = task.unit || "";
-            window.dynamicStatistics = Object.fromEntries(
-            Object.entries(task.statistics).map(([k, v]) => [k.toLowerCase(), v])
-            );
-
-            const localGeojsonUrl = task.geojson_url.startsWith("/")
-            ? window.location.origin + task.geojson_url
-            : task.geojson_url.replace(/^https:\/\/[^/]+/, window.location.origin);
-
-            const localCentroidsUrl = task.centroids_url
-            ? (task.centroids_url.startsWith("/")
-                ? window.location.origin + task.centroids_url
-                : task.centroids_url.replace(/^https:\/\/[^/]+/, window.location.origin))
-            : undefined;
-
-            // parallel load (faster)
-            loadAndRenderFeatures(task.overlay, localGeojsonUrl, localCentroidsUrl);
-
-            const disclaimerBox = document.getElementById("data-disclaimer");
-            if (task.source && task.source.toLowerCase().includes("census")) {
-            disclaimerBox.innerHTML = `
-                Data provided by the <a href="https://www.census.gov/" target="_blank" style="color:#007aff; text-decoration: underline;">
-                U.S. Census Bureau</a>.<br>
-                Accuracy based on official government statistics.
-            `;
-            } else {
-            disclaimerBox.innerHTML = `
-                ⚠️ Data may be incomplete.<br>
-                Use with caution.
-            `;
-            }
-            disclaimerBox.style.display = "block";
-        } else {
-            showErrorPopup("❌ Unsupported or malformed task");
-            console.warn("Unhandled task:", task);
-        }
-        }
-
 
 
 
