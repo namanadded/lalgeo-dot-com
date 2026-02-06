@@ -1,0 +1,7 @@
+[build]
+  base = "survey"
+  command = "npm run build"
+  publish = ""
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
