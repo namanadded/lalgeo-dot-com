@@ -36,6 +36,10 @@ export default function EditSurveyPage() {
   const [error, setError] = useState<string | null>(null);
 
   const load = async () => {
+    if (!params?.id) {
+      router.replace("/survey/dashboard");
+      return;
+    }
     const res = await fetch(`/survey/api/surveys/${params.id}`);
     if (res.status === 401) {
       router.replace("/survey/login");
@@ -53,9 +57,13 @@ export default function EditSurveyPage() {
 
   useEffect(() => {
     load();
-  }, []);
+  }, [params]);
 
   const save = async (nextQuestions: Question[]) => {
+    if (!params?.id) {
+      setError("Survey not found.");
+      return;
+    }
     setError(null);
     const res = await fetch(`/survey/api/surveys/${params.id}`, {
       method: "PATCH",
