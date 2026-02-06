@@ -94,6 +94,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="top-actions">
+            <button className="button secondary" onClick={() => router.push("/survey/integrations")}>Sync integrations</button>
             <button className="button secondary" onClick={logout}>Sign out</button>
           </div>
         </div>
