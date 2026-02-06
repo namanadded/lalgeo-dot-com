@@ -32,6 +32,10 @@ export default function PublicSurveyPage() {
 
   useEffect(() => {
     const load = async () => {
+      if (!params?.publicId) {
+        setStatus("Survey not found");
+        return;
+      }
       const res = await fetch(`/survey/api/public/${params.publicId}`);
       if (!res.ok) {
         setStatus("Survey not found");
@@ -41,9 +45,13 @@ export default function PublicSurveyPage() {
       setSurvey(data.survey);
     };
     load();
-  }, []);
+  }, [params]);
 
   const onUpload = async (questionId: string, file: File) => {
+    if (!params?.publicId) {
+      setStatus("Survey not found");
+      return;
+    }
     const form = new FormData();
     form.append("publicId", String(params.publicId));
     form.append("file", file);
@@ -63,6 +71,10 @@ export default function PublicSurveyPage() {
   };
 
   const submit = async () => {
+    if (!params?.publicId) {
+      setStatus("Survey not found");
+      return;
+    }
     if (!survey) return;
     setStatus(null);
     for (const q of survey.questions) {
