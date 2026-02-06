@@ -16,6 +16,10 @@ export default function ShareSurveyPage() {
 
   useEffect(() => {
     const load = async () => {
+      if (!params?.id) {
+        router.replace("/survey/dashboard");
+        return;
+      }
       const res = await fetch(`/survey/api/surveys/${params.id}`);
       if (res.status === 401) {
         router.replace("/survey/login");
@@ -29,7 +33,7 @@ export default function ShareSurveyPage() {
       setSurvey(data.survey);
     };
     load();
-  }, []);
+  }, [params, router]);
 
   const copy = async () => {
     if (!survey) return;
