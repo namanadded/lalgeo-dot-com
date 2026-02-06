@@ -24,7 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const form = formidable({ multiples: true, keepExtensions: true });
 
-  form.parse(req, (err, fields, files) => {
+  form.parse(req, (err: Error | null, fields: Record<string, unknown>, files: Record<string, unknown>) => {
     if (err) {
       res.status(400).json({ error: "Invalid upload" });
       return;
@@ -45,7 +45,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return;
     }
 
-    const fileList = Array.isArray(files.file) ? files.file : [files.file].filter(Boolean);
+    const fileValue = files.file;
+    const fileList = Array.isArray(fileValue) ? fileValue : [fileValue].filter(Boolean);
     if (fileList.length === 0) {
       res.status(400).json({ error: "No files uploaded" });
       return;
