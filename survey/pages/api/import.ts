@@ -32,18 +32,20 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const form = formidable({ multiples: false, keepExtensions: true });
-  form.parse(req, (err, _fields, files) => {
+  form.parse(req, (err: Error | null, _fields: unknown, files: Record<string, unknown>) => {
     if (err) {
       res.status(400).json({ error: "Invalid file" });
       return;
     }
-    const file = Array.isArray(files.file) ? files.file[0] : files.file;
-    if (!file?.filepath) {
+    const fileValue = files.file;
+    const file = Array.isArray(fileValue) ? fileValue[0] : fileValue;
+    if (!file || typeof file !== "object" || !("filepath" in file)) {
       res.status(400).json({ error: "No file uploaded" });
       return;
     }
 
-    const zip = new AdmZip(file.filepath);
+    const filepath = (file as { filepath: string }).filepath;
+    const zip = new AdmZip(filepath);
     const surveyJsonEntry = zip.getEntry("survey.json");
     const metadataEntry = zip.getEntry("metadata.json");
     const surveyCsvEntry = zip.getEntry("survey.csv");
