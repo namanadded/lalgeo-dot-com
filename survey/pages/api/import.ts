@@ -76,8 +76,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } catch {}
     } else if (surveyCsvEntry) {
       const csv = surveyCsvEntry.getData().toString("utf8");
-      const rows = csv.split(/\r?\n/).filter((line) => line.trim().length > 0);
-      let startIndex = rows.findIndex((row) => row.toLowerCase().startsWith("question"));
+      const rows: string[] = csv.split(/\r?\n/).filter((line: string) => line.trim().length > 0);
+      let startIndex = rows.findIndex((row: string) => row.toLowerCase().startsWith("question"));
       if (startIndex === -1) startIndex = 0;
       for (let i = startIndex + 1; i < rows.length; i += 1) {
         if (rows[i].toLowerCase().startsWith("responses")) break;
