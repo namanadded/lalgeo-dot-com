@@ -1,5 +1,5 @@
 import type { NextApiRequest, NextApiResponse } from "next";
-import formidable, { File as FormidableFile } from "formidable";
+import formidable from "formidable";
 import fs from "fs";
 import path from "path";
 import { enforceSurveyCap, ensureSurveyDirs, surveyUploadsDir } from "../../lib/storage";
@@ -66,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 
     const stored: { name: string; storedName: string; url: string }[] = [];
-    for (const file of fileList as FormidableFile[]) {
+    for (const file of fileList) {
       if (!file || !file.filepath) continue;
       const original = safeName(file.originalFilename || "upload.bin");
       const storedName = `${Date.now()}-${original}`;
