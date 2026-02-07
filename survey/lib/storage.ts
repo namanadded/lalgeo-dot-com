@@ -1,7 +1,13 @@
 import fs from "fs";
+import os from "os";
 import path from "path";
 
-const STORAGE_ROOT = process.env.LALGEO_STORAGE_ROOT || "/Volumes/LALGEO_CLOUD/surveys";
+const DEFAULT_STORAGE_ROOT = "/Volumes/LALGEO_CLOUD/surveys";
+const STORAGE_ROOT =
+  process.env.LALGEO_STORAGE_ROOT ||
+  (process.env.NETLIFY || process.env.CI
+    ? path.join(os.tmpdir(), "lalgeo-surveys")
+    : DEFAULT_STORAGE_ROOT);
 
 export const MAX_SURVEY_BYTES = 100 * 1024 * 1024;
 
