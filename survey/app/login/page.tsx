@@ -26,9 +26,9 @@ export default function LoginPage() {
   };
 
   return (
-    <main>
-      <div className="container">
-        <div className="header">
+    <main className="auth-page">
+      <div className="container auth-shell">
+        <div className="header auth-header">
           <div className="brand">
             <img className="brand-logo" src="/survey/img/lalgeo-logo.png" alt="LalGeo logo" />
             <div>
@@ -37,10 +37,10 @@ export default function LoginPage() {
             </div>
           </div>
         </div>
-        <div className="panel" style={{ maxWidth: 520 }}>
+        <div className="panel auth-card">
           <h2>Welcome back</h2>
           {error && <div className="banner" style={{ background: "#f8d7d0" }}>{error}</div>}
-          <form className="grid" onSubmit={submit}>
+          <form className="grid auth-form" onSubmit={submit}>
             <div>
               <label>Email</label>
               <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
