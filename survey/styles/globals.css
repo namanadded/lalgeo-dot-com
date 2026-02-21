@@ -90,18 +90,29 @@ main {
 }
 
 .auth-page {
-  padding-top: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding-top: 0;
 }
 
 .auth-shell {
   max-width: 720px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .auth-header {
+  width: 100%;
+  justify-content: center;
   margin-bottom: 18px;
 }
 
 .auth-card {
+  width: 100%;
   max-width: 560px;
   padding: 26px 22px 20px;
   border: 1px solid rgba(226, 226, 220, 0.95);
@@ -110,11 +121,36 @@ main {
   background: rgba(255, 255, 255, 0.82);
 }
 
+.auth-brand {
+  flex-direction: column;
+  gap: 2px;
+  align-items: center;
+  text-align: center;
+}
+
+.auth-brand .brand-logo {
+  width: 170px;
+  max-height: none;
+}
+
+.brand-cloud {
+  font-family: "BenguiatCond", "Avenir Next", "Helvetica Neue", sans-serif;
+  font-size: 30px;
+  letter-spacing: 1px;
+  line-height: 1;
+  color: #ef4444;
+}
+
+.auth-brand .muted {
+  margin-top: 4px;
+}
+
 .auth-card h2 {
   font-size: 40px;
   line-height: 1.07;
   letter-spacing: -0.55px;
   margin: 4px 0 8px;
+  text-align: center;
 }
 
 .auth-form {
@@ -333,6 +369,8 @@ label {
   }
 
   .auth-page {
+    align-items: flex-start;
+    justify-content: center;
     padding-top: 30px;
   }
 
@@ -348,6 +386,14 @@ label {
   .auth-card h2 {
     font-size: 32px;
     letter-spacing: -0.35px;
+  }
+
+  .auth-brand .brand-logo {
+    width: 146px;
+  }
+
+  .brand-cloud {
+    font-size: 26px;
   }
 }
 

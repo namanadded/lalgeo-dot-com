@@ -29,12 +29,10 @@ export default function LoginPage() {
     <main className="auth-page">
       <div className="container auth-shell">
         <div className="header auth-header">
-          <div className="brand">
+          <div className="brand auth-brand">
             <img className="brand-logo" src="/survey/img/lalgeo-logo.png" alt="LalGeo logo" />
-            <div>
-              <div className="brand-title">LalGeo Cloud</div>
-              <div className="muted">Sign in to manage surveys</div>
-            </div>
+            <div className="brand-cloud">CLOUD</div>
+            <div className="muted">Sign in to manage surveys</div>
           </div>
         </div>
         <div className="panel auth-card">
