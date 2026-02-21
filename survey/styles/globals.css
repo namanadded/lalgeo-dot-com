@@ -344,12 +344,16 @@ label {
 }
 
 .dashboard-brand .brand-logo {
-  width: 116px;
+  width: 124px;
   max-height: none;
 }
 
 .dashboard-brand .brand-cloud {
+  width: 124px;
   margin-top: -5px;
+  font-size: 26px;
+  letter-spacing: 0.8px;
+  text-align: center;
 }
 
 .dashboard-brand .muted {
@@ -425,6 +429,12 @@ label {
 
   .dashboard-brand .brand-logo {
     width: 96px;
+  }
+
+  .dashboard-brand .brand-cloud {
+    width: 96px;
+    font-size: 21px;
+    letter-spacing: 0.6px;
   }
 
   main {
