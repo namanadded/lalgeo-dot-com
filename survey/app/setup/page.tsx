@@ -31,10 +31,10 @@ export default function SetupPage() {
         <div className="header">
           <div className="brand">
             <img src="/survey/img/lalgeo-logo.png" alt="LalGeo" />
-            <div>
-              <div className="brand-title">LalGeo Survey Cloud</div>
+              <div>
+              <div className="brand-title">LalGeo Cloud</div>
               <div className="muted">First-time admin setup</div>
-            </div>
+              </div>
           </div>
         </div>
         <div className="panel" style={{ maxWidth: 520 }}>

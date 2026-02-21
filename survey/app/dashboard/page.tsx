@@ -83,14 +83,14 @@ export default function DashboardPage() {
   };
 
   return (
-    <main>
+    <main className="dashboard">
       <div className="container">
         <div className="header">
           <div className="brand">
             <img src="/survey/img/lalgeo-logo.png" alt="LalGeo" />
             <div>
-              <div className="brand-title">Survey Dashboard</div>
-              <div className="muted">LalGeo Cloud on /Volumes/LALGEO_CLOUD</div>
+              <div className="brand-title">LalGeo Cloud</div>
+              <div className="muted">Survey dashboard · /Volumes/LALGEO_CLOUD</div>
             </div>
           </div>
           <div className="top-actions">

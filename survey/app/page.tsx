@@ -24,7 +24,7 @@ export default function Home() {
     <main>
       <div className="container">
         <div className="panel">
-          <h1 className="brand-title">LalGeo Survey Cloud</h1>
+          <h1 className="brand-title">LalGeo Cloud</h1>
           <p className="muted">Loading…</p>
         </div>
       </div>

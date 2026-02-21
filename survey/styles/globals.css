@@ -1,13 +1,14 @@
 :root {
-  --bg: #f3efe7;
-  --ink: #1b1b1b;
-  --muted: #6b6b63;
-  --accent: #1e6f5c;
-  --accent-2: #d4912a;
-  --panel: #fff7ea;
-  --edge: #2d2b26;
-  --danger: #b6342c;
-  --shadow: 0 20px 60px rgba(0, 0, 0, 0.15);
+  --bg: #f6f7f5;
+  --ink: #0f1115;
+  --muted: #6a6a66;
+  --accent: #0a84ff;
+  --accent-2: #2fb67c;
+  --panel: rgba(255, 255, 255, 0.86);
+  --edge: #e1e1da;
+  --danger: #d04a3a;
+  --shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
+  --shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 @font-face {
@@ -25,11 +26,13 @@
 html, body {
   padding: 0;
   margin: 0;
-  font-family: "Iowan Old Style", "Palatino", "Georgia", serif;
+  font-family: "SF Pro Text", "SF Pro Display", "Avenir Next", "Helvetica Neue", sans-serif;
   color: var(--ink);
-  background: radial-gradient(circle at top left, #f5dcb6 0%, transparent 45%),
-    radial-gradient(circle at 80% 10%, #c9e2d5 0%, transparent 40%),
-    var(--bg);
+  background:
+    radial-gradient(circle at 12% 8%, rgba(255, 255, 255, 0.95) 0%, transparent 45%),
+    radial-gradient(circle at 88% 10%, rgba(193, 227, 255, 0.65) 0%, transparent 40%),
+    radial-gradient(circle at 18% 85%, rgba(211, 241, 227, 0.6) 0%, transparent 45%),
+    linear-gradient(120deg, #f2f3f1 0%, #f7f8f4 45%, #eff4f9 100%);
   min-height: 100%;
 }
 
@@ -68,18 +71,19 @@ main {
 }
 
 .brand-title {
-  font-family: "BenguiatCond", "Impact", serif;
-  font-size: 28px;
-  text-transform: uppercase;
-  letter-spacing: 1.5px;
+  font-family: "SF Pro Display", "Avenir Next", "Helvetica Neue", sans-serif;
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: 0.4px;
 }
 
 .panel {
   background: var(--panel);
-  border: 2px solid var(--edge);
-  border-radius: 20px;
+  border: 1px solid var(--edge);
+  border-radius: 22px;
   padding: 24px;
   box-shadow: var(--shadow);
+  backdrop-filter: blur(12px);
 }
 
 .grid {
@@ -93,24 +97,26 @@ main {
 
 .button {
   appearance: none;
-  border: 2px solid var(--edge);
-  background: var(--accent);
+  border: 1px solid transparent;
+  background: linear-gradient(180deg, #2a8bff 0%, #0a6fff 100%);
   color: #fff;
-  padding: 12px 18px;
-  border-radius: 14px;
+  padding: 11px 18px;
+  border-radius: 999px;
   font-weight: 600;
   cursor: pointer;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-  box-shadow: 4px 4px 0 var(--edge);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+  box-shadow: 0 10px 24px rgba(10, 111, 255, 0.25);
 }
 
 .button.secondary {
-  background: #fff;
+  background: rgba(255, 255, 255, 0.92);
   color: var(--ink);
+  border-color: var(--edge);
+  box-shadow: var(--shadow-soft);
 }
 
 .button.danger {
-  background: var(--danger);
+  background: linear-gradient(180deg, #e05a4a 0%, #c23e30 100%);
 }
 
 .button:disabled {
@@ -119,17 +125,24 @@ main {
 }
 
 .button:hover:not(:disabled) {
-  transform: translate(-2px, -2px);
-  box-shadow: 6px 6px 0 var(--edge);
+  transform: translateY(-1px);
+  box-shadow: 0 14px 26px rgba(10, 111, 255, 0.3);
 }
 
 .input, select, textarea {
   width: 100%;
-  padding: 10px 12px;
-  border-radius: 12px;
-  border: 2px solid var(--edge);
-  background: #fffdf7;
+  padding: 11px 14px;
+  border-radius: 14px;
+  border: 1px solid var(--edge);
+  background: #ffffff;
   font-size: 15px;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: rgba(10, 132, 255, 0.6);
+  box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.2);
 }
 
 label {
@@ -140,14 +153,14 @@ label {
 
 .muted {
   color: var(--muted);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .card {
-  border: 2px dashed rgba(0, 0, 0, 0.2);
-  border-radius: 16px;
+  border: 1px dashed rgba(15, 23, 42, 0.2);
+  border-radius: 18px;
   padding: 16px;
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .question-item {
@@ -155,10 +168,11 @@ label {
   grid-template-columns: 1fr auto;
   align-items: center;
   gap: 12px;
-  padding: 12px;
-  border-radius: 14px;
-  border: 2px solid var(--edge);
-  background: #fff;
+  padding: 14px 16px;
+  border-radius: 18px;
+  border: 1px solid var(--edge);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: var(--shadow-soft);
 }
 
 .question-item + .question-item {
@@ -170,7 +184,8 @@ label {
   border-radius: 999px;
   font-size: 12px;
   border: 1px solid var(--edge);
-  background: #ffe8c6;
+  background: rgba(10, 132, 255, 0.1);
+  color: #0a4aa5;
 }
 
 .top-actions {
@@ -181,10 +196,43 @@ label {
 
 .banner {
   padding: 12px 16px;
-  border-radius: 12px;
-  border: 2px solid var(--edge);
-  background: #fce7cb;
+  border-radius: 14px;
+  border: 1px solid var(--edge);
+  background: rgba(248, 240, 230, 0.9);
   margin-bottom: 16px;
+}
+
+.dashboard .header,
+.dashboard .panel,
+.dashboard .question-item {
+  animation: float-in 0.6s ease both;
+}
+
+.dashboard .panel:nth-of-type(2) {
+  animation-delay: 0.08s;
+}
+
+.dashboard .question-item {
+  animation-delay: 0.12s;
+}
+
+@keyframes float-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dashboard .header,
+  .dashboard .panel,
+  .dashboard .question-item {
+    animation: none;
+  }
 }
 
 @media (max-width: 720px) {
