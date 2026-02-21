@@ -22,7 +22,7 @@ export default function SetupPage() {
       setError(data.error || "Setup failed");
       return;
     }
-    router.replace("/survey/dashboard");
+    router.replace("/dashboard");
   };
 
   return (

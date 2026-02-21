@@ -34,7 +34,7 @@ export default function DashboardPage() {
   const load = async () => {
     const res = await fetch("/survey/api/surveys");
     if (res.status === 401) {
-      router.replace("/survey/login");
+      router.replace("/login");
       return;
     }
     const data = await res.json();
@@ -64,7 +64,7 @@ export default function DashboardPage() {
 
   const logout = async () => {
     await fetch("/survey/api/auth/logout", { method: "POST" });
-    router.replace("/survey/login");
+    router.replace("/login");
   };
 
   const importSurvey = async (file: File) => {
@@ -94,7 +94,7 @@ export default function DashboardPage() {
             </div>
           </div>
           <div className="top-actions">
-            <button className="button secondary" onClick={() => router.push("/survey/integrations")}>Sync integrations</button>
+            <button className="button secondary" onClick={() => router.push("/integrations")}>Sync integrations</button>
             <button className="button secondary" onClick={logout}>Sign out</button>
           </div>
         </div>

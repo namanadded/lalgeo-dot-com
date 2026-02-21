@@ -22,7 +22,7 @@ export default function LoginPage() {
       setError(data.error || "Login failed");
       return;
     }
-    router.replace("/survey/dashboard");
+    router.replace("/dashboard");
   };
 
   return (

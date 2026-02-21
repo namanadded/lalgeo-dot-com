@@ -12,10 +12,10 @@ export default function Home() {
       const { hasUsers } = await status.json();
       const me = await fetch("/survey/api/me");
       if (me.ok) {
-        router.replace("/survey/dashboard");
+        router.replace("/dashboard");
         return;
       }
-      router.replace(hasUsers ? "/survey/login" : "/survey/setup");
+      router.replace(hasUsers ? "/login" : "/setup");
     };
     decide();
   }, [router]);

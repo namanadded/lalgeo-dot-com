@@ -37,16 +37,16 @@ export default function EditSurveyPage() {
 
   const load = async () => {
     if (!params?.id) {
-      router.replace("/survey/dashboard");
+      router.replace("/dashboard");
       return;
     }
     const res = await fetch(`/survey/api/surveys/${params.id}`);
     if (res.status === 401) {
-      router.replace("/survey/login");
+      router.replace("/login");
       return;
     }
     if (!res.ok) {
-      router.replace("/survey/dashboard");
+      router.replace("/dashboard");
       return;
     }
     const data = await res.json();
@@ -125,7 +125,7 @@ export default function EditSurveyPage() {
             <div className="muted">{survey.name}</div>
           </div>
           <div className="top-actions">
-            <button className="button secondary" onClick={() => router.push("/survey/dashboard")}>Back</button>
+            <button className="button secondary" onClick={() => router.push("/dashboard")}>Back</button>
             <button className="button" onClick={() => save(survey.questions)}>Save changes</button>
           </div>
         </div>

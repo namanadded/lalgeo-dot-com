@@ -192,7 +192,7 @@ export default function IntegrationsPage() {
     setError(null);
     const res = await fetch("/survey/api/sync/connections");
     if (res.status === 401) {
-      router.replace("/survey/login");
+      router.replace("/login");
       return;
     }
     const data = await res.json().catch(() => ({}));
@@ -331,7 +331,7 @@ export default function IntegrationsPage() {
             <div className="integrations-subtitle">Connect Dropbox surveys to ArcGIS targets with instant or scheduled sync.</div>
           </div>
           <div className="integrations-actions">
-            <button className="apple-button secondary" onClick={() => router.push("/survey/dashboard")}>Back to dashboard</button>
+            <button className="apple-button secondary" onClick={() => router.push("/dashboard")}>Back to dashboard</button>
             <button className="apple-button" onClick={startWizard}>Add integration</button>
           </div>
         </div>

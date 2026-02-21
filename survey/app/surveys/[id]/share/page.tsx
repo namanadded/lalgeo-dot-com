@@ -17,16 +17,16 @@ export default function ShareSurveyPage() {
   useEffect(() => {
     const load = async () => {
       if (!params?.id) {
-        router.replace("/survey/dashboard");
+        router.replace("/dashboard");
         return;
       }
       const res = await fetch(`/survey/api/surveys/${params.id}`);
       if (res.status === 401) {
-        router.replace("/survey/login");
+        router.replace("/login");
         return;
       }
       if (!res.ok) {
-        router.replace("/survey/dashboard");
+        router.replace("/dashboard");
         return;
       }
       const data = await res.json();
@@ -62,7 +62,7 @@ export default function ShareSurveyPage() {
             <div className="brand-title">Share Survey</div>
             <div className="muted">{survey.name}</div>
           </div>
-          <button className="button secondary" onClick={() => router.push("/survey/dashboard")}>Back</button>
+          <button className="button secondary" onClick={() => router.push("/dashboard")}>Back</button>
         </div>
         <div className="panel">
           <h2>Public survey link</h2>
