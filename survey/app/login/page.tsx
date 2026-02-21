@@ -30,11 +30,11 @@ export default function LoginPage() {
       <div className="container">
         <div className="header">
           <div className="brand">
-            <img src="/survey/img/lalgeo-logo.png" alt="LalGeo" />
-              <div>
+            <img className="brand-logo" src="/survey/img/lalgeo-logo.png" alt="LalGeo logo" />
+            <div>
               <div className="brand-title">LalGeo Cloud</div>
               <div className="muted">Sign in to manage surveys</div>
-              </div>
+            </div>
           </div>
         </div>
         <div className="panel" style={{ maxWidth: 520 }}>
