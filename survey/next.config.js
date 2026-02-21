@@ -2,7 +2,16 @@
 const nextConfig = {
   basePath: "/survey",
   output: "standalone",
-  images: { unoptimized: true }
+  images: { unoptimized: true },
+  async redirects() {
+    return [
+      {
+        source: "/",
+        destination: "/survey",
+        permanent: false,
+      },
+    ];
+  },
 };
 
 module.exports = nextConfig;
