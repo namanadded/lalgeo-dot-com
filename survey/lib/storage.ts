@@ -3,11 +3,15 @@ import os from "os";
 import path from "path";
 
 const DEFAULT_STORAGE_ROOT = "/Volumes/LALGEO_CLOUD/surveys";
-const STORAGE_ROOT =
-  process.env.LALGEO_STORAGE_ROOT ||
-  (process.env.NETLIFY || process.env.CI
-    ? path.join(os.tmpdir(), "lalgeo-surveys")
-    : DEFAULT_STORAGE_ROOT);
+
+function resolveStorageRoot(): string {
+  if (process.env.LALGEO_STORAGE_ROOT) return process.env.LALGEO_STORAGE_ROOT;
+  // Prefer local mounted volume when available, otherwise fall back to /tmp for serverless hosts.
+  if (fs.existsSync(DEFAULT_STORAGE_ROOT)) return DEFAULT_STORAGE_ROOT;
+  return path.join(os.tmpdir(), "lalgeo-surveys");
+}
+
+const STORAGE_ROOT = resolveStorageRoot();
 
 export const MAX_SURVEY_BYTES = 100 * 1024 * 1024;
 
