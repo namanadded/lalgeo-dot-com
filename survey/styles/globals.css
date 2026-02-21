@@ -194,6 +194,28 @@ label {
   gap: 10px;
 }
 
+.create-actions {
+  margin-top: 16px;
+  align-items: center;
+}
+
+.file-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 0;
+  cursor: pointer;
+}
+
+.file-button input[type="file"] {
+  display: none;
+}
+
+.file-button.disabled {
+  pointer-events: none;
+  opacity: 0.6;
+}
+
 .banner {
   padding: 12px 16px;
   border-radius: 14px;

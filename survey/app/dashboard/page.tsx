@@ -112,21 +112,19 @@ export default function DashboardPage() {
               <input className="input" value={description} onChange={(e) => setDescription(e.target.value)} />
             </div>
           </div>
-          <div style={{ marginTop: 12 }}>
+          <div className="top-actions create-actions">
             <button className="button" onClick={createSurvey}>Create survey</button>
-            <label style={{ marginLeft: 10 }}>
+            <label className={`button secondary file-button${importing ? " disabled" : ""}`}>
               <input
                 type="file"
                 accept=".lal,.zip"
-                style={{ display: "none" }}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
                   if (file) importSurvey(file);
                 }}
+                disabled={importing}
               />
-              <span className="button secondary" style={{ marginLeft: 10, opacity: importing ? 0.6 : 1 }}>
-                {importing ? "Importing…" : "Import .lal"}
-              </span>
+              {importing ? "Importing..." : "Import .lal"}
             </label>
           </div>
         </div>
