@@ -49,7 +49,7 @@ export default function SetupPage() {
               <label>Password</label>
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <button className="button" type="submit">Create admin</button>
+            <button className="button auth-submit" type="submit">Create admin</button>
           </form>
         </div>
       </div>

@@ -49,7 +49,7 @@ export default function LoginPage() {
               <label>Password</label>
               <input className="input" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
             </div>
-            <button className="button" type="submit">Sign in</button>
+            <button className="button auth-submit" type="submit">Sign in</button>
           </form>
         </div>
       </div>
