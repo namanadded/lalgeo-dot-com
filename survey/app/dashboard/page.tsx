@@ -86,14 +86,12 @@ export default function DashboardPage() {
     <main className="dashboard">
       <div className="container">
         <div className="header">
-          <div className="brand">
+          <div className="brand dashboard-brand">
             <img className="brand-logo" src="/survey/img/lalgeo-logo.png" alt="LalGeo logo" />
-            <div>
-              <div className="brand-title">LalGeo Cloud</div>
-              <div className="muted">Survey dashboard · /Volumes/LALGEO_CLOUD</div>
-            </div>
+            <div className="brand-cloud">CLOUD</div>
+            <div className="muted">Survey dashboard · /Volumes/LALGEO_CLOUD</div>
           </div>
-          <div className="top-actions">
+          <div className="top-actions dashboard-actions">
             <button className="button secondary" onClick={() => router.push("/integrations")}>Sync integrations</button>
             <button className="button secondary" onClick={logout}>Sign out</button>
           </div>
