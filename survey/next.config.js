@@ -9,6 +9,7 @@ const nextConfig = {
         source: "/",
         destination: "/survey",
         permanent: false,
+        basePath: false,
       },
     ];
   },
