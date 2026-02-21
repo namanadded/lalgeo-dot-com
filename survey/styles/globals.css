@@ -103,6 +103,7 @@ main {
   display: flex;
   flex-direction: column;
   align-items: center;
+  margin-top: -26px;
 }
 
 .auth-header {
@@ -123,7 +124,7 @@ main {
 
 .auth-brand {
   flex-direction: column;
-  gap: 2px;
+  gap: 0;
   align-items: center;
   text-align: center;
 }
@@ -134,15 +135,16 @@ main {
 }
 
 .brand-cloud {
-  font-family: "BenguiatCond", "Avenir Next", "Helvetica Neue", sans-serif;
+  font-family: "Phosphate", "BenguiatCond", "Avenir Next", "Helvetica Neue", sans-serif;
   font-size: 30px;
   letter-spacing: 1px;
   line-height: 1;
   color: #ef4444;
+  margin-top: -4px;
 }
 
 .auth-brand .muted {
-  margin-top: 4px;
+  margin-top: 2px;
 }
 
 .auth-card h2 {
@@ -376,6 +378,7 @@ label {
 
   .auth-shell {
     max-width: 100%;
+    margin-top: -10px;
   }
 
   .auth-card {
