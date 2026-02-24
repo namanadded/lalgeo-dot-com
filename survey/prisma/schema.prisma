@@ -1,0 +1,189 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  legalName String?
+  logoUrl   String?
+  email     String?
+  phone     String?
+  website   String?
+  addressLine1  String?
+  addressLine2  String?
+  city          String?
+  stateProvince String?
+  postalCode    String?
+  country       String?
+  smtpHost      String?
+  smtpPort      Int?
+  smtpUser      String?
+  smtpPass      String?
+  smtpFrom      String?
+  smtpSecure    Boolean  @default(false)
+  emailProvider String?
+  createdAt DateTime @default(now())
+  users     User[]
+  clients   Client[]
+  jobs      Job[]
+  quotes    Quote[]
+  invoices  Invoice[]
+  emailConnections EmailConnection[]
+  emailLogs       EmailLog[]
+}
+
+model User {
+  id             String   @id @default(cuid())
+  email          String   @unique
+  passwordHash   String
+  role           String   @default("admin")
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  createdAt      DateTime @default(now())
+}
+
+model Client {
+  id             String   @id @default(cuid())
+  name           String
+  companyName    String?
+  email          String?
+  phone          String?
+  addressLine1   String?
+  addressLine2   String?
+  city           String?
+  stateProvince  String?
+  postalCode     String?
+  country        String?
+  notes          String?
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  jobs           Job[]
+  quotes         Quote[]
+  invoices       Invoice[]
+  createdAt      DateTime @default(now())
+}
+
+model Job {
+  id             String   @id @default(cuid())
+  title          String
+  status         String   @default("draft")
+  client         Client   @relation(fields: [clientId], references: [id])
+  clientId       String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  quotes         Quote[]
+  invoices       Invoice[]
+  createdAt      DateTime @default(now())
+}
+
+model Quote {
+  id             String   @id @default(cuid())
+  quoteNumber    String   @unique
+  status         String   @default("draft")
+  sentAt         DateTime?
+  notes          String?
+  subtotalCents  Int
+  taxRateBps     Int      @default(500)
+  taxCents       Int
+  totalCents     Int
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  client         Client   @relation(fields: [clientId], references: [id])
+  clientId       String
+  job            Job?     @relation(fields: [jobId], references: [id])
+  jobId          String?
+  lineItems      QuoteLineItem[]
+  invoices       Invoice[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model QuoteLineItem {
+  id             String   @id @default(cuid())
+  description    String
+  quantity       Int      @default(1)
+  unitPriceCents Int
+  lineTotalCents Int
+  sortOrder      Int      @default(0)
+  quote          Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId        String
+  createdAt      DateTime @default(now())
+}
+
+model Invoice {
+  id             String   @id @default(cuid())
+  invoiceNumber  String   @unique
+  status         String   @default("draft")
+  sentAt         DateTime?
+  notes          String?
+  issuedAt       DateTime @default(now())
+  dueAt          DateTime?
+  subtotalCents  Int
+  taxRateBps     Int      @default(500)
+  taxCents       Int
+  totalCents     Int
+  paidCents      Int      @default(0)
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  organizationId String
+  client         Client   @relation(fields: [clientId], references: [id])
+  clientId       String
+  job            Job?     @relation(fields: [jobId], references: [id])
+  jobId          String?
+  quote          Quote?   @relation(fields: [quoteId], references: [id])
+  quoteId        String?  @unique
+  lineItems      InvoiceLineItem[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}
+
+model InvoiceLineItem {
+  id             String   @id @default(cuid())
+  description    String
+  quantity       Int      @default(1)
+  unitPriceCents Int
+  lineTotalCents Int
+  sortOrder      Int      @default(0)
+  invoice        Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  invoiceId      String
+  createdAt      DateTime @default(now())
+}
+
+model EmailConnection {
+  id             String   @id @default(cuid())
+  provider       String
+  email          String
+  accessToken    String
+  refreshToken   String?
+  expiresAt      DateTime?
+  scopes         String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, provider])
+}
+
+model EmailLog {
+  id             String   @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  documentType   String
+  documentId     String
+  provider       String?
+  status         String
+  recipientTo    String
+  recipientCc    String?
+  subject        String
+  errorMessage   String?
+  sentAt         DateTime?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, documentType, documentId, createdAt])
+}

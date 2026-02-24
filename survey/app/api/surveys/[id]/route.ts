@@ -3,21 +3,29 @@ import { getSessionUser } from "@/lib/auth";
 import { getSurvey, updateSurvey } from "@/lib/surveys";
 import { enforceSurveyCap } from "@/lib/storage";
 
-export async function GET(_req: Request, { params }: { params: { id: string } }) {
-  const user = getSessionUser();
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const survey = getSurvey(params.id);
+  const survey = getSurvey(id);
   if (!survey) return NextResponse.json({ error: "Not found" }, { status: 404 });
   return NextResponse.json({ survey });
 }
 
-export async function PATCH(req: Request, { params }: { params: { id: string } }) {
-  const user = getSessionUser();
+export async function PATCH(
+  req: Request,
+  context: { params: Promise<{ id: string }> }
+) {
+  const { id } = await context.params;
+  const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const updates = await req.json();
   try {
-    enforceSurveyCap(params.id);
-    const survey = updateSurvey(params.id, updates);
+    enforceSurveyCap(id);
+    const survey = updateSurvey(id, updates);
     return NextResponse.json({ survey });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Failed to update survey";

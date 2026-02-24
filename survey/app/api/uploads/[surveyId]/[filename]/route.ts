@@ -3,8 +3,12 @@ import path from "path";
 import { NextResponse } from "next/server";
 import { surveyUploadsDir } from "@/lib/storage";
 
-export async function GET(_req: Request, { params }: { params: { surveyId: string; filename: string } }) {
-  const filePath = path.join(surveyUploadsDir(params.surveyId), params.filename);
+export async function GET(
+  _req: Request,
+  context: { params: Promise<{ surveyId: string; filename: string }> }
+) {
+  const { surveyId, filename } = await context.params;
+  const filePath = path.join(surveyUploadsDir(surveyId), filename);
   if (!fs.existsSync(filePath)) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }

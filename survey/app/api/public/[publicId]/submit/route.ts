@@ -3,8 +3,12 @@ import { nanoid } from "nanoid";
 import { findSurveyByPublicId, appendResponse } from "@/lib/surveys";
 import { enforceSurveyCap } from "@/lib/storage";
 
-export async function POST(req: Request, { params }: { params: { publicId: string } }) {
-  const survey = findSurveyByPublicId(params.publicId);
+export async function POST(
+  req: Request,
+  context: { params: Promise<{ publicId: string }> }
+) {
+  const { publicId } = await context.params;
+  const survey = findSurveyByPublicId(publicId);
   if (!survey) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const body = await req.json();
   const answers = (body.answers || {}) as Record<string, string>;

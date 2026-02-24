@@ -11,6 +11,6 @@ export async function POST(req: Request) {
   if (!user) {
     return NextResponse.json({ error: "Invalid credentials." }, { status: 401 });
   }
-  setSession(user);
+  await setSession(user);
   return NextResponse.json({ ok: true, email: user.email });
 }

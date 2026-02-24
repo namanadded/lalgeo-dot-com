@@ -3,7 +3,7 @@ import { getSessionUser } from "@/lib/auth";
 import { runSyncJob } from "@/lib/sync-worker";
 
 export async function POST(req: Request) {
-  const user = getSessionUser();
+  const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json();
   const connectionId = String(body.connectionId || "");

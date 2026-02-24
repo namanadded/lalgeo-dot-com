@@ -15,7 +15,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Email and password required." }, { status: 400 });
     }
     const user = createUser(email, password);
-    setSession(user);
+    await setSession(user);
     return NextResponse.json({ ok: true, email: user.email });
   } catch (err) {
     const message = err instanceof Error ? err.message : "Setup failed.";

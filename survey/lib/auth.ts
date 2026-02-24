@@ -46,9 +46,10 @@ export function authenticate(email: string, password: string): UserRecord | null
   return ok ? match : null;
 }
 
-export function setSession(user: UserRecord) {
+export async function setSession(user: UserRecord) {
   const token = jwt.sign({ sub: user.id, email: user.email }, JWT_SECRET, { expiresIn: "7d" });
-  cookies().set({
+  const cookieStore = await cookies();
+  cookieStore.set({
     name: COOKIE_NAME,
     value: token,
     httpOnly: true,
@@ -58,8 +59,9 @@ export function setSession(user: UserRecord) {
   });
 }
 
-export function clearSession() {
-  cookies().set({
+export async function clearSession() {
+  const cookieStore = await cookies();
+  cookieStore.set({
     name: COOKIE_NAME,
     value: "",
     httpOnly: true,
@@ -69,8 +71,9 @@ export function clearSession() {
   });
 }
 
-export function getSessionUser(): { id: string; email: string } | null {
-  const token = cookies().get(COOKIE_NAME)?.value;
+export async function getSessionUser(): Promise<{ id: string; email: string } | null> {
+  const cookieStore = await cookies();
+  const token = cookieStore.get(COOKIE_NAME)?.value;
   if (!token) return null;
   try {
     const payload = jwt.verify(token, JWT_SECRET) as { sub: string; email: string };
