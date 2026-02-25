@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
 import { DEV_ORG_ID } from "@/lib/saas";
+import { nextDocumentNumber } from "@/lib/saas-store";
 
 export interface QuoteDraftLine {
   description: string;
@@ -39,8 +39,5 @@ export function formatCents(value: number) {
 }
 
 export async function nextQuoteNumber() {
-  const count = await prisma.quote.count({
-    where: { organizationId: DEV_ORG_ID },
-  });
-  return `Q-${String(count + 1).padStart(4, "0")}`;
+  return nextDocumentNumber(DEV_ORG_ID, "quote");
 }

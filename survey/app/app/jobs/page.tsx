@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { listJobs } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 
 export const dynamic = "force-dynamic";
@@ -27,21 +27,7 @@ function statusClass(status: string) {
 }
 
 export default async function AppJobsPage() {
-  const jobs = (await prisma.job.findMany({
-    where: { organizationId: DEV_ORG_ID },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      createdAt: true,
-      client: {
-        select: {
-          name: true,
-        },
-      },
-    },
-  })) as JobRow[];
+  const jobs = (await listJobs(DEV_ORG_ID)) as JobRow[];
 
   return (
     <div className="saas-page-card">

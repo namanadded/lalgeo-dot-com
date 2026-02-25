@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { createJob as createJobRecord, listClients } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization } from "@/lib/saas";
 
 async function createJob(formData: FormData) {
@@ -14,24 +14,18 @@ async function createJob(formData: FormData) {
   if (!title || !clientId) return;
 
   await ensureDevOrganization();
-  await prisma.job.create({
-    data: {
-      organizationId: DEV_ORG_ID,
-      title,
-      clientId,
-      status,
-    },
+  await createJobRecord({
+    organizationId: DEV_ORG_ID,
+    title,
+    clientId,
+    status,
   });
 
   redirect("/app/jobs");
 }
 
 export default async function NewJobPage() {
-  const clients = await prisma.client.findMany({
-    where: { organizationId: DEV_ORG_ID },
-    orderBy: { name: "asc" },
-    select: { id: true, name: true },
-  });
+  const clients = await listClients(DEV_ORG_ID);
 
   return (
     <div className="saas-page-card">

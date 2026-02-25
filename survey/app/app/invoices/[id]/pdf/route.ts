@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/db";
+import { getInvoiceDetail } from "@/lib/saas-store";
 import { buildInvoicePdf } from "@/lib/pdf";
 import { formatCents } from "@/lib/quotes";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
@@ -10,37 +10,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const { id } = await params;
   const [org, invoice] = await Promise.all([
     getDevOrganizationProfile(),
-    prisma.invoice.findFirst({
-      where: { id, organizationId: DEV_ORG_ID },
-      select: {
-        invoiceNumber: true,
-        notes: true,
-        issuedAt: true,
-        subtotalCents: true,
-        taxCents: true,
-        totalCents: true,
-        client: {
-          select: {
-            name: true,
-            addressLine1: true,
-            addressLine2: true,
-            city: true,
-            stateProvince: true,
-            postalCode: true,
-            country: true,
-            phone: true,
-          },
-        },
-        lineItems: {
-          orderBy: { sortOrder: "asc" },
-          select: {
-            description: true,
-            quantity: true,
-            lineTotalCents: true,
-          },
-        },
-      },
-    }),
+    getInvoiceDetail(DEV_ORG_ID, id),
   ]);
 
   if (!invoice) {

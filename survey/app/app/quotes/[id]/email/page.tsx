@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { createEmailLog, getQuoteDetail, markQuoteSent } from "@/lib/saas-store";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
 import { buildQuotePdf } from "@/lib/pdf";
@@ -22,37 +22,7 @@ async function sendQuoteEmail(formData: FormData) {
 
   const [org, quote] = await Promise.all([
     getDevOrganizationProfile(),
-    prisma.quote.findFirst({
-      where: { id: quoteId, organizationId: DEV_ORG_ID },
-      select: {
-        quoteNumber: true,
-        notes: true,
-        createdAt: true,
-        subtotalCents: true,
-        taxCents: true,
-        totalCents: true,
-        client: {
-          select: {
-            name: true,
-            addressLine1: true,
-            addressLine2: true,
-            city: true,
-            stateProvince: true,
-            postalCode: true,
-            country: true,
-            phone: true,
-          },
-        },
-        lineItems: {
-          orderBy: { sortOrder: "asc" },
-          select: {
-            description: true,
-            quantity: true,
-            lineTotalCents: true,
-          },
-        },
-      },
-    }),
+    getQuoteDetail(DEV_ORG_ID, quoteId),
   ]);
 
   if (!quote) return;
@@ -126,43 +96,33 @@ async function sendQuoteEmail(formData: FormData) {
         },
       ],
     });
-    await prisma.emailLog.create({
-      data: {
-        organizationId: DEV_ORG_ID,
-        documentType: "quote",
-        documentId: quoteId,
-        provider: result.provider,
-        status: "sent",
-        recipientTo: to,
-        recipientCc: ccRaw || null,
-        subject,
-        sentAt: new Date(),
-      },
+    await createEmailLog({
+      organizationId: DEV_ORG_ID,
+      documentType: "quote",
+      documentId: quoteId,
+      provider: result.provider,
+      status: "sent",
+      recipientTo: to,
+      recipientCc: ccRaw || null,
+      subject,
+      sentAt: new Date(),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown send error";
-    await prisma.emailLog.create({
-      data: {
-        organizationId: DEV_ORG_ID,
-        documentType: "quote",
-        documentId: quoteId,
-        status: "failed",
-        recipientTo: to,
-        recipientCc: ccRaw || null,
-        subject,
-        errorMessage: message.slice(0, 500),
-      },
+    await createEmailLog({
+      organizationId: DEV_ORG_ID,
+      documentType: "quote",
+      documentId: quoteId,
+      status: "failed",
+      recipientTo: to,
+      recipientCc: ccRaw || null,
+      subject,
+      errorMessage: message.slice(0, 500),
     });
     redirect(`/app/quotes/${quoteId}/email?error=send_failed&reason=${encodeURIComponent(message.slice(0, 200))}`);
   }
 
-  await prisma.quote.update({
-    where: { id: quoteId },
-    data: {
-      sentAt: new Date(),
-      status: "sent",
-    },
-  });
+  await markQuoteSent(DEV_ORG_ID, quoteId, "sent");
 
   redirect(`/app/quotes/${quoteId}?emailed=1`);
 }
@@ -180,20 +140,7 @@ export default async function QuoteEmailPage({
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
 
-  const quote = await prisma.quote.findFirst({
-    where: { id, organizationId: DEV_ORG_ID },
-    select: {
-      id: true,
-      quoteNumber: true,
-      totalCents: true,
-      client: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+  const quote = await getQuoteDetail(DEV_ORG_ID, id);
 
   if (!quote) {
     redirect("/app/quotes");

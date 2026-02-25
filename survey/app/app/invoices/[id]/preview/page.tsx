@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { getInvoiceDetail } from "@/lib/saas-store";
 import { ServiceDocumentSheet } from "@/components/ServiceDocumentSheet";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
@@ -15,39 +15,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 export default async function InvoicePreviewPage({ params }: { params: Promise<{ id: string }> }) {
   const [{ id }, org] = await Promise.all([params, getDevOrganizationProfile()]);
 
-  const invoice = await prisma.invoice.findFirst({
-    where: { id, organizationId: DEV_ORG_ID },
-    select: {
-      id: true,
-      invoiceNumber: true,
-      notes: true,
-      issuedAt: true,
-      subtotalCents: true,
-      taxCents: true,
-      totalCents: true,
-      client: {
-        select: {
-          name: true,
-          phone: true,
-          addressLine1: true,
-          addressLine2: true,
-          city: true,
-          stateProvince: true,
-          postalCode: true,
-          country: true,
-        },
-      },
-      lineItems: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          description: true,
-          quantity: true,
-          lineTotalCents: true,
-        },
-      },
-    },
-  });
+  const invoice = await getInvoiceDetail(DEV_ORG_ID, id);
 
   if (!invoice) notFound();
 

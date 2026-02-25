@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
 import { nextInvoiceNumber } from "@/lib/invoices";
+import { createInvoiceFromQuote, listQuotes } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization } from "@/lib/saas";
 
 type SearchParams = Promise<{ quoteId?: string }> | { quoteId?: string } | undefined;
@@ -27,76 +27,17 @@ async function createInvoice(formData: FormData) {
 
   await ensureDevOrganization();
 
-  const existing = await prisma.invoice.findFirst({
-    where: {
-      organizationId: DEV_ORG_ID,
-      quoteId,
-    },
-    select: { id: true },
-  });
-  if (existing) {
-    redirect("/app/invoices");
-  }
-
-  const quote = await prisma.quote.findFirst({
-    where: {
-      id: quoteId,
-      organizationId: DEV_ORG_ID,
-    },
-    select: {
-      id: true,
-      notes: true,
-      subtotalCents: true,
-      taxRateBps: true,
-      taxCents: true,
-      totalCents: true,
-      clientId: true,
-      jobId: true,
-      lineItems: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          description: true,
-          quantity: true,
-          unitPriceCents: true,
-          lineTotalCents: true,
-          sortOrder: true,
-        },
-      },
-    },
-  });
-
-  if (!quote || quote.lineItems.length === 0) return;
-
   const invoiceNumber = await nextInvoiceNumber();
   const dueAt = new Date();
   dueAt.setDate(dueAt.getDate() + dueInDays);
 
-  await prisma.invoice.create({
-    data: {
-      organizationId: DEV_ORG_ID,
-      invoiceNumber,
-      status,
-      notes: notesRaw || quote.notes || null,
-      issuedAt: new Date(),
-      dueAt,
-      subtotalCents: quote.subtotalCents,
-      taxRateBps: quote.taxRateBps,
-      taxCents: quote.taxCents,
-      totalCents: quote.totalCents,
-      paidCents: status === "paid" ? quote.totalCents : 0,
-      clientId: quote.clientId,
-      jobId: quote.jobId,
-      quoteId: quote.id,
-      lineItems: {
-        create: quote.lineItems.map((line) => ({
-          description: line.description,
-          quantity: line.quantity,
-          unitPriceCents: line.unitPriceCents,
-          lineTotalCents: line.lineTotalCents,
-          sortOrder: line.sortOrder,
-        })),
-      },
-    },
+  await createInvoiceFromQuote({
+    organizationId: DEV_ORG_ID,
+    quoteId,
+    invoiceNumber,
+    status,
+    notes: notesRaw || null,
+    dueAt,
   });
 
   redirect("/app/invoices");
@@ -106,21 +47,7 @@ export default async function NewInvoicePage({ searchParams }: { searchParams?: 
   const resolvedSearchParams = searchParams ? await searchParams : undefined;
   const preselectedQuoteId = resolvedSearchParams?.quoteId || "";
 
-  const quotes = await prisma.quote.findMany({
-    where: {
-      organizationId: DEV_ORG_ID,
-      invoices: { none: {} },
-    },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      quoteNumber: true,
-      status: true,
-      client: {
-        select: { name: true },
-      },
-    },
-  });
+  const quotes = await listQuotes(DEV_ORG_ID, { uninvoiced: true });
 
   return (
     <div className="saas-page-card">

@@ -1,0 +1,14 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lalgeo-saas-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-02-25",
+  "observability": { "enabled": true },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lalgeo-business",
+      "database_id": "c669cbb7-ab4d-4937-b463-1ea547dc7904"
+    }
+  ]
+}

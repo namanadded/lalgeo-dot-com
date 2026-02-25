@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { createEmailLog, getInvoiceDetail, markInvoiceSent } from "@/lib/saas-store";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
 import { buildInvoicePdf } from "@/lib/pdf";
@@ -22,38 +22,7 @@ async function sendInvoiceEmail(formData: FormData) {
 
   const [org, invoice] = await Promise.all([
     getDevOrganizationProfile(),
-    prisma.invoice.findFirst({
-      where: { id: invoiceId, organizationId: DEV_ORG_ID },
-      select: {
-        invoiceNumber: true,
-        status: true,
-        notes: true,
-        issuedAt: true,
-        subtotalCents: true,
-        taxCents: true,
-        totalCents: true,
-        client: {
-          select: {
-            name: true,
-            addressLine1: true,
-            addressLine2: true,
-            city: true,
-            stateProvince: true,
-            postalCode: true,
-            country: true,
-            phone: true,
-          },
-        },
-        lineItems: {
-          orderBy: { sortOrder: "asc" },
-          select: {
-            description: true,
-            quantity: true,
-            lineTotalCents: true,
-          },
-        },
-      },
-    }),
+    getInvoiceDetail(DEV_ORG_ID, invoiceId),
   ]);
   if (!invoice) return;
 
@@ -126,43 +95,33 @@ async function sendInvoiceEmail(formData: FormData) {
         },
       ],
     });
-    await prisma.emailLog.create({
-      data: {
-        organizationId: DEV_ORG_ID,
-        documentType: "invoice",
-        documentId: invoiceId,
-        provider: result.provider,
-        status: "sent",
-        recipientTo: to,
-        recipientCc: ccRaw || null,
-        subject,
-        sentAt: new Date(),
-      },
+    await createEmailLog({
+      organizationId: DEV_ORG_ID,
+      documentType: "invoice",
+      documentId: invoiceId,
+      provider: result.provider,
+      status: "sent",
+      recipientTo: to,
+      recipientCc: ccRaw || null,
+      subject,
+      sentAt: new Date(),
     });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown send error";
-    await prisma.emailLog.create({
-      data: {
-        organizationId: DEV_ORG_ID,
-        documentType: "invoice",
-        documentId: invoiceId,
-        status: "failed",
-        recipientTo: to,
-        recipientCc: ccRaw || null,
-        subject,
-        errorMessage: message.slice(0, 500),
-      },
+    await createEmailLog({
+      organizationId: DEV_ORG_ID,
+      documentType: "invoice",
+      documentId: invoiceId,
+      status: "failed",
+      recipientTo: to,
+      recipientCc: ccRaw || null,
+      subject,
+      errorMessage: message.slice(0, 500),
     });
     redirect(`/app/invoices/${invoiceId}/email?error=send_failed&reason=${encodeURIComponent(message.slice(0, 200))}`);
   }
 
-  await prisma.invoice.update({
-    where: { id: invoiceId },
-    data: {
-      sentAt: new Date(),
-      status: invoice.status === "draft" ? "sent" : invoice.status,
-    },
-  });
+  await markInvoiceSent(DEV_ORG_ID, invoiceId, invoice.status === "draft" ? "sent" : invoice.status);
 
   redirect(`/app/invoices/${invoiceId}?emailed=1`);
 }
@@ -180,20 +139,7 @@ export default async function InvoiceEmailPage({
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
 
-  const invoice = await prisma.invoice.findFirst({
-    where: { id, organizationId: DEV_ORG_ID },
-    select: {
-      id: true,
-      invoiceNumber: true,
-      totalCents: true,
-      client: {
-        select: {
-          name: true,
-          email: true,
-        },
-      },
-    },
-  });
+  const invoice = await getInvoiceDetail(DEV_ORG_ID, id);
   if (!invoice) redirect("/app/invoices");
 
   const companyName = org?.legalName || org?.name || "LalGeo";

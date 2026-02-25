@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { createClient as createClientRecord } from "@/lib/saas-store";
 import { AppleAddressMapField } from "@/components/AppleAddressMapField";
 import { DEV_ORG_ID, ensureDevOrganization } from "@/lib/saas";
 
@@ -22,21 +22,19 @@ async function createClient(formData: FormData) {
   if (!name) return;
 
   await ensureDevOrganization();
-  await prisma.client.create({
-    data: {
-      organizationId: DEV_ORG_ID,
-      name,
-      companyName: companyNameRaw || null,
-      email: emailRaw || null,
-      phone: phoneRaw || null,
-      addressLine1: addressLine1Raw || null,
-      addressLine2: addressLine2Raw || null,
-      city: cityRaw || null,
-      stateProvince: stateProvinceRaw || null,
-      postalCode: postalCodeRaw || null,
-      country: countryRaw || null,
-      notes: notesRaw || null,
-    },
+  await createClientRecord({
+    organizationId: DEV_ORG_ID,
+    name,
+    companyName: companyNameRaw || null,
+    email: emailRaw || null,
+    phone: phoneRaw || null,
+    addressLine1: addressLine1Raw || null,
+    addressLine2: addressLine2Raw || null,
+    city: cityRaw || null,
+    stateProvince: stateProvinceRaw || null,
+    postalCode: postalCodeRaw || null,
+    country: countryRaw || null,
+    notes: notesRaw || null,
   });
 
   redirect("/app/clients");

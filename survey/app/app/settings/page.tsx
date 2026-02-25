@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { updateOrganization } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization, getDevOrganizationProfile } from "@/lib/saas";
 import { renderDocumentEmailHtml } from "@/lib/email-template";
 import { sendOrganizationEmail } from "@/lib/email-delivery";
@@ -22,21 +22,18 @@ async function saveBranding(formData: FormData) {
   const postalCode = String(formData.get("postalCode") || "").trim();
   const country = String(formData.get("country") || "").trim();
 
-  await prisma.organization.update({
-    where: { id: DEV_ORG_ID },
-    data: {
-      legalName: legalName || null,
-      logoUrl: logoUrl || null,
-      email: email || null,
-      phone: phone || null,
-      website: website || null,
-      addressLine1: addressLine1 || null,
-      addressLine2: addressLine2 || null,
-      city: city || null,
-      stateProvince: stateProvince || null,
-      postalCode: postalCode || null,
-      country: country || null,
-    },
+  await updateOrganization(DEV_ORG_ID, {
+    legal_name: legalName || null,
+    logo_url: logoUrl || null,
+    email: email || null,
+    phone: phone || null,
+    website: website || null,
+    address_line1: addressLine1 || null,
+    address_line2: addressLine2 || null,
+    city: city || null,
+    state_province: stateProvince || null,
+    postal_code: postalCode || null,
+    country: country || null,
   });
 
   redirect("/app/settings");
@@ -54,24 +51,21 @@ async function saveEmailSettings(formData: FormData) {
       : "auto";
   const isSmtp = emailProvider === "smtp";
 
-  await prisma.organization.update({
-    where: { id: DEV_ORG_ID },
-    data: {
-      emailProvider,
-      ...(isSmtp
-        ? {
-            smtpHost: String(formData.get("smtpHost") || "").trim() || null,
-            smtpPort: (() => {
-              const parsed = Number(String(formData.get("smtpPort") || "").trim());
-              return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
-            })(),
-            smtpUser: String(formData.get("smtpUser") || "").trim() || null,
-            smtpPass: String(formData.get("smtpPass") || "").trim() || null,
-            smtpFrom: String(formData.get("smtpFrom") || "").trim() || null,
-            smtpSecure: String(formData.get("smtpSecure") || "").trim() === "true",
-          }
-        : {}),
-    },
+  await updateOrganization(DEV_ORG_ID, {
+    email_provider: emailProvider,
+    ...(isSmtp
+      ? {
+          smtp_host: String(formData.get("smtpHost") || "").trim() || null,
+          smtp_port: (() => {
+            const parsed = Number(String(formData.get("smtpPort") || "").trim());
+            return Number.isFinite(parsed) && parsed > 0 ? Math.floor(parsed) : null;
+          })(),
+          smtp_user: String(formData.get("smtpUser") || "").trim() || null,
+          smtp_pass: String(formData.get("smtpPass") || "").trim() || null,
+          smtp_from: String(formData.get("smtpFrom") || "").trim() || null,
+          smtp_secure: String(formData.get("smtpSecure") || "").trim() === "true",
+        }
+      : {}),
   });
 
   redirect("/app/settings?savedEmail=1");

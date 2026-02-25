@@ -1,0 +1,16 @@
+{
+  "name": "lalgeo-saas-api",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "migrate": "wrangler d1 migrations apply lalgeo-business",
+    "cf-typegen": "wrangler types"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260220.0",
+    "typescript": "^5.7.3",
+    "wrangler": "^4.47.0"
+  }
+}

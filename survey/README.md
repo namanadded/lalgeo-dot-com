@@ -27,10 +27,30 @@ Then open `http://localhost:3000/survey`.
 Use these steps to reset the local SQLite DB used by SaaS pages:
 
 ```bash
-cd /Users/namanmalhotra/Documents/Work/Lal_Geo/lalgeo_dot_ca/survey
+cd /Users/namanmalhotra/Documents/Work/Lal_Geo/lalgeo_dot_com/survey
 pkill -f "next dev" || true
 rm -f dev.db
 rm -rf prisma/migrations
 npx prisma migrate dev --name init
 npm run prisma:seed
+```
+
+## Phase 1: Netlify UI + Cloudflare Worker (D1)
+SaaS pages under `/survey/app/*` can read/write business data via Worker API.
+
+Required env vars in Netlify:
+
+```bash
+LALGEO_SAAS_API_URL="https://lalgeo-saas-api.namanadded.workers.dev"
+LALGEO_SAAS_API_KEY="<optional-shared-secret-if-configured>"
+DATABASE_URL="file:./dev.db"
+```
+
+`DATABASE_URL` stays for legacy Prisma-backed routes still used by OAuth/email internals.
+
+Apply D1 migrations:
+
+```bash
+cd /Users/namanmalhotra/Documents/Work/Lal_Geo/lalgeo_dot_com/lalgeo-saas-api
+npx wrangler d1 migrations apply lalgeo-business --remote
 ```

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { getInvoiceDetail, listEmailLogs } from "@/lib/saas-store";
 import { ServiceDocumentSheet } from "@/components/ServiceDocumentSheet";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
@@ -26,79 +26,11 @@ export default async function InvoiceDetailPage({
   ]);
   const org = await getDevOrganizationProfile();
 
-  const invoice = await prisma.invoice.findFirst({
-    where: {
-      id,
-      organizationId: DEV_ORG_ID,
-    },
-    select: {
-      id: true,
-      invoiceNumber: true,
-      sentAt: true,
-      notes: true,
-      issuedAt: true,
-      subtotalCents: true,
-      taxCents: true,
-      totalCents: true,
-      client: {
-        select: {
-          id: true,
-          name: true,
-          phone: true,
-          addressLine1: true,
-          addressLine2: true,
-          city: true,
-          stateProvince: true,
-          postalCode: true,
-          country: true,
-        },
-      },
-      job: {
-        select: {
-          id: true,
-          title: true,
-        },
-      },
-      quote: {
-        select: {
-          id: true,
-          quoteNumber: true,
-        },
-      },
-      lineItems: {
-        orderBy: { sortOrder: "asc" },
-        select: {
-          id: true,
-          description: true,
-          quantity: true,
-          lineTotalCents: true,
-        },
-      },
-    },
-  });
+  const invoice = await getInvoiceDetail(DEV_ORG_ID, id);
 
   if (!invoice) notFound();
 
-  const emailLogs = await prisma.emailLog.findMany({
-    where: {
-      organizationId: DEV_ORG_ID,
-      documentType: "invoice",
-      documentId: invoice.id,
-    },
-    orderBy: { createdAt: "desc" },
-    take: 10,
-    select: {
-      id: true,
-      status: true,
-      provider: true,
-      recipientTo: true,
-      recipientCc: true,
-      subject: true,
-      errorMessage: true,
-      sentAt: true,
-      createdAt: true,
-    },
-  });
+  const emailLogs = await listEmailLogs(DEV_ORG_ID, "invoice", invoice.id, 10);
 
   const companyName = org?.legalName || org?.name || "LalGeo";
   const companyAddress = [

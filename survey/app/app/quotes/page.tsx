@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { listQuotes } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
 
@@ -32,25 +32,7 @@ function quoteStatusClass(status: string) {
 }
 
 export default async function AppQuotesPage() {
-  const quotes = (await prisma.quote.findMany({
-    where: { organizationId: DEV_ORG_ID },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      quoteNumber: true,
-      status: true,
-      totalCents: true,
-      sentAt: true,
-      createdAt: true,
-      invoices: {
-        select: { id: true },
-        take: 1,
-      },
-      client: {
-        select: { name: true },
-      },
-    },
-  })) as QuoteRow[];
+  const quotes = (await listQuotes(DEV_ORG_ID)) as QuoteRow[];
 
   return (
     <div className="saas-page-card">

@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { createQuote as createQuoteRecord, listClients, listJobs } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization } from "@/lib/saas";
 import { computeQuoteTotals, dollarsToCents, nextQuoteNumber, type QuoteDraftLine } from "@/lib/quotes";
 
@@ -36,47 +36,31 @@ async function createQuote(formData: FormData) {
   await ensureDevOrganization();
   const quoteNumber = await nextQuoteNumber();
 
-  await prisma.quote.create({
-    data: {
-      organizationId: DEV_ORG_ID,
-      quoteNumber,
-      status,
-      notes: notesRaw || null,
-      clientId,
-      jobId: jobIdRaw || null,
-      subtotalCents: computed.subtotalCents,
-      taxRateBps,
-      taxCents: computed.taxCents,
-      totalCents: computed.totalCents,
-      lineItems: {
-        create: computed.lineItems.map((line) => ({
-          description: line.description,
-          quantity: line.quantity,
-          unitPriceCents: line.unitPriceCents,
-          lineTotalCents: line.lineTotalCents,
-          sortOrder: line.sortOrder,
-        })),
-      },
-    },
+  await createQuoteRecord({
+    organizationId: DEV_ORG_ID,
+    quoteNumber,
+    status,
+    notes: notesRaw || null,
+    clientId,
+    jobId: jobIdRaw || null,
+    subtotalCents: computed.subtotalCents,
+    taxRateBps,
+    taxCents: computed.taxCents,
+    totalCents: computed.totalCents,
+    lineItems: computed.lineItems.map((line) => ({
+      description: line.description,
+      quantity: line.quantity,
+      unitPriceCents: line.unitPriceCents,
+      lineTotalCents: line.lineTotalCents,
+      sortOrder: line.sortOrder,
+    })),
   });
 
   redirect("/app/quotes");
 }
 
 export default async function NewQuotePage() {
-  const [clients, jobs] = await Promise.all([
-    prisma.client.findMany({
-      where: { organizationId: DEV_ORG_ID },
-      orderBy: { name: "asc" },
-      select: { id: true, name: true },
-    }),
-    prisma.job.findMany({
-      where: { organizationId: DEV_ORG_ID },
-      orderBy: { createdAt: "desc" },
-      select: { id: true, title: true },
-      take: 50,
-    }),
-  ]);
+  const [clients, jobs] = await Promise.all([listClients(DEV_ORG_ID), listJobs(DEV_ORG_ID)]);
 
   return (
     <div className="saas-page-card">

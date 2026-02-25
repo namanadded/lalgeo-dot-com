@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { listInvoices } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { invoiceStatusClass } from "@/lib/invoices";
 import { formatCents } from "@/lib/quotes";
@@ -27,23 +27,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export default async function AppInvoicesPage() {
-  const invoices = (await prisma.invoice.findMany({
-    where: { organizationId: DEV_ORG_ID },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      invoiceNumber: true,
-      status: true,
-      totalCents: true,
-      paidCents: true,
-      sentAt: true,
-      dueAt: true,
-      createdAt: true,
-      client: {
-        select: { name: true },
-      },
-    },
-  })) as InvoiceRow[];
+  const invoices = (await listInvoices(DEV_ORG_ID)) as InvoiceRow[];
 
   return (
     <div className="saas-page-card">

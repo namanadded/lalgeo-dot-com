@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { getJobDetail } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -20,30 +20,7 @@ export const dynamic = "force-dynamic";
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const job = await prisma.job.findFirst({
-    where: {
-      id,
-      organizationId: DEV_ORG_ID,
-    },
-    select: {
-      id: true,
-      title: true,
-      status: true,
-      createdAt: true,
-      client: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      _count: {
-        select: {
-          quotes: true,
-          invoices: true,
-        },
-      },
-    },
-  });
+  const job = await getJobDetail(DEV_ORG_ID, id);
 
   if (!job) notFound();
 

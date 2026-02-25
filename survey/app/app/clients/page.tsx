@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
+import { listClients } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 
 export const dynamic = "force-dynamic";
@@ -20,18 +20,7 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
 });
 
 export default async function AppClientsPage() {
-  const clients = (await prisma.client.findMany({
-    where: { organizationId: DEV_ORG_ID },
-    orderBy: { createdAt: "desc" },
-    select: {
-      id: true,
-      name: true,
-      companyName: true,
-      email: true,
-      phone: true,
-      createdAt: true,
-    },
-  })) as ClientRow[];
+  const clients = (await listClients(DEV_ORG_ID)) as ClientRow[];
 
   return (
     <div className="saas-page-card">

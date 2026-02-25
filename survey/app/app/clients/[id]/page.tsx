@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { prisma } from "@/lib/db";
+import { getClientDetail } from "@/lib/saas-store";
 import { AppleAddressPreview } from "@/components/AppleAddressPreview";
 import { DEV_ORG_ID } from "@/lib/saas";
 
@@ -15,34 +15,7 @@ export const dynamic = "force-dynamic";
 export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
 
-  const client = await prisma.client.findFirst({
-    where: {
-      id,
-      organizationId: DEV_ORG_ID,
-    },
-    select: {
-      id: true,
-      name: true,
-      companyName: true,
-      email: true,
-      phone: true,
-      addressLine1: true,
-      addressLine2: true,
-      city: true,
-      stateProvince: true,
-      postalCode: true,
-      country: true,
-      notes: true,
-      createdAt: true,
-      _count: {
-        select: {
-          jobs: true,
-          quotes: true,
-          invoices: true,
-        },
-      },
-    },
-  });
+  const client = await getClientDetail(DEV_ORG_ID, id);
 
   if (!client) notFound();
 

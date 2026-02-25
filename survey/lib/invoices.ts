@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
 import { DEV_ORG_ID } from "@/lib/saas";
+import { nextDocumentNumber } from "@/lib/saas-store";
 
 export function invoiceStatusClass(status: string) {
   if (status === "paid") return "status-pill success";
@@ -9,8 +9,5 @@ export function invoiceStatusClass(status: string) {
 }
 
 export async function nextInvoiceNumber() {
-  const count = await prisma.invoice.count({
-    where: { organizationId: DEV_ORG_ID },
-  });
-  return `INV-${String(count + 1).padStart(4, "0")}`;
+  return nextDocumentNumber(DEV_ORG_ID, "invoice");
 }
