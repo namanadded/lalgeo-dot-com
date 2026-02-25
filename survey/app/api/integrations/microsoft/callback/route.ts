@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { prisma } from "@/lib/db";
 import { cookieNameForProvider, oauthCallbackUrl } from "@/lib/oauth";
 import { DEV_ORG_ID, ensureDevOrganization } from "@/lib/saas";
+import { upsertEmailConnection, updateOrganization } from "@/lib/saas-store";
 
 export async function GET(req: Request) {
   const url = new URL(req.url);
@@ -59,34 +59,18 @@ export async function GET(req: Request) {
   const email = profile.mail || profile.userPrincipalName || "unknown@outlook";
 
   await ensureDevOrganization();
-  await prisma.emailConnection.upsert({
-    where: {
-      organizationId_provider: {
-        organizationId: DEV_ORG_ID,
-        provider: "microsoft",
-      },
-    },
-    update: {
-      email,
-      accessToken: token.access_token,
-      refreshToken: token.refresh_token || undefined,
-      expiresAt: token.expires_in ? new Date(Date.now() + token.expires_in * 1000) : null,
-      scopes: token.scope || null,
-    },
-    create: {
-      organizationId: DEV_ORG_ID,
-      provider: "microsoft",
-      email,
-      accessToken: token.access_token,
-      refreshToken: token.refresh_token || null,
-      expiresAt: token.expires_in ? new Date(Date.now() + token.expires_in * 1000) : null,
-      scopes: token.scope || null,
-    },
+  await upsertEmailConnection({
+    organizationId: DEV_ORG_ID,
+    provider: "microsoft",
+    email,
+    accessToken: token.access_token,
+    refreshToken: token.refresh_token || null,
+    expiresAt: token.expires_in ? new Date(Date.now() + token.expires_in * 1000) : null,
+    scopes: token.scope || null,
   });
 
-  await prisma.organization.update({
-    where: { id: DEV_ORG_ID },
-    data: { emailProvider: "microsoft" },
+  await updateOrganization(DEV_ORG_ID, {
+    email_provider: "microsoft",
   });
 
   const res = NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_connected", req.url));

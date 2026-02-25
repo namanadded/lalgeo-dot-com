@@ -138,6 +138,113 @@ export default {
         return json({ ok: true });
       }
 
+      if (path === "/v1/email-runtime" && req.method === "GET") {
+        const orgId = requiredOrg(url);
+        const org = await env.DB.prepare(`
+          SELECT id,email_provider,smtp_host,smtp_port,smtp_user,smtp_pass,smtp_from,smtp_secure,email
+          FROM organizations
+          WHERE id=?1
+        `).bind(orgId).first<Record<string, unknown>>();
+        if (!org) return json({ error: "Not found" }, 404);
+        const connections = await env.DB.prepare(`
+          SELECT id,provider,email,access_token,refresh_token,expires_at,scopes
+          FROM email_connections
+          WHERE organization_id=?1
+          ORDER BY datetime(updated_at) DESC
+        `).bind(orgId).all<Record<string, unknown>>();
+        return json({ org, email_connections: connections.results || [] });
+      }
+
+      if (path === "/v1/email-connections/upsert" && req.method === "POST") {
+        const body = await parseBody<Record<string, unknown>>(req);
+        const orgId = String(body.organization_id || "").trim();
+        const provider = String(body.provider || "").trim();
+        const email = String(body.email || "").trim();
+        const accessToken = String(body.access_token || "").trim();
+        if (!orgId || !provider || !email || !accessToken) {
+          return json({ error: "organization_id, provider, email, access_token required" }, 400);
+        }
+        const existing = await env.DB.prepare(`
+          SELECT id
+          FROM email_connections
+          WHERE organization_id=?1 AND provider=?2
+          LIMIT 1
+        `).bind(orgId, provider).first<{ id: string }>();
+        if (existing?.id) {
+          await env.DB.prepare(`
+            UPDATE email_connections
+            SET email=?1,access_token=?2,refresh_token=?3,expires_at=?4,scopes=?5,updated_at=?6
+            WHERE id=?7
+          `).bind(
+            email,
+            accessToken,
+            body.refresh_token ?? null,
+            body.expires_at ?? null,
+            body.scopes ?? null,
+            nowIso(),
+            existing.id,
+          ).run();
+          return json({ id: existing.id, updated: true });
+        }
+        const id = newId();
+        await env.DB.prepare(`
+          INSERT INTO email_connections (id,provider,email,access_token,refresh_token,expires_at,scopes,organization_id,created_at,updated_at)
+          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?9)
+        `).bind(
+          id,
+          provider,
+          email,
+          accessToken,
+          body.refresh_token ?? null,
+          body.expires_at ?? null,
+          body.scopes ?? null,
+          orgId,
+          nowIso(),
+        ).run();
+        return json({ id, updated: false }, 201);
+      }
+
+      if (path === "/v1/email-connections/disconnect" && req.method === "POST") {
+        const body = await parseBody<Record<string, unknown>>(req);
+        const orgId = String(body.organization_id || "").trim();
+        const provider = String(body.provider || "").trim();
+        if (!orgId || !provider) return json({ error: "organization_id and provider required" }, 400);
+        await env.DB.prepare(`
+          DELETE FROM email_connections
+          WHERE organization_id=?1 AND provider=?2
+        `).bind(orgId, provider).run();
+        return json({ ok: true });
+      }
+
+      if (path.startsWith("/v1/email-connections/") && req.method === "PATCH") {
+        const id = decodeURIComponent(path.split("/").pop() || "");
+        const body = await parseBody<Record<string, unknown>>(req);
+        const setParts: string[] = [];
+        const values: unknown[] = [];
+        const fields = [
+          ["access_token", "access_token"],
+          ["refresh_token", "refresh_token"],
+          ["expires_at", "expires_at"],
+          ["scopes", "scopes"],
+        ] as const;
+        for (const [apiField, dbField] of fields) {
+          if (apiField in body) {
+            setParts.push(`${dbField} = ?${values.length + 1}`);
+            values.push(body[apiField]);
+          }
+        }
+        if (setParts.length === 0) return json({ ok: true });
+        setParts.push(`updated_at = ?${values.length + 1}`);
+        values.push(nowIso());
+        values.push(id);
+        await env.DB.prepare(`
+          UPDATE email_connections
+          SET ${setParts.join(", ")}
+          WHERE id = ?${values.length}
+        `).bind(...values).run();
+        return json({ ok: true });
+      }
+
       if (path === "/v1/counters" && req.method === "GET") {
         const orgId = requiredOrg(url);
         const type = (url.searchParams.get("type") || "").trim();

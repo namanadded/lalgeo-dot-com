@@ -797,3 +797,162 @@ export async function createEmailLog(data: {
     },
   });
 }
+
+export async function getEmailRuntime(orgId: string) {
+  if (useApi()) {
+    const response = await apiGet<{ org: Record<string, unknown>; email_connections: Array<Record<string, unknown>> }>(
+      `/v1/email-runtime?orgId=${encodeURIComponent(orgId)}`,
+    );
+    const org = response.org;
+    const connections = response.email_connections || [];
+    return {
+      org: {
+        id: String(org.id),
+        emailProvider: (org.email_provider as string | null) ?? null,
+        smtpHost: (org.smtp_host as string | null) ?? null,
+        smtpPort: typeof org.smtp_port === "number" ? org.smtp_port : null,
+        smtpUser: (org.smtp_user as string | null) ?? null,
+        smtpPass: (org.smtp_pass as string | null) ?? null,
+        smtpFrom: (org.smtp_from as string | null) ?? null,
+        smtpSecure: Boolean(org.smtp_secure),
+        email: (org.email as string | null) ?? null,
+      },
+      connections: connections.map((c) => ({
+        id: String(c.id),
+        provider: String(c.provider),
+        email: String(c.email || ""),
+        accessToken: String(c.access_token || ""),
+        refreshToken: (c.refresh_token as string | null) ?? null,
+        expiresAt: asDate(c.expires_at),
+        scopes: (c.scopes as string | null) ?? null,
+      })),
+    };
+  }
+
+  const org = await prisma.organization.findUnique({
+    where: { id: orgId },
+    select: {
+      id: true,
+      emailProvider: true,
+      smtpHost: true,
+      smtpPort: true,
+      smtpUser: true,
+      smtpPass: true,
+      smtpFrom: true,
+      smtpSecure: true,
+      email: true,
+      emailConnections: {
+        select: {
+          id: true,
+          provider: true,
+          email: true,
+          accessToken: true,
+          refreshToken: true,
+          expiresAt: true,
+          scopes: true,
+        },
+        orderBy: { updatedAt: "desc" },
+      },
+    },
+  });
+  if (!org) throw new Error("Organization not found");
+  return {
+    org: {
+      id: org.id,
+      emailProvider: org.emailProvider,
+      smtpHost: org.smtpHost,
+      smtpPort: org.smtpPort,
+      smtpUser: org.smtpUser,
+      smtpPass: org.smtpPass,
+      smtpFrom: org.smtpFrom,
+      smtpSecure: org.smtpSecure,
+      email: org.email,
+    },
+    connections: org.emailConnections,
+  };
+}
+
+export async function upsertEmailConnection(data: {
+  organizationId: string;
+  provider: string;
+  email: string;
+  accessToken: string;
+  refreshToken?: string | null;
+  expiresAt?: Date | null;
+  scopes?: string | null;
+}) {
+  if (useApi()) {
+    return apiPost<{ id: string }>("/v1/email-connections/upsert", {
+      organization_id: data.organizationId,
+      provider: data.provider,
+      email: data.email,
+      access_token: data.accessToken,
+      refresh_token: data.refreshToken ?? null,
+      expires_at: data.expiresAt ? data.expiresAt.toISOString() : null,
+      scopes: data.scopes ?? null,
+    });
+  }
+
+  return prisma.emailConnection.upsert({
+    where: {
+      organizationId_provider: {
+        organizationId: data.organizationId,
+        provider: data.provider,
+      },
+    },
+    update: {
+      email: data.email,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken || undefined,
+      expiresAt: data.expiresAt ?? null,
+      scopes: data.scopes ?? null,
+    },
+    create: {
+      organizationId: data.organizationId,
+      provider: data.provider,
+      email: data.email,
+      accessToken: data.accessToken,
+      refreshToken: data.refreshToken || null,
+      expiresAt: data.expiresAt ?? null,
+      scopes: data.scopes ?? null,
+    },
+  });
+}
+
+export async function disconnectEmailProvider(organizationId: string, provider: "google" | "microsoft") {
+  if (useApi()) {
+    return apiPost("/v1/email-connections/disconnect", {
+      organization_id: organizationId,
+      provider,
+    });
+  }
+  return prisma.emailConnection.deleteMany({
+    where: {
+      organizationId,
+      provider,
+    },
+  });
+}
+
+export async function updateEmailConnectionTokens(
+  id: string,
+  data: { accessToken?: string; refreshToken?: string | null; expiresAt?: Date | null; scopes?: string | null },
+) {
+  if (useApi()) {
+    return apiPatch(`/v1/email-connections/${encodeURIComponent(id)}`, {
+      ...(data.accessToken !== undefined ? { access_token: data.accessToken } : {}),
+      ...(data.refreshToken !== undefined ? { refresh_token: data.refreshToken } : {}),
+      ...(data.expiresAt !== undefined ? { expires_at: data.expiresAt ? data.expiresAt.toISOString() : null } : {}),
+      ...(data.scopes !== undefined ? { scopes: data.scopes } : {}),
+    });
+  }
+  return prisma.emailConnection.update({
+    where: { id },
+    data: {
+      ...(data.accessToken !== undefined ? { accessToken: data.accessToken } : {}),
+      ...(data.refreshToken !== undefined ? { refreshToken: data.refreshToken } : {}),
+      ...(data.expiresAt !== undefined ? { expiresAt: data.expiresAt } : {}),
+      ...(data.scopes !== undefined ? { scopes: data.scopes } : {}),
+    },
+  });
+}

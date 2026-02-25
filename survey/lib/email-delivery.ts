@@ -1,8 +1,6 @@
-import { prisma } from "@/lib/db";
 import { buildMimeMessage, type MimeAttachment } from "@/lib/mime";
+import { getEmailRuntime, updateEmailConnectionTokens } from "@/lib/saas-store";
 import { sendMailSmtp } from "@/lib/smtp";
-
-type OrgProfile = Awaited<ReturnType<typeof prisma.organization.findUnique>>;
 
 type SendInput = {
   organizationId: string;
@@ -40,12 +38,9 @@ async function refreshGoogle(connectionId: string, refreshToken: string) {
   const json = (await res.json()) as { access_token?: string; expires_in?: number };
   if (!json.access_token) throw new Error("Google token refresh missing access token");
   const expiresAt = json.expires_in ? new Date(Date.now() + json.expires_in * 1000) : null;
-  await prisma.emailConnection.update({
-    where: { id: connectionId },
-    data: {
-      accessToken: json.access_token,
-      expiresAt,
-    },
+  await updateEmailConnectionTokens(connectionId, {
+    accessToken: json.access_token,
+    expiresAt,
   });
   return json.access_token;
 }
@@ -71,13 +66,10 @@ async function refreshMicrosoft(connectionId: string, refreshToken: string) {
   const json = (await res.json()) as { access_token?: string; refresh_token?: string; expires_in?: number };
   if (!json.access_token) throw new Error("Microsoft token refresh missing access token");
   const expiresAt = json.expires_in ? new Date(Date.now() + json.expires_in * 1000) : null;
-  await prisma.emailConnection.update({
-    where: { id: connectionId },
-    data: {
-      accessToken: json.access_token,
-      refreshToken: json.refresh_token || refreshToken,
-      expiresAt,
-    },
+  await updateEmailConnectionTokens(connectionId, {
+    accessToken: json.access_token,
+    refreshToken: json.refresh_token || refreshToken,
+    expiresAt,
   });
   return json.access_token;
 }
@@ -155,34 +147,11 @@ async function sendViaMicrosoft(token: string, input: SendInput) {
 }
 
 export async function sendOrganizationEmail(input: SendInput) {
-  const org = await prisma.organization.findUnique({
-    where: { id: input.organizationId },
-    select: {
-      id: true,
-      emailProvider: true,
-      smtpHost: true,
-      smtpPort: true,
-      smtpUser: true,
-      smtpPass: true,
-      smtpFrom: true,
-      smtpSecure: true,
-      emailConnections: {
-        select: {
-          id: true,
-          provider: true,
-          email: true,
-          accessToken: true,
-          refreshToken: true,
-          expiresAt: true,
-        },
-      },
-    },
-  });
-  if (!org) throw new Error("Organization not found");
+  const { org, connections } = await getEmailRuntime(input.organizationId);
 
   const preference = input.providerPreference || org.emailProvider || "auto";
-  const hasGoogle = org.emailConnections.find((c) => c.provider === "google");
-  const hasMicrosoft = org.emailConnections.find((c) => c.provider === "microsoft");
+  const hasGoogle = connections.find((c) => c.provider === "google");
+  const hasMicrosoft = connections.find((c) => c.provider === "microsoft");
   const oauthProviders = [hasGoogle ? "google" : "", hasMicrosoft ? "microsoft" : ""].filter(Boolean);
   const tryProviders =
     preference === "google"
