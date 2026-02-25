@@ -213,17 +213,23 @@ export default async function AppSettingsPage({
               {googleConnection ? "Reconnect Gmail" : "Connect Gmail"}
             </Link>
             {googleConnection ? (
-              <Link href="/api/integrations/disconnect?provider=google" className="button secondary">
-                Disconnect Gmail
-              </Link>
+              <form action="/api/integrations/disconnect" method="post">
+                <input type="hidden" name="provider" value="google" />
+                <button type="submit" className="button secondary">
+                  Disconnect Gmail
+                </button>
+              </form>
             ) : null}
             <Link href="/api/integrations/microsoft/start" className="button secondary">
               {microsoftConnection ? "Reconnect Outlook" : "Connect Outlook"}
             </Link>
             {microsoftConnection ? (
-              <Link href="/api/integrations/disconnect?provider=microsoft" className="button secondary">
-                Disconnect Outlook
-              </Link>
+              <form action="/api/integrations/disconnect" method="post">
+                <input type="hidden" name="provider" value="microsoft" />
+                <button type="submit" className="button secondary">
+                  Disconnect Outlook
+                </button>
+              </form>
             ) : null}
           </div>
         </div>
