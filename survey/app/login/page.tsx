@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
@@ -32,7 +33,7 @@ export default function LoginPage() {
           <div className="brand auth-brand">
             <img className="brand-logo" src="/img/lalgeo-logo.png" alt="LalGeo logo" />
             <div className="brand-cloud">CLOUD</div>
-            <div className="muted">Sign in to manage surveys</div>
+            <div className="muted">Sign in to manage your business</div>
           </div>
         </div>
         <div className="panel auth-card">
@@ -49,6 +50,12 @@ export default function LoginPage() {
             </div>
             <button className="button auth-submit" type="submit">Sign in</button>
           </form>
+          <div className="auth-footer-row">
+            <span className="muted">New to LalGeo SaaS?</span>
+            <Link href="/signup" className="button secondary auth-signup-link">
+              Create account
+            </Link>
+          </div>
         </div>
       </div>
     </main>
