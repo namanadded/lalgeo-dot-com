@@ -23,7 +23,9 @@ export default function LoginPage() {
       setError(data.error || "Login failed");
       return;
     }
-    router.replace("/dashboard");
+    const next = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") || "/dashboard" : "/dashboard";
+    const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
+    router.replace(safeNext);
   };
 
   return (
