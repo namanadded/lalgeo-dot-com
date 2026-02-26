@@ -64,10 +64,10 @@ export default async function InvoiceDetailPage({
       <div className="saas-page-header">
         <h1>{invoice.invoiceNumber}</h1>
         <div className="top-actions">
-          <Link href={`/app/invoices/${invoice.id}/email`} className="button secondary">
+          <Link href={`/invoices/${invoice.id}/email`} className="button secondary">
             Email Invoice
           </Link>
-          <Link href="/app/invoices" className="button secondary">
+          <Link href="/invoices" className="button secondary">
             Back
           </Link>
         </div>
@@ -116,13 +116,13 @@ export default async function InvoiceDetailPage({
       <div className="card" style={{ marginTop: 16 }}>
         <strong>Linked Records</strong>
         <p className="muted">
-          Client: <Link href={`/app/clients/${invoice.client.id}`}>{invoice.client.name}</Link>
+          Client: <Link href={`/clients/${invoice.client.id}`}>{invoice.client.name}</Link>
         </p>
         <p className="muted">
-          Job: {invoice.job ? <Link href={`/app/jobs/${invoice.job.id}`}>{invoice.job.title}</Link> : "—"}
+          Job: {invoice.job ? <Link href={`/jobs/${invoice.job.id}`}>{invoice.job.title}</Link> : "—"}
         </p>
         <p className="muted">
-          Quote: {invoice.quote ? <Link href={`/app/quotes/${invoice.quote.id}`}>{invoice.quote.quoteNumber}</Link> : "—"}
+          Quote: {invoice.quote ? <Link href={`/quotes/${invoice.quote.id}`}>{invoice.quote.quoteNumber}</Link> : "—"}
         </p>
       </div>
     </div>

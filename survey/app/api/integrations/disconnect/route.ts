@@ -10,7 +10,7 @@ async function handleDisconnect(req: Request) {
       : (url.searchParams.get("provider") || "").trim();
   const provider = providerRaw;
   if (provider !== "google" && provider !== "microsoft") {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=invalid_provider", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=invalid_provider", req.url));
   }
 
   await disconnectEmailProvider(DEV_ORG_ID, provider);
@@ -22,7 +22,7 @@ async function handleDisconnect(req: Request) {
     });
   }
 
-  return NextResponse.redirect(new URL(`/survey/app/settings?oauth=${provider}_disconnected`, req.url));
+  return NextResponse.redirect(new URL(`/settings?oauth=${provider}_disconnected`, req.url));
 }
 
 export async function GET(req: Request) {

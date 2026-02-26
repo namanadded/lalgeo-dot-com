@@ -12,7 +12,7 @@ export default function LoginPage() {
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
     setError(null);
-    const res = await fetch("/survey/api/auth/login", {
+    const res = await fetch("/api/auth/login", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
@@ -30,7 +30,7 @@ export default function LoginPage() {
       <div className="container auth-shell">
         <div className="header auth-header">
           <div className="brand auth-brand">
-            <img className="brand-logo" src="/survey/img/lalgeo-logo.png" alt="LalGeo logo" />
+            <img className="brand-logo" src="/img/lalgeo-logo.png" alt="LalGeo logo" />
             <div className="brand-cloud">CLOUD</div>
             <div className="muted">Sign in to manage surveys</div>
           </div>

@@ -38,7 +38,7 @@ export default async function AppQuotesPage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>Quotes</h1>
-        <Link href="/app/quotes/new" className="button">
+        <Link href="/quotes/new" className="button">
           New Quote
         </Link>
       </div>
@@ -74,11 +74,11 @@ export default async function AppQuotesPage() {
                   <td>{quote.sentAt ? dateFormatter.format(quote.sentAt) : "—"}</td>
                   <td>{dateFormatter.format(quote.createdAt)}</td>
                   <td>
-                    <Link href={`/app/quotes/${quote.id}`} className="muted">
+                    <Link href={`/quotes/${quote.id}`} className="muted">
                       View
                     </Link>
                     {" · "}
-                    {quote.invoices.length > 0 ? <span className="muted">Invoiced</span> : <Link href={`/app/invoices/new?quoteId=${quote.id}`} className="muted">Create Invoice</Link>}
+                    {quote.invoices.length > 0 ? <span className="muted">Invoiced</span> : <Link href={`/invoices/new?quoteId=${quote.id}`} className="muted">Create Invoice</Link>}
                   </td>
                 </tr>
               ))}

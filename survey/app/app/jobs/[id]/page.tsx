@@ -28,7 +28,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>{job.title}</h1>
-        <Link href="/app/jobs" className="button secondary">
+        <Link href="/jobs" className="button secondary">
           Back
         </Link>
       </div>
@@ -46,7 +46,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           <strong>Client</strong>
           <p className="muted">{job.client.name}</p>
           <p className="muted">
-            <Link href={`/app/clients/${job.client.id}`}>View client</Link>
+            <Link href={`/clients/${job.client.id}`}>View client</Link>
           </p>
         </div>
       </div>

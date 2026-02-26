@@ -119,12 +119,12 @@ async function sendQuoteEmail(formData: FormData) {
       subject,
       errorMessage: message.slice(0, 500),
     });
-    redirect(`/app/quotes/${quoteId}/email?error=send_failed&reason=${encodeURIComponent(message.slice(0, 200))}`);
+    redirect(`/quotes/${quoteId}/email?error=send_failed&reason=${encodeURIComponent(message.slice(0, 200))}`);
   }
 
   await markQuoteSent(DEV_ORG_ID, quoteId, "sent");
 
-  redirect(`/app/quotes/${quoteId}?emailed=1`);
+  redirect(`/quotes/${quoteId}?emailed=1`);
 }
 
 export default async function QuoteEmailPage({
@@ -143,7 +143,7 @@ export default async function QuoteEmailPage({
   const quote = await getQuoteDetail(DEV_ORG_ID, id);
 
   if (!quote) {
-    redirect("/app/quotes");
+    redirect("/quotes");
   }
 
   const companyName = org?.legalName || org?.name || "LalGeo";
@@ -161,14 +161,14 @@ Thanks,`;
   const sendFailed = typeof resolvedSearchParams === "object" && resolvedSearchParams?.error === "send_failed";
   const sendReason = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.reason : undefined;
   const attachmentName = `${quote.quoteNumber}.pdf`;
-  const attachmentPreviewSrc = `${appBasePath()}/app/quotes/${quote.id}/preview`;
-  const exactPdfHref = `${appBasePath()}/app/quotes/${quote.id}/pdf`;
+  const attachmentPreviewSrc = `${appBasePath()}/quotes/${quote.id}/preview`;
+  const exactPdfHref = `${appBasePath()}/quotes/${quote.id}/pdf`;
 
   return (
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>Email Quote</h1>
-        <Link href={`/app/quotes/${quote.id}`} className="button secondary">
+        <Link href={`/quotes/${quote.id}`} className="button secondary">
           Back
         </Link>
       </div>

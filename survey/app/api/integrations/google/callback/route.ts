@@ -12,13 +12,13 @@ export async function GET(req: Request) {
   const cookieStore = await cookies();
   const expectedState = cookieStore.get(cookieNameForProvider("google"))?.value || "";
   if (!code || !state || !expectedState || state !== expectedState) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=google_state_invalid", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=google_state_invalid", req.url));
   }
 
   const clientId = (process.env.GOOGLE_CLIENT_ID || "").trim();
   const clientSecret = (process.env.GOOGLE_CLIENT_SECRET || "").trim();
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=google_env_missing", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=google_env_missing", req.url));
   }
 
   const callback = oauthCallbackUrl(req.url, "google");
@@ -36,7 +36,7 @@ export async function GET(req: Request) {
     body: tokenBody,
   });
   if (!tokenRes.ok) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=google_token_failed", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=google_token_failed", req.url));
   }
   const token = (await tokenRes.json()) as {
     access_token?: string;
@@ -45,14 +45,14 @@ export async function GET(req: Request) {
     scope?: string;
   };
   if (!token.access_token) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=google_token_failed", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=google_token_failed", req.url));
   }
 
   const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
     headers: { Authorization: `Bearer ${token.access_token}` },
   });
   if (!profileRes.ok) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=google_profile_failed", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=google_profile_failed", req.url));
   }
   const profile = (await profileRes.json()) as { email?: string };
   const email = profile.email || "unknown@gmail";
@@ -72,7 +72,7 @@ export async function GET(req: Request) {
     email_provider: "google",
   });
 
-  const res = NextResponse.redirect(new URL("/survey/app/settings?oauth=google_connected", req.url));
+  const res = NextResponse.redirect(new URL("/settings?oauth=google_connected", req.url));
   res.cookies.set({
     name: cookieNameForProvider("google"),
     value: "",

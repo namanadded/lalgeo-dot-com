@@ -3,9 +3,3 @@
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
-
-[[redirects]]
-  from = "/"
-  to = "/survey"
-  status = 301
-  force = true

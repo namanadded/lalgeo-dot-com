@@ -40,7 +40,7 @@ async function createInvoice(formData: FormData) {
     dueAt,
   });
 
-  redirect("/app/invoices");
+  redirect("/invoices");
 }
 
 export default async function NewInvoicePage({ searchParams }: { searchParams?: SearchParams }) {
@@ -53,7 +53,7 @@ export default async function NewInvoicePage({ searchParams }: { searchParams?: 
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>New Invoice</h1>
-        <Link href="/app/invoices" className="button secondary">
+        <Link href="/invoices" className="button secondary">
           Back
         </Link>
       </div>

@@ -32,7 +32,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>{client.name}</h1>
-        <Link href="/app/clients" className="button secondary">
+        <Link href="/clients" className="button secondary">
           Back
         </Link>
       </div>

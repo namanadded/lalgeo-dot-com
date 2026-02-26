@@ -4,7 +4,7 @@ import { cookieNameForProvider, oauthCallbackUrl, randomState } from "@/lib/oaut
 export async function GET(req: Request) {
   const clientId = (process.env.MICROSOFT_CLIENT_ID || "").trim();
   if (!clientId) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_env_missing", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=microsoft_env_missing", req.url));
   }
 
   const state = randomState();

@@ -190,7 +190,7 @@ export default function IntegrationsPage() {
   const loadConnections = async () => {
     setLoading(true);
     setError(null);
-    const res = await fetch("/survey/api/sync/connections");
+    const res = await fetch("/api/sync/connections");
     if (res.status === 401) {
       router.replace("/login");
       return;
@@ -201,7 +201,7 @@ export default function IntegrationsPage() {
   };
 
   const loadLogs = async (connectionId: string) => {
-    const res = await fetch(`/survey/api/sync/logs?connectionId=${connectionId}`);
+    const res = await fetch(`/api/sync/logs?connectionId=${connectionId}`);
     const data = await res.json().catch(() => ({}));
     setLogs(data.logs || []);
     setRuns(data.runs || []);
@@ -271,7 +271,7 @@ export default function IntegrationsPage() {
   const testConnection = async () => {
     setTesting(true);
     setTestResult(null);
-    const res = await fetch("/survey/api/sync/connections", {
+    const res = await fetch("/api/sync/connections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ validateOnly: true, connection: draft }),
@@ -284,7 +284,7 @@ export default function IntegrationsPage() {
   const createConnection = async () => {
     setCreating(true);
     setError(null);
-    const res = await fetch("/survey/api/sync/connections", {
+    const res = await fetch("/api/sync/connections", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ connection: draft }),
@@ -304,7 +304,7 @@ export default function IntegrationsPage() {
   const runNow = async (connectionId: string, dryRun = false) => {
     setRunning((prev) => ({ ...prev, [connectionId]: true }));
     setError(null);
-    const res = await fetch("/survey/api/sync/run", {
+    const res = await fetch("/api/sync/run", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ connectionId, dryRun }),

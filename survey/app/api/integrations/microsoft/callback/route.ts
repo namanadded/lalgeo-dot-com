@@ -12,13 +12,13 @@ export async function GET(req: Request) {
   const cookieStore = await cookies();
   const expectedState = cookieStore.get(cookieNameForProvider("microsoft"))?.value || "";
   if (!code || !state || !expectedState || state !== expectedState) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_state_invalid", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=microsoft_state_invalid", req.url));
   }
 
   const clientId = (process.env.MICROSOFT_CLIENT_ID || "").trim();
   const clientSecret = (process.env.MICROSOFT_CLIENT_SECRET || "").trim();
   if (!clientId || !clientSecret) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_env_missing", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=microsoft_env_missing", req.url));
   }
 
   const callback = oauthCallbackUrl(req.url, "microsoft");
@@ -37,7 +37,7 @@ export async function GET(req: Request) {
     body: tokenBody,
   });
   if (!tokenRes.ok) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_token_failed", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=microsoft_token_failed", req.url));
   }
   const token = (await tokenRes.json()) as {
     access_token?: string;
@@ -46,14 +46,14 @@ export async function GET(req: Request) {
     scope?: string;
   };
   if (!token.access_token) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_token_failed", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=microsoft_token_failed", req.url));
   }
 
   const profileRes = await fetch("https://graph.microsoft.com/v1.0/me?$select=mail,userPrincipalName", {
     headers: { Authorization: `Bearer ${token.access_token}` },
   });
   if (!profileRes.ok) {
-    return NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_profile_failed", req.url));
+    return NextResponse.redirect(new URL("/settings?oauth=microsoft_profile_failed", req.url));
   }
   const profile = (await profileRes.json()) as { mail?: string; userPrincipalName?: string };
   const email = profile.mail || profile.userPrincipalName || "unknown@outlook";
@@ -73,7 +73,7 @@ export async function GET(req: Request) {
     email_provider: "microsoft",
   });
 
-  const res = NextResponse.redirect(new URL("/survey/app/settings?oauth=microsoft_connected", req.url));
+  const res = NextResponse.redirect(new URL("/settings?oauth=microsoft_connected", req.url));
   res.cookies.set({
     name: cookieNameForProvider("microsoft"),
     value: "",

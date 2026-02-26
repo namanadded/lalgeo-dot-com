@@ -33,7 +33,7 @@ export default async function AppInvoicesPage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>Invoices</h1>
-        <Link href="/app/invoices/new" className="button">
+        <Link href="/invoices/new" className="button">
           New Invoice
         </Link>
       </div>
@@ -73,7 +73,7 @@ export default async function AppInvoicesPage() {
                   <td>{invoice.dueAt ? dateFormatter.format(invoice.dueAt) : "—"}</td>
                   <td>{dateFormatter.format(invoice.createdAt)}</td>
                   <td>
-                    <Link href={`/app/invoices/${invoice.id}`} className="muted">
+                    <Link href={`/invoices/${invoice.id}`} className="muted">
                       View
                     </Link>
                   </td>

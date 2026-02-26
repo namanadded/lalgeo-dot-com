@@ -1,12 +1,12 @@
 import Link from "next/link";
 
 const links = [
-  { href: "/app/dashboard", label: "Dashboard" },
-  { href: "/app/clients", label: "Clients" },
-  { href: "/app/jobs", label: "Jobs" },
-  { href: "/app/quotes", label: "Quotes" },
-  { href: "/app/invoices", label: "Invoices" },
-  { href: "/app/settings", label: "Settings" },
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/clients", label: "Clients" },
+  { href: "/jobs", label: "Jobs" },
+  { href: "/quotes", label: "Quotes" },
+  { href: "/invoices", label: "Invoices" },
+  { href: "/settings", label: "Settings" },
 ];
 
 export default function AppSidebar() {

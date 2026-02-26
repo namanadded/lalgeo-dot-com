@@ -13,7 +13,7 @@
 
 @font-face {
   font-family: "BenguiatCond";
-  src: url("/survey/fonts/BenguiatProITC-BoldCond.woff") format("woff");
+  src: url("/fonts/BenguiatProITC-BoldCond.woff") format("woff");
   font-weight: 700;
   font-style: normal;
   font-display: swap;

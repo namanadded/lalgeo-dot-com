@@ -26,7 +26,7 @@ export default async function AppClientsPage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>Clients</h1>
-        <Link href="/app/clients/new" className="button">
+        <Link href="/clients/new" className="button">
           New Client
         </Link>
       </div>
@@ -58,7 +58,7 @@ export default async function AppClientsPage() {
                   <td>{client.phone || "—"}</td>
                   <td>{dateFormatter.format(client.createdAt)}</td>
                   <td>
-                    <Link href={`/app/clients/${client.id}`} className="muted">
+                    <Link href={`/clients/${client.id}`} className="muted">
                       View
                     </Link>
                   </td>

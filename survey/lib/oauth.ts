@@ -14,9 +14,7 @@ export function appBaseFromRequest(reqUrl: string) {
 }
 
 export function appBasePath() {
-  const configured = (process.env.NEXT_PUBLIC_BASE_PATH || "/survey").trim();
-  if (!configured || configured === "/") return "";
-  return configured.startsWith("/") ? configured.replace(/\/+$/, "") : `/${configured.replace(/\/+$/, "")}`;
+  return "";
 }
 
 export function oauthCallbackUrl(reqUrl: string, provider: "google" | "microsoft") {

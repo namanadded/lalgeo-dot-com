@@ -21,7 +21,7 @@ async function createJob(formData: FormData) {
     status,
   });
 
-  redirect("/app/jobs");
+  redirect("/jobs");
 }
 
 export default async function NewJobPage() {
@@ -31,7 +31,7 @@ export default async function NewJobPage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>New Job</h1>
-        <Link href="/app/jobs" className="button secondary">
+        <Link href="/jobs" className="button secondary">
           Back
         </Link>
       </div>

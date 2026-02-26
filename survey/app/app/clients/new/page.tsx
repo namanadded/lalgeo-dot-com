@@ -37,7 +37,7 @@ async function createClient(formData: FormData) {
     notes: notesRaw || null,
   });
 
-  redirect("/app/clients");
+  redirect("/clients");
 }
 
 export default function NewClientPage() {
@@ -45,7 +45,7 @@ export default function NewClientPage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>New Client</h1>
-        <Link href="/app/clients" className="button secondary">
+        <Link href="/clients" className="button secondary">
           Back
         </Link>
       </div>

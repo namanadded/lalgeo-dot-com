@@ -33,7 +33,7 @@ export default async function AppJobsPage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>Jobs</h1>
-        <Link href="/app/jobs/new" className="button">
+        <Link href="/jobs/new" className="button">
           New Job
         </Link>
       </div>
@@ -65,7 +65,7 @@ export default async function AppJobsPage() {
                   </td>
                   <td>{dateFormatter.format(job.createdAt)}</td>
                   <td>
-                    <Link href={`/app/jobs/${job.id}`} className="muted">
+                    <Link href={`/jobs/${job.id}`} className="muted">
                       View
                     </Link>
                   </td>

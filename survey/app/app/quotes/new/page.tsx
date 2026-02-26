@@ -56,7 +56,7 @@ async function createQuote(formData: FormData) {
     })),
   });
 
-  redirect("/app/quotes");
+  redirect("/quotes");
 }
 
 export default async function NewQuotePage() {
@@ -66,7 +66,7 @@ export default async function NewQuotePage() {
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>New Quote</h1>
-        <Link href="/app/quotes" className="button secondary">
+        <Link href="/quotes" className="button secondary">
           Back
         </Link>
       </div>

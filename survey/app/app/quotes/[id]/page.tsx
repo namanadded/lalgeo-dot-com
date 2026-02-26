@@ -60,15 +60,15 @@ export default async function QuoteDetailPage({
       <div className="saas-page-header">
         <h1>{quote.quoteNumber}</h1>
         <div className="top-actions">
-          <Link href={`/app/quotes/${quote.id}/email`} className="button secondary">
+          <Link href={`/quotes/${quote.id}/email`} className="button secondary">
             Email Quote
           </Link>
           {quote.invoices.length === 0 ? (
-            <Link href={`/app/invoices/new?quoteId=${quote.id}`} className="button secondary">
+            <Link href={`/invoices/new?quoteId=${quote.id}`} className="button secondary">
               Create Invoice
             </Link>
           ) : null}
-          <Link href="/app/quotes" className="button secondary">
+          <Link href="/quotes" className="button secondary">
             Back
           </Link>
         </div>

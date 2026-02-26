@@ -36,7 +36,7 @@ export default function PublicSurveyPage() {
         setStatus("Survey not found");
         return;
       }
-      const res = await fetch(`/survey/api/public/${params.publicId}`);
+      const res = await fetch(`/api/public/${params.publicId}`);
       if (!res.ok) {
         setStatus("Survey not found");
         return;
@@ -55,7 +55,7 @@ export default function PublicSurveyPage() {
     const form = new FormData();
     form.append("publicId", String(params.publicId));
     form.append("file", file);
-    const res = await fetch("/survey/api/upload", { method: "POST", body: form });
+    const res = await fetch("/api/upload", { method: "POST", body: form });
     if (!res.ok) {
       const data = await res.json().catch(() => ({}));
       setStatus(data.error || "Upload failed");
@@ -83,7 +83,7 @@ export default function PublicSurveyPage() {
         return;
       }
     }
-    const res = await fetch(`/survey/api/public/${params.publicId}/submit`, {
+    const res = await fetch(`/api/public/${params.publicId}/submit`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({

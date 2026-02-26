@@ -36,7 +36,7 @@ async function saveBranding(formData: FormData) {
     country: country || null,
   });
 
-  redirect("/app/settings");
+  redirect("/settings");
 }
 
 async function saveEmailSettings(formData: FormData) {
@@ -68,7 +68,7 @@ async function saveEmailSettings(formData: FormData) {
       : {}),
   });
 
-  redirect("/app/settings?savedEmail=1");
+  redirect("/settings?savedEmail=1");
 }
 
 async function sendTestEmail(formData: FormData) {
@@ -76,12 +76,12 @@ async function sendTestEmail(formData: FormData) {
 
   const to = String(formData.get("testTo") || "").trim();
   if (!to) {
-    redirect("/app/settings?test=missing_to");
+    redirect("/settings?test=missing_to");
   }
 
   const org = await getDevOrganizationProfile();
   if (!org) {
-    redirect("/app/settings?test=failed");
+    redirect("/settings?test=failed");
   }
   const companyName = org.legalName || org.name || "LalGeo";
   const subject = `${companyName} SMTP Test`;
@@ -107,9 +107,9 @@ async function sendTestEmail(formData: FormData) {
       text,
       html,
     });
-    redirect("/app/settings?test=ok");
+    redirect("/settings?test=ok");
   } catch {
-    redirect("/app/settings?test=failed");
+    redirect("/settings?test=failed");
   }
 }
 

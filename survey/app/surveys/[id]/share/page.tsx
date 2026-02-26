@@ -20,7 +20,7 @@ export default function ShareSurveyPage() {
         router.replace("/dashboard");
         return;
       }
-      const res = await fetch(`/survey/api/surveys/${params.id}`);
+      const res = await fetch(`/api/surveys/${params.id}`);
       if (res.status === 401) {
         router.replace("/login");
         return;
@@ -37,7 +37,7 @@ export default function ShareSurveyPage() {
 
   const copy = async () => {
     if (!survey) return;
-    const url = `${window.location.origin}/survey/s/${survey.publicId}`;
+    const url = `${window.location.origin}/s/${survey.publicId}`;
     await navigator.clipboard.writeText(url);
     alert("Share link copied!");
   };
@@ -52,7 +52,7 @@ export default function ShareSurveyPage() {
     );
   }
 
-  const link = `${typeof window !== "undefined" ? window.location.origin : ""}/survey/s/${survey.publicId}`;
+  const link = `${typeof window !== "undefined" ? window.location.origin : ""}/s/${survey.publicId}`;
 
   return (
     <main>

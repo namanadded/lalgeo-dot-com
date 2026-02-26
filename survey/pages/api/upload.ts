@@ -75,7 +75,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       stored.push({
         name: original,
         storedName,
-        url: `/survey/api/uploads/${survey.id}/${storedName}`,
+        url: `/api/uploads/${survey.id}/${storedName}`,
       });
     }
 

@@ -40,7 +40,7 @@ export default function EditSurveyPage() {
       router.replace("/dashboard");
       return;
     }
-    const res = await fetch(`/survey/api/surveys/${params.id}`);
+    const res = await fetch(`/api/surveys/${params.id}`);
     if (res.status === 401) {
       router.replace("/login");
       return;
@@ -65,7 +65,7 @@ export default function EditSurveyPage() {
       return;
     }
     setError(null);
-    const res = await fetch(`/survey/api/surveys/${params.id}`, {
+    const res = await fetch(`/api/surveys/${params.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ name, description, questions: nextQuestions }),

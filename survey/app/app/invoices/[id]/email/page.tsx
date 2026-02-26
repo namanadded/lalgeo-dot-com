@@ -118,12 +118,12 @@ async function sendInvoiceEmail(formData: FormData) {
       subject,
       errorMessage: message.slice(0, 500),
     });
-    redirect(`/app/invoices/${invoiceId}/email?error=send_failed&reason=${encodeURIComponent(message.slice(0, 200))}`);
+    redirect(`/invoices/${invoiceId}/email?error=send_failed&reason=${encodeURIComponent(message.slice(0, 200))}`);
   }
 
   await markInvoiceSent(DEV_ORG_ID, invoiceId, invoice.status === "draft" ? "sent" : invoice.status);
 
-  redirect(`/app/invoices/${invoiceId}?emailed=1`);
+  redirect(`/invoices/${invoiceId}?emailed=1`);
 }
 
 export default async function InvoiceEmailPage({
@@ -140,7 +140,7 @@ export default async function InvoiceEmailPage({
   ]);
 
   const invoice = await getInvoiceDetail(DEV_ORG_ID, id);
-  if (!invoice) redirect("/app/invoices");
+  if (!invoice) redirect("/invoices");
 
   const companyName = org?.legalName || org?.name || "LalGeo";
   const greetingName = invoice.client.name || "there";
@@ -158,14 +158,14 @@ Thanks,`;
   const sendFailed = typeof resolvedSearchParams === "object" && resolvedSearchParams?.error === "send_failed";
   const sendReason = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.reason : undefined;
   const attachmentName = `${invoice.invoiceNumber}.pdf`;
-  const attachmentPreviewSrc = `${appBasePath()}/app/invoices/${invoice.id}/preview`;
-  const exactPdfHref = `${appBasePath()}/app/invoices/${invoice.id}/pdf`;
+  const attachmentPreviewSrc = `${appBasePath()}/invoices/${invoice.id}/preview`;
+  const exactPdfHref = `${appBasePath()}/invoices/${invoice.id}/pdf`;
 
   return (
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>Email Invoice</h1>
-        <Link href={`/app/invoices/${invoice.id}`} className="button secondary">
+        <Link href={`/invoices/${invoice.id}`} className="button secondary">
           Back
         </Link>
       </div>
