@@ -89,16 +89,18 @@ export default async function AdminPage({
   const created = params.created === "1";
   const saved = params.saved === "1";
 
-  const hasAdmin = adminExists();
   const session = await getSessionUser();
+  const hasAdmin = adminExists();
 
-  if (!hasAdmin) {
+  const isAdminSession = Boolean(session && session.email.toLowerCase() === ADMIN_EMAIL);
+
+  if (!isAdminSession && !hasAdmin) {
     return (
       <main>
         <div className="container">
           <div className="panel admin-panel">
             <h1>Admin Setup</h1>
-            <p className="muted">Create first admin password for: {ADMIN_EMAIL}</p>
+            <p className="muted">Create first admin password.</p>
             {error === "weak_password" && (
               <div className="banner">Password must be at least 8 characters.</div>
             )}
@@ -126,14 +128,13 @@ export default async function AdminPage({
     redirect("/login?next=/admin");
   }
 
-  if (session.email.toLowerCase() !== ADMIN_EMAIL) {
+  if (!isAdminSession) {
     return (
       <main>
         <div className="container">
           <div className="panel admin-panel">
             <h1>Admin Access Required</h1>
-            <p className="muted">You are signed in as {session.email}.</p>
-            <p className="muted">Only {ADMIN_EMAIL} can access this area.</p>
+            <p className="muted">This account does not have admin access.</p>
             <form action={signOutAction}>
               <button className="button secondary" type="submit">
                 Sign out
