@@ -1,32 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { clearSession, createUser, getSessionUser, listUsers, setSession } from "@/lib/auth";
+import { clearSession, getSessionUser, listUsers } from "@/lib/auth";
 import { createCoupon, listCoupons, setCouponActive, type CouponType } from "@/lib/coupons";
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "naman.malhotra@hotmail.com").toLowerCase();
 
 function adminExists() {
   return listUsers().some((user) => user.email.toLowerCase() === ADMIN_EMAIL);
-}
-
-async function createAdminAction(formData: FormData) {
-  "use server";
-  if (adminExists()) {
-    redirect("/login?next=/admin");
-  }
-
-  const password = String(formData.get("password") || "");
-  const confirmPassword = String(formData.get("confirmPassword") || "");
-  if (password.length < 8) {
-    redirect("/admin?error=weak_password");
-  }
-  if (password !== confirmPassword) {
-    redirect("/admin?error=password_mismatch");
-  }
-
-  const user = createUser(ADMIN_EMAIL, password);
-  await setSession(user);
-  redirect("/admin?created=1");
 }
 
 async function createCouponAction(formData: FormData) {
@@ -86,7 +66,6 @@ export default async function AdminPage({
 }) {
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : "";
-  const created = params.created === "1";
   const saved = params.saved === "1";
 
   const session = await getSessionUser();
@@ -94,37 +73,7 @@ export default async function AdminPage({
 
   const isAdminSession = Boolean(session && session.email.toLowerCase() === ADMIN_EMAIL);
 
-  if (!isAdminSession && !hasAdmin) {
-    return (
-      <main>
-        <div className="container">
-          <div className="panel admin-panel">
-            <h1>Admin Setup</h1>
-            <p className="muted">Create first admin password.</p>
-            {error === "weak_password" && (
-              <div className="banner">Password must be at least 8 characters.</div>
-            )}
-            {error === "password_mismatch" && <div className="banner">Passwords do not match.</div>}
-            <form action={createAdminAction} className="grid">
-              <div>
-                <label>Password</label>
-                <input className="input" type="password" name="password" minLength={8} required />
-              </div>
-              <div>
-                <label>Confirm Password</label>
-                <input className="input" type="password" name="confirmPassword" minLength={8} required />
-              </div>
-              <button className="button" type="submit">
-                Create Admin Account
-              </button>
-            </form>
-          </div>
-        </div>
-      </main>
-    );
-  }
-
-  if (!session) {
+  if (!hasAdmin || !session) {
     redirect("/login?next=/admin");
   }
 
@@ -170,7 +119,6 @@ export default async function AdminPage({
 
         <div className="panel admin-panel">
           <h2>Create Coupon</h2>
-          {created && <div className="banner">Admin account created successfully.</div>}
           {saved && <div className="banner">Coupon saved.</div>}
           {error === "coupon_create_failed" && <div className="banner">Failed to save coupon.</div>}
 
