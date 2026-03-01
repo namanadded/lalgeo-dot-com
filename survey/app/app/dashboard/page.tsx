@@ -41,6 +41,15 @@ function isSchemaMismatchError(error: unknown) {
   return code === "P2021" || code === "P2022" || /no such table|no such column/i.test(message);
 }
 
+async function safeQuery<T>(label: string, run: () => Promise<T>, fallback: T): Promise<T> {
+  try {
+    return await run();
+  } catch (error) {
+    console.error(`[dashboard] ${label} failed`, error);
+    return fallback;
+  }
+}
+
 async function aggregatePaidSince(orgId: string, since: Date) {
   try {
     return await prisma.invoice.aggregate({
@@ -105,34 +114,54 @@ export default async function AppDashboardPage() {
 
   const [weeklyPaidAggregate, monthlyPaidAggregate, outstandingAggregate, sentQuotesCount, acceptedQuotesCount, queueRows, activityRows] =
     await Promise.all([
-      aggregatePaidSince(DEV_ORG_ID, sevenDaysAgo),
-      aggregatePaidSince(DEV_ORG_ID, monthStart),
-    prisma.invoice.aggregate({
-      where: {
-        organizationId: DEV_ORG_ID,
-        status: { not: "paid" },
-      },
-      _sum: { totalCents: true },
-    }),
-    prisma.quote.count({
-      where: {
-        organizationId: DEV_ORG_ID,
-        status: "sent",
-        sentAt: { gte: last30Days },
-      },
-    }),
-    prisma.quote.count({
-      where: {
-        organizationId: DEV_ORG_ID,
-        status: "accepted",
-        updatedAt: { gte: last30Days },
-      },
-    }),
-      listQueueRows(DEV_ORG_ID, todayStart, next7End),
-      listRecentActivities(DEV_ORG_ID, 10).catch((error) => {
-        if (isSchemaMismatchError(error)) return [];
-        throw error;
-      }),
+      safeQuery("weekly sales", () => aggregatePaidSince(DEV_ORG_ID, sevenDaysAgo), { _sum: { totalCents: 0 } }),
+      safeQuery("monthly sales", () => aggregatePaidSince(DEV_ORG_ID, monthStart), { _sum: { totalCents: 0 } }),
+      safeQuery(
+        "outstanding",
+        () =>
+          prisma.invoice.aggregate({
+            where: {
+              organizationId: DEV_ORG_ID,
+              status: { not: "paid" },
+            },
+            _sum: { totalCents: true },
+          }),
+        { _sum: { totalCents: 0 } },
+      ),
+      safeQuery(
+        "quotes sent",
+        () =>
+          prisma.quote.count({
+            where: {
+              organizationId: DEV_ORG_ID,
+              status: "sent",
+              sentAt: { gte: last30Days },
+            },
+          }),
+        0,
+      ),
+      safeQuery(
+        "quotes accepted",
+        () =>
+          prisma.quote.count({
+            where: {
+              organizationId: DEV_ORG_ID,
+              status: "accepted",
+              updatedAt: { gte: last30Days },
+            },
+          }),
+        0,
+      ),
+      safeQuery("queue", () => listQueueRows(DEV_ORG_ID, todayStart, next7End), [] as QueueRow[]),
+      safeQuery(
+        "recent activity",
+        () =>
+          listRecentActivities(DEV_ORG_ID, 10).catch((error) => {
+            if (isSchemaMismatchError(error)) return [];
+            throw error;
+          }),
+        [] as Awaited<ReturnType<typeof listRecentActivities>>,
+      ),
     ]);
 
   const queueSorted = (queueRows as QueueRow[]).sort((a, b) => {
