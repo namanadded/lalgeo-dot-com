@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { prisma } from "@/lib/db";
 import { DEV_ORG_ID } from "@/lib/saas";
 import {
   addDays,
@@ -9,7 +8,7 @@ import {
   startOfDay,
   startOfMonth,
 } from "@/lib/dashboard-utils";
-import { listRecentActivities } from "@/lib/saas-store";
+import { listInvoices, listJobs, listQuotes, listRecentActivities } from "@/lib/saas-store";
 
 export const dynamic = "force-dynamic";
 
@@ -35,72 +34,10 @@ type QueueRow = {
   client: { name: string };
 };
 
-function isSchemaMismatchError(error: unknown) {
-  const code = typeof error === "object" && error !== null && "code" in error ? String((error as { code?: unknown }).code || "") : "";
-  const message = error instanceof Error ? error.message : String(error || "");
-  return code === "P2021" || code === "P2022" || /no such table|no such column/i.test(message);
-}
-
-async function safeQuery<T>(label: string, run: () => Promise<T>, fallback: T): Promise<T> {
-  try {
-    return await run();
-  } catch (error) {
-    console.error(`[dashboard] ${label} failed`, error);
-    return fallback;
-  }
-}
-
-async function aggregatePaidSince(orgId: string, since: Date) {
-  try {
-    return await prisma.invoice.aggregate({
-      where: { organizationId: orgId, status: "paid", paidAt: { gte: since } },
-      _sum: { totalCents: true },
-    });
-  } catch (error) {
-    if (!isSchemaMismatchError(error)) throw error;
-    return prisma.invoice.aggregate({
-      where: { organizationId: orgId, status: "paid", issuedAt: { gte: since } },
-      _sum: { totalCents: true },
-    });
-  }
-}
-
-async function listQueueRows(orgId: string, todayStart: Date, next7End: Date): Promise<QueueRow[]> {
-  try {
-    return await prisma.job.findMany({
-      where: {
-        organizationId: orgId,
-        OR: [
-          { scheduledStart: { gte: todayStart, lte: next7End } },
-          { inspectionDueDate: { gte: todayStart, lte: next7End } },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        scheduledStart: true,
-        inspectionDueDate: true,
-        client: { select: { name: true } },
-      },
-    });
-  } catch (error) {
-    if (!isSchemaMismatchError(error)) throw error;
-    const rows = await prisma.job.findMany({
-      where: { organizationId: orgId, createdAt: { gte: todayStart, lte: next7End } },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        client: { select: { name: true } },
-      },
-    });
-    return rows.map((row) => ({
-      ...row,
-      scheduledStart: null,
-      inspectionDueDate: null,
-    }));
-  }
+function isInRange(date: Date | null | undefined, start: Date, end: Date) {
+  if (!date) return false;
+  const t = date.getTime();
+  return t >= start.getTime() && t <= end.getTime();
 }
 
 export default async function AppDashboardPage() {
@@ -112,57 +49,12 @@ export default async function AppDashboardPage() {
   const todayEnd = endOfDay(now);
   const next7End = endOfDay(addDays(now, 7));
 
-  const [weeklyPaidAggregate, monthlyPaidAggregate, outstandingAggregate, sentQuotesCount, acceptedQuotesCount, queueRows, activityRows] =
-    await Promise.all([
-      safeQuery("weekly sales", () => aggregatePaidSince(DEV_ORG_ID, sevenDaysAgo), { _sum: { totalCents: 0 } }),
-      safeQuery("monthly sales", () => aggregatePaidSince(DEV_ORG_ID, monthStart), { _sum: { totalCents: 0 } }),
-      safeQuery(
-        "outstanding",
-        () =>
-          prisma.invoice.aggregate({
-            where: {
-              organizationId: DEV_ORG_ID,
-              status: { not: "paid" },
-            },
-            _sum: { totalCents: true },
-          }),
-        { _sum: { totalCents: 0 } },
-      ),
-      safeQuery(
-        "quotes sent",
-        () =>
-          prisma.quote.count({
-            where: {
-              organizationId: DEV_ORG_ID,
-              status: "sent",
-              sentAt: { gte: last30Days },
-            },
-          }),
-        0,
-      ),
-      safeQuery(
-        "quotes accepted",
-        () =>
-          prisma.quote.count({
-            where: {
-              organizationId: DEV_ORG_ID,
-              status: "accepted",
-              updatedAt: { gte: last30Days },
-            },
-          }),
-        0,
-      ),
-      safeQuery("queue", () => listQueueRows(DEV_ORG_ID, todayStart, next7End), [] as QueueRow[]),
-      safeQuery(
-        "recent activity",
-        () =>
-          listRecentActivities(DEV_ORG_ID, 10).catch((error) => {
-            if (isSchemaMismatchError(error)) return [];
-            throw error;
-          }),
-        [] as Awaited<ReturnType<typeof listRecentActivities>>,
-      ),
-    ]);
+  const [invoices, quotes, queueRows, activityRows] = await Promise.all([
+    listInvoices(DEV_ORG_ID).catch(() => []),
+    listQuotes(DEV_ORG_ID).catch(() => []),
+    listJobs(DEV_ORG_ID).catch(() => []),
+    listRecentActivities(DEV_ORG_ID, 10).catch(() => []),
+  ]);
 
   const queueSorted = (queueRows as QueueRow[]).sort((a, b) => {
     const aDate = a.scheduledStart || a.inspectionDueDate || new Date(0);
@@ -179,9 +71,17 @@ export default async function AppDashboardPage() {
     return when && when > todayEnd && when <= next7End;
   });
 
-  const weeklySales = weeklyPaidAggregate._sum.totalCents || 0;
-  const monthlySales = monthlyPaidAggregate._sum.totalCents || 0;
-  const outstanding = outstandingAggregate._sum.totalCents || 0;
+  const weeklySales = invoices
+    .filter((invoice) => invoice.status === "paid" && isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, sevenDaysAgo, now))
+    .reduce((sum, invoice) => sum + invoice.totalCents, 0);
+  const monthlySales = invoices
+    .filter((invoice) => invoice.status === "paid" && isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, monthStart, now))
+    .reduce((sum, invoice) => sum + invoice.totalCents, 0);
+  const outstanding = invoices
+    .filter((invoice) => invoice.status !== "paid")
+    .reduce((sum, invoice) => sum + invoice.totalCents, 0);
+  const sentQuotesCount = quotes.filter((quote) => quote.status === "sent" && isInRange(quote.sentAt || quote.createdAt, last30Days, now)).length;
+  const acceptedQuotesCount = quotes.filter((quote) => quote.status === "accepted" && isInRange(quote.sentAt || quote.createdAt, last30Days, now)).length;
 
   return (
     <div className="saas-page-card">
