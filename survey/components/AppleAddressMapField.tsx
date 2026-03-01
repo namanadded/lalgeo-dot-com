@@ -17,6 +17,82 @@ type AddressValues = {
   country: string;
 };
 
+function normalizeCountry(value: string) {
+  const raw = value.trim();
+  if (!raw) return "";
+  const upper = raw.toUpperCase();
+  if (upper === "CA") return "Canada";
+  if (upper === "US" || upper === "USA") return "United States";
+  return raw;
+}
+
+function parseFormattedAddress(rawAddress: string) {
+  const raw = String(rawAddress || "").trim();
+  if (!raw) {
+    return {
+      addressLine1: "",
+      city: "",
+      stateProvince: "",
+      postalCode: "",
+      country: "",
+    };
+  }
+
+  const parts = raw.split(",").map((part) => part.trim()).filter(Boolean);
+  const addressLine1 = parts[0] || "";
+  const country = normalizeCountry(parts[parts.length - 1] || "");
+
+  let city = "";
+  let stateProvince = "";
+  let postalCode = "";
+
+  // Typical formats:
+  // 1) "39 Wolf Hollow Way SE, Calgary AB T2X 0P9, Canada"
+  // 2) "39 Wolf Hollow Way SE, Calgary, AB T2X 0P9, Canada"
+  // 3) "123 Main St, Seattle, WA 98101, United States"
+  if (parts.length >= 3) {
+    const beforeCountry = parts.slice(1, parts.length - 1);
+    if (beforeCountry.length === 1) {
+      const one = beforeCountry[0];
+      const caMatch = one.match(/^(.+?)\s+([A-Z]{2})\s+([A-Z]\d[A-Z]\s?\d[A-Z]\d)$/i);
+      const usMatch = one.match(/^(.+?)\s+([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i);
+      if (caMatch) {
+        city = caMatch[1].trim();
+        stateProvince = caMatch[2].trim();
+        postalCode = caMatch[3].toUpperCase().replace(/\s?(\d[A-Z]\d)$/i, " $1");
+      } else if (usMatch) {
+        city = usMatch[1].trim();
+        stateProvince = usMatch[2].trim();
+        postalCode = usMatch[3].trim();
+      } else {
+        city = one;
+      }
+    } else {
+      city = beforeCountry[0] || "";
+      const regionLine = beforeCountry.slice(1).join(" ");
+      const caTail = regionLine.match(/([A-Z]{2})\s+([A-Z]\d[A-Z]\s?\d[A-Z]\d)$/i);
+      const usTail = regionLine.match(/([A-Z]{2})\s+(\d{5}(?:-\d{4})?)$/i);
+      if (caTail) {
+        stateProvince = caTail[1].trim();
+        postalCode = caTail[2].toUpperCase().replace(/\s?(\d[A-Z]\d)$/i, " $1");
+      } else if (usTail) {
+        stateProvince = usTail[1].trim();
+        postalCode = usTail[2].trim();
+      } else {
+        stateProvince = regionLine;
+      }
+    }
+  }
+
+  return {
+    addressLine1,
+    city,
+    stateProvince,
+    postalCode,
+    country,
+  };
+}
+
 function mapkitTokenForHost(hostname: string) {
   const override = (process.env.NEXT_PUBLIC_MAPKIT_TOKEN || "").trim();
   if (override) return override;
@@ -26,38 +102,45 @@ function mapkitTokenForHost(hostname: string) {
 }
 
 function parseAddress(place: any): AddressValues {
+  const formattedFallback = parseFormattedAddress(place?.formattedAddress || "");
+  const countryFromDisplay = normalizeCountry(String(place?.address?.country || ""));
+  const countryFromCode = normalizeCountry(String(place?.countryCode || ""));
+  const subThoroughfare = String(place?.address?.subThoroughfare || place?.subThoroughfare || "").trim();
+  const thoroughfare = String(place?.address?.thoroughfare || place?.thoroughfare || "").trim();
+  const composedStreet = [subThoroughfare, thoroughfare].filter(Boolean).join(" ").trim();
+
   const line1 = String(
     place?.address?.street ||
-      place?.thoroughfare ||
+      composedStreet ||
       place?.name ||
+      formattedFallback.addressLine1 ||
       "",
   ).trim();
 
   const city = String(
     place?.address?.locality ||
       place?.locality ||
+      formattedFallback.city ||
       "",
   ).trim();
 
   const stateProvince = String(
     place?.address?.administrativeArea ||
       place?.administrativeArea ||
+      formattedFallback.stateProvince ||
       "",
   ).trim();
 
   const postalCode = String(
     place?.address?.postalCode ||
       place?.postalCode ||
+      formattedFallback.postalCode ||
       "",
   ).trim();
 
-  const country = String(
-    place?.address?.country ||
-      place?.countryCode ||
-      "Canada",
-  ).trim();
+  const country = countryFromDisplay || countryFromCode || formattedFallback.country || "Canada";
 
-  const line2 = String(place?.address?.subLocality || "").trim();
+  const line2 = String(place?.address?.subLocality || place?.subLocality || "").trim();
 
   return {
     addressLine1: line1,
