@@ -34,6 +34,7 @@ model Organization {
   jobs      Job[]
   quotes    Quote[]
   invoices  Invoice[]
+  activities Activity[]
   emailConnections EmailConnection[]
   emailLogs       EmailLog[]
 }
@@ -73,6 +74,8 @@ model Job {
   id             String   @id @default(cuid())
   title          String
   status         String   @default("draft")
+  scheduledStart DateTime?
+  inspectionDueDate DateTime?
   client         Client   @relation(fields: [clientId], references: [id])
   clientId       String
   organization   Organization @relation(fields: [organizationId], references: [id])
@@ -121,6 +124,7 @@ model Invoice {
   invoiceNumber  String   @unique
   status         String   @default("draft")
   sentAt         DateTime?
+  paidAt         DateTime?
   notes          String?
   issuedAt       DateTime @default(now())
   dueAt          DateTime?
@@ -140,6 +144,21 @@ model Invoice {
   lineItems      InvoiceLineItem[]
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
+}
+
+model Activity {
+  id             String   @id @default(cuid())
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  entityType     String
+  entityId       String
+  action         String
+  message        String
+  actorUserId    String?
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([organizationId, entityType, entityId, createdAt])
 }
 
 model InvoiceLineItem {

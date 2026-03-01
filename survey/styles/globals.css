@@ -990,6 +990,122 @@ button.integrations-card {
   padding-top: 4px;
 }
 
+.dashboard-quick-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.dashboard-kpi-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  margin-bottom: 18px;
+}
+
+.dashboard-kpi-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.76);
+  display: grid;
+  gap: 6px;
+}
+
+.dashboard-kpi-label {
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.dashboard-kpi-value {
+  color: #0f172a;
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.dashboard-section-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 14px;
+  margin-bottom: 14px;
+}
+
+.dashboard-section-card {
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.74);
+  display: grid;
+  gap: 10px;
+}
+
+.dashboard-section-title {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: #0f172a;
+}
+
+.dashboard-skeleton-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 18px;
+}
+
+.dashboard-skeleton {
+  border-radius: 10px;
+  background: linear-gradient(90deg, #eef2f7 25%, #f5f7fb 37%, #eef2f7 63%);
+  background-size: 400% 100%;
+  animation: dashboard-shimmer 1.2s ease-in-out infinite;
+}
+
+.dashboard-skeleton-title {
+  height: 34px;
+  width: 220px;
+  margin-bottom: 18px;
+}
+
+.dashboard-skeleton-button {
+  height: 38px;
+  width: 140px;
+  border-radius: 999px;
+}
+
+.dashboard-skeleton-label {
+  height: 12px;
+  width: 120px;
+}
+
+.dashboard-skeleton-value {
+  height: 28px;
+  width: 140px;
+}
+
+.dashboard-skeleton-line {
+  height: 12px;
+  width: 70%;
+}
+
+.dashboard-skeleton-table {
+  height: 170px;
+  width: 100%;
+}
+
+@keyframes dashboard-shimmer {
+  0% {
+    background-position: 100% 0;
+  }
+  100% {
+    background-position: 0 0;
+  }
+}
+
 .saas-line-items {
   display: grid;
   gap: 10px;

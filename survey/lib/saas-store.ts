@@ -58,6 +58,49 @@ function asDate(value: unknown) {
   return new Date(String(value));
 }
 
+export async function createActivity(data: {
+  organizationId: string;
+  entityType: string;
+  entityId: string;
+  action: string;
+  message: string;
+  actorUserId?: string | null;
+}) {
+  if (useApi()) {
+    return null;
+  }
+  return prisma.activity.create({
+    data: {
+      organizationId: data.organizationId,
+      entityType: data.entityType,
+      entityId: data.entityId,
+      action: data.action,
+      message: data.message,
+      actorUserId: data.actorUserId ?? null,
+    },
+  });
+}
+
+export async function listRecentActivities(orgId: string, limit = 10) {
+  if (useApi()) {
+    return [];
+  }
+  return prisma.activity.findMany({
+    where: { organizationId: orgId },
+    orderBy: { createdAt: "desc" },
+    take: limit,
+    select: {
+      id: true,
+      entityType: true,
+      entityId: true,
+      action: true,
+      message: true,
+      actorUserId: true,
+      createdAt: true,
+    },
+  });
+}
+
 export async function ensureOrganization(orgId: string, name: string) {
   if (useApi()) {
     return apiPost<{ organization: unknown }>("/v1/bootstrap-org", { orgId, name });
@@ -309,27 +352,66 @@ export async function listJobs(orgId: string) {
       title: String(j.title),
       status: String(j.status),
       clientId: String(j.client_id),
+      scheduledStart: asDate(j.scheduled_start),
+      inspectionDueDate: asDate(j.inspection_due_date),
       createdAt: asDate(j.created_at)!,
       client: { name: String(j.client_name || "") },
     }));
   }
   return prisma.job.findMany({
     where: { organizationId: orgId },
-    orderBy: { createdAt: "desc" },
-    select: { id: true, title: true, status: true, clientId: true, createdAt: true, client: { select: { name: true } } },
+    orderBy: [{ scheduledStart: "asc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      title: true,
+      status: true,
+      clientId: true,
+      scheduledStart: true,
+      inspectionDueDate: true,
+      createdAt: true,
+      client: { select: { name: true } },
+    },
   });
 }
 
-export async function createJob(data: { organizationId: string; title: string; status: string; clientId: string }) {
+export async function createJob(data: {
+  organizationId: string;
+  title: string;
+  status: string;
+  clientId: string;
+  scheduledStart?: Date | null;
+  inspectionDueDate?: Date | null;
+}) {
   if (useApi()) {
     return apiPost("/v1/jobs", {
       organization_id: data.organizationId,
       title: data.title,
       status: data.status,
       client_id: data.clientId,
+      scheduled_start: data.scheduledStart ? data.scheduledStart.toISOString() : null,
+      inspection_due_date: data.inspectionDueDate ? data.inspectionDueDate.toISOString() : null,
     });
   }
-  return prisma.job.create({ data });
+  const job = await prisma.job.create({
+    data: {
+      organizationId: data.organizationId,
+      title: data.title,
+      status: data.status,
+      clientId: data.clientId,
+      scheduledStart: data.scheduledStart ?? null,
+      inspectionDueDate: data.inspectionDueDate ?? null,
+    },
+    select: { id: true, title: true, status: true },
+  });
+  const action = data.status === "completed" ? "job_completed" : data.status === "scheduled" ? "job_scheduled" : "job_created";
+  await createActivity({
+    organizationId: data.organizationId,
+    entityType: "job",
+    entityId: job.id,
+    action,
+    message: `Job ${job.title} ${action === "job_created" ? "created" : action === "job_scheduled" ? "scheduled" : "completed"}.`,
+  });
+  return job;
 }
 
 export async function getJobDetail(orgId: string, id: string) {
@@ -341,6 +423,8 @@ export async function getJobDetail(orgId: string, id: string) {
       id: String(j.id),
       title: String(j.title),
       status: String(j.status),
+      scheduledStart: asDate(j.scheduled_start),
+      inspectionDueDate: asDate(j.inspection_due_date),
       createdAt: asDate(j.created_at)!,
       client: {
         id: String(j.client_id),
@@ -358,6 +442,8 @@ export async function getJobDetail(orgId: string, id: string) {
       id: true,
       title: true,
       status: true,
+      scheduledStart: true,
+      inspectionDueDate: true,
       createdAt: true,
       client: { select: { id: true, name: true } },
       _count: { select: { quotes: true, invoices: true } },
@@ -431,7 +517,7 @@ export async function createQuote(data: {
     });
   }
 
-  return prisma.quote.create({
+  const quote = await prisma.quote.create({
     data: {
       organizationId: data.organizationId,
       quoteNumber: data.quoteNumber,
@@ -453,7 +539,17 @@ export async function createQuote(data: {
         })),
       },
     },
+    select: { id: true, quoteNumber: true, status: true },
   });
+  const action = data.status === "accepted" ? "quote_accepted" : data.status === "sent" ? "quote_sent" : "quote_created";
+  await createActivity({
+    organizationId: data.organizationId,
+    entityType: "quote",
+    entityId: quote.id,
+    action,
+    message: `Quote ${quote.quoteNumber} ${action === "quote_created" ? "created" : action === "quote_sent" ? "sent" : "accepted"}.`,
+  });
+  return quote;
 }
 
 export async function getQuoteDetail(orgId: string, id: string) {
@@ -535,7 +631,27 @@ export async function markQuoteSent(orgId: string, id: string, status = "sent") 
   if (useApi()) {
     return apiPatch(`/v1/quotes/${encodeURIComponent(id)}`, { organization_id: orgId, status, sent_at: new Date().toISOString() });
   }
-  return prisma.quote.update({ where: { id }, data: { status, sentAt: new Date() } });
+  const existing = await prisma.quote.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, quoteNumber: true },
+  });
+  if (!existing) {
+    throw new Error("Quote not found");
+  }
+  const quote = await prisma.quote.update({
+    where: { id: existing.id },
+    data: { status, sentAt: new Date() },
+    select: { id: true, quoteNumber: true },
+  });
+  const action = status === "accepted" ? "quote_accepted" : "quote_sent";
+  await createActivity({
+    organizationId: orgId,
+    entityType: "quote",
+    entityId: quote.id,
+    action,
+    message: `Quote ${quote.quoteNumber} ${status === "accepted" ? "accepted" : "sent"}.`,
+  });
+  return quote;
 }
 
 export async function listInvoices(orgId: string) {
@@ -547,6 +663,7 @@ export async function listInvoices(orgId: string) {
       status: String(inv.status),
       totalCents: Number(inv.total_cents || 0),
       paidCents: Number(inv.paid_cents || 0),
+      paidAt: asDate(inv.paid_at),
       sentAt: asDate(inv.sent_at),
       dueAt: asDate(inv.due_at),
       createdAt: asDate(inv.created_at)!,
@@ -563,6 +680,7 @@ export async function listInvoices(orgId: string) {
       status: true,
       totalCents: true,
       paidCents: true,
+      paidAt: true,
       sentAt: true,
       dueAt: true,
       createdAt: true,
@@ -608,7 +726,7 @@ export async function createInvoiceFromQuote(data: {
     },
   });
   if (!quote) throw new Error("Quote not found");
-  return prisma.invoice.create({
+  const createdInvoice = await prisma.invoice.create({
     data: {
       organizationId: data.organizationId,
       invoiceNumber: data.invoiceNumber,
@@ -621,6 +739,7 @@ export async function createInvoiceFromQuote(data: {
       taxCents: quote.taxCents,
       totalCents: quote.totalCents,
       paidCents: data.status === "paid" ? quote.totalCents : 0,
+      paidAt: data.status === "paid" ? new Date() : null,
       clientId: quote.clientId,
       jobId: quote.jobId,
       quoteId: quote.id,
@@ -634,7 +753,25 @@ export async function createInvoiceFromQuote(data: {
         })),
       },
     },
+    select: { id: true, invoiceNumber: true, status: true },
   });
+  await createActivity({
+    organizationId: data.organizationId,
+    entityType: "invoice",
+    entityId: createdInvoice.id,
+    action: "invoice_created",
+    message: `Invoice ${createdInvoice.invoiceNumber} created.`,
+  });
+  if (createdInvoice.status === "paid") {
+    await createActivity({
+      organizationId: data.organizationId,
+      entityType: "invoice",
+      entityId: createdInvoice.id,
+      action: "invoice_paid",
+      message: `Invoice ${createdInvoice.invoiceNumber} marked paid.`,
+    });
+  }
+  return createdInvoice;
 }
 
 export async function getInvoiceDetail(orgId: string, id: string) {
@@ -653,6 +790,7 @@ export async function getInvoiceDetail(orgId: string, id: string) {
       taxCents: Number(i.tax_cents || 0),
       totalCents: Number(i.total_cents || 0),
       paidCents: Number(i.paid_cents || 0),
+      paidAt: asDate(i.paid_at),
       client: {
         id: String((i.client as Record<string, unknown>).id),
         name: String((i.client as Record<string, unknown>).name || ""),
@@ -692,6 +830,7 @@ export async function getInvoiceDetail(orgId: string, id: string) {
       taxCents: true,
       totalCents: true,
       paidCents: true,
+      paidAt: true,
       client: {
         select: {
           id: true,
@@ -717,7 +856,30 @@ export async function markInvoiceSent(orgId: string, id: string, status: string)
   if (useApi()) {
     return apiPatch(`/v1/invoices/${encodeURIComponent(id)}`, { organization_id: orgId, status, sent_at: new Date().toISOString() });
   }
-  return prisma.invoice.update({ where: { id }, data: { status, sentAt: new Date() } });
+  const existing = await prisma.invoice.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, invoiceNumber: true },
+  });
+  if (!existing) {
+    throw new Error("Invoice not found");
+  }
+  const invoice = await prisma.invoice.update({
+    where: { id: existing.id },
+    data: {
+      status,
+      sentAt: new Date(),
+      ...(status === "paid" ? { paidAt: new Date() } : {}),
+    },
+    select: { id: true, invoiceNumber: true },
+  });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "invoice",
+    entityId: invoice.id,
+    action: status === "paid" ? "invoice_paid" : "invoice_sent",
+    message: `Invoice ${invoice.invoiceNumber} ${status === "paid" ? "marked paid" : "sent"}.`,
+  });
+  return invoice;
 }
 
 export async function listEmailLogs(orgId: string, documentType: string, documentId: string, limit = 10) {

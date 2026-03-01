@@ -9,7 +9,11 @@ async function createJob(formData: FormData) {
   const title = String(formData.get("title") || "").trim();
   const clientId = String(formData.get("clientId") || "").trim();
   const rawStatus = String(formData.get("status") || "draft").trim();
+  const scheduledStartRaw = String(formData.get("scheduledStart") || "").trim();
+  const inspectionDueDateRaw = String(formData.get("inspectionDueDate") || "").trim();
   const status = rawStatus === "scheduled" || rawStatus === "completed" ? rawStatus : "draft";
+  const scheduledStart = scheduledStartRaw ? new Date(scheduledStartRaw) : null;
+  const inspectionDueDate = inspectionDueDateRaw ? new Date(inspectionDueDateRaw) : null;
 
   if (!title || !clientId) return;
 
@@ -19,6 +23,8 @@ async function createJob(formData: FormData) {
     title,
     clientId,
     status,
+    scheduledStart: scheduledStart && Number.isFinite(scheduledStart.getTime()) ? scheduledStart : null,
+    inspectionDueDate: inspectionDueDate && Number.isFinite(inspectionDueDate.getTime()) ? inspectionDueDate : null,
   });
 
   redirect("/jobs");
@@ -63,6 +69,16 @@ export default async function NewJobPage() {
             <option value="scheduled">scheduled</option>
             <option value="completed">completed</option>
           </select>
+        </div>
+
+        <div>
+          <label htmlFor="scheduledStart">Scheduled Start (optional)</label>
+          <input id="scheduledStart" name="scheduledStart" className="input" type="datetime-local" />
+        </div>
+
+        <div>
+          <label htmlFor="inspectionDueDate">Inspection Due Date (optional)</label>
+          <input id="inspectionDueDate" name="inspectionDueDate" className="input" type="date" />
         </div>
 
         <div className="saas-form-actions">
