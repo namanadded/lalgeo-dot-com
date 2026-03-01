@@ -35,6 +35,65 @@ type QueueRow = {
   client: { name: string };
 };
 
+function isSchemaMismatchError(error: unknown) {
+  const code = typeof error === "object" && error !== null && "code" in error ? String((error as { code?: unknown }).code || "") : "";
+  const message = error instanceof Error ? error.message : String(error || "");
+  return code === "P2021" || code === "P2022" || /no such table|no such column/i.test(message);
+}
+
+async function aggregatePaidSince(orgId: string, since: Date) {
+  try {
+    return await prisma.invoice.aggregate({
+      where: { organizationId: orgId, status: "paid", paidAt: { gte: since } },
+      _sum: { totalCents: true },
+    });
+  } catch (error) {
+    if (!isSchemaMismatchError(error)) throw error;
+    return prisma.invoice.aggregate({
+      where: { organizationId: orgId, status: "paid", issuedAt: { gte: since } },
+      _sum: { totalCents: true },
+    });
+  }
+}
+
+async function listQueueRows(orgId: string, todayStart: Date, next7End: Date): Promise<QueueRow[]> {
+  try {
+    return await prisma.job.findMany({
+      where: {
+        organizationId: orgId,
+        OR: [
+          { scheduledStart: { gte: todayStart, lte: next7End } },
+          { inspectionDueDate: { gte: todayStart, lte: next7End } },
+        ],
+      },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        scheduledStart: true,
+        inspectionDueDate: true,
+        client: { select: { name: true } },
+      },
+    });
+  } catch (error) {
+    if (!isSchemaMismatchError(error)) throw error;
+    const rows = await prisma.job.findMany({
+      where: { organizationId: orgId, createdAt: { gte: todayStart, lte: next7End } },
+      select: {
+        id: true,
+        title: true,
+        status: true,
+        client: { select: { name: true } },
+      },
+    });
+    return rows.map((row) => ({
+      ...row,
+      scheduledStart: null,
+      inspectionDueDate: null,
+    }));
+  }
+}
+
 export default async function AppDashboardPage() {
   const now = new Date();
   const sevenDaysAgo = addDays(now, -7);
@@ -44,31 +103,10 @@ export default async function AppDashboardPage() {
   const todayEnd = endOfDay(now);
   const next7End = endOfDay(addDays(now, 7));
 
-  const [
-    weeklyPaidAggregate,
-    monthlyPaidAggregate,
-    outstandingAggregate,
-    sentQuotesCount,
-    acceptedQuotesCount,
-    queueRows,
-    activityRows,
-  ] = await Promise.all([
-    prisma.invoice.aggregate({
-      where: {
-        organizationId: DEV_ORG_ID,
-        status: "paid",
-        paidAt: { gte: sevenDaysAgo },
-      },
-      _sum: { totalCents: true },
-    }),
-    prisma.invoice.aggregate({
-      where: {
-        organizationId: DEV_ORG_ID,
-        status: "paid",
-        paidAt: { gte: monthStart },
-      },
-      _sum: { totalCents: true },
-    }),
+  const [weeklyPaidAggregate, monthlyPaidAggregate, outstandingAggregate, sentQuotesCount, acceptedQuotesCount, queueRows, activityRows] =
+    await Promise.all([
+      aggregatePaidSince(DEV_ORG_ID, sevenDaysAgo),
+      aggregatePaidSince(DEV_ORG_ID, monthStart),
     prisma.invoice.aggregate({
       where: {
         organizationId: DEV_ORG_ID,
@@ -90,25 +128,12 @@ export default async function AppDashboardPage() {
         updatedAt: { gte: last30Days },
       },
     }),
-    prisma.job.findMany({
-      where: {
-        organizationId: DEV_ORG_ID,
-        OR: [
-          { scheduledStart: { gte: todayStart, lte: next7End } },
-          { inspectionDueDate: { gte: todayStart, lte: next7End } },
-        ],
-      },
-      select: {
-        id: true,
-        title: true,
-        status: true,
-        scheduledStart: true,
-        inspectionDueDate: true,
-        client: { select: { name: true } },
-      },
-    }),
-    listRecentActivities(DEV_ORG_ID, 10),
-  ]);
+      listQueueRows(DEV_ORG_ID, todayStart, next7End),
+      listRecentActivities(DEV_ORG_ID, 10).catch((error) => {
+        if (isSchemaMismatchError(error)) return [];
+        throw error;
+      }),
+    ]);
 
   const queueSorted = (queueRows as QueueRow[]).sort((a, b) => {
     const aDate = a.scheduledStart || a.inspectionDueDate || new Date(0);
