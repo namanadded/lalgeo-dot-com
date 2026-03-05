@@ -6,7 +6,7 @@ import { formatCents } from "@/lib/quotes";
 import { buildInvoicePdf } from "@/lib/pdf";
 import { sendOrganizationEmail } from "@/lib/email-delivery";
 import { renderDocumentEmailHtml } from "@/lib/email-template";
-import { appBasePath } from "@/lib/url";
+import { appBasePath, appUrl } from "@/lib/url";
 
 export const dynamic = "force-dynamic";
 
@@ -71,7 +71,7 @@ async function sendInvoiceEmail(formData: FormData) {
     logoUrl: org?.logoUrl,
     subject,
     preface: `Please find your invoice ${invoice.invoiceNumber} from ${companyName}.`,
-    message,
+    message: `${message}\n\nPay online: ${appUrl(`/pay/invoices/${invoice.id}`)}`,
     documentNumber: invoice.invoiceNumber,
     clientName: invoice.client.name,
     total: formatCents(invoice.totalCents),
@@ -145,10 +145,12 @@ export default async function InvoiceEmailPage({
   const companyName = org?.legalName || org?.name || "LalGeo";
   const greetingName = invoice.client.name || "there";
   const defaultSubject = `${companyName} Invoice ${invoice.invoiceNumber}`;
+  const paymentLink = appUrl(`/pay/invoices/${invoice.id}`);
   const defaultMessage = `Hi ${greetingName},
 
 Please find your invoice ${invoice.invoiceNumber} from ${companyName}.
 Invoice amount: ${formatCents(invoice.totalCents)}.
+Pay online: ${paymentLink}
 
 Please let us know once payment is made.
 

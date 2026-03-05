@@ -882,6 +882,53 @@ export async function markInvoiceSent(orgId: string, id: string, status: string)
   return invoice;
 }
 
+export async function markInvoicePaid(
+  orgId: string,
+  id: string,
+  options?: {
+    paidAt?: Date;
+    provider?: string | null;
+    paymentReference?: string | null;
+  },
+) {
+  const paidAt = options?.paidAt || new Date();
+  if (useApi()) {
+    return apiPatch(`/v1/invoices/${encodeURIComponent(id)}`, {
+      organization_id: orgId,
+      status: "paid",
+      paid_at: paidAt.toISOString(),
+      sent_at: paidAt.toISOString(),
+    });
+  }
+
+  const existing = await prisma.invoice.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, invoiceNumber: true, totalCents: true, status: true },
+  });
+  if (!existing) throw new Error("Invoice not found");
+
+  if (existing.status !== "paid") {
+    await prisma.invoice.update({
+      where: { id: existing.id },
+      data: {
+        status: "paid",
+        paidAt,
+        paidCents: existing.totalCents,
+      },
+    });
+  }
+
+  await createActivity({
+    organizationId: orgId,
+    entityType: "invoice",
+    entityId: existing.id,
+    action: "invoice_paid",
+    message: `Invoice ${existing.invoiceNumber} marked paid${options?.paymentReference ? ` (${options.paymentReference})` : ""}.`,
+  });
+
+  return existing;
+}
+
 export async function listEmailLogs(orgId: string, documentType: string, documentId: string, limit = 10) {
   if (useApi()) {
     const response = await apiGet<{ logs: Array<Record<string, unknown>> }>(

@@ -4,6 +4,7 @@ import { getInvoiceDetail, listEmailLogs } from "@/lib/saas-store";
 import { ServiceDocumentSheet } from "@/components/ServiceDocumentSheet";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
+import { appUrl } from "@/lib/url";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -18,7 +19,9 @@ export default async function InvoiceDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ emailed?: string }> | { emailed?: string };
+  searchParams?:
+    | Promise<{ emailed?: string; paid?: string; payment?: string }>
+    | { emailed?: string; paid?: string; payment?: string };
 }) {
   const [{ id }, resolvedSearchParams] = await Promise.all([
     params,
@@ -58,12 +61,22 @@ export default async function InvoiceDetailPage({
   }));
 
   const emailed = typeof resolvedSearchParams === "object" && resolvedSearchParams?.emailed === "1";
+  const paid = typeof resolvedSearchParams === "object" && resolvedSearchParams?.paid === "1";
+  const paymentStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.payment : undefined;
+  const publicPaymentUrl = appUrl(`/pay/invoices/${invoice.id}`);
 
   return (
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>{invoice.invoiceNumber}</h1>
         <div className="top-actions">
+          {invoice.status !== "paid" ? (
+            <form method="post" action={`/api/payments/invoices/${invoice.id}/checkout`}>
+              <button type="submit" className="button">
+                Pay Now
+              </button>
+            </form>
+          ) : null}
           <Link href={`/invoices/${invoice.id}/email`} className="button secondary">
             Email Invoice
           </Link>
@@ -74,6 +87,11 @@ export default async function InvoiceDetailPage({
       </div>
 
       {emailed ? <div className="banner">Invoice email sent with PDF attachment.</div> : null}
+      {paid ? <div className="banner">Payment completed. Invoice marked paid.</div> : null}
+      {paymentStatus === "cancelled" ? <div className="banner">Payment cancelled before completion.</div> : null}
+      {paymentStatus === "not_configured" ? <div className="banner">Payments are not configured yet. Add Stripe keys in environment.</div> : null}
+      {paymentStatus === "checkout_error" ? <div className="banner">Could not start checkout. Please try again.</div> : null}
+      {paymentStatus === "already_paid" ? <div className="banner">This invoice is already marked paid.</div> : null}
 
       <ServiceDocumentSheet
         companyName={companyName}
@@ -123,6 +141,9 @@ export default async function InvoiceDetailPage({
         </p>
         <p className="muted">
           Quote: {invoice.quote ? <Link href={`/quotes/${invoice.quote.id}`}>{invoice.quote.quoteNumber}</Link> : "—"}
+        </p>
+        <p className="muted">
+          Public payment link: <a href={publicPaymentUrl} target="_blank" rel="noreferrer">{publicPaymentUrl}</a>
         </p>
       </div>
     </div>

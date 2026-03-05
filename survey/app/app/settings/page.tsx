@@ -4,6 +4,8 @@ import { updateOrganization } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization, getDevOrganizationProfile } from "@/lib/saas";
 import { renderDocumentEmailHtml } from "@/lib/email-template";
 import { sendOrganizationEmail } from "@/lib/email-delivery";
+import { appUrl } from "@/lib/url";
+import { isStripeConfigured } from "@/lib/stripe-payments";
 
 async function saveBranding(formData: FormData) {
   "use server";
@@ -128,6 +130,8 @@ export default async function AppSettingsPage({
   const showSmtpFields = (org?.emailProvider || "auto") === "smtp";
   const googleConnection = org?.emailConnections?.find((c) => c.provider === "google");
   const microsoftConnection = org?.emailConnections?.find((c) => c.provider === "microsoft");
+  const stripeConfigured = isStripeConfigured();
+  const stripeWebhookUrl = appUrl("/api/payments/stripe/webhook");
 
   return (
     <div className="saas-page-card">
@@ -186,6 +190,25 @@ export default async function AppSettingsPage({
           </button>
         </div>
       </form>
+
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ margin: 0, fontSize: 22 }}>Payments (Stripe)</h2>
+        <p className="muted">Accept credit cards, Apple Pay, and Google Pay through Stripe Checkout.</p>
+        <div className="card" style={{ marginTop: 16 }}>
+          <p className="muted" style={{ marginTop: 0 }}>
+            Status: {stripeConfigured ? "Configured" : "Not configured"}
+          </p>
+          <p className="muted">
+            Required env vars: <code>STRIPE_SECRET_KEY</code> and <code>STRIPE_WEBHOOK_SECRET</code>
+          </p>
+          <p className="muted">
+            Webhook endpoint: <code>{stripeWebhookUrl}</code>
+          </p>
+          <p className="muted" style={{ marginBottom: 0 }}>
+            Stripe event required: <code>checkout.session.completed</code>
+          </p>
+        </div>
+      </div>
 
       <div style={{ marginTop: 24 }}>
         <h2 style={{ margin: 0, fontSize: 22 }}>Email Delivery</h2>

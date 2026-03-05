@@ -46,6 +46,19 @@ LALGEO_SAAS_API_KEY="<optional-shared-secret-if-configured>"
 DATABASE_URL="file:./dev.db"
 ```
 
+## Stripe Payments (cards + Apple Pay + Google Pay)
+Add these env vars in Netlify for invoice payments:
+
+```bash
+STRIPE_SECRET_KEY="<stripe-secret-key>"
+STRIPE_WEBHOOK_SECRET="<stripe-webhook-signing-secret>"
+APP_URL="https://cloud.lalgeo.com"
+```
+
+Then in Stripe Dashboard:
+1. Create webhook endpoint: `https://cloud.lalgeo.com/api/payments/stripe/webhook`
+2. Subscribe to event: `checkout.session.completed`
+
 `DATABASE_URL` stays for legacy Prisma-backed routes still used by OAuth/email internals.
 
 Apply D1 migrations:
