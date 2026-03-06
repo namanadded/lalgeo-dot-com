@@ -5,7 +5,16 @@ import { DEV_ORG_ID, ensureDevOrganization, getDevOrganizationProfile } from "@/
 import { renderDocumentEmailHtml } from "@/lib/email-template";
 import { sendOrganizationEmail } from "@/lib/email-delivery";
 import { appUrl } from "@/lib/url";
-import { isStripeConfigured } from "@/lib/stripe-payments";
+import { createStripeConnectAccount, createStripeConnectAccountLink, isStripeConfigured } from "@/lib/stripe-payments";
+import { getSessionUser } from "@/lib/auth";
+
+function normalizeCountryCode(input?: string | null) {
+  const value = (input || "").trim();
+  if (value.length === 2) return value.toUpperCase();
+  if (value.toLowerCase() === "canada") return "CA";
+  if (value.toLowerCase() === "united states" || value.toLowerCase() === "usa" || value.toLowerCase() === "us") return "US";
+  return "CA";
+}
 
 async function saveBranding(formData: FormData) {
   "use server";
@@ -113,6 +122,41 @@ async function sendTestEmail(formData: FormData) {
   } catch {
     redirect("/settings?test=failed");
   }
+}
+
+async function startStripeConnectOnboarding() {
+  "use server";
+
+  const user = await getSessionUser();
+  if (!user) redirect("/login");
+  if (!isStripeConfigured()) redirect("/settings?stripe=env_missing");
+
+  await ensureDevOrganization();
+  const org = await getDevOrganizationProfile();
+  if (!org) redirect("/settings?stripe=org_missing");
+
+  let accountId = org.stripeConnectAccountId || null;
+  if (!accountId) {
+    const account = await createStripeConnectAccount({
+      email: org.email || undefined,
+      country: normalizeCountryCode(org.country),
+      businessName: org.legalName || org.name || "LalGeo Organization",
+    });
+    accountId = account.id;
+    await updateOrganization(DEV_ORG_ID, {
+      stripe_connect_account_id: account.id,
+      stripe_charges_enabled: Boolean(account.charges_enabled),
+      stripe_payouts_enabled: Boolean(account.payouts_enabled),
+      stripe_details_submitted: Boolean(account.details_submitted),
+    });
+  }
+
+  const link = await createStripeConnectAccountLink({
+    accountId,
+    refreshUrl: appUrl("/settings"),
+    returnUrl: appUrl("/api/payments/stripe/connect/return"),
+  });
+  redirect(link.url);
 }
 
 export default async function AppSettingsPage({
@@ -225,7 +269,7 @@ export default async function AppSettingsPage({
             Stripe event required: <code>checkout.session.completed</code>
           </p>
           <div className="top-actions" style={{ marginTop: 12 }}>
-            <form action="/api/payments/stripe/connect/start" method="post">
+            <form action={startStripeConnectOnboarding}>
               <button type="submit" className="button">
                 {stripeConnectLinked ? "Continue Stripe Onboarding" : "Connect Stripe Account"}
               </button>
