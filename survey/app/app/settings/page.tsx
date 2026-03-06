@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { isRedirectError } from "next/dist/client/components/redirect-error";
 import Link from "next/link";
 import { updateOrganization } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization, getDevOrganizationProfile } from "@/lib/saas";
@@ -159,6 +160,9 @@ async function startStripeConnectOnboarding() {
     });
     redirect(link.url);
   } catch (error) {
+    if (isRedirectError(error)) {
+      throw error;
+    }
     const message = error instanceof Error ? error.message : "Stripe connect failed";
     const short = message.slice(0, 180);
     console.error("[settings] Stripe connect onboarding failed", message);
