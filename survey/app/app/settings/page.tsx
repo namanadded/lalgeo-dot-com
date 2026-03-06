@@ -127,44 +127,51 @@ async function sendTestEmail(formData: FormData) {
 async function startStripeConnectOnboarding() {
   "use server";
 
-  const user = await getSessionUser();
-  if (!user) redirect("/login");
-  if (!isStripeConfigured()) redirect("/settings?stripe=env_missing");
+  try {
+    const user = await getSessionUser();
+    if (!user) redirect("/login");
+    if (!isStripeConfigured()) redirect("/settings?stripe=env_missing");
 
-  await ensureDevOrganization();
-  const org = await getDevOrganizationProfile();
-  if (!org) redirect("/settings?stripe=org_missing");
+    await ensureDevOrganization();
+    const org = await getDevOrganizationProfile();
+    if (!org) redirect("/settings?stripe=org_missing");
 
-  let accountId = org.stripeConnectAccountId || null;
-  if (!accountId) {
-    const account = await createStripeConnectAccount({
-      email: org.email || undefined,
-      country: normalizeCountryCode(org.country),
-      businessName: org.legalName || org.name || "LalGeo Organization",
+    let accountId = org.stripeConnectAccountId || null;
+    if (!accountId) {
+      const account = await createStripeConnectAccount({
+        email: org.email || undefined,
+        country: normalizeCountryCode(org.country),
+        businessName: org.legalName || org.name || "LalGeo Organization",
+      });
+      accountId = account.id;
+      await updateOrganization(DEV_ORG_ID, {
+        stripe_connect_account_id: account.id,
+        stripe_charges_enabled: Boolean(account.charges_enabled),
+        stripe_payouts_enabled: Boolean(account.payouts_enabled),
+        stripe_details_submitted: Boolean(account.details_submitted),
+      });
+    }
+
+    const link = await createStripeConnectAccountLink({
+      accountId,
+      refreshUrl: appUrl("/settings"),
+      returnUrl: appUrl("/api/payments/stripe/connect/return"),
     });
-    accountId = account.id;
-    await updateOrganization(DEV_ORG_ID, {
-      stripe_connect_account_id: account.id,
-      stripe_charges_enabled: Boolean(account.charges_enabled),
-      stripe_payouts_enabled: Boolean(account.payouts_enabled),
-      stripe_details_submitted: Boolean(account.details_submitted),
-    });
+    redirect(link.url);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Stripe connect failed";
+    const short = message.slice(0, 180);
+    console.error("[settings] Stripe connect onboarding failed", message);
+    redirect(`/settings?stripe=connect_failed&stripeError=${encodeURIComponent(short)}`);
   }
-
-  const link = await createStripeConnectAccountLink({
-    accountId,
-    refreshUrl: appUrl("/settings"),
-    returnUrl: appUrl("/api/payments/stripe/connect/return"),
-  });
-  redirect(link.url);
 }
 
 export default async function AppSettingsPage({
   searchParams,
 }: {
   searchParams?:
-    | Promise<{ savedEmail?: string; test?: string; provider?: string; oauth?: string; stripe?: string }>
-    | { savedEmail?: string; test?: string; provider?: string; oauth?: string; stripe?: string };
+    | Promise<{ savedEmail?: string; test?: string; provider?: string; oauth?: string; stripe?: string; stripeError?: string }>
+    | { savedEmail?: string; test?: string; provider?: string; oauth?: string; stripe?: string; stripeError?: string };
 }) {
   const [org, resolvedSearchParams] = await Promise.all([
     getDevOrganizationProfile(),
@@ -174,6 +181,7 @@ export default async function AppSettingsPage({
   const testStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.test : undefined;
   const oauthStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.oauth : undefined;
   const stripeStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.stripe : undefined;
+  const stripeError = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.stripeError : undefined;
   const showSmtpFields = (org?.emailProvider || "auto") === "smtp";
   const googleConnection = org?.emailConnections?.find((c) => c.provider === "google");
   const microsoftConnection = org?.emailConnections?.find((c) => c.provider === "microsoft");
@@ -251,6 +259,11 @@ export default async function AppSettingsPage({
           <div className="banner">Could not sync Stripe account status. Try again.</div>
         ) : null}
         {stripeStatus === "dashboard_failed" ? <div className="banner">Could not open Stripe dashboard link. Try again.</div> : null}
+        {stripeStatus === "connect_failed" ? (
+          <div className="banner">
+            Stripe onboarding failed. {stripeError ? `Reason: ${stripeError}` : "Please verify your Stripe account has Connect enabled."}
+          </div>
+        ) : null}
         <div className="card" style={{ marginTop: 16 }}>
           <p className="muted" style={{ marginTop: 0 }}>Platform API key: {stripeConfigured ? "Configured" : "Not configured"}</p>
           <p className="muted">Connected account: {stripeConnectLinked ? org?.stripeConnectAccountId : "Not connected"}</p>
