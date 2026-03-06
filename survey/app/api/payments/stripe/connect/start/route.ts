@@ -54,3 +54,7 @@ export async function GET(req: Request) {
   });
   return NextResponse.redirect(link.url, { status: 303 });
 }
+
+export async function POST(req: Request) {
+  return GET(req);
+}

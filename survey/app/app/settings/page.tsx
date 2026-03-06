@@ -225,9 +225,11 @@ export default async function AppSettingsPage({
             Stripe event required: <code>checkout.session.completed</code>
           </p>
           <div className="top-actions" style={{ marginTop: 12 }}>
-            <Link href="/api/payments/stripe/connect/start" className="button">
-              {stripeConnectLinked ? "Continue Stripe Onboarding" : "Connect Stripe Account"}
-            </Link>
+            <form action="/api/payments/stripe/connect/start" method="post">
+              <button type="submit" className="button">
+                {stripeConnectLinked ? "Continue Stripe Onboarding" : "Connect Stripe Account"}
+              </button>
+            </form>
             {stripeConnectLinked ? (
               <>
                 <form action="/api/payments/stripe/connect/sync" method="post">
