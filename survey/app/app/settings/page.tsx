@@ -118,7 +118,9 @@ async function sendTestEmail(formData: FormData) {
 export default async function AppSettingsPage({
   searchParams,
 }: {
-  searchParams?: Promise<{ savedEmail?: string; test?: string; provider?: string; oauth?: string }> | { savedEmail?: string; test?: string; provider?: string; oauth?: string };
+  searchParams?:
+    | Promise<{ savedEmail?: string; test?: string; provider?: string; oauth?: string; stripe?: string }>
+    | { savedEmail?: string; test?: string; provider?: string; oauth?: string; stripe?: string };
 }) {
   const [org, resolvedSearchParams] = await Promise.all([
     getDevOrganizationProfile(),
@@ -127,11 +129,14 @@ export default async function AppSettingsPage({
   const savedEmail = typeof resolvedSearchParams === "object" && resolvedSearchParams?.savedEmail === "1";
   const testStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.test : undefined;
   const oauthStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.oauth : undefined;
+  const stripeStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.stripe : undefined;
   const showSmtpFields = (org?.emailProvider || "auto") === "smtp";
   const googleConnection = org?.emailConnections?.find((c) => c.provider === "google");
   const microsoftConnection = org?.emailConnections?.find((c) => c.provider === "microsoft");
   const stripeConfigured = isStripeConfigured();
   const stripeWebhookUrl = appUrl("/api/payments/stripe/webhook");
+  const stripeConnectLinked = Boolean(org?.stripeConnectAccountId);
+  const stripePaymentsReady = stripeConfigured && Boolean(org?.stripeConnectAccountId) && Boolean(org?.stripeChargesEnabled);
 
   return (
     <div className="saas-page-card">
@@ -193,11 +198,23 @@ export default async function AppSettingsPage({
 
       <div style={{ marginTop: 24 }}>
         <h2 style={{ margin: 0, fontSize: 22 }}>Payments (Stripe)</h2>
-        <p className="muted">Accept credit cards, Apple Pay, and Google Pay through Stripe Checkout.</p>
+        <p className="muted">Accept credit cards, Apple Pay, and Google Pay. Connect each organization to its own Stripe account.</p>
+        {stripeStatus === "connected" ? <div className="banner">Stripe Connect onboarding completed.</div> : null}
+        {stripeStatus === "synced" ? <div className="banner">Stripe account status refreshed.</div> : null}
+        {stripeStatus === "disconnected" ? <div className="banner">Stripe Connect account disconnected from this org.</div> : null}
+        {stripeStatus === "env_missing" ? <div className="banner">Missing Stripe environment variables on the app.</div> : null}
+        {stripeStatus === "sync_failed" || stripeStatus === "connect_sync_failed" ? (
+          <div className="banner">Could not sync Stripe account status. Try again.</div>
+        ) : null}
+        {stripeStatus === "dashboard_failed" ? <div className="banner">Could not open Stripe dashboard link. Try again.</div> : null}
         <div className="card" style={{ marginTop: 16 }}>
-          <p className="muted" style={{ marginTop: 0 }}>
-            Status: {stripeConfigured ? "Configured" : "Not configured"}
+          <p className="muted" style={{ marginTop: 0 }}>Platform API key: {stripeConfigured ? "Configured" : "Not configured"}</p>
+          <p className="muted">Connected account: {stripeConnectLinked ? org?.stripeConnectAccountId : "Not connected"}</p>
+          <p className="muted">
+            Charges enabled: {org?.stripeChargesEnabled ? "Yes" : "No"} · Payouts enabled: {org?.stripePayoutsEnabled ? "Yes" : "No"}
           </p>
+          <p className="muted">Onboarding details submitted: {org?.stripeDetailsSubmitted ? "Yes" : "No"}</p>
+          <p className="muted">Invoice Pay Now status: {stripePaymentsReady ? "Ready" : "Not ready"}</p>
           <p className="muted">
             Required env vars: <code>STRIPE_SECRET_KEY</code> and <code>STRIPE_WEBHOOK_SECRET</code>
           </p>
@@ -207,6 +224,24 @@ export default async function AppSettingsPage({
           <p className="muted" style={{ marginBottom: 0 }}>
             Stripe event required: <code>checkout.session.completed</code>
           </p>
+          <div className="top-actions" style={{ marginTop: 12 }}>
+            <Link href="/api/payments/stripe/connect/start" className="button">
+              {stripeConnectLinked ? "Continue Stripe Onboarding" : "Connect Stripe Account"}
+            </Link>
+            {stripeConnectLinked ? (
+              <>
+                <form action="/api/payments/stripe/connect/sync" method="post">
+                  <button type="submit" className="button secondary">Refresh Stripe Status</button>
+                </form>
+                <Link href="/api/payments/stripe/connect/dashboard" className="button secondary">
+                  Open Stripe Dashboard
+                </Link>
+                <form action="/api/payments/stripe/connect/disconnect" method="post">
+                  <button type="submit" className="button secondary">Disconnect</button>
+                </form>
+              </>
+            ) : null}
+          </div>
         </div>
       </div>
 

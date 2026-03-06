@@ -94,7 +94,11 @@ export default {
           VALUES (?1, ?2)
           ON CONFLICT(id) DO NOTHING
         `).bind(orgId, name).run();
-        const row = await env.DB.prepare(`SELECT id,name,legal_name,email,phone FROM organizations WHERE id=?1`).bind(orgId).first();
+        const row = await env.DB.prepare(`
+          SELECT id,name,legal_name,email,phone,stripe_connect_account_id,stripe_charges_enabled,stripe_payouts_enabled,stripe_details_submitted
+          FROM organizations
+          WHERE id=?1
+        `).bind(orgId).first();
         return json({ organization: row });
       }
 
@@ -102,7 +106,7 @@ export default {
         const orgId = decodeURIComponent(path.split("/").pop() || "");
         if (!orgId) return json({ error: "orgId required" }, 400);
         const org = await env.DB.prepare(`
-          SELECT id,name,legal_name,logo_url,email,phone,website,address_line1,address_line2,city,state_province,postal_code,country,smtp_host,smtp_port,smtp_user,smtp_pass,smtp_from,smtp_secure,email_provider,created_at
+          SELECT id,name,legal_name,logo_url,email,phone,website,address_line1,address_line2,city,state_province,postal_code,country,smtp_host,smtp_port,smtp_user,smtp_pass,smtp_from,smtp_secure,email_provider,stripe_connect_account_id,stripe_charges_enabled,stripe_payouts_enabled,stripe_details_submitted,created_at
           FROM organizations
           WHERE id=?1
         `).bind(orgId).first<Record<string, unknown>>();
@@ -122,7 +126,8 @@ export default {
         const fields = [
           ["name", "name"], ["legal_name", "legal_name"], ["logo_url", "logo_url"], ["email", "email"], ["phone", "phone"], ["website", "website"],
           ["address_line1", "address_line1"], ["address_line2", "address_line2"], ["city", "city"], ["state_province", "state_province"], ["postal_code", "postal_code"], ["country", "country"],
-          ["smtp_host", "smtp_host"], ["smtp_port", "smtp_port"], ["smtp_user", "smtp_user"], ["smtp_pass", "smtp_pass"], ["smtp_from", "smtp_from"], ["smtp_secure", "smtp_secure"], ["email_provider", "email_provider"]
+          ["smtp_host", "smtp_host"], ["smtp_port", "smtp_port"], ["smtp_user", "smtp_user"], ["smtp_pass", "smtp_pass"], ["smtp_from", "smtp_from"], ["smtp_secure", "smtp_secure"], ["email_provider", "email_provider"],
+          ["stripe_connect_account_id", "stripe_connect_account_id"], ["stripe_charges_enabled", "stripe_charges_enabled"], ["stripe_payouts_enabled", "stripe_payouts_enabled"], ["stripe_details_submitted", "stripe_details_submitted"]
         ] as const;
         const setParts: string[] = [];
         const values: unknown[] = [];

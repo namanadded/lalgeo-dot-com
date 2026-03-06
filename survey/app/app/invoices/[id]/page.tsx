@@ -90,6 +90,7 @@ export default async function InvoiceDetailPage({
       {paid ? <div className="banner">Payment completed. Invoice marked paid.</div> : null}
       {paymentStatus === "cancelled" ? <div className="banner">Payment cancelled before completion.</div> : null}
       {paymentStatus === "not_configured" ? <div className="banner">Payments are not configured yet. Add Stripe keys in environment.</div> : null}
+      {paymentStatus === "not_connected" ? <div className="banner">Stripe onboarding is not complete for this organization.</div> : null}
       {paymentStatus === "checkout_error" ? <div className="banner">Could not start checkout. Please try again.</div> : null}
       {paymentStatus === "already_paid" ? <div className="banner">This invoice is already marked paid.</div> : null}
 

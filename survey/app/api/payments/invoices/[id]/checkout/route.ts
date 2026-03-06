@@ -33,13 +33,18 @@ export async function POST(
   if (invoice.status === "paid") {
     return NextResponse.redirect(new URL(`/invoices/${invoice.id}?payment=already_paid`, req.url));
   }
+  if (!org?.stripeConnectAccountId || !org?.stripeChargesEnabled) {
+    return NextResponse.redirect(new URL(`/invoices/${invoice.id}?payment=not_connected`, req.url));
+  }
 
   const origin = resolveOriginFromRequest(req);
 
   try {
     const session = await createInvoiceCheckoutSession({
-      origin,
+      successUrl: `${origin}/invoices/${invoice.id}?paid=1`,
+      cancelUrl: `${origin}/invoices/${invoice.id}?payment=cancelled`,
       organizationId: DEV_ORG_ID,
+      connectedAccountId: org.stripeConnectAccountId,
       invoice: {
         id: invoice.id,
         invoiceNumber: invoice.invoiceNumber,

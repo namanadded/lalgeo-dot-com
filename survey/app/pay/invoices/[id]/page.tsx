@@ -51,6 +51,7 @@ export default async function PublicInvoicePayPage({
         {paymentStatus === "cancelled" ? <div className="banner">Payment was cancelled.</div> : null}
         {paymentStatus === "checkout_error" ? <div className="banner">Could not start checkout. Please try again.</div> : null}
         {paymentStatus === "not_configured" ? <div className="banner">Payments are not available right now. Please contact the business.</div> : null}
+        {paymentStatus === "not_connected" ? <div className="banner">This business has not completed Stripe onboarding yet.</div> : null}
         {paymentStatus === "already_paid" ? <div className="banner">This invoice is already paid.</div> : null}
 
         {invoice.status !== "paid" ? (

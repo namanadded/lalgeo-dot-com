@@ -58,6 +58,8 @@ APP_URL="https://cloud.lalgeo.com"
 Then in Stripe Dashboard:
 1. Create webhook endpoint: `https://cloud.lalgeo.com/api/payments/stripe/webhook`
 2. Subscribe to event: `checkout.session.completed`
+3. In Settings, click **Connect Stripe Account** for each organization (Stripe Connect Express onboarding).
+4. After onboarding, use **Refresh Stripe Status** in Settings; `charges_enabled` must be `true`.
 
 `DATABASE_URL` stays for legacy Prisma-backed routes still used by OAuth/email internals.
 
@@ -66,4 +68,11 @@ Apply D1 migrations:
 ```bash
 cd /Users/namanmalhotra/Documents/Work/Lal_Geo/lalgeo_dot_com/lalgeo-saas-api
 npx wrangler d1 migrations apply lalgeo-business --remote
+```
+
+Also apply Prisma migration if using local SQLite directly:
+
+```bash
+cd /Users/namanmalhotra/Documents/Work/Lal_Geo/lalgeo_dot_com/survey
+npx prisma migrate deploy
 ```

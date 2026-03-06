@@ -28,6 +28,10 @@ model Organization {
   smtpFrom      String?
   smtpSecure    Boolean  @default(false)
   emailProvider String?
+  stripeConnectAccountId String?
+  stripeChargesEnabled   Boolean @default(false)
+  stripePayoutsEnabled   Boolean @default(false)
+  stripeDetailsSubmitted Boolean @default(false)
   createdAt DateTime @default(now())
   users     User[]
   clients   Client[]

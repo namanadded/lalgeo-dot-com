@@ -133,6 +133,10 @@ export async function getOrganizationProfile(orgId: string) {
       smtpFrom: (org.smtp_from as string | null) ?? null,
       smtpSecure: Boolean(org.smtp_secure),
       emailProvider: (org.email_provider as string | null) ?? null,
+      stripeConnectAccountId: (org.stripe_connect_account_id as string | null) ?? null,
+      stripeChargesEnabled: Boolean(org.stripe_charges_enabled),
+      stripePayoutsEnabled: Boolean(org.stripe_payouts_enabled),
+      stripeDetailsSubmitted: Boolean(org.stripe_details_submitted),
       emailConnections: Array.isArray(org.email_connections)
         ? org.email_connections.map((c) => {
             const connection = c as Record<string, unknown>;
@@ -171,6 +175,10 @@ export async function getOrganizationProfile(orgId: string) {
       smtpFrom: true,
       smtpSecure: true,
       emailProvider: true,
+      stripeConnectAccountId: true,
+      stripeChargesEnabled: true,
+      stripePayoutsEnabled: true,
+      stripeDetailsSubmitted: true,
       emailConnections: {
         select: { id: true, provider: true, email: true, expiresAt: true, updatedAt: true },
         orderBy: { updatedAt: "desc" },
@@ -203,6 +211,10 @@ export async function updateOrganization(orgId: string, data: Record<string, unk
     smtp_from: "smtpFrom",
     smtp_secure: "smtpSecure",
     email_provider: "emailProvider",
+    stripe_connect_account_id: "stripeConnectAccountId",
+    stripe_charges_enabled: "stripeChargesEnabled",
+    stripe_payouts_enabled: "stripePayoutsEnabled",
+    stripe_details_submitted: "stripeDetailsSubmitted",
   };
   for (const [k, v] of Object.entries(data)) {
     const target = map[k];
