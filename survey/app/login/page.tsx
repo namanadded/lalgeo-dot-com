@@ -62,16 +62,16 @@ export default function LoginPage() {
     <main className="auth-page">
       <div className="container auth-shell">
         <div className="header auth-header">
-          <div className="brand auth-brand">
+          <div className="brand auth-brand auth-login-brand">
             <img className="brand-logo" src="/img/lalgeo-logo.png" alt="LalGeo logo" />
-            <div className="brand-cloud">CLOUD</div>
+            <div className="auth-brand-title">LalGeo Cloud</div>
             <p className="auth-value-statement">
               Run clients, quotes, invoices, and field jobs from one clean workspace.
             </p>
           </div>
         </div>
-        <div className="panel auth-card">
-          <p className="auth-eyebrow">LalGeo Cloud</p>
+        <div className="panel auth-card auth-login-card">
+          <p className="auth-eyebrow">Secure sign in</p>
           <h1 className="auth-title">Welcome back</h1>
           <p className="auth-subtitle">Sign in to continue managing your business operations.</p>
 
