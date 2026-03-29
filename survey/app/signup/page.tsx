@@ -82,14 +82,18 @@ export default function SignupPage() {
           <div className="brand auth-brand">
             <img className="brand-logo" src="/img/lalgeo-logo.png" alt="LalGeo logo" />
             <div className="brand-cloud">CLOUD</div>
-            <div className="muted">Create your LalGeo SaaS account</div>
+            <p className="auth-value-statement">
+              Launch your business workspace with quoting, invoicing, client tracking, and scheduling in one place.
+            </p>
           </div>
         </div>
 
         <div className="panel auth-card signup-card">
-          <h2>Start your subscription</h2>
+          <p className="auth-eyebrow">Get Started</p>
+          <h1 className="auth-title">Start your subscription</h1>
+          <p className="auth-subtitle">Create your organization and reserve your LalGeo workspace domain.</p>
           {submitted && (
-            <div className="banner">
+            <div className="banner auth-banner">
               Checkout integration is being finalized. Your signup details were captured locally for now.
             </div>
           )}
