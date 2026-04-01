@@ -59,7 +59,20 @@ async function createQuote(formData: FormData) {
   redirect("/quotes");
 }
 
-export default async function NewQuotePage() {
+function getParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || "";
+  return value || "";
+}
+
+export default async function NewQuotePage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const selectedClientId = getParam(params.clientId);
+  const selectedJobId = getParam(params.jobId);
+
   const [clients, jobs] = await Promise.all([listClients(DEV_ORG_ID), listJobs(DEV_ORG_ID)]);
 
   return (
@@ -74,7 +87,7 @@ export default async function NewQuotePage() {
       <form action={createQuote} className="saas-form">
         <div>
           <label htmlFor="clientId">Client</label>
-          <select id="clientId" name="clientId" className="input" required defaultValue="">
+          <select id="clientId" name="clientId" className="input" required defaultValue={selectedClientId || ""}>
             <option value="" disabled>
               Select a client
             </option>
@@ -88,7 +101,7 @@ export default async function NewQuotePage() {
 
         <div>
           <label htmlFor="jobId">Linked Job (optional)</label>
-          <select id="jobId" name="jobId" className="input" defaultValue="">
+          <select id="jobId" name="jobId" className="input" defaultValue={selectedJobId || ""}>
             <option value="">None</option>
             {jobs.map((job) => (
               <option key={job.id} value={job.id}>
@@ -130,11 +143,7 @@ export default async function NewQuotePage() {
           <label>Line Items</label>
           {Array.from({ length: LINE_SLOTS }).map((_, idx) => (
             <div key={idx} className="saas-line-item-row">
-              <input
-                name="lineDescription"
-                className="input"
-                placeholder={`Item ${idx + 1} description`}
-              />
+              <input name="lineDescription" className="input" placeholder={`Item ${idx + 1} description`} />
               <input
                 name="lineQty"
                 className="input"

@@ -30,7 +30,18 @@ async function createJob(formData: FormData) {
   redirect("/jobs");
 }
 
-export default async function NewJobPage() {
+function getParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || "";
+  return value || "";
+}
+
+export default async function NewJobPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const selectedClientId = getParam(params.clientId);
   const clients = await listClients(DEV_ORG_ID);
 
   return (
@@ -50,7 +61,7 @@ export default async function NewJobPage() {
 
         <div>
           <label htmlFor="clientId">Client</label>
-          <select id="clientId" name="clientId" className="input" required defaultValue="">
+          <select id="clientId" name="clientId" className="input" required defaultValue={selectedClientId || ""}>
             <option value="" disabled>
               Select a client
             </option>

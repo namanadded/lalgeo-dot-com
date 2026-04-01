@@ -333,6 +333,32 @@ export async function getClientDetail(orgId: string, id: string) {
         quotes: Number(count.quotes || 0),
         invoices: Number(count.invoices || 0),
       },
+      jobs: Array.isArray(c.jobs)
+        ? (c.jobs as Array<Record<string, unknown>>).map((job) => ({
+            id: String(job.id),
+            title: String(job.title || ""),
+            status: String(job.status || "draft"),
+            createdAt: asDate(job.created_at)!,
+          }))
+        : [],
+      quotes: Array.isArray(c.quotes)
+        ? (c.quotes as Array<Record<string, unknown>>).map((quote) => ({
+            id: String(quote.id),
+            quoteNumber: String(quote.quote_number || ""),
+            status: String(quote.status || "draft"),
+            totalCents: Number(quote.total_cents || 0),
+            createdAt: asDate(quote.created_at)!,
+          }))
+        : [],
+      invoices: Array.isArray(c.invoices)
+        ? (c.invoices as Array<Record<string, unknown>>).map((invoice) => ({
+            id: String(invoice.id),
+            invoiceNumber: String(invoice.invoice_number || ""),
+            status: String(invoice.status || "draft"),
+            totalCents: Number(invoice.total_cents || 0),
+            createdAt: asDate(invoice.created_at)!,
+          }))
+        : [],
     };
   }
   return prisma.client.findFirst({
@@ -352,6 +378,38 @@ export async function getClientDetail(orgId: string, id: string) {
       notes: true,
       createdAt: true,
       _count: { select: { jobs: true, quotes: true, invoices: true } },
+      jobs: {
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          title: true,
+          status: true,
+          createdAt: true,
+        },
+      },
+      quotes: {
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          quoteNumber: true,
+          status: true,
+          totalCents: true,
+          createdAt: true,
+        },
+      },
+      invoices: {
+        orderBy: { createdAt: "desc" },
+        take: 8,
+        select: {
+          id: true,
+          invoiceNumber: true,
+          status: true,
+          totalCents: true,
+          createdAt: true,
+        },
+      },
     },
   });
 }

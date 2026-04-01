@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import GlobalSearch from "@/components/GlobalSearch";
 
 export default function SaasTopbar() {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function SaasTopbar() {
 
   return (
     <div className="saas-topbar">
+      <GlobalSearch />
       <button type="button" className="button secondary" onClick={signOut} disabled={loading}>
         {loading ? "Signing out..." : "Sign out"}
       </button>

@@ -9,6 +9,7 @@ import {
   startOfMonth,
 } from "@/lib/dashboard-utils";
 import { listInvoices, listJobs, listQuotes, listRecentActivities } from "@/lib/saas-store";
+import { Sparkline } from "@/components/Sparkline";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +24,36 @@ function percent(numerator: number, denominator: number) {
   if (!denominator) return "0%";
   const ratio = (numerator / denominator) * 100;
   return `${ratio.toFixed(0)}%`;
+}
+
+function trend(current: number, previous: number) {
+  if (previous <= 0 && current > 0) return { text: "New growth", tone: "up" as const };
+  if (previous <= 0) return { text: "No change", tone: "flat" as const };
+  const delta = ((current - previous) / previous) * 100;
+  const sign = delta > 0 ? "+" : "";
+  if (Math.abs(delta) < 1) return { text: "Flat", tone: "flat" as const };
+  return { text: `${sign}${delta.toFixed(0)}% vs prior`, tone: delta >= 0 ? ("up" as const) : ("down" as const) };
+}
+
+function bucketLastDays<T>(
+  data: T[],
+  days: number,
+  getDate: (row: T) => Date | null,
+  getValue: (row: T) => number,
+): number[] {
+  const now = new Date();
+  const start = startOfDay(addDays(now, -days + 1));
+  const buckets = Array.from({ length: days }, () => 0);
+  for (const row of data) {
+    const date = getDate(row);
+    if (!date) continue;
+    if (date < start || date > now) continue;
+    const dayDiff = Math.floor((startOfDay(date).getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    if (dayDiff >= 0 && dayDiff < days) {
+      buckets[dayDiff] += getValue(row);
+    }
+  }
+  return buckets;
 }
 
 type QueueRow = {
@@ -43,8 +74,11 @@ function isInRange(date: Date | null | undefined, start: Date, end: Date) {
 export default async function AppDashboardPage() {
   const now = new Date();
   const sevenDaysAgo = addDays(now, -7);
+  const fourteenDaysAgo = addDays(now, -14);
   const monthStart = startOfMonth(now);
+  const prevMonthStart = startOfMonth(addDays(monthStart, -1));
   const last30Days = addDays(now, -30);
+  const prev30Days = addDays(now, -60);
   const todayStart = startOfDay(now);
   const todayEnd = endOfDay(now);
   const next7End = endOfDay(addDays(now, 7));
@@ -71,17 +105,46 @@ export default async function AppDashboardPage() {
     return when && when > todayEnd && when <= next7End;
   });
 
-  const weeklySales = invoices
-    .filter((invoice) => invoice.status === "paid" && isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, sevenDaysAgo, now))
+  const paidInvoices = invoices.filter((invoice) => invoice.status === "paid");
+  const weeklySales = paidInvoices
+    .filter((invoice) => isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, sevenDaysAgo, now))
     .reduce((sum, invoice) => sum + invoice.totalCents, 0);
-  const monthlySales = invoices
-    .filter((invoice) => invoice.status === "paid" && isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, monthStart, now))
+  const previousWeekSales = paidInvoices
+    .filter((invoice) => isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, fourteenDaysAgo, sevenDaysAgo))
     .reduce((sum, invoice) => sum + invoice.totalCents, 0);
-  const outstanding = invoices
-    .filter((invoice) => invoice.status !== "paid")
+
+  const monthlySales = paidInvoices
+    .filter((invoice) => isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, monthStart, now))
     .reduce((sum, invoice) => sum + invoice.totalCents, 0);
+  const previousMonthSales = paidInvoices
+    .filter((invoice) => isInRange(invoice.paidAt || invoice.sentAt || invoice.createdAt, prevMonthStart, monthStart))
+    .reduce((sum, invoice) => sum + invoice.totalCents, 0);
+
+  const outstanding = invoices.filter((invoice) => invoice.status !== "paid").reduce((sum, invoice) => sum + invoice.totalCents, 0);
+
   const sentQuotesCount = quotes.filter((quote) => quote.status === "sent" && isInRange(quote.sentAt || quote.createdAt, last30Days, now)).length;
   const acceptedQuotesCount = quotes.filter((quote) => quote.status === "accepted" && isInRange(quote.sentAt || quote.createdAt, last30Days, now)).length;
+  const prevSentQuotesCount = quotes.filter((quote) => quote.status === "sent" && isInRange(quote.sentAt || quote.createdAt, prev30Days, last30Days)).length;
+
+  const weeklyTrend = trend(weeklySales, previousWeekSales);
+  const monthlyTrend = trend(monthlySales, previousMonthSales);
+  const quotesTrend = trend(sentQuotesCount, prevSentQuotesCount);
+
+  const paidSeries = bucketLastDays(
+    paidInvoices,
+    14,
+    (invoice) => invoice.paidAt || invoice.sentAt || invoice.createdAt,
+    (invoice) => invoice.totalCents,
+  );
+
+  const quoteSeries = bucketLastDays(
+    quotes,
+    14,
+    (quote) => quote.sentAt || quote.createdAt,
+    (quote) => (quote.status === "sent" || quote.status === "accepted" ? 1 : 0),
+  );
+
+  const noData = invoices.length === 0 && quotes.length === 0 && queueRows.length === 0;
 
   return (
     <div className="saas-page-card">
@@ -104,29 +167,61 @@ export default async function AppDashboardPage() {
         </Link>
       </div>
 
+      {noData ? (
+        <div className="saas-empty-state saas-empty-state-cta">
+          <div className="saas-empty-title">Your business workspace is ready.</div>
+          <div>Add your first client and create your first quote to unlock sales and pipeline metrics.</div>
+          <div className="saas-empty-actions">
+            <Link href="/clients/new" className="button">
+              Add First Client
+            </Link>
+            <Link href="/quotes/new" className="button secondary">
+              Create First Quote
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
       <div className="dashboard-kpi-grid">
         <div className="dashboard-kpi-card">
-          <div className="dashboard-kpi-label">Weekly Sales</div>
+          <div className="dashboard-kpi-header">
+            <div className="dashboard-kpi-label">Weekly Sales</div>
+            <span className={`dashboard-trend ${weeklyTrend.tone}`}>{weeklyTrend.text}</span>
+          </div>
           <div className="dashboard-kpi-value">{formatCurrencyFromCents(weeklySales)}</div>
-          <div className="muted">Last 7 days (paid invoices)</div>
+          <Sparkline values={paidSeries} color="#0a84ff" />
         </div>
+
         <div className="dashboard-kpi-card">
-          <div className="dashboard-kpi-label">Monthly Sales</div>
+          <div className="dashboard-kpi-header">
+            <div className="dashboard-kpi-label">Monthly Sales</div>
+            <span className={`dashboard-trend ${monthlyTrend.tone}`}>{monthlyTrend.text}</span>
+          </div>
           <div className="dashboard-kpi-value">{formatCurrencyFromCents(monthlySales)}</div>
-          <div className="muted">Current month (paid invoices)</div>
+          <div className="muted">Current month paid invoices</div>
         </div>
+
         <div className="dashboard-kpi-card">
-          <div className="dashboard-kpi-label">Outstanding</div>
+          <div className="dashboard-kpi-header">
+            <div className="dashboard-kpi-label">Outstanding</div>
+          </div>
           <div className="dashboard-kpi-value">{formatCurrencyFromCents(outstanding)}</div>
-          <div className="muted">All unpaid invoices</div>
+          <div className="muted">Open receivables</div>
         </div>
+
         <div className="dashboard-kpi-card">
-          <div className="dashboard-kpi-label">Quotes Sent (30d)</div>
+          <div className="dashboard-kpi-header">
+            <div className="dashboard-kpi-label">Quotes Sent (30d)</div>
+            <span className={`dashboard-trend ${quotesTrend.tone}`}>{quotesTrend.text}</span>
+          </div>
           <div className="dashboard-kpi-value">{sentQuotesCount}</div>
-          <div className="muted">Quotes with sent status</div>
+          <Sparkline values={quoteSeries} color="#2c9b68" />
         </div>
+
         <div className="dashboard-kpi-card">
-          <div className="dashboard-kpi-label">Quote Conversion</div>
+          <div className="dashboard-kpi-header">
+            <div className="dashboard-kpi-label">Quote Conversion</div>
+          </div>
           <div className="dashboard-kpi-value">{percent(acceptedQuotesCount, sentQuotesCount)}</div>
           <div className="muted">
             {acceptedQuotesCount} accepted / {sentQuotesCount} sent
@@ -140,7 +235,11 @@ export default async function AppDashboardPage() {
           {todayQueue.length === 0 ? (
             <div className="saas-empty-state">
               <div>No appointments today.</div>
-              <div>Use “Schedule Job” to add work for today.</div>
+              <div className="saas-empty-actions">
+                <Link href="/jobs/new" className="button secondary">
+                  Schedule Job
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="saas-table-wrap">
@@ -184,7 +283,11 @@ export default async function AppDashboardPage() {
           {next7Queue.length === 0 ? (
             <div className="saas-empty-state">
               <div>No upcoming scheduled work.</div>
-              <div>Add future jobs to keep your pipeline visible.</div>
+              <div className="saas-empty-actions">
+                <Link href="/jobs/new" className="button secondary">
+                  Add Future Job
+                </Link>
+              </div>
             </div>
           ) : (
             <div className="saas-table-wrap">
@@ -229,7 +332,14 @@ export default async function AppDashboardPage() {
         {activityRows.length === 0 ? (
           <div className="saas-empty-state">
             <div>No activity yet.</div>
-            <div>Create a quote, invoice, or job to start tracking activity.</div>
+            <div className="saas-empty-actions">
+              <Link href="/quotes/new" className="button secondary">
+                Create Quote
+              </Link>
+              <Link href="/invoices/new" className="button secondary">
+                Create Invoice
+              </Link>
+            </div>
           </div>
         ) : (
           <div className="saas-table-wrap">

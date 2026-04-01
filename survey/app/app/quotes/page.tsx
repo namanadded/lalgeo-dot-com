@@ -12,6 +12,7 @@ type QuoteRow = {
   totalCents: number;
   sentAt: Date | null;
   createdAt: Date;
+  clientId?: string;
   invoices: Array<{ id: string }>;
   client: {
     name: string;
@@ -31,8 +32,29 @@ function quoteStatusClass(status: string) {
   return "status-pill";
 }
 
-export default async function AppQuotesPage() {
-  const quotes = (await listQuotes(DEV_ORG_ID)) as QuoteRow[];
+function getParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || "";
+  return value || "";
+}
+
+export default async function AppQuotesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = getParam(params.q).trim().toLowerCase();
+  const statusFilter = getParam(params.status).trim().toLowerCase();
+
+  const allQuotes = (await listQuotes(DEV_ORG_ID)) as QuoteRow[];
+  const quotes = allQuotes.filter((quote) => {
+    if (statusFilter && statusFilter !== "all" && quote.status.toLowerCase() !== statusFilter) {
+      return false;
+    }
+    if (!query) return true;
+    const haystack = [quote.quoteNumber, quote.client.name, quote.status].join(" ").toLowerCase();
+    return haystack.includes(query);
+  });
 
   return (
     <div className="saas-page-card">
@@ -43,10 +65,37 @@ export default async function AppQuotesPage() {
         </Link>
       </div>
 
-      {quotes.length === 0 ? (
+      <form className="saas-toolbar saas-toolbar-grid" method="get">
+        <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search quote # or client" />
+        <select className="input" name="status" defaultValue={statusFilter || "all"}>
+          <option value="all">All statuses</option>
+          <option value="draft">Draft</option>
+          <option value="sent">Sent</option>
+          <option value="accepted">Accepted</option>
+          <option value="rejected">Rejected</option>
+        </select>
+        <button type="submit" className="button secondary">
+          Filter
+        </button>
+      </form>
+
+      {allQuotes.length === 0 ? (
+        <div className="saas-empty-state saas-empty-state-cta">
+          <div className="saas-empty-title">No quotes yet.</div>
+          <div>Create a quote to start your sales workflow.</div>
+          <div className="saas-empty-actions">
+            <Link href="/quotes/new" className="button">
+              Create First Quote
+            </Link>
+            <Link href="/clients/new" className="button secondary">
+              Add Client
+            </Link>
+          </div>
+        </div>
+      ) : quotes.length === 0 ? (
         <div className="saas-empty-state">
-          <div>No quotes yet.</div>
-          <div>Create your first quote to start billing workflow.</div>
+          <div>No matching quotes.</div>
+          <div>Adjust your filter or search.</div>
         </div>
       ) : (
         <div className="saas-table-wrap">
@@ -59,7 +108,7 @@ export default async function AppQuotesPage() {
                 <th>Total</th>
                 <th>Sent</th>
                 <th>Created</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -74,11 +123,21 @@ export default async function AppQuotesPage() {
                   <td>{quote.sentAt ? dateFormatter.format(quote.sentAt) : "—"}</td>
                   <td>{dateFormatter.format(quote.createdAt)}</td>
                   <td>
-                    <Link href={`/quotes/${quote.id}`} className="muted">
-                      View
-                    </Link>
-                    {" · "}
-                    {quote.invoices.length > 0 ? <span className="muted">Invoiced</span> : <Link href={`/invoices/new?quoteId=${quote.id}`} className="muted">Create Invoice</Link>}
+                    <div className="saas-row-actions">
+                      <Link href={`/quotes/${quote.id}`} className="muted">
+                        View
+                      </Link>
+                      <Link href={`/quotes/${quote.id}/email`} className="muted">
+                        Send Quote
+                      </Link>
+                      {quote.invoices.length > 0 ? (
+                        <span className="muted">Invoiced</span>
+                      ) : (
+                        <Link href={`/invoices/new?quoteId=${quote.id}`} className="muted">
+                          Create Invoice
+                        </Link>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

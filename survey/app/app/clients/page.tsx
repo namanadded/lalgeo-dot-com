@@ -19,8 +19,25 @@ const dateFormatter = new Intl.DateTimeFormat("en-US", {
   year: "numeric",
 });
 
-export default async function AppClientsPage() {
-  const clients = (await listClients(DEV_ORG_ID)) as ClientRow[];
+function getParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || "";
+  return value || "";
+}
+
+export default async function AppClientsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = getParam(params.q).trim().toLowerCase();
+
+  const allClients = (await listClients(DEV_ORG_ID)) as ClientRow[];
+  const clients = allClients.filter((client) => {
+    if (!query) return true;
+    const haystack = [client.name, client.companyName, client.email, client.phone].filter(Boolean).join(" ").toLowerCase();
+    return haystack.includes(query);
+  });
 
   return (
     <div className="saas-page-card">
@@ -31,10 +48,27 @@ export default async function AppClientsPage() {
         </Link>
       </div>
 
-      {clients.length === 0 ? (
+      <form className="saas-toolbar" method="get">
+        <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search name, email, phone" />
+        <button type="submit" className="button secondary">
+          Filter
+        </button>
+      </form>
+
+      {allClients.length === 0 ? (
+        <div className="saas-empty-state saas-empty-state-cta">
+          <div className="saas-empty-title">No clients yet.</div>
+          <div>Add your first client to start managing jobs, quotes, and invoices.</div>
+          <div className="saas-empty-actions">
+            <Link href="/clients/new" className="button">
+              Add First Client
+            </Link>
+          </div>
+        </div>
+      ) : clients.length === 0 ? (
         <div className="saas-empty-state">
-          <div>No clients yet.</div>
-          <div>Create your first client to get started.</div>
+          <div>No matching clients.</div>
+          <div>Try a different search term.</div>
         </div>
       ) : (
         <div className="saas-table-wrap">
@@ -46,7 +80,7 @@ export default async function AppClientsPage() {
                 <th>Email</th>
                 <th>Phone</th>
                 <th>Created</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -58,9 +92,17 @@ export default async function AppClientsPage() {
                   <td>{client.phone || "—"}</td>
                   <td>{dateFormatter.format(client.createdAt)}</td>
                   <td>
-                    <Link href={`/clients/${client.id}`} className="muted">
-                      View
-                    </Link>
+                    <div className="saas-row-actions">
+                      <Link href={`/clients/${client.id}`} className="muted">
+                        View
+                      </Link>
+                      <Link href={`/jobs/new?clientId=${encodeURIComponent(client.id)}`} className="muted">
+                        Create Job
+                      </Link>
+                      <Link href={`/quotes/new?clientId=${encodeURIComponent(client.id)}`} className="muted">
+                        Send Quote
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}

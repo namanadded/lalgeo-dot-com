@@ -9,6 +9,8 @@ type JobRow = {
   title: string;
   status: string;
   createdAt: Date;
+  scheduledStart: Date | null;
+  clientId: string;
   client: {
     name: string;
   };
@@ -26,8 +28,29 @@ function statusClass(status: string) {
   return "status-pill";
 }
 
-export default async function AppJobsPage() {
-  const jobs = (await listJobs(DEV_ORG_ID)) as JobRow[];
+function getParam(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value[0] || "";
+  return value || "";
+}
+
+export default async function AppJobsPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const params = await searchParams;
+  const query = getParam(params.q).trim().toLowerCase();
+  const statusFilter = getParam(params.status).trim().toLowerCase();
+
+  const allJobs = (await listJobs(DEV_ORG_ID)) as JobRow[];
+  const jobs = allJobs.filter((job) => {
+    if (statusFilter && statusFilter !== "all" && job.status.toLowerCase() !== statusFilter) {
+      return false;
+    }
+    if (!query) return true;
+    const haystack = [job.title, job.client.name, job.status].join(" ").toLowerCase();
+    return haystack.includes(query);
+  });
 
   return (
     <div className="saas-page-card">
@@ -38,10 +61,36 @@ export default async function AppJobsPage() {
         </Link>
       </div>
 
-      {jobs.length === 0 ? (
+      <form className="saas-toolbar saas-toolbar-grid" method="get">
+        <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search title or client" />
+        <select className="input" name="status" defaultValue={statusFilter || "all"}>
+          <option value="all">All statuses</option>
+          <option value="draft">Draft</option>
+          <option value="scheduled">Scheduled</option>
+          <option value="completed">Completed</option>
+        </select>
+        <button type="submit" className="button secondary">
+          Filter
+        </button>
+      </form>
+
+      {allJobs.length === 0 ? (
+        <div className="saas-empty-state saas-empty-state-cta">
+          <div className="saas-empty-title">No jobs yet.</div>
+          <div>Start your work queue by scheduling your first job.</div>
+          <div className="saas-empty-actions">
+            <Link href="/jobs/new" className="button">
+              Schedule First Job
+            </Link>
+            <Link href="/clients/new" className="button secondary">
+              Add Client
+            </Link>
+          </div>
+        </div>
+      ) : jobs.length === 0 ? (
         <div className="saas-empty-state">
-          <div>No jobs yet.</div>
-          <div>Create your first job to get started.</div>
+          <div>No matching jobs.</div>
+          <div>Adjust your filters to see more work items.</div>
         </div>
       ) : (
         <div className="saas-table-wrap">
@@ -51,8 +100,9 @@ export default async function AppJobsPage() {
                 <th>Title</th>
                 <th>Client Name</th>
                 <th>Status</th>
+                <th>Scheduled</th>
                 <th>Created</th>
-                <th>Action</th>
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -63,11 +113,17 @@ export default async function AppJobsPage() {
                   <td>
                     <span className={statusClass(job.status)}>{job.status}</span>
                   </td>
+                  <td>{job.scheduledStart ? dateFormatter.format(job.scheduledStart) : "—"}</td>
                   <td>{dateFormatter.format(job.createdAt)}</td>
                   <td>
-                    <Link href={`/jobs/${job.id}`} className="muted">
-                      View
-                    </Link>
+                    <div className="saas-row-actions">
+                      <Link href={`/jobs/${job.id}`} className="muted">
+                        View
+                      </Link>
+                      <Link href={`/quotes/new?clientId=${encodeURIComponent(job.clientId)}&jobId=${encodeURIComponent(job.id)}`} className="muted">
+                        Send Quote
+                      </Link>
+                    </div>
                   </td>
                 </tr>
               ))}
