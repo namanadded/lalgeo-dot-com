@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { isRedirectError } from "next/dist/client/components/redirect-error";
 import Link from "next/link";
-import AppearanceSettings from "@/components/AppearanceSettings";
+import ThemeToggle from "@/components/ThemeToggle";
 import { updateOrganization } from "@/lib/saas-store";
 import { DEV_ORG_ID, ensureDevOrganization, getDevOrganizationProfile } from "@/lib/saas";
 import { renderDocumentEmailHtml } from "@/lib/email-template";
@@ -253,7 +253,11 @@ export default async function AppSettingsPage({
         </div>
       </form>
 
-      <AppearanceSettings />
+      <div style={{ marginTop: 24 }}>
+        <h2 style={{ margin: 0, fontSize: 22 }}>Appearance</h2>
+        <p className="muted">Choose how the cloud workspace looks while you work.</p>
+        <ThemeToggle />
+      </div>
 
       <div style={{ marginTop: 24 }}>
         <h2 style={{ margin: 0, fontSize: 22 }}>Payments (Stripe)</h2>
