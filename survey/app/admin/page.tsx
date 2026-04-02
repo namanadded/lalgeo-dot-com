@@ -1,18 +1,12 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { clearSession, getSessionUser, listUsers } from "@/lib/auth";
+import { clearSession, countAdmins, createUser, getSessionUser, listUsers, updateUserRole, type UserRole } from "@/lib/auth";
 import { createCoupon, listCoupons, setCouponActive, type CouponType } from "@/lib/coupons";
-
-const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || "naman.malhotra@hotmail.com").toLowerCase();
-
-function adminExists() {
-  return listUsers().some((user) => user.email.toLowerCase() === ADMIN_EMAIL);
-}
 
 async function createCouponAction(formData: FormData) {
   "use server";
   const session = await getSessionUser();
-  if (!session || session.email.toLowerCase() !== ADMIN_EMAIL) {
+  if (!session || session.role !== "admin") {
     redirect("/login?next=/admin");
   }
 
@@ -39,7 +33,7 @@ async function createCouponAction(formData: FormData) {
 async function toggleCouponAction(formData: FormData) {
   "use server";
   const session = await getSessionUser();
-  if (!session || session.email.toLowerCase() !== ADMIN_EMAIL) {
+  if (!session || session.role !== "admin") {
     redirect("/login?next=/admin");
   }
 
@@ -49,6 +43,51 @@ async function toggleCouponAction(formData: FormData) {
     setCouponActive(id, active);
   }
   redirect("/admin");
+}
+
+async function createUserAction(formData: FormData) {
+  "use server";
+  const session = await getSessionUser();
+  if (!session || session.role !== "admin") {
+    redirect("/login?next=/admin");
+  }
+
+  const email = String(formData.get("email") || "").trim();
+  const password = String(formData.get("password") || "").trim();
+  const roleRaw = String(formData.get("role") || "staff").trim();
+  const role: UserRole = roleRaw === "admin" ? "admin" : "staff";
+
+  if (!email || password.length < 8) {
+    redirect("/admin?error=user_create_invalid");
+  }
+
+  try {
+    createUser(email, password, role);
+  } catch {
+    redirect("/admin?error=user_create_failed");
+  }
+
+  redirect("/admin?saved=user");
+}
+
+async function updateUserRoleAction(formData: FormData) {
+  "use server";
+  const session = await getSessionUser();
+  if (!session || session.role !== "admin") {
+    redirect("/login?next=/admin");
+  }
+  const userId = String(formData.get("userId") || "").trim();
+  const roleRaw = String(formData.get("role") || "staff").trim();
+  const role: UserRole = roleRaw === "admin" ? "admin" : "staff";
+  if (!userId) {
+    redirect("/admin?error=user_role_failed");
+  }
+  try {
+    updateUserRole(userId, role);
+  } catch {
+    redirect("/admin?error=user_role_failed");
+  }
+  redirect("/admin?saved=role");
 }
 
 async function signOutAction() {
@@ -66,18 +105,13 @@ export default async function AdminPage({
 }) {
   const params = await searchParams;
   const error = typeof params.error === "string" ? params.error : "";
-  const saved = params.saved === "1";
+  const saved = typeof params.saved === "string" ? params.saved : "";
 
   const session = await getSessionUser();
-  const hasAdmin = adminExists();
-
-  const isAdminSession = Boolean(session && session.email.toLowerCase() === ADMIN_EMAIL);
-
-  if (!hasAdmin || !session) {
+  if (!session) {
     redirect("/login?next=/admin");
   }
-
-  if (!isAdminSession) {
+  if (session.role !== "admin") {
     return (
       <main>
         <div className="container">
@@ -96,6 +130,8 @@ export default async function AdminPage({
   }
 
   const coupons = listCoupons();
+  const users = listUsers();
+  const adminCount = countAdmins();
 
   return (
     <main>
@@ -103,7 +139,7 @@ export default async function AdminPage({
         <div className="header admin-header">
           <div>
             <h1>Admin</h1>
-            <div className="muted">Coupon and account controls</div>
+            <div className="muted">Users, roles, and coupon controls</div>
           </div>
           <div className="top-actions">
             <Link href="/dashboard" className="button secondary">
@@ -118,8 +154,78 @@ export default async function AdminPage({
         </div>
 
         <div className="panel admin-panel">
+          <h2>User Access</h2>
+          {saved === "user" && <div className="banner">User created.</div>}
+          {saved === "role" && <div className="banner">User role updated.</div>}
+          {(error === "user_create_invalid" || error === "user_create_failed" || error === "user_role_failed") ? (
+            <div className="banner">Unable to save user changes. Check input and try again.</div>
+          ) : null}
+
+          <form action={createUserAction} className="grid grid-3">
+            <div>
+              <label>Email</label>
+              <input className="input" name="email" type="email" required />
+            </div>
+            <div>
+              <label>Temporary Password</label>
+              <input className="input" name="password" type="password" minLength={8} required />
+            </div>
+            <div>
+              <label>Role</label>
+              <select name="role" defaultValue="staff">
+                <option value="staff">Staff</option>
+                <option value="admin">Admin</option>
+              </select>
+            </div>
+            <div>
+              <button className="button" type="submit">
+                Create User
+              </button>
+            </div>
+          </form>
+
+          <div className="saas-table-wrap" style={{ marginTop: 16 }}>
+            <table className="saas-table">
+              <thead>
+                <tr>
+                  <th>Email</th>
+                  <th>Role</th>
+                  <th>Created</th>
+                  <th>Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {users.map((user) => (
+                  <tr key={user.id}>
+                    <td>{user.email}</td>
+                    <td>{user.role}</td>
+                    <td>{new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(user.createdAt))}</td>
+                    <td>
+                      <form action={updateUserRoleAction} className="saas-row-actions">
+                        <input type="hidden" name="userId" value={user.id} />
+                        <select
+                          name="role"
+                          defaultValue={user.role}
+                          disabled={user.id === session.id && user.role === "admin" && adminCount <= 1}
+                        >
+                          <option value="staff">Staff</option>
+                          <option value="admin">Admin</option>
+                        </select>
+                        <button className="button secondary" type="submit">
+                          Save
+                        </button>
+                      </form>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="panel admin-panel">
           <h2>Create Coupon</h2>
-          {saved && <div className="banner">Coupon saved.</div>}
+          {saved === "1" && <div className="banner">Coupon saved.</div>}
           {error === "coupon_create_failed" && <div className="banner">Failed to save coupon.</div>}
 
           <form action={createCouponAction} className="grid grid-2">

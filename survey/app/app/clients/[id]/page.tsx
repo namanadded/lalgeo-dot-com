@@ -5,6 +5,7 @@ import { AppleAddressPreview } from "@/components/AppleAddressPreview";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
 import { invoiceStatusClass } from "@/lib/invoices";
+import { getSessionUser } from "@/lib/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -27,8 +28,15 @@ function jobStatusClass(status: string) {
 
 export const dynamic = "force-dynamic";
 
-export default async function ClientDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function ClientDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ saved?: string }> | { saved?: string };
+}) {
+  const [{ id }, resolvedSearchParams] = await Promise.all([params, searchParams ? searchParams : Promise.resolve(undefined)]);
+  const session = await getSessionUser();
 
   const client = await getClientDetail(DEV_ORG_ID, id);
   if (!client) notFound();
@@ -41,12 +49,18 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   ]
     .filter(Boolean)
     .join(" · ");
+  const saved = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.saved : undefined;
 
   return (
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>{client.name}</h1>
         <div className="saas-row-actions">
+          {session?.role === "admin" ? (
+            <Link href={`/clients/${client.id}/edit`} className="button secondary">
+              Edit Client
+            </Link>
+          ) : null}
           <Link href={`/jobs/new?clientId=${encodeURIComponent(client.id)}`} className="button secondary">
             Create Job
           </Link>
@@ -58,6 +72,8 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
           </Link>
         </div>
       </div>
+
+      {saved === "1" ? <div className="banner">Client updated.</div> : null}
 
       <div className="grid grid-2">
         <div className="card">

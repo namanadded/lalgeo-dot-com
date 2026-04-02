@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
-import { listInvoices, markInvoicePaid } from "@/lib/saas-store";
+import { redirect } from "next/navigation";
+import { deleteInvoice, listInvoices, markInvoicePaid } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { invoiceStatusClass } from "@/lib/invoices";
 import { formatCents } from "@/lib/quotes";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -34,12 +36,34 @@ function getParam(value: string | string[] | undefined) {
 
 async function markPaidAction(formData: FormData) {
   "use server";
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/invoices?error=forbidden");
+  }
   const invoiceId = String(formData.get("invoiceId") || "").trim();
   if (!invoiceId) return;
   await markInvoicePaid(DEV_ORG_ID, invoiceId);
   revalidatePath("/invoices");
   revalidatePath("/dashboard");
   revalidatePath(`/invoices/${invoiceId}`);
+}
+
+async function deleteInvoiceAction(formData: FormData) {
+  "use server";
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/invoices?error=forbidden");
+  }
+  const invoiceId = String(formData.get("invoiceId") || "").trim();
+  if (!invoiceId) return;
+  try {
+    await deleteInvoice(DEV_ORG_ID, invoiceId);
+  } catch {
+    redirect("/invoices?error=delete_failed");
+  }
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  redirect("/invoices?saved=deleted");
 }
 
 export default async function AppInvoicesPage({
@@ -50,6 +74,10 @@ export default async function AppInvoicesPage({
   const params = await searchParams;
   const query = getParam(params.q).trim().toLowerCase();
   const statusFilter = getParam(params.status).trim().toLowerCase();
+  const saved = getParam(params.saved);
+  const error = getParam(params.error);
+  const session = await getSessionUser();
+  const canManage = session?.role === "admin";
 
   const allInvoices = (await listInvoices(DEV_ORG_ID)) as InvoiceRow[];
   const invoices = allInvoices.filter((invoice) => {
@@ -69,6 +97,10 @@ export default async function AppInvoicesPage({
           New Invoice
         </Link>
       </div>
+
+      {saved === "deleted" ? <div className="banner">Invoice deleted.</div> : null}
+      {error === "delete_failed" ? <div className="banner">Unable to delete invoice right now.</div> : null}
+      {error === "forbidden" ? <div className="banner">Only admins can edit, delete, or mark invoices paid.</div> : null}
 
       <form className="saas-toolbar saas-toolbar-grid" method="get">
         <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search invoice # or client" />
@@ -136,16 +168,29 @@ export default async function AppInvoicesPage({
                       <Link href={`/invoices/${invoice.id}`} className="muted">
                         View
                       </Link>
-                      {invoice.status !== "paid" ? (
+                      {canManage ? (
+                        <Link href={`/invoices/${invoice.id}/edit`} className="muted">
+                          Edit
+                        </Link>
+                      ) : null}
+                      {canManage && invoice.status !== "paid" ? (
                         <form action={markPaidAction}>
                           <input type="hidden" name="invoiceId" value={invoice.id} />
                           <button type="submit" className="saas-inline-action">
                             Mark Paid
                           </button>
                         </form>
-                      ) : (
+                      ) : invoice.status === "paid" ? (
                         <span className="muted">Paid</span>
-                      )}
+                      ) : null}
+                      {canManage ? (
+                        <form action={deleteInvoiceAction}>
+                          <input type="hidden" name="invoiceId" value={invoice.id} />
+                          <button type="submit" className="saas-inline-action saas-inline-danger">
+                            Delete
+                          </button>
+                        </form>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

@@ -17,7 +17,7 @@ export default async function SaaSLayout({ children }: { children: ReactNode }) 
       <div className="saas-frame">
         <AppSidebar />
         <section className="saas-content">
-          <SaasTopbar />
+          <SaasTopbar role={user.role} />
           {children}
         </section>
       </div>

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     if (!email || !password) {
       return NextResponse.json({ error: "Email and password required." }, { status: 400 });
     }
-    const user = createUser(email, password);
+    const user = createUser(email, password, "admin");
     await setSession(user);
     return NextResponse.json({ ok: true, email: user.email });
   } catch (err) {

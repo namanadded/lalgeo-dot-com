@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
+import Link from "next/link";
 import GlobalSearch from "@/components/GlobalSearch";
 
-export default function SaasTopbar() {
+export default function SaasTopbar({ role }: { role: "admin" | "staff" }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -21,9 +22,16 @@ export default function SaasTopbar() {
   return (
     <div className="saas-topbar">
       <GlobalSearch />
-      <button type="button" className="button secondary" onClick={signOut} disabled={loading}>
-        {loading ? "Signing out..." : "Sign out"}
-      </button>
+      <div className="saas-row-actions">
+        {role === "admin" ? (
+          <Link href="/admin" className="button secondary">
+            Admin
+          </Link>
+        ) : null}
+        <button type="button" className="button secondary" onClick={signOut} disabled={loading}>
+          {loading ? "Signing out..." : "Sign out"}
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,7 +1,10 @@
 import Link from "next/link";
-import { listQuotes } from "@/lib/saas-store";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { deleteQuote, listQuotes } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +40,24 @@ function getParam(value: string | string[] | undefined) {
   return value || "";
 }
 
+async function deleteQuoteAction(formData: FormData) {
+  "use server";
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/quotes?error=forbidden");
+  }
+  const quoteId = String(formData.get("quoteId") || "").trim();
+  if (!quoteId) return;
+  try {
+    await deleteQuote(DEV_ORG_ID, quoteId);
+  } catch {
+    redirect("/quotes?error=delete_failed");
+  }
+  revalidatePath("/quotes");
+  revalidatePath("/dashboard");
+  redirect("/quotes?saved=deleted");
+}
+
 export default async function AppQuotesPage({
   searchParams,
 }: {
@@ -45,6 +66,10 @@ export default async function AppQuotesPage({
   const params = await searchParams;
   const query = getParam(params.q).trim().toLowerCase();
   const statusFilter = getParam(params.status).trim().toLowerCase();
+  const saved = getParam(params.saved);
+  const error = getParam(params.error);
+  const session = await getSessionUser();
+  const canManage = session?.role === "admin";
 
   const allQuotes = (await listQuotes(DEV_ORG_ID)) as QuoteRow[];
   const quotes = allQuotes.filter((quote) => {
@@ -64,6 +89,10 @@ export default async function AppQuotesPage({
           New Quote
         </Link>
       </div>
+
+      {saved === "deleted" ? <div className="banner">Quote deleted.</div> : null}
+      {error === "delete_failed" ? <div className="banner">Cannot delete quote once invoiced.</div> : null}
+      {error === "forbidden" ? <div className="banner">Only admins can edit or delete records.</div> : null}
 
       <form className="saas-toolbar saas-toolbar-grid" method="get">
         <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search quote # or client" />
@@ -127,6 +156,11 @@ export default async function AppQuotesPage({
                       <Link href={`/quotes/${quote.id}`} className="muted">
                         View
                       </Link>
+                      {canManage ? (
+                        <Link href={`/quotes/${quote.id}/edit`} className="muted">
+                          Edit
+                        </Link>
+                      ) : null}
                       <Link href={`/quotes/${quote.id}/email`} className="muted">
                         Send Quote
                       </Link>
@@ -137,6 +171,14 @@ export default async function AppQuotesPage({
                           Create Invoice
                         </Link>
                       )}
+                      {canManage ? (
+                        <form action={deleteQuoteAction}>
+                          <input type="hidden" name="quoteId" value={quote.id} />
+                          <button type="submit" className="saas-inline-action saas-inline-danger">
+                            Delete
+                          </button>
+                        </form>
+                      ) : null}
                     </div>
                   </td>
                 </tr>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getJobDetail } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
+import { getSessionUser } from "@/lib/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -17,21 +18,38 @@ function statusClass(status: string) {
 
 export const dynamic = "force-dynamic";
 
-export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const { id } = await params;
+export default async function JobDetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams?: Promise<{ saved?: string }> | { saved?: string };
+}) {
+  const [{ id }, resolvedSearchParams] = await Promise.all([params, searchParams ? searchParams : Promise.resolve(undefined)]);
+  const session = await getSessionUser();
 
   const job = await getJobDetail(DEV_ORG_ID, id);
 
   if (!job) notFound();
+  const saved = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.saved : undefined;
 
   return (
     <div className="saas-page-card">
       <div className="saas-page-header">
         <h1>{job.title}</h1>
-        <Link href="/jobs" className="button secondary">
-          Back
-        </Link>
+        <div className="saas-row-actions">
+          {session?.role === "admin" ? (
+            <Link href={`/jobs/${job.id}/edit`} className="button secondary">
+              Edit Job
+            </Link>
+          ) : null}
+          <Link href="/jobs" className="button secondary">
+            Back
+          </Link>
+        </div>
       </div>
+
+      {saved === "1" ? <div className="banner">Job updated.</div> : null}
 
       <div className="grid grid-2">
         <div className="card">

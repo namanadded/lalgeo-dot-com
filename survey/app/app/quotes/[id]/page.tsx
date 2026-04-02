@@ -4,6 +4,7 @@ import { getQuoteDetail, listEmailLogs } from "@/lib/saas-store";
 import { ServiceDocumentSheet } from "@/components/ServiceDocumentSheet";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
+import { getSessionUser } from "@/lib/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -18,13 +19,14 @@ export default async function QuoteDetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams?: Promise<{ emailed?: string }> | { emailed?: string };
+  searchParams?: Promise<{ emailed?: string; saved?: string }> | { emailed?: string; saved?: string };
 }) {
   const [{ id }, org, resolvedSearchParams] = await Promise.all([
     params,
     getDevOrganizationProfile(),
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
+  const session = await getSessionUser();
 
   const quote = await getQuoteDetail(DEV_ORG_ID, id);
 
@@ -54,6 +56,7 @@ export default async function QuoteDetailPage({
     amount: formatCents(line.lineTotalCents),
   }));
   const emailed = typeof resolvedSearchParams === "object" && resolvedSearchParams?.emailed === "1";
+  const saved = typeof resolvedSearchParams === "object" && resolvedSearchParams?.saved === "1";
 
   return (
     <div className="saas-page-card">
@@ -63,6 +66,11 @@ export default async function QuoteDetailPage({
           <Link href={`/quotes/${quote.id}/email`} className="button secondary">
             Email Quote
           </Link>
+          {session?.role === "admin" ? (
+            <Link href={`/quotes/${quote.id}/edit`} className="button secondary">
+              Edit Quote
+            </Link>
+          ) : null}
           {quote.invoices.length === 0 ? (
             <Link href={`/invoices/new?quoteId=${quote.id}`} className="button secondary">
               Create Invoice
@@ -75,6 +83,7 @@ export default async function QuoteDetailPage({
       </div>
 
       {emailed ? <div className="banner">Quote email sent with PDF attachment.</div> : null}
+      {saved ? <div className="banner">Quote updated.</div> : null}
 
       <ServiceDocumentSheet
         companyName={companyName}

@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { listJobs } from "@/lib/saas-store";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { deleteJob, listJobs } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +36,24 @@ function getParam(value: string | string[] | undefined) {
   return value || "";
 }
 
+async function deleteJobAction(formData: FormData) {
+  "use server";
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/jobs?error=forbidden");
+  }
+  const jobId = String(formData.get("jobId") || "").trim();
+  if (!jobId) return;
+  try {
+    await deleteJob(DEV_ORG_ID, jobId);
+  } catch {
+    redirect("/jobs?error=delete_failed");
+  }
+  revalidatePath("/jobs");
+  revalidatePath("/dashboard");
+  redirect("/jobs?saved=deleted");
+}
+
 export default async function AppJobsPage({
   searchParams,
 }: {
@@ -41,6 +62,10 @@ export default async function AppJobsPage({
   const params = await searchParams;
   const query = getParam(params.q).trim().toLowerCase();
   const statusFilter = getParam(params.status).trim().toLowerCase();
+  const saved = getParam(params.saved);
+  const error = getParam(params.error);
+  const session = await getSessionUser();
+  const canManage = session?.role === "admin";
 
   const allJobs = (await listJobs(DEV_ORG_ID)) as JobRow[];
   const jobs = allJobs.filter((job) => {
@@ -60,6 +85,10 @@ export default async function AppJobsPage({
           New Job
         </Link>
       </div>
+
+      {saved === "deleted" ? <div className="banner">Job deleted.</div> : null}
+      {error === "delete_failed" ? <div className="banner">Cannot delete this job because it is linked to quotes/invoices.</div> : null}
+      {error === "forbidden" ? <div className="banner">Only admins can edit or delete records.</div> : null}
 
       <form className="saas-toolbar saas-toolbar-grid" method="get">
         <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search title or client" />
@@ -120,6 +149,19 @@ export default async function AppJobsPage({
                       <Link href={`/jobs/${job.id}`} className="muted">
                         View
                       </Link>
+                      {canManage ? (
+                        <Link href={`/jobs/${job.id}/edit`} className="muted">
+                          Edit
+                        </Link>
+                      ) : null}
+                      {canManage ? (
+                        <form action={deleteJobAction}>
+                          <input type="hidden" name="jobId" value={job.id} />
+                          <button type="submit" className="saas-inline-action saas-inline-danger">
+                            Delete
+                          </button>
+                        </form>
+                      ) : null}
                       <Link href={`/quotes/new?clientId=${encodeURIComponent(job.clientId)}&jobId=${encodeURIComponent(job.id)}`} className="muted">
                         Send Quote
                       </Link>

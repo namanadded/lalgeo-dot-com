@@ -53,6 +53,19 @@ async function apiPatch<T>(path: string, body: unknown) {
   return (await res.json()) as T;
 }
 
+async function apiDelete<T>(path: string) {
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: "DELETE",
+    headers: API_KEY ? { "x-lalgeo-api-key": API_KEY } : undefined,
+    cache: "no-store",
+  });
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`SaaS API DELETE ${path} failed (${res.status}): ${text.slice(0, 240)}`);
+  }
+  return (await res.json()) as T;
+}
+
 function asDate(value: unknown) {
   if (!value) return null;
   return new Date(String(value));
@@ -309,6 +322,99 @@ export async function createClient(data: {
   return prisma.client.create({ data });
 }
 
+export async function updateClient(
+  orgId: string,
+  id: string,
+  data: {
+    name: string;
+    companyName?: string | null;
+    email?: string | null;
+    phone?: string | null;
+    addressLine1?: string | null;
+    addressLine2?: string | null;
+    city?: string | null;
+    stateProvince?: string | null;
+    postalCode?: string | null;
+    country?: string | null;
+    notes?: string | null;
+  },
+) {
+  if (useApi()) {
+    return apiPatch(`/v1/clients/${encodeURIComponent(id)}`, {
+      organization_id: orgId,
+      name: data.name,
+      company_name: data.companyName ?? null,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      address_line1: data.addressLine1 ?? null,
+      address_line2: data.addressLine2 ?? null,
+      city: data.city ?? null,
+      state_province: data.stateProvince ?? null,
+      postal_code: data.postalCode ?? null,
+      country: data.country ?? null,
+      notes: data.notes ?? null,
+    });
+  }
+
+  const existing = await prisma.client.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, name: true },
+  });
+  if (!existing) throw new Error("Client not found");
+
+  const client = await prisma.client.update({
+    where: { id: existing.id },
+    data: {
+      name: data.name,
+      companyName: data.companyName ?? null,
+      email: data.email ?? null,
+      phone: data.phone ?? null,
+      addressLine1: data.addressLine1 ?? null,
+      addressLine2: data.addressLine2 ?? null,
+      city: data.city ?? null,
+      stateProvince: data.stateProvince ?? null,
+      postalCode: data.postalCode ?? null,
+      country: data.country ?? null,
+      notes: data.notes ?? null,
+    },
+    select: { id: true, name: true },
+  });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "client",
+    entityId: client.id,
+    action: "client_updated",
+    message: `Client ${client.name} updated.`,
+  });
+  return client;
+}
+
+export async function deleteClient(orgId: string, id: string) {
+  if (useApi()) {
+    return apiDelete(`/v1/clients/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`);
+  }
+  const existing = await prisma.client.findFirst({
+    where: { id, organizationId: orgId },
+    select: {
+      id: true,
+      name: true,
+      _count: { select: { jobs: true, quotes: true, invoices: true } },
+    },
+  });
+  if (!existing) throw new Error("Client not found");
+  if (existing._count.jobs > 0 || existing._count.quotes > 0 || existing._count.invoices > 0) {
+    throw new Error("Cannot delete a client that has jobs, quotes, or invoices.");
+  }
+  await prisma.client.delete({ where: { id: existing.id } });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "client",
+    entityId: existing.id,
+    action: "client_deleted",
+    message: `Client ${existing.name} deleted.`,
+  });
+}
+
 export async function getClientDetail(orgId: string, id: string) {
   if (useApi()) {
     const response = await apiGet<{ client: Record<string, unknown> }>(`/v1/clients/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`);
@@ -482,6 +588,80 @@ export async function createJob(data: {
     message: `Job ${job.title} ${action === "job_created" ? "created" : action === "job_scheduled" ? "scheduled" : "completed"}.`,
   });
   return job;
+}
+
+export async function updateJob(
+  orgId: string,
+  id: string,
+  data: {
+    title: string;
+    status: string;
+    clientId: string;
+    scheduledStart?: Date | null;
+    inspectionDueDate?: Date | null;
+  },
+) {
+  if (useApi()) {
+    return apiPatch(`/v1/jobs/${encodeURIComponent(id)}`, {
+      organization_id: orgId,
+      title: data.title,
+      status: data.status,
+      client_id: data.clientId,
+      scheduled_start: data.scheduledStart ? data.scheduledStart.toISOString() : null,
+      inspection_due_date: data.inspectionDueDate ? data.inspectionDueDate.toISOString() : null,
+    });
+  }
+  const existing = await prisma.job.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, title: true },
+  });
+  if (!existing) throw new Error("Job not found");
+
+  const job = await prisma.job.update({
+    where: { id: existing.id },
+    data: {
+      title: data.title,
+      status: data.status,
+      clientId: data.clientId,
+      scheduledStart: data.scheduledStart ?? null,
+      inspectionDueDate: data.inspectionDueDate ?? null,
+    },
+    select: { id: true, title: true },
+  });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "job",
+    entityId: job.id,
+    action: "job_updated",
+    message: `Job ${job.title} updated.`,
+  });
+  return job;
+}
+
+export async function deleteJob(orgId: string, id: string) {
+  if (useApi()) {
+    return apiDelete(`/v1/jobs/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`);
+  }
+  const existing = await prisma.job.findFirst({
+    where: { id, organizationId: orgId },
+    select: {
+      id: true,
+      title: true,
+      _count: { select: { quotes: true, invoices: true } },
+    },
+  });
+  if (!existing) throw new Error("Job not found");
+  if (existing._count.quotes > 0 || existing._count.invoices > 0) {
+    throw new Error("Cannot delete a job linked to quotes or invoices.");
+  }
+  await prisma.job.delete({ where: { id: existing.id } });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "job",
+    entityId: existing.id,
+    action: "job_deleted",
+    message: `Job ${existing.title} deleted.`,
+  });
 }
 
 export async function getJobDetail(orgId: string, id: string) {
@@ -722,6 +902,66 @@ export async function markQuoteSent(orgId: string, id: string, status = "sent") 
     message: `Quote ${quote.quoteNumber} ${status === "accepted" ? "accepted" : "sent"}.`,
   });
   return quote;
+}
+
+export async function updateQuote(
+  orgId: string,
+  id: string,
+  data: {
+    status: string;
+    notes: string | null;
+  },
+) {
+  if (useApi()) {
+    return apiPatch(`/v1/quotes/${encodeURIComponent(id)}`, {
+      organization_id: orgId,
+      status: data.status,
+      notes: data.notes,
+    });
+  }
+  const existing = await prisma.quote.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, quoteNumber: true },
+  });
+  if (!existing) throw new Error("Quote not found");
+  const quote = await prisma.quote.update({
+    where: { id: existing.id },
+    data: {
+      status: data.status,
+      notes: data.notes,
+    },
+    select: { id: true, quoteNumber: true },
+  });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "quote",
+    entityId: quote.id,
+    action: "quote_updated",
+    message: `Quote ${quote.quoteNumber} updated.`,
+  });
+  return quote;
+}
+
+export async function deleteQuote(orgId: string, id: string) {
+  if (useApi()) {
+    return apiDelete(`/v1/quotes/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`);
+  }
+  const existing = await prisma.quote.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, quoteNumber: true, _count: { select: { invoices: true } } },
+  });
+  if (!existing) throw new Error("Quote not found");
+  if (existing._count.invoices > 0) {
+    throw new Error("Cannot delete a quote that has an invoice.");
+  }
+  await prisma.quote.delete({ where: { id: existing.id } });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "quote",
+    entityId: existing.id,
+    action: "quote_deleted",
+    message: `Quote ${existing.quoteNumber} deleted.`,
+  });
 }
 
 export async function listInvoices(orgId: string) {
@@ -997,6 +1237,68 @@ export async function markInvoicePaid(
   });
 
   return existing;
+}
+
+export async function updateInvoice(
+  orgId: string,
+  id: string,
+  data: {
+    status: string;
+    notes: string | null;
+    dueAt: Date | null;
+  },
+) {
+  if (useApi()) {
+    return apiPatch(`/v1/invoices/${encodeURIComponent(id)}`, {
+      organization_id: orgId,
+      status: data.status,
+      notes: data.notes,
+      due_at: data.dueAt ? data.dueAt.toISOString() : null,
+    });
+  }
+
+  const existing = await prisma.invoice.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, invoiceNumber: true },
+  });
+  if (!existing) throw new Error("Invoice not found");
+
+  const invoice = await prisma.invoice.update({
+    where: { id: existing.id },
+    data: {
+      status: data.status,
+      notes: data.notes,
+      dueAt: data.dueAt,
+    },
+    select: { id: true, invoiceNumber: true },
+  });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "invoice",
+    entityId: invoice.id,
+    action: "invoice_updated",
+    message: `Invoice ${invoice.invoiceNumber} updated.`,
+  });
+  return invoice;
+}
+
+export async function deleteInvoice(orgId: string, id: string) {
+  if (useApi()) {
+    return apiDelete(`/v1/invoices/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`);
+  }
+  const existing = await prisma.invoice.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, invoiceNumber: true },
+  });
+  if (!existing) throw new Error("Invoice not found");
+  await prisma.invoice.delete({ where: { id: existing.id } });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "invoice",
+    entityId: existing.id,
+    action: "invoice_deleted",
+    message: `Invoice ${existing.invoiceNumber} deleted.`,
+  });
 }
 
 export async function listEmailLogs(orgId: string, documentType: string, documentId: string, limit = 10) {

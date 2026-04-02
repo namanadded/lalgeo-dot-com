@@ -5,6 +5,7 @@ import { ServiceDocumentSheet } from "@/components/ServiceDocumentSheet";
 import { DEV_ORG_ID, getDevOrganizationProfile } from "@/lib/saas";
 import { formatCents } from "@/lib/quotes";
 import { appUrl } from "@/lib/url";
+import { getSessionUser } from "@/lib/auth";
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
   month: "short",
@@ -20,13 +21,14 @@ export default async function InvoiceDetailPage({
 }: {
   params: Promise<{ id: string }>;
   searchParams?:
-    | Promise<{ emailed?: string; paid?: string; payment?: string }>
-    | { emailed?: string; paid?: string; payment?: string };
+    | Promise<{ emailed?: string; paid?: string; payment?: string; saved?: string }>
+    | { emailed?: string; paid?: string; payment?: string; saved?: string };
 }) {
   const [{ id }, resolvedSearchParams] = await Promise.all([
     params,
     searchParams ? searchParams : Promise.resolve(undefined),
   ]);
+  const session = await getSessionUser();
   const org = await getDevOrganizationProfile();
 
   const invoice = await getInvoiceDetail(DEV_ORG_ID, id);
@@ -63,6 +65,7 @@ export default async function InvoiceDetailPage({
   const emailed = typeof resolvedSearchParams === "object" && resolvedSearchParams?.emailed === "1";
   const paid = typeof resolvedSearchParams === "object" && resolvedSearchParams?.paid === "1";
   const paymentStatus = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.payment : undefined;
+  const saved = typeof resolvedSearchParams === "object" ? resolvedSearchParams?.saved === "1" : false;
   const publicPaymentUrl = appUrl(`/pay/invoices/${invoice.id}`);
 
   return (
@@ -80,6 +83,11 @@ export default async function InvoiceDetailPage({
           <Link href={`/invoices/${invoice.id}/email`} className="button secondary">
             Email Invoice
           </Link>
+          {session?.role === "admin" ? (
+            <Link href={`/invoices/${invoice.id}/edit`} className="button secondary">
+              Edit Invoice
+            </Link>
+          ) : null}
           <Link href="/invoices" className="button secondary">
             Back
           </Link>
@@ -87,6 +95,7 @@ export default async function InvoiceDetailPage({
       </div>
 
       {emailed ? <div className="banner">Invoice email sent with PDF attachment.</div> : null}
+      {saved ? <div className="banner">Invoice updated.</div> : null}
       {paid ? <div className="banner">Payment completed. Invoice marked paid.</div> : null}
       {paymentStatus === "cancelled" ? <div className="banner">Payment cancelled before completion.</div> : null}
       {paymentStatus === "not_configured" ? <div className="banner">Payments are not configured yet. Add Stripe keys in environment.</div> : null}

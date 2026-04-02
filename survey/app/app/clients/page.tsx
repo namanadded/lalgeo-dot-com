@@ -1,6 +1,9 @@
 import Link from "next/link";
-import { listClients } from "@/lib/saas-store";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
+import { deleteClient, listClients } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
+import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +27,24 @@ function getParam(value: string | string[] | undefined) {
   return value || "";
 }
 
+async function deleteClientAction(formData: FormData) {
+  "use server";
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/clients?error=forbidden");
+  }
+  const clientId = String(formData.get("clientId") || "").trim();
+  if (!clientId) return;
+  try {
+    await deleteClient(DEV_ORG_ID, clientId);
+  } catch {
+    redirect("/clients?error=delete_failed");
+  }
+  revalidatePath("/clients");
+  revalidatePath("/dashboard");
+  redirect("/clients?saved=deleted");
+}
+
 export default async function AppClientsPage({
   searchParams,
 }: {
@@ -31,6 +52,10 @@ export default async function AppClientsPage({
 }) {
   const params = await searchParams;
   const query = getParam(params.q).trim().toLowerCase();
+  const saved = getParam(params.saved);
+  const error = getParam(params.error);
+  const session = await getSessionUser();
+  const canManage = session?.role === "admin";
 
   const allClients = (await listClients(DEV_ORG_ID)) as ClientRow[];
   const clients = allClients.filter((client) => {
@@ -47,6 +72,10 @@ export default async function AppClientsPage({
           New Client
         </Link>
       </div>
+
+      {saved === "deleted" ? <div className="banner">Client deleted.</div> : null}
+      {error === "delete_failed" ? <div className="banner">Cannot delete this client yet. Remove related jobs/quotes/invoices first.</div> : null}
+      {error === "forbidden" ? <div className="banner">Only admins can edit or delete records.</div> : null}
 
       <form className="saas-toolbar" method="get">
         <input className="input" name="q" defaultValue={getParam(params.q)} placeholder="Search name, email, phone" />
@@ -96,6 +125,19 @@ export default async function AppClientsPage({
                       <Link href={`/clients/${client.id}`} className="muted">
                         View
                       </Link>
+                      {canManage ? (
+                        <Link href={`/clients/${client.id}/edit`} className="muted">
+                          Edit
+                        </Link>
+                      ) : null}
+                      {canManage ? (
+                        <form action={deleteClientAction}>
+                          <input type="hidden" name="clientId" value={client.id} />
+                          <button type="submit" className="saas-inline-action saas-inline-danger">
+                            Delete
+                          </button>
+                        </form>
+                      ) : null}
                       <Link href={`/jobs/new?clientId=${encodeURIComponent(client.id)}`} className="muted">
                         Create Job
                       </Link>
