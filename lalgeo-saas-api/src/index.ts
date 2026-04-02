@@ -264,7 +264,10 @@ export default {
       if (path === "/v1/clients" && req.method === "GET") {
         const orgId = requiredOrg(url);
         const rows = await env.DB.prepare(`
-          SELECT id,name,company_name,email,phone,address_line1,address_line2,city,state_province,postal_code,country,notes,created_at
+          SELECT id,name,company_name,email,phone,address_line1,address_line2,city,state_province,postal_code,country,notes,created_at,
+                 (SELECT COUNT(*) FROM jobs WHERE client_id = clients.id AND organization_id = clients.organization_id) as jobs_count,
+                 (SELECT COUNT(*) FROM quotes WHERE client_id = clients.id AND organization_id = clients.organization_id) as quotes_count,
+                 (SELECT COUNT(*) FROM invoices WHERE client_id = clients.id AND organization_id = clients.organization_id) as invoices_count
           FROM clients
           WHERE organization_id = ?1
           ORDER BY datetime(created_at) DESC
@@ -329,6 +332,58 @@ export default {
         }
 
         await env.DB.prepare(`DELETE FROM clients WHERE id = ?1 AND organization_id = ?2`).bind(id, orgId).run();
+        return json({ ok: true });
+      }
+
+      if (path === "/v1/clients/merge" && req.method === "POST") {
+        const body = await parseBody<Record<string, unknown>>(req);
+        const orgId = String(body.organization_id || "").trim();
+        const keepId = String(body.keep_client_id || "").trim();
+        const removeId = String(body.remove_client_id || "").trim();
+        if (!orgId || !keepId || !removeId) {
+          return json({ error: "organization_id, keep_client_id, and remove_client_id required" }, 400);
+        }
+        if (keepId === removeId) {
+          return json({ error: "Choose two different clients to merge" }, 400);
+        }
+
+        const [keepClient, removeClient] = await Promise.all([getClientRow(env.DB, keepId, orgId), getClientRow(env.DB, removeId, orgId)]);
+        if (!keepClient || !removeClient) return json({ error: "Not found" }, 404);
+
+        await env.DB.batch([
+          env.DB.prepare(`
+            UPDATE clients
+            SET company_name = COALESCE(NULLIF(company_name, ''), ?1),
+                email = COALESCE(NULLIF(email, ''), ?2),
+                phone = COALESCE(NULLIF(phone, ''), ?3),
+                address_line1 = COALESCE(NULLIF(address_line1, ''), ?4),
+                address_line2 = COALESCE(NULLIF(address_line2, ''), ?5),
+                city = COALESCE(NULLIF(city, ''), ?6),
+                state_province = COALESCE(NULLIF(state_province, ''), ?7),
+                postal_code = COALESCE(NULLIF(postal_code, ''), ?8),
+                country = COALESCE(NULLIF(country, ''), ?9),
+                notes = COALESCE(NULLIF(notes, ''), ?10)
+            WHERE id = ?11 AND organization_id = ?12
+          `).bind(
+            removeClient.company_name ?? null,
+            removeClient.email ?? null,
+            removeClient.phone ?? null,
+            removeClient.address_line1 ?? null,
+            removeClient.address_line2 ?? null,
+            removeClient.city ?? null,
+            removeClient.state_province ?? null,
+            removeClient.postal_code ?? null,
+            removeClient.country ?? null,
+            removeClient.notes ?? null,
+            keepId,
+            orgId,
+          ),
+          env.DB.prepare(`UPDATE jobs SET client_id = ?1 WHERE client_id = ?2 AND organization_id = ?3`).bind(keepId, removeId, orgId),
+          env.DB.prepare(`UPDATE quotes SET client_id = ?1 WHERE client_id = ?2 AND organization_id = ?3`).bind(keepId, removeId, orgId),
+          env.DB.prepare(`UPDATE invoices SET client_id = ?1 WHERE client_id = ?2 AND organization_id = ?3`).bind(keepId, removeId, orgId),
+          env.DB.prepare(`DELETE FROM clients WHERE id = ?1 AND organization_id = ?2`).bind(removeId, orgId),
+        ]);
+
         return json({ ok: true });
       }
 

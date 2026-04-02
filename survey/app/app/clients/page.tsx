@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { deleteClient, listClients } from "@/lib/saas-store";
+import ClientRowActions from "@/components/ClientRowActions";
+import { deleteClient, listClients, mergeClients } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { getSessionUser } from "@/lib/auth";
 
@@ -14,6 +15,11 @@ type ClientRow = {
   email: string | null;
   phone: string | null;
   createdAt: Date;
+  _count: {
+    jobs: number;
+    quotes: number;
+    invoices: number;
+  };
 };
 
 const dateFormatter = new Intl.DateTimeFormat("en-US", {
@@ -45,6 +51,37 @@ async function deleteClientAction(formData: FormData) {
   redirect("/clients?saved=deleted");
 }
 
+async function mergeClientsAction(formData: FormData) {
+  "use server";
+  const user = await getSessionUser();
+  if (!user || user.role !== "admin") {
+    redirect("/clients?error=forbidden");
+  }
+  const keepClientId = String(formData.get("keepClientId") || "").trim();
+  const removeClientId = String(formData.get("removeClientId") || "").trim();
+  if (!keepClientId || !removeClientId) {
+    redirect("/clients?error=merge_missing");
+  }
+  if (keepClientId === removeClientId) {
+    redirect("/clients?error=merge_same");
+  }
+
+  try {
+    await mergeClients(DEV_ORG_ID, keepClientId, removeClientId);
+  } catch {
+    redirect("/clients?error=merge_failed");
+  }
+
+  revalidatePath("/clients");
+  revalidatePath(`/clients/${keepClientId}`);
+  revalidatePath(`/clients/${removeClientId}`);
+  revalidatePath("/jobs");
+  revalidatePath("/quotes");
+  revalidatePath("/invoices");
+  revalidatePath("/dashboard");
+  redirect(`/clients?saved=merged&keep=${encodeURIComponent(keepClientId)}`);
+}
+
 export default async function AppClientsPage({
   searchParams,
 }: {
@@ -74,7 +111,11 @@ export default async function AppClientsPage({
       </div>
 
       {saved === "deleted" ? <div className="banner">Client deleted.</div> : null}
+      {saved === "merged" ? <div className="banner">Clients merged successfully.</div> : null}
       {error === "delete_failed" ? <div className="banner">Cannot delete this client yet. Remove related jobs/quotes/invoices first.</div> : null}
+      {error === "merge_missing" ? <div className="banner">Choose both the client to keep and the client to remove.</div> : null}
+      {error === "merge_same" ? <div className="banner">Choose two different clients to merge.</div> : null}
+      {error === "merge_failed" ? <div className="banner">Client merge failed. Check for duplicate selection and try again.</div> : null}
       {error === "forbidden" ? <div className="banner">Only admins can edit or delete records.</div> : null}
 
       <form className="saas-toolbar" method="get">
@@ -108,6 +149,9 @@ export default async function AppClientsPage({
                 <th>Company</th>
                 <th>Email</th>
                 <th>Phone</th>
+                <th>Jobs</th>
+                <th>Quotes</th>
+                <th>Invoices</th>
                 <th>Created</th>
                 <th>Actions</th>
               </tr>
@@ -119,6 +163,9 @@ export default async function AppClientsPage({
                   <td>{client.companyName || "—"}</td>
                   <td>{client.email || "—"}</td>
                   <td>{client.phone || "—"}</td>
+                  <td>{client._count.jobs}</td>
+                  <td>{client._count.quotes}</td>
+                  <td>{client._count.invoices}</td>
                   <td>{dateFormatter.format(client.createdAt)}</td>
                   <td>
                     <div className="saas-row-actions">
@@ -131,12 +178,12 @@ export default async function AppClientsPage({
                         </Link>
                       ) : null}
                       {canManage ? (
-                        <form action={deleteClientAction}>
-                          <input type="hidden" name="clientId" value={client.id} />
-                          <button type="submit" className="saas-inline-action saas-inline-danger">
-                            Delete
-                          </button>
-                        </form>
+                        <ClientRowActions
+                          client={client}
+                          allClients={allClients}
+                          deleteAction={deleteClientAction}
+                          mergeAction={mergeClientsAction}
+                        />
                       ) : null}
                       <Link href={`/jobs/new?clientId=${encodeURIComponent(client.id)}`} className="muted">
                         Create Job

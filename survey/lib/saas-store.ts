@@ -266,6 +266,11 @@ export async function listClients(orgId: string) {
       country: (c.country as string | null) ?? null,
       notes: (c.notes as string | null) ?? null,
       createdAt: asDate(c.created_at)!,
+      _count: {
+        jobs: Number(c.jobs_count || 0),
+        quotes: Number(c.quotes_count || 0),
+        invoices: Number(c.invoices_count || 0),
+      },
     }));
   }
   return prisma.client.findMany({
@@ -285,6 +290,13 @@ export async function listClients(orgId: string) {
       country: true,
       notes: true,
       createdAt: true,
+      _count: {
+        select: {
+          jobs: true,
+          quotes: true,
+          invoices: true,
+        },
+      },
     },
   });
 }
@@ -412,6 +424,101 @@ export async function deleteClient(orgId: string, id: string) {
     entityId: existing.id,
     action: "client_deleted",
     message: `Client ${existing.name} deleted.`,
+  });
+}
+
+export async function mergeClients(orgId: string, keepId: string, removeId: string) {
+  if (keepId === removeId) {
+    throw new Error("Choose two different clients to merge.");
+  }
+
+  if (useApi()) {
+    return apiPost("/v1/clients/merge", {
+      organization_id: orgId,
+      keep_client_id: keepId,
+      remove_client_id: removeId,
+    });
+  }
+
+  const [keepClient, removeClient] = await Promise.all([
+    prisma.client.findFirst({
+      where: { id: keepId, organizationId: orgId },
+      select: {
+        id: true,
+        name: true,
+        companyName: true,
+        email: true,
+        phone: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        stateProvince: true,
+        postalCode: true,
+        country: true,
+        notes: true,
+      },
+    }),
+    prisma.client.findFirst({
+      where: { id: removeId, organizationId: orgId },
+      select: {
+        id: true,
+        name: true,
+        companyName: true,
+        email: true,
+        phone: true,
+        addressLine1: true,
+        addressLine2: true,
+        city: true,
+        stateProvince: true,
+        postalCode: true,
+        country: true,
+        notes: true,
+      },
+    }),
+  ]);
+
+  if (!keepClient || !removeClient) {
+    throw new Error("One or both clients could not be found.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.client.update({
+      where: { id: keepClient.id },
+      data: {
+        companyName: keepClient.companyName || removeClient.companyName || null,
+        email: keepClient.email || removeClient.email || null,
+        phone: keepClient.phone || removeClient.phone || null,
+        addressLine1: keepClient.addressLine1 || removeClient.addressLine1 || null,
+        addressLine2: keepClient.addressLine2 || removeClient.addressLine2 || null,
+        city: keepClient.city || removeClient.city || null,
+        stateProvince: keepClient.stateProvince || removeClient.stateProvince || null,
+        postalCode: keepClient.postalCode || removeClient.postalCode || null,
+        country: keepClient.country || removeClient.country || null,
+        notes: keepClient.notes || removeClient.notes || null,
+      },
+    });
+
+    await tx.job.updateMany({
+      where: { organizationId: orgId, clientId: removeClient.id },
+      data: { clientId: keepClient.id },
+    });
+    await tx.quote.updateMany({
+      where: { organizationId: orgId, clientId: removeClient.id },
+      data: { clientId: keepClient.id },
+    });
+    await tx.invoice.updateMany({
+      where: { organizationId: orgId, clientId: removeClient.id },
+      data: { clientId: keepClient.id },
+    });
+    await tx.client.delete({ where: { id: removeClient.id } });
+  });
+
+  await createActivity({
+    organizationId: orgId,
+    entityType: "client",
+    entityId: keepClient.id,
+    action: "client_merged",
+    message: `Merged client ${removeClient.name} into ${keepClient.name}.`,
   });
 }
 
