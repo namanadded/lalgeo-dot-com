@@ -313,6 +313,25 @@ export default {
         return json({ client: { ...client, _count: { jobs: jobs?.c || 0, quotes: quotes?.c || 0, invoices: invoices?.c || 0 } } });
       }
 
+      if (path.startsWith("/v1/clients/") && req.method === "DELETE") {
+        const id = decodeURIComponent(path.split("/").pop() || "");
+        const orgId = requiredOrg(url);
+        const client = await getClientRow(env.DB, id, orgId);
+        if (!client) return json({ error: "Not found" }, 404);
+
+        const [jobs, quotes, invoices] = await Promise.all([
+          env.DB.prepare(`SELECT COUNT(*) as c FROM jobs WHERE client_id=?1 AND organization_id=?2`).bind(id, orgId).first<{ c: number }>(),
+          env.DB.prepare(`SELECT COUNT(*) as c FROM quotes WHERE client_id=?1 AND organization_id=?2`).bind(id, orgId).first<{ c: number }>(),
+          env.DB.prepare(`SELECT COUNT(*) as c FROM invoices WHERE client_id=?1 AND organization_id=?2`).bind(id, orgId).first<{ c: number }>(),
+        ]);
+        if ((jobs?.c || 0) > 0 || (quotes?.c || 0) > 0 || (invoices?.c || 0) > 0) {
+          return json({ error: "Cannot delete a client that has jobs, quotes, or invoices." }, 409);
+        }
+
+        await env.DB.prepare(`DELETE FROM clients WHERE id = ?1 AND organization_id = ?2`).bind(id, orgId).run();
+        return json({ ok: true });
+      }
+
       if (path === "/v1/jobs" && req.method === "GET") {
         const orgId = requiredOrg(url);
         const rows = await env.DB.prepare(`
