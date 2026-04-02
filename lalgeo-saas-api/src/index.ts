@@ -264,13 +264,31 @@ export default {
       if (path === "/v1/clients" && req.method === "GET") {
         const orgId = requiredOrg(url);
         const rows = await env.DB.prepare(`
-          SELECT id,name,company_name,email,phone,address_line1,address_line2,city,state_province,postal_code,country,notes,created_at,
-                 (SELECT COUNT(*) FROM jobs WHERE client_id = clients.id AND organization_id = clients.organization_id) as jobs_count,
-                 (SELECT COUNT(*) FROM quotes WHERE client_id = clients.id AND organization_id = clients.organization_id) as quotes_count,
-                 (SELECT COUNT(*) FROM invoices WHERE client_id = clients.id AND organization_id = clients.organization_id) as invoices_count
-          FROM clients
-          WHERE organization_id = ?1
-          ORDER BY datetime(created_at) DESC
+          SELECT c.id,c.name,c.company_name,c.email,c.phone,c.address_line1,c.address_line2,c.city,c.state_province,c.postal_code,c.country,c.notes,c.created_at,
+                 COALESCE(j.jobs_count, 0) as jobs_count,
+                 COALESCE(q.quotes_count, 0) as quotes_count,
+                 COALESCE(i.invoices_count, 0) as invoices_count
+          FROM clients c
+          LEFT JOIN (
+            SELECT client_id, organization_id, COUNT(*) as jobs_count
+            FROM jobs
+            WHERE organization_id = ?1
+            GROUP BY client_id, organization_id
+          ) j ON j.client_id = c.id AND j.organization_id = c.organization_id
+          LEFT JOIN (
+            SELECT client_id, organization_id, COUNT(*) as quotes_count
+            FROM quotes
+            WHERE organization_id = ?1
+            GROUP BY client_id, organization_id
+          ) q ON q.client_id = c.id AND q.organization_id = c.organization_id
+          LEFT JOIN (
+            SELECT client_id, organization_id, COUNT(*) as invoices_count
+            FROM invoices
+            WHERE organization_id = ?1
+            GROUP BY client_id, organization_id
+          ) i ON i.client_id = c.id AND i.organization_id = c.organization_id
+          WHERE c.organization_id = ?1
+          ORDER BY datetime(c.created_at) DESC
         `).bind(orgId).all<Record<string, unknown>>();
         return json({ clients: rows.results || [] });
       }
