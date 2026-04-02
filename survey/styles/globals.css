@@ -9,6 +9,18 @@
   --danger: #d04a3a;
   --shadow: 0 16px 40px rgba(15, 23, 42, 0.12);
   --shadow-soft: 0 8px 18px rgba(15, 23, 42, 0.08);
+  color-scheme: light;
+}
+
+html[data-theme="dark"] {
+  --bg: #0b1118;
+  --ink: #edf3fb;
+  --muted: #a0b0c4;
+  --panel: rgba(13, 20, 31, 0.86);
+  --edge: rgba(148, 163, 184, 0.18);
+  --shadow: 0 16px 40px rgba(0, 0, 0, 0.4);
+  --shadow-soft: 0 8px 18px rgba(0, 0, 0, 0.28);
+  color-scheme: dark;
 }
 
 @font-face {
@@ -34,6 +46,14 @@ html, body {
     radial-gradient(circle at 18% 85%, rgba(211, 241, 227, 0.6) 0%, transparent 45%),
     linear-gradient(120deg, #f2f3f1 0%, #f7f8f4 45%, #eff4f9 100%);
   min-height: 100%;
+}
+
+html[data-theme="dark"] body {
+  background:
+    radial-gradient(circle at 12% 8%, rgba(33, 53, 73, 0.48) 0%, transparent 42%),
+    radial-gradient(circle at 88% 10%, rgba(23, 90, 167, 0.22) 0%, transparent 35%),
+    radial-gradient(circle at 18% 85%, rgba(17, 84, 61, 0.24) 0%, transparent 40%),
+    linear-gradient(135deg, #081018 0%, #0b1118 45%, #121927 100%);
 }
 
 a {
@@ -376,6 +396,7 @@ main {
   background: #ffffff;
   font-size: 15px;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+  color: var(--ink);
 }
 
 .input:focus, select:focus, textarea:focus {
@@ -1086,6 +1107,180 @@ button.integrations-card {
 
 .saas-content {
   min-width: 0;
+}
+
+.theme-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  border: 1px solid var(--edge);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.84);
+  color: var(--ink);
+  padding: 14px 16px;
+  cursor: pointer;
+  transition: border-color 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+}
+
+.theme-toggle:hover {
+  box-shadow: var(--shadow-soft);
+}
+
+.theme-toggle-track {
+  position: relative;
+  width: 56px;
+  height: 32px;
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.35);
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.theme-toggle-thumb {
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  width: 24px;
+  height: 24px;
+  border-radius: 999px;
+  background: #fff;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.2);
+  transition: transform 0.2s ease;
+}
+
+.theme-toggle.active .theme-toggle-track {
+  background: linear-gradient(180deg, #2a8bff 0%, #0a6fff 100%);
+}
+
+.theme-toggle.active .theme-toggle-thumb {
+  transform: translateX(24px);
+}
+
+.theme-toggle-copy {
+  display: grid;
+  justify-items: end;
+  gap: 2px;
+}
+
+.theme-toggle-label {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.theme-toggle-value {
+  color: var(--muted);
+  font-size: 13px;
+}
+
+html[data-theme="dark"] .panel,
+html[data-theme="dark"] .auth-card,
+html[data-theme="dark"] .saas-sidebar,
+html[data-theme="dark"] .saas-page-card,
+html[data-theme="dark"] .dashboard-section-card,
+html[data-theme="dark"] .dashboard-kpi-card,
+html[data-theme="dark"] .card,
+html[data-theme="dark"] .saas-table,
+html[data-theme="dark"] .saas-search-dropdown,
+html[data-theme="dark"] .question-item,
+html[data-theme="dark"] .signup-pay-option,
+html[data-theme="dark"] .theme-toggle,
+html[data-theme="dark"] .saas-modal-card {
+  background: rgba(12, 19, 30, 0.88);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .button.secondary {
+  background: rgba(16, 24, 37, 0.96);
+  color: var(--ink);
+  border-color: rgba(148, 163, 184, 0.18);
+}
+
+html[data-theme="dark"] .input,
+html[data-theme="dark"] select,
+html[data-theme="dark"] textarea,
+html[data-theme="dark"] .saas-global-search .input {
+  background: rgba(9, 15, 24, 0.96);
+  border-color: rgba(148, 163, 184, 0.18);
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .input::placeholder,
+html[data-theme="dark"] textarea::placeholder {
+  color: #7f92ab;
+}
+
+html[data-theme="dark"] .banner {
+  background: rgba(57, 42, 12, 0.42);
+  border-color: rgba(217, 119, 6, 0.26);
+  color: #f8e3b0;
+}
+
+html[data-theme="dark"] .saas-table th {
+  background: rgba(18, 28, 42, 0.95);
+  color: #d9e4f2;
+}
+
+html[data-theme="dark"] .saas-table th,
+html[data-theme="dark"] .saas-table td,
+html[data-theme="dark"] .saas-table-wrap,
+html[data-theme="dark"] .saas-search-group + .saas-search-group,
+html[data-theme="dark"] .saas-search-row,
+html[data-theme="dark"] .dashboard-section-card,
+html[data-theme="dark"] .dashboard-kpi-card,
+html[data-theme="dark"] .saas-empty-state,
+html[data-theme="dark"] .theme-toggle {
+  border-color: rgba(148, 163, 184, 0.14);
+}
+
+html[data-theme="dark"] .saas-table tbody tr:hover td,
+html[data-theme="dark"] .saas-search-row:hover,
+html[data-theme="dark"] .saas-nav-link:hover {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+html[data-theme="dark"] .saas-sidebar-title,
+html[data-theme="dark"] .saas-search-label,
+html[data-theme="dark"] .dashboard-kpi-value,
+html[data-theme="dark"] .dashboard-section-title,
+html[data-theme="dark"] .saas-page-card h1,
+html[data-theme="dark"] .auth-title,
+html[data-theme="dark"] .auth-brand-title {
+  color: var(--ink);
+}
+
+html[data-theme="dark"] .saas-sidebar-subtitle,
+html[data-theme="dark"] .saas-nav-group-title,
+html[data-theme="dark"] .saas-search-empty,
+html[data-theme="dark"] .saas-search-subtitle,
+html[data-theme="dark"] .dashboard-kpi-label,
+html[data-theme="dark"] .dashboard-trend,
+html[data-theme="dark"] .signup-domain-suffix,
+html[data-theme="dark"] .saas-modal-copy,
+html[data-theme="dark"] .theme-toggle-value {
+  color: var(--muted);
+}
+
+html[data-theme="dark"] .saas-nav-link {
+  color: #c5d3e4;
+}
+
+html[data-theme="dark"] .saas-nav-icon {
+  color: #8fa2ba;
+}
+
+html[data-theme="dark"] .saas-nav-link.active {
+  background: linear-gradient(180deg, rgba(46, 142, 255, 0.22), rgba(46, 142, 255, 0.08));
+  border-color: rgba(96, 165, 250, 0.36);
+  color: #eef6ff;
+}
+
+html[data-theme="dark"] code {
+  background: rgba(255, 255, 255, 0.06);
+  padding: 2px 6px;
+  border-radius: 8px;
 }
 
 .saas-page-card {
