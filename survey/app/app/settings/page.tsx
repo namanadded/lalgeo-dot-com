@@ -1,5 +1,4 @@
 import { redirect } from "next/navigation";
-import { isRedirectError } from "next/dist/client/components/redirect-error";
 import Link from "next/link";
 import ThemeToggle from "@/components/ThemeToggle";
 import { updateOrganization } from "@/lib/saas-store";
@@ -129,6 +128,8 @@ async function sendTestEmail(formData: FormData) {
 async function startStripeConnectOnboarding() {
   "use server";
 
+  let onboardingUrl = "";
+
   try {
     const user = await getSessionUser();
     if (!user) redirect("/login");
@@ -159,16 +160,16 @@ async function startStripeConnectOnboarding() {
       refreshUrl: appUrl("/settings"),
       returnUrl: appUrl("/api/payments/stripe/connect/return"),
     });
-    redirect(link.url);
+    onboardingUrl = link.url;
   } catch (error) {
-    if (isRedirectError(error)) {
-      throw error;
-    }
     const message = error instanceof Error ? error.message : "Stripe connect failed";
     const short = message.slice(0, 180);
     console.error("[settings] Stripe connect onboarding failed", message);
     redirect(`/settings?stripe=connect_failed&stripeError=${encodeURIComponent(short)}`);
   }
+
+  if (!onboardingUrl) redirect("/settings?stripe=connect_failed");
+  redirect(onboardingUrl);
 }
 
 export default async function AppSettingsPage({
