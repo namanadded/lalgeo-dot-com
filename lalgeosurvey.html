@@ -2112,6 +2112,15 @@
         let workspaceProjects = [];
         let workspaceDirty = false;
         let sidebarDismissed = false;
+        let suppressMapTapUntil = 0;
+
+        function suppressMapTapFor(ms = 350) {
+            suppressMapTapUntil = Date.now() + ms;
+        }
+
+        function shouldSuppressMapTap() {
+            return Date.now() < suppressMapTapUntil;
+        }
 
         function generateWorkspaceId(prefix = "proj") {
             if (crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
@@ -3116,6 +3125,24 @@
             if (sharePanel?.classList.contains("open")) {
                 closeSharePanel();
             }
+        });
+
+        [
+            document.getElementById("toolbar"),
+            importPanel,
+            createProjectModal,
+            sidebar,
+            surveyTablePanel,
+            sharePanel,
+            workspaceEmptyState,
+            workspaceHint
+        ].filter(Boolean).forEach((element) => {
+            ["pointerdown", "mousedown", "touchstart", "click"].forEach((eventName) => {
+                element.addEventListener(eventName, (event) => {
+                    suppressMapTapFor();
+                    event.stopPropagation();
+                });
+            });
         });
 
         ["dragenter", "dragover"].forEach(evt =>
@@ -6586,6 +6613,7 @@ function setImportPanelVisibility(show) {
         });
 
         map.addEventListener("singleTap", () => {
+            if (shouldSuppressMapTap()) return;
             if (isAddingSurveyPoint) return;
             document.getElementById("sidebar").style.display = "none";
             hideSurveyCallout();
@@ -6593,6 +6621,7 @@ function setImportPanelVisibility(show) {
         });
 
         mapElement.addEventListener("click", (event) => {
+            if (shouldSuppressMapTap()) return;
             if (!isAddingSurveyPoint) return;
             event.preventDefault();
             const point = new DOMPoint(event.clientX, event.clientY);
