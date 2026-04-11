@@ -2017,7 +2017,6 @@
         let surveyNeedsSave = false;
         let workspaceDirty = false;
         setAddButtonVisibility(false);
-        updateHistoryButtons();
         setSurveyTableVisibility(false);
         const WORKER_BASE = "https://dropbox.lalgeo.com";
         const surveyCallout = document.getElementById("surveyCallout");
@@ -2115,6 +2114,7 @@
         let workspaceProjects = [];
         let sidebarDismissed = false;
         let suppressMapTapUntil = 0;
+        updateHistoryButtons();
 
         function suppressMapTapFor(ms = 350) {
             suppressMapTapUntil = Date.now() + ms;
