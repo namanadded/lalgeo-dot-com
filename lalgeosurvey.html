@@ -1900,6 +1900,8 @@
         
 
         let locationWatcher = null;
+        let map = null;
+        let mapReady = false;
         let voiceLang = 'en-US'; // Your chosen language
         let currentSteps = [];
         let voiceNavActive = false;
@@ -2556,7 +2558,7 @@
                 renderWorkspaceCollections();
                 return;
             }
-            if (render) {
+            if (render && mapReady && map) {
                 renderSurveyProject({
                     parsed: ensureParsedCoordinates(currentSurveyData),
                     projectName: project.name,
@@ -2976,10 +2978,10 @@
         if (storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
-                setActiveProject(storedProject);
+                setActiveProject(storedProject, { render: false });
             }
         } else if (workspaceProjects[0]) {
-            setActiveProject(workspaceProjects[0]);
+            setActiveProject(workspaceProjects[0], { render: false });
         }
         renderWorkspaceCollections();
         updateWorkspaceContext();
@@ -6319,12 +6321,13 @@ function setImportPanelVisibility(show) {
             });
         });
 
-        const map = new mapkit.Map("map", {
+        map = new mapkit.Map("map", {
             isZoomEnabled: true,
             isScrollEnabled: true,
             showsZoomControl: true,
             showsCompass: mapkit.FeatureVisibility.Visible
         });
+        mapReady = true;
         map.addEventListener("region-change-end", () => {
             if (activeSurveyAnnotation) {
                 positionSurveyCallout(activeSurveyAnnotation);
@@ -6471,6 +6474,9 @@ function setImportPanelVisibility(show) {
             new mapkit.CoordinateSpan(0.05, 0.05)
         );
         map.region = fallbackRegion;
+        if (activeProjectRecord) {
+            setActiveProject(activeProjectRecord, { render: true, preserveRegion: true });
+        }
 
         const searchField = document.getElementById("searchInput");
         const search = new mapkit.Search({ region: map.region });
