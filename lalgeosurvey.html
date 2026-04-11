@@ -886,6 +886,7 @@
         border-radius: 14px;
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.05);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.03);
     }
     .toolbar-group-label {
         padding: 0 6px 0 4px;
@@ -904,6 +905,19 @@
     }
     .control-btn:hover {
         background: rgba(255,255,255,0.1);
+        border-color: rgba(255,255,255,0.14);
+    }
+    .control-btn:focus-visible,
+    .mini-btn:focus-visible,
+    .workspace-primary-btn:focus-visible,
+    .workspace-secondary-btn:focus-visible,
+    .import-primary-btn:focus-visible,
+    .import-secondary-btn:focus-visible,
+    .workspace-project-select:focus-visible,
+    .workspace-text-input:focus-visible,
+    .workspace-textarea:focus-visible {
+        outline: 2px solid rgba(92, 200, 192, 0.72);
+        outline-offset: 2px;
     }
     .control-btn.active {
         background: linear-gradient(135deg, #5cc8c0, #98f0d7);
@@ -924,11 +938,11 @@
     }
     .workspace-context {
         display: grid;
-        gap: 3px;
-        min-width: 260px;
-        padding: 10px 14px;
+        gap: 5px;
+        min-width: 280px;
+        padding: 12px 14px;
         border-radius: 14px;
-        background: rgba(255,255,255,0.04);
+        background: linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03));
         border: 1px solid rgba(255,255,255,0.05);
     }
     .workspace-context-top {
@@ -950,7 +964,8 @@
         text-transform: uppercase;
     }
     .workspace-context strong {
-        font-size: 14px;
+        font-size: 15px;
+        letter-spacing: -0.01em;
     }
     .workspace-context-meta {
         display: flex;
@@ -980,6 +995,17 @@
         border-right: 1px solid rgba(255,255,255,0.08);
         box-shadow: 24px 0 60px rgba(0,0,0,0.35);
         padding: 22px 20px 28px;
+        overflow-y: auto;
+    }
+    .workspace-panel-header {
+        position: sticky;
+        top: -22px;
+        margin: -22px -20px 0;
+        padding: 22px 20px 16px;
+        background: linear-gradient(180deg, rgba(8, 18, 30, 0.98), rgba(8, 18, 30, 0.9));
+        backdrop-filter: blur(18px);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        z-index: 2;
     }
     .import-panel-container h3,
     .import-panel-container h2,
@@ -1042,6 +1068,14 @@
         gap: 10px;
         margin-top: 12px;
     }
+    .workspace-section-kicker {
+        margin: 0 0 6px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7dd3c8;
+        font-weight: 700;
+    }
     .workspace-project-select {
         width: 100%;
         margin-top: 8px;
@@ -1057,9 +1091,9 @@
     .workspace-layer-card,
     .workspace-file-card,
     .workspace-settings-card {
-        padding: 12px;
+        padding: 13px;
         border-radius: 14px;
-        background: rgba(255,255,255,0.04);
+        background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.03));
         border: 1px solid rgba(255,255,255,0.06);
     }
     .workspace-record-card.active,
@@ -1078,6 +1112,19 @@
     .workspace-layer-title {
         font-weight: 700;
         color: #f5fbff;
+    }
+    .workspace-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 8px;
+        border-radius: 999px;
+        background: rgba(92, 200, 192, 0.12);
+        color: #8ff0dc;
+        font-size: 10px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        font-weight: 700;
+        white-space: nowrap;
     }
     .workspace-record-meta,
     .workspace-layer-meta {
@@ -1124,9 +1171,12 @@
     }
     .workspace-empty-card {
         width: min(720px, 100%);
-        padding: 28px;
+        padding: 32px;
         border-radius: 28px;
-        background: rgba(8, 18, 30, 0.82);
+        background:
+            radial-gradient(circle at top right, rgba(92, 200, 192, 0.12), transparent 24%),
+            radial-gradient(circle at 15% 15%, rgba(240, 90, 79, 0.12), transparent 18%),
+            rgba(8, 18, 30, 0.86);
         border: 1px solid rgba(255,255,255,0.08);
         box-shadow: 0 28px 80px rgba(0,0,0,0.36);
         backdrop-filter: blur(20px);
@@ -1190,7 +1240,7 @@
     }
     .workspace-modal {
         width: min(560px, 100%);
-        padding: 24px;
+        padding: 26px;
         border-radius: 26px;
         background: rgba(8, 18, 30, 0.95);
         border: 1px solid rgba(255,255,255,0.08);
@@ -1259,6 +1309,41 @@
         font-size: 12px;
         line-height: 1.55;
     }
+    #surveyTableContext {
+        margin-right: auto;
+        color: #cbd8e4;
+        font-size: 12px;
+        font-weight: 600;
+        letter-spacing: 0.01em;
+    }
+    #surveyTableContext .workspace-badge {
+        margin-right: 8px;
+        transform: translateY(-1px);
+    }
+    #surveyTableWrapper {
+        background: rgba(10, 18, 29, 0.96);
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    #surveyTableWrapper table {
+        color: #e5eef8;
+    }
+    #surveyTableWrapper th {
+        background: rgba(255,255,255,0.04);
+        color: #9fb1c2;
+        position: sticky;
+        top: 0;
+        z-index: 1;
+    }
+    #surveyTableWrapper th,
+    #surveyTableWrapper td {
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    #surveyTableWrapper tbody tr:hover {
+        background: rgba(92, 200, 192, 0.08);
+    }
+    #surveyTableWrapper tbody tr.selected {
+        background: rgba(92, 200, 192, 0.16);
+    }
     #dropZone .drop-zone-inner h2 {
         letter-spacing: -0.02em;
     }
@@ -1293,13 +1378,13 @@
     @media (max-width: 600px) {
         .import-panel-container {
             position: fixed;
-            max-width: 92%;
-            width: 92%;
-            left: 50%;
-            transform: translateX(-50%);
-            top: 12px;
+            max-width: 100%;
+            width: 100%;
+            left: 0;
+            transform: none;
+            top: 0;
             padding: 14px;
-            border-radius: 12px;
+            border-radius: 0;
         }
 
         .import-panel-container h3,
@@ -1330,15 +1415,33 @@
             align-items: flex-start;
             gap: 8px;
             padding: 10px;
-            width: 100%;
-            left: 50%;
-            transform: translateX(-50%);
+            width: auto;
+            left: 12px;
+            right: 12px;
+            transform: none;
         }
 
         #toolbar .toolbar-right {
             justify-content: flex-start;
             flex-wrap: wrap;
             gap: 6px;
+        }
+
+        .workspace-context,
+        .toolbar-group,
+        .workspace-panel-actions,
+        .workspace-form-grid {
+            width: 100%;
+        }
+
+        .toolbar-group {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+
+        .workspace-panel-actions,
+        .workspace-form-grid {
+            grid-template-columns: 1fr;
         }
 
         #toolbar input[type="text"] {
@@ -1437,9 +1540,12 @@
     </div>
     <div id="importPanel" hidden>
         <div class="import-panel-container">
-            <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-            <h3>Workspace panel</h3>
-            <p>Manage projects, layers, imports, and optional Dropbox sync from one place.</p>
+            <div class="workspace-panel-header">
+                <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
+                <p class="workspace-section-kicker">Cloud Workspace</p>
+                <h3>Workspace panel</h3>
+                <p>Manage projects, layers, imports, and optional Dropbox sync from one place.</p>
+            </div>
 
             <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
                 <div class="import-section-title">Current project</div>
@@ -1617,6 +1723,7 @@
             </button>
         </div>
         <div id="surveyPanelActions">
+            <div id="surveyTableContext">Create or open a project to view attributes.</div>
             <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
             <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
         </div>
@@ -1725,6 +1832,7 @@
         const surveyTableToggleLabel = document.getElementById("surveyTableToggleLabel");
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
+        const surveyTableContext = document.getElementById("surveyTableContext");
         const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
         const archiveToggleBtn = document.getElementById("archiveToggleBtn");
         const surveyFieldControls = document.getElementById("surveyFieldControls");
@@ -2008,6 +2116,14 @@
                     ? `${activeProjectRecord.description || "Project settings and exports are ready for cloud-backed persistence."}`
                     : "Use Dropbox for project storage and cross-device access.";
             }
+            if (surveyTableContext) {
+                if (!hasProject) {
+                    surveyTableContext.textContent = "Create or open a project to view attributes.";
+                } else {
+                    const storage = getStorageLabel();
+                    surveyTableContext.innerHTML = `<span class="workspace-badge">${escapeHtml(storage)}</span>${escapeHtml(activeProjectRecord.name)} · ${escapeHtml(layer ? layer.name : "No active layer")}`;
+                }
+            }
             if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
             if (workspaceScreenshotBanner) workspaceScreenshotBanner.hidden = !hasProject;
         }
@@ -2028,8 +2144,8 @@
                                 <div>
                                     <div class="workspace-record-title">${escapeHtml(project.name)}</div>
                                     <div class="workspace-record-meta">
+                                        <span class="workspace-badge">${escapeHtml(project.storageSource || "Web")}</span>
                                         <span>${escapeHtml(project.type || "Project")}</span>
-                                        <span>${escapeHtml(project.storageSource || "Web")}</span>
                                         <span>${escapeHtml(formatProjectDate(project.metadata?.updatedAt))}</span>
                                     </div>
                                 </div>
@@ -2052,7 +2168,7 @@
                                 <div>
                                     <div class="workspace-layer-title">${escapeHtml(item.name)}</div>
                                     <div class="workspace-layer-meta">
-                                        <span>${escapeHtml(item.geometryType || "point")}</span>
+                                        <span class="workspace-badge">${escapeHtml(item.geometryType || "point")}</span>
                                         <span>${(item.parsed?.records || []).length} features</span>
                                         <span>${item.visible === false ? "Hidden" : "Visible"}</span>
                                     </div>
@@ -2493,6 +2609,20 @@
             navigator.clipboard.writeText(link)
                 .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
                 .catch(() => setProjectStatus("Unable to copy share link.", "error"));
+        });
+        document.addEventListener("keydown", (event) => {
+            if (event.key !== "Escape") return;
+            if (!createProjectModal.hidden) {
+                closeCreateProjectModal();
+                return;
+            }
+            if (!importPanel.hidden) {
+                setImportPanelVisibility(false);
+                return;
+            }
+            if (sharePanel?.classList.contains("open")) {
+                closeSharePanel();
+            }
         });
 
         ["dragenter", "dragover"].forEach(evt =>
