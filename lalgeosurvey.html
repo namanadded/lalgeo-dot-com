@@ -2014,6 +2014,8 @@
         let undoStack = [];
         let redoStack = [];
         let pendingChanges = false;
+        let surveyNeedsSave = false;
+        let workspaceDirty = false;
         setAddButtonVisibility(false);
         updateHistoryButtons();
         setSurveyTableVisibility(false);
@@ -2086,7 +2088,6 @@
         let currentSurveyImages = new Map();
         let pointIdToRowIndex = new Map();
         let pointIdToDocIndex = new Map();
-        let surveyNeedsSave = false;
         let currentDropboxCursor = null;
         let dropboxWatchAbort = null;
         let dropboxProfile = null;
@@ -2112,7 +2113,6 @@
         const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
         let workspaceProjects = [];
-        let workspaceDirty = false;
         let sidebarDismissed = false;
         let suppressMapTapUntil = 0;
 
