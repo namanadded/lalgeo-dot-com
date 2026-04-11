@@ -140,18 +140,71 @@
     }
     #sidebar {
         position: absolute;
-        top: 20px;
-        right: 20px;
-        width: 300px;
-        max-height: 300px;
-        background: white;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.3);
-        border-radius: 8px;
-        padding: 16px;
+        top: 108px;
+        left: 16px;
+        width: 320px;
+        max-height: calc(100vh - 200px);
+        background: rgba(8, 18, 30, 0.86);
+        box-shadow: 0 18px 42px rgba(0,0,0,0.28);
+        border-radius: 22px;
+        border: 1px solid rgba(255,255,255,0.08);
+        padding: 18px;
         display: none;
         z-index: 999;
         overflow-y: auto;
-        font-family: sans-serif;
+        font-family: "Inter", system-ui, sans-serif;
+        color: #e5eef8;
+        backdrop-filter: blur(18px);
+    }
+    #sidebar.visible {
+        display: block;
+    }
+    .workspace-sidebar-section {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .workspace-sidebar-title {
+        margin: 0;
+        font-size: 20px;
+        letter-spacing: -0.03em;
+    }
+    .workspace-sidebar-meta {
+        margin-top: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: #9fb1c2;
+        font-size: 12px;
+    }
+    .workspace-sidebar-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 14px;
+    }
+    .workspace-sidebar-row {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .workspace-sidebar-row + .workspace-sidebar-row {
+        margin-top: 10px;
+    }
+    .workspace-sidebar-row h5 {
+        margin: 0 0 4px;
+        font-size: 14px;
+    }
+    .workspace-sidebar-row p {
+        margin: 0;
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.5;
     }
     #myLocationBtn {
         position: static;
@@ -774,6 +827,63 @@
         border: 1px solid #dfe3eb;
         padding: 12px;
         z-index: 901;
+    }
+    #selectedFeatureInspector {
+        width: 100%;
+        background: rgba(8, 18, 30, 0.92);
+        border-top: 1px solid rgba(255,255,255,0.06);
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        padding: 12px 14px;
+        color: #e5eef8;
+        display: none;
+    }
+    #selectedFeatureInspector.visible {
+        display: block;
+    }
+    .feature-inspector-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        margin-bottom: 10px;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .feature-inspector-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 10px;
+    }
+    .feature-inspector-field {
+        display: grid;
+        gap: 5px;
+    }
+    .feature-inspector-field label {
+        font-size: 11px;
+        color: #9fb1c2;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .feature-inspector-field input,
+    .feature-inspector-field select {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 8px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+        color: #e5eef8;
+        padding: 8px 10px;
+        font-size: 12px;
+    }
+    .feature-inspector-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .feature-inspector-empty {
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.6;
     }
     #surveyFieldControls h4 {
         margin: 0 0 8px;
@@ -1443,6 +1553,16 @@
         .workspace-form-grid {
             grid-template-columns: 1fr;
         }
+        #sidebar {
+            width: calc(100vw - 24px);
+            max-height: 44vh;
+            left: 12px;
+            top: auto;
+            bottom: 160px;
+        }
+        .feature-inspector-grid {
+            grid-template-columns: 1fr;
+        }
 
         #toolbar input[type="text"] {
             width: 100%;
@@ -1668,13 +1788,21 @@
                     </div>
                     <div class="workspace-field">
                         <label for="createLayerName">Default layer name</label>
-                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Field Points" required>
+                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required>
+                    </div>
+                    <div class="workspace-field">
+                        <label for="createGeometryType">Geometry type</label>
+                        <select id="createGeometryType" class="workspace-text-input">
+                            <option value="point">Point</option>
+                            <option value="line" disabled>Line (coming later)</option>
+                            <option value="polygon" disabled>Polygon (coming later)</option>
+                        </select>
                     </div>
                     <div class="workspace-field full">
                         <label for="createStorageDestination">Storage destination</label>
                         <select id="createStorageDestination" class="workspace-text-input">
-                            <option value="web">Local browser session for now</option>
-                            <option value="dropbox">Dropbox (if connected)</option>
+                            <option value="web">Web workspace</option>
+                            <option value="dropbox">Dropbox sync</option>
                         </select>
                     </div>
                 </div>
@@ -1694,6 +1822,10 @@
     <div id="workspaceScreenshotBanner" class="workspace-screenshot-banner" hidden>
         <h4>Project-first cloud GIS workspace</h4>
         <p>Project context, layer management, and attribute editing are organized for browser-first editing.</p>
+    </div>
+    <div id="workspaceHint" class="workspace-screenshot-banner" hidden style="top:auto; bottom:22px; left:22px;">
+        <h4>Start editing</h4>
+        <p>Click Add Point, then click on the map to place your first feature.</p>
     </div>
     <div id="surveyCallout">
         <div class="card">
@@ -1731,6 +1863,7 @@
             <h4>Table fields</h4>
             <ul id="surveyFieldList"></ul>
         </div>
+        <div id="selectedFeatureInspector"></div>
         <div id="surveyTableWrapper" hidden>
             <div id="surveyTable"></div>
         </div>
@@ -1791,6 +1924,7 @@
         const createProjectDescriptionInput = document.getElementById("createProjectDescription");
         const createProjectTypeInput = document.getElementById("createProjectType");
         const createLayerNameInput = document.getElementById("createLayerName");
+        const createGeometryTypeInput = document.getElementById("createGeometryType");
         const createStorageDestinationInput = document.getElementById("createStorageDestination");
         const projectSwitcher = document.getElementById("projectSwitcher");
         const projectList = document.getElementById("projectList");
@@ -1808,6 +1942,10 @@
         const drawerImportProjectBtn = document.getElementById("drawerImportProjectBtn");
         const drawerConnectDropboxBtn = document.getElementById("drawerConnectDropboxBtn");
         const workspaceScreenshotBanner = document.getElementById("workspaceScreenshotBanner");
+        const workspaceHint = document.getElementById("workspaceHint");
+        const sidebar = document.getElementById("sidebar");
+        const closeSidebar = document.getElementById("closeSidebar");
+        const sidebarContent = document.getElementById("sidebar-content");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
         const projectStatus = document.getElementById("projectStatus");
@@ -1833,6 +1971,7 @@
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
         const surveyTableContext = document.getElementById("surveyTableContext");
+        const selectedFeatureInspector = document.getElementById("selectedFeatureInspector");
         const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
         const archiveToggleBtn = document.getElementById("archiveToggleBtn");
         const surveyFieldControls = document.getElementById("surveyFieldControls");
@@ -1968,7 +2107,11 @@
         let dropboxAutoRefreshTimer = null;
         let deferredReloadPath = null;
         const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
+        const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
+        const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
         let workspaceProjects = [];
+        let workspaceDirty = false;
+        let sidebarDismissed = false;
 
         function generateWorkspaceId(prefix = "proj") {
             if (crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
@@ -1993,6 +2136,21 @@
                 archivePointMeta: [],
                 layerName
             };
+        }
+
+        function createDemoParsedLayer(name = "Field Points", points = []) {
+            const parsed = createEmptyParsedLayer(name);
+            parsed.records = points.map((point) => ({
+                Name: point.name,
+                Latitude: point.lat,
+                Longitude: point.lon,
+                Date: point.date || new Date().toISOString()
+            }));
+            parsed.pointMeta = points.map(() => ({
+                id: generateSurveyPointId(),
+                version: 1
+            }));
+            return parsed;
         }
 
         function createLayerRecord({ name = "Field Points", geometryType = "point", parsed = null } = {}) {
@@ -2033,9 +2191,36 @@
             };
         }
 
+        function buildDemoProject() {
+            const mainLayer = createLayerRecord({
+                name: "Inspection Points",
+                geometryType: "point",
+                parsed: createDemoParsedLayer("Inspection Points", [
+                    { name: "Valve 12A", lat: 51.0447, lon: -114.0719, date: "2026-04-11T09:15:00.000Z" },
+                    { name: "Valve 14C", lat: 51.0489, lon: -114.0621, date: "2026-04-11T10:20:00.000Z" },
+                    { name: "Hydrant B7", lat: 51.0415, lon: -114.0814, date: "2026-04-11T11:05:00.000Z" }
+                ])
+            });
+            const secondaryLayer = createLayerRecord({
+                name: "Follow-up Points",
+                geometryType: "point",
+                parsed: createDemoParsedLayer("Follow-up Points", [
+                    { name: "Repair Needed", lat: 51.0395, lon: -114.0678, date: "2026-04-12T08:30:00.000Z" }
+                ])
+            });
+            return createProjectRecord({
+                name: "Water Inspections Demo",
+                description: "Demo workspace showing project-first editing, layers, and attribute management.",
+                type: "GIS workspace",
+                storageSource: "Web workspace",
+                source: { type: "demo" },
+                layers: [mainLayer, secondaryLayer]
+            });
+        }
+
         function getStorageLabel(project = activeProjectRecord) {
-            if (!project) return "Web";
-            return project.storageSource || "Web";
+            if (!project) return "Web workspace";
+            return project.storageSource || "Web workspace";
         }
 
         function formatProjectDate(value) {
@@ -2052,6 +2237,11 @@
                 const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
                 const parsed = raw ? JSON.parse(raw) : [];
                 workspaceProjects = Array.isArray(parsed) ? parsed : [];
+                if (!workspaceProjects.length && !localStorage.getItem(WORKSPACE_SEEDED_KEY)) {
+                    workspaceProjects = [buildDemoProject()];
+                    localStorage.setItem(WORKSPACE_SEEDED_KEY, "1");
+                    saveWorkspaceProjects();
+                }
             } catch (error) {
                 console.warn("Unable to load workspace projects", error);
                 workspaceProjects = [];
@@ -2061,9 +2251,17 @@
         function saveWorkspaceProjects() {
             try {
                 localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspaceProjects));
+                if (activeProjectRecord?.id) {
+                    localStorage.setItem(WORKSPACE_ACTIVE_KEY, activeProjectRecord.id);
+                }
             } catch (error) {
                 console.warn("Unable to persist workspace projects", error);
             }
+        }
+
+        function setWorkspaceDirty(dirty = true) {
+            workspaceDirty = dirty;
+            updateHistoryButtons();
         }
 
         function markActiveProjectUpdated() {
@@ -2098,15 +2296,30 @@
             markActiveProjectUpdated();
         }
 
+        function showWorkspaceHint(message = "Click Add Point, then click on the map to place your first feature.") {
+            if (!workspaceHint) return;
+            workspaceHint.querySelector("p").textContent = message;
+            workspaceHint.hidden = false;
+        }
+
+        function hideWorkspaceHint() {
+            if (workspaceHint) workspaceHint.hidden = true;
+        }
+
         function updateWorkspaceContext() {
             const layer = getActiveLayerRecord();
             const hasProject = Boolean(activeProjectRecord);
-            if (workspaceProjectNameEl) workspaceProjectNameEl.textContent = hasProject ? activeProjectRecord.name : "Create or open a project";
+            if (workspaceProjectNameEl) workspaceProjectNameEl.textContent = hasProject ? activeProjectRecord.name : "No project open";
             if (workspaceLayerNameEl) workspaceLayerNameEl.textContent = `Layer: ${layer ? layer.name : "None"}`;
             if (workspaceStorageLabelEl) workspaceStorageLabelEl.textContent = `Storage: ${getStorageLabel()}`;
-            const unsaved = pendingChanges || surveyNeedsSave;
+            const unsaved = pendingChanges || surveyNeedsSave || workspaceDirty;
             if (workspaceSaveStatusEl) {
-                workspaceSaveStatusEl.textContent = hasProject ? `Status: ${unsaved ? "Unsaved changes" : "Saved"}` : "Status: Waiting for project";
+                const statusLabel = !hasProject
+                    ? "Waiting to start"
+                    : unsaved
+                        ? "Unsaved changes"
+                        : (activeProjectRecord?.metadata?.lastSavedAt === activeProjectRecord?.metadata?.updatedAt ? "Saved" : "Ready");
+                workspaceSaveStatusEl.textContent = `Status: ${statusLabel}`;
             }
             if (workspacePanelProjectName) workspacePanelProjectName.textContent = hasProject ? activeProjectRecord.name : "No project open";
             if (workspacePanelProjectType) workspacePanelProjectType.textContent = `Type: ${hasProject ? activeProjectRecord.type : "-"}`;
@@ -2126,6 +2339,15 @@
             }
             if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
             if (workspaceScreenshotBanner) workspaceScreenshotBanner.hidden = !hasProject;
+            if (sidebar) sidebar.classList.toggle("visible", hasProject && !sidebarDismissed);
+            if (hasProject) {
+                renderActiveProjectSidebar();
+                const featureCount = (layer?.parsed?.records || []).length;
+                if (!featureCount) showWorkspaceHint();
+                else hideWorkspaceHint();
+            } else {
+                hideWorkspaceHint();
+            }
         }
 
         function renderWorkspaceCollections() {
@@ -2152,6 +2374,8 @@
                             </div>
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-project="${escapeHtml(project.id)}">Open</button>
+                                <button type="button" class="mini-btn" data-duplicate-project="${escapeHtml(project.id)}">Duplicate</button>
+                                <button type="button" class="mini-btn" data-delete-project="${escapeHtml(project.id)}">Delete</button>
                             </div>
                         </div>
                     `).join("");
@@ -2192,15 +2416,88 @@
             }
         }
 
+        function renderActiveProjectSidebar() {
+            if (!sidebarContent) return;
+            if (!activeProjectRecord) {
+                sidebarContent.innerHTML = "";
+                return;
+            }
+            const layer = getActiveLayerRecord();
+            sidebarContent.innerHTML = `
+                <div>
+                    <p class="workspace-section-kicker">Active project</p>
+                    <h3 class="workspace-sidebar-title">${escapeHtml(activeProjectRecord.name)}</h3>
+                    <div class="workspace-sidebar-meta">
+                        <span class="workspace-badge">${escapeHtml(getStorageLabel())}</span>
+                        <span>${escapeHtml(activeProjectRecord.type)}</span>
+                        <span>${escapeHtml(formatProjectDate(activeProjectRecord.metadata?.updatedAt))}</span>
+                    </div>
+                    <div class="workspace-sidebar-actions">
+                        <button type="button" class="mini-btn primary" data-sidebar-open-projects="1">Open projects</button>
+                        <button type="button" class="mini-btn" data-sidebar-settings="1">Project settings</button>
+                    </div>
+                </div>
+                <div class="workspace-sidebar-section">
+                    <p class="workspace-section-kicker">Active layer</p>
+                    <div class="workspace-sidebar-row">
+                        <div>
+                            <h5>${escapeHtml(layer ? layer.name : "No active layer")}</h5>
+                            <p>${escapeHtml(layer?.geometryType || "point")} · ${(layer?.parsed?.records || []).length} features</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="workspace-sidebar-section">
+                    <p class="workspace-section-kicker">Layers</p>
+                    <div class="workspace-sidebar-actions">
+                        <button type="button" class="mini-btn primary" data-sidebar-add-layer="1">Add Layer</button>
+                    </div>
+                    ${(activeProjectRecord.layers || []).map((item) => `
+                        <div class="workspace-sidebar-row" data-sidebar-layer="${escapeHtml(item.id)}">
+                            <div>
+                                <h5>${escapeHtml(item.name)}</h5>
+                                <p>${(item.parsed?.records || []).length} features · ${item.visible === false ? "Hidden" : "Visible"}</p>
+                            </div>
+                            <div class="workspace-inline-actions">
+                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
+                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
+                                <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
+                            </div>
+                        </div>
+                    `).join("")}
+                </div>
+            `;
+        }
+
         function openCreateProjectModal(defaults = {}) {
             if (!createProjectModal) return;
             createProjectNameInput.value = defaults.name || "";
             createProjectDescriptionInput.value = defaults.description || "";
             createProjectTypeInput.value = defaults.type || "Survey project";
-            createLayerNameInput.value = defaults.layerName || "Field Points";
+            createLayerNameInput.value = defaults.layerName || "Points";
+            createGeometryTypeInput.value = defaults.geometryType || "point";
             createStorageDestinationInput.value = defaults.storageDestination || "web";
+            const dropboxOption = createStorageDestinationInput.querySelector('option[value="dropbox"]');
+            if (dropboxOption) {
+                dropboxOption.disabled = !dropboxConnected;
+                dropboxOption.textContent = dropboxConnected ? "Dropbox sync" : "Dropbox sync (connect Dropbox first)";
+            }
+            if (!dropboxConnected && createStorageDestinationInput.value === "dropbox") {
+                createStorageDestinationInput.value = "web";
+            }
             createProjectModal.hidden = false;
             createProjectNameInput.focus();
+        }
+
+        function refreshCreateProjectStorageOptions() {
+            if (!createStorageDestinationInput) return;
+            const dropboxOption = createStorageDestinationInput.querySelector('option[value="dropbox"]');
+            if (!dropboxOption) return;
+            dropboxOption.disabled = !dropboxConnected;
+            dropboxOption.textContent = dropboxConnected ? "Dropbox sync" : "Dropbox sync (connect Dropbox first)";
+            if (!dropboxConnected && createStorageDestinationInput.value === "dropbox") {
+                createStorageDestinationInput.value = "web";
+            }
         }
 
         function closeCreateProjectModal() {
@@ -2210,6 +2507,10 @@
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            sidebarDismissed = false;
+            if (project?.id) {
+                localStorage.setItem(WORKSPACE_ACTIVE_KEY, project.id);
+            }
             if (!project) {
                 activeProjectName = "";
                 currentSurveyData = null;
@@ -2217,6 +2518,7 @@
                 currentSurveySource = null;
                 currentSurveyImages = new Map();
                 clearSurveyLayers();
+                renderSelectedFeatureInspector();
                 updateWorkspaceContext();
                 renderWorkspaceCollections();
                 return;
@@ -2240,6 +2542,7 @@
                 clearSurveyLayers();
                 setSurveyTableVisibility(true);
                 surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">This layer is hidden. Turn it back on in the workspace panel.</div>`;
+                renderSelectedFeatureInspector();
                 updateWorkspaceContext();
                 renderWorkspaceCollections();
                 return;
@@ -2254,6 +2557,7 @@
                 updateSurveyTable();
                 setAddButtonVisibility(true);
             }
+            renderSelectedFeatureInspector();
             updateWorkspaceContext();
             renderWorkspaceCollections();
         }
@@ -2271,21 +2575,21 @@
 
         function createProjectFromForm() {
             const projectName = createProjectNameInput.value.trim();
-            const layerName = createLayerNameInput.value.trim() || "Field Points";
+            const layerName = createLayerNameInput.value.trim() || "Points";
             if (!projectName) {
                 alert("Project name is required.");
                 return null;
             }
             const parsed = createEmptyParsedLayer(layerName);
-            const layer = createLayerRecord({ name: layerName, parsed });
-            const storageSource = createStorageDestinationInput.value === "dropbox" && dropboxConnected ? "Dropbox" : "Web";
+            const layer = createLayerRecord({ name: layerName, geometryType: createGeometryTypeInput.value || "point", parsed });
+            const storageSource = createStorageDestinationInput.value === "dropbox" && dropboxConnected ? "Dropbox synced" : "Web workspace";
             return createProjectRecord({
                 name: projectName,
                 description: createProjectDescriptionInput.value.trim(),
                 type: createProjectTypeInput.value,
                 storageSource,
                 layers: [layer],
-                source: storageSource === "Dropbox" ? { type: "dropbox-draft" } : { type: "web-local" }
+                source: storageSource === "Dropbox synced" ? { type: "dropbox-draft" } : { type: "web-local" }
             });
         }
 
@@ -2294,6 +2598,46 @@
             if (source?.type === "dropbox-link") return "Imported";
             if (source?.type === "local-import") return "Imported";
             return source?.storageSource || "Imported";
+        }
+
+        function duplicateProject(projectId) {
+            const project = workspaceProjects.find((item) => item.id === projectId);
+            if (!project) return;
+            const copy = JSON.parse(JSON.stringify(project));
+            copy.id = generateWorkspaceId("project");
+            copy.name = `${project.name} Copy`;
+            copy.metadata = {
+                ...(copy.metadata || {}),
+                createdAt: new Date().toISOString(),
+                updatedAt: new Date().toISOString()
+            };
+            copy.layers = (copy.layers || []).map((layer) => ({
+                ...layer,
+                id: generateWorkspaceId("layer")
+            }));
+            copy.activeLayerId = copy.layers?.[0]?.id || null;
+            addProjectToWorkspace(copy);
+            setWorkspaceDirty(true);
+            setProjectStatus(`Duplicated ${project.name}.`, "success");
+        }
+
+        function deleteProject(projectId) {
+            const project = workspaceProjects.find((item) => item.id === projectId);
+            if (!project) return;
+            if (!window.confirm(`Delete project "${project.name}"?`)) return;
+            workspaceProjects = workspaceProjects.filter((item) => item.id !== projectId);
+            if (activeProjectRecord?.id === projectId) {
+                const next = workspaceProjects[0] || null;
+                if (next) {
+                    setActiveProject(next);
+                } else {
+                    setActiveProject(null);
+                    localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
+                }
+            }
+            saveWorkspaceProjects();
+            renderWorkspaceCollections();
+            updateWorkspaceContext();
         }
 
         async function openImportedProject(payload, { preserveRegion = false } = {}) {
@@ -2331,6 +2675,89 @@
             setImportPanelVisibility(false);
         }
 
+        function renderSelectedFeatureInspector() {
+            if (!selectedFeatureInspector) return;
+            if (!activeProjectRecord) {
+                selectedFeatureInspector.classList.add("visible");
+                selectedFeatureInspector.innerHTML = `<div class="feature-inspector-empty">Create or open a project to view attributes.</div>`;
+                return;
+            }
+            const layer = getActiveLayerRecord();
+            if (!activeSurveyAnnotation?.surveyPoint) {
+                selectedFeatureInspector.classList.add("visible");
+                selectedFeatureInspector.innerHTML = `
+                    <div class="feature-inspector-title"><span class="workspace-badge">${escapeHtml(layer?.name || "Layer")}</span>Attribute editor</div>
+                    <div class="feature-inspector-empty">Select a feature to edit attributes.</div>
+                `;
+                return;
+            }
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const record = currentSurveyData?.records?.[rowIndex] || {};
+            const headers = getOrderedHeaders({ includeHidden: false });
+            const fields = headers.map((header) => {
+                const options = dropdownFieldOptions[header];
+                const value = record?.[header] ?? "";
+                if (options?.length) {
+                    return `
+                        <div class="feature-inspector-field">
+                            <label>${escapeHtml(header)}</label>
+                            <select data-inspector-field="${escapeHtml(header)}">
+                                ${options.map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                            </select>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="feature-inspector-field">
+                        <label>${escapeHtml(header)}</label>
+                        <input type="text" data-inspector-field="${escapeHtml(header)}" value="${escapeHtml(String(value))}">
+                    </div>
+                `;
+            }).join("");
+            selectedFeatureInspector.classList.add("visible");
+            selectedFeatureInspector.innerHTML = `
+                <div class="feature-inspector-title"><span class="workspace-badge">${escapeHtml(layer?.name || "Layer")}</span>Selected feature</div>
+                <div class="feature-inspector-grid">${fields}</div>
+                <div class="feature-inspector-actions">
+                    <button type="button" class="mini-btn primary" id="applyFeatureInspectorBtn">Apply changes</button>
+                </div>
+            `;
+            selectedFeatureInspector.querySelector("#applyFeatureInspectorBtn")?.addEventListener("click", applySelectedFeatureInspectorChanges);
+        }
+
+        function applySelectedFeatureInspectorChanges() {
+            if (!activeSurveyAnnotation?.surveyPoint || !currentSurveyData) return;
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const record = currentSurveyData.records[rowIndex];
+            selectedFeatureInspector.querySelectorAll("[data-inspector-field]").forEach((input) => {
+                const field = input.getAttribute("data-inspector-field");
+                if (!field) return;
+                record[field] = input.value;
+            });
+            activeSurveyAnnotation.surveyPoint.attributes = { ...record };
+            activeSurveyAnnotation.title = computeLabelFromAttributes(record, activeProjectName);
+            activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
+            if (currentSurveyDocument) {
+                updateDocumentPoint({
+                    id: activeSurveyAnnotation.surveyPoint.pointId,
+                    lat: parseFloat(record[currentSurveyData.latKey]),
+                    lon: parseFloat(record[currentSurveyData.lonKey]),
+                    attributes: { ...record },
+                    version: activeSurveyAnnotation.surveyPoint.pointVersion ?? 1
+                });
+            }
+            if (isDropboxSurvey()) {
+                markSurveyDirty();
+            } else {
+                pendingChanges = true;
+                setWorkspaceDirty(true);
+            }
+            updateSurveyTable();
+            renderSelectedFeatureInspector();
+            renderSurveyCalloutContent();
+            setProjectStatus("Feature attributes updated.", "success");
+        }
+
         function addLayerToActiveProject() {
             if (!activeProjectRecord) {
                 openCreateProjectModal();
@@ -2343,6 +2770,7 @@
             activeProjectRecord.activeLayerId = layer.id;
             activeLayerId = layer.id;
             markActiveProjectUpdated();
+            setWorkspaceDirty(true);
             setActiveProject(activeProjectRecord);
         }
 
@@ -2359,6 +2787,7 @@
             if (!layer) return;
             layer.visible = layer.visible === false ? true : false;
             markActiveProjectUpdated();
+            setWorkspaceDirty(true);
             if (layer.id === activeLayerId && layer.visible === false) {
                 clearSurveyLayers();
                 setSurveyTableVisibility(true);
@@ -2378,6 +2807,7 @@
             layer.name = nextName.trim();
             if (layer.parsed) layer.parsed.layerName = layer.name;
             markActiveProjectUpdated();
+            setWorkspaceDirty(true);
             setActiveProject(activeProjectRecord, { preserveRegion: true });
         }
 
@@ -2390,6 +2820,7 @@
             activeProjectRecord.activeLayerId = activeProjectRecord.layers[0]?.id || null;
             activeLayerId = activeProjectRecord.activeLayerId;
             markActiveProjectUpdated();
+            setWorkspaceDirty(true);
             setActiveProject(activeProjectRecord, { preserveRegion: true });
         }
 
@@ -2532,6 +2963,15 @@
         checkDropboxConnectionStatus();
         refreshDropboxSurveyList();
         loadWorkspaceProjects();
+        const storedActiveProjectId = localStorage.getItem(WORKSPACE_ACTIVE_KEY);
+        if (storedActiveProjectId) {
+            const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
+            if (storedProject) {
+                setActiveProject(storedProject);
+            }
+        } else if (workspaceProjects[0]) {
+            setActiveProject(workspaceProjects[0]);
+        }
         renderWorkspaceCollections();
         updateWorkspaceContext();
 
@@ -2560,6 +3000,11 @@
             closeCreateProjectModal();
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
+            setWorkspaceDirty(false);
+            if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
+                if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+                showWorkspaceHint("Click on the map to place your first feature.");
+            }
         });
         projectSwitcher?.addEventListener("change", () => {
             const selected = workspaceProjects.find((item) => item.id === projectSwitcher.value);
@@ -2568,12 +3013,23 @@
             }
         });
         projectList?.addEventListener("click", (event) => {
-            const button = event.target.closest("[data-open-project]");
-            if (!button) return;
-            const project = workspaceProjects.find((item) => item.id === button.dataset.openProject);
-            if (project) {
-                setActiveProject(project, { preserveRegion: true });
-                setImportPanelVisibility(false);
+            const openButton = event.target.closest("[data-open-project]");
+            if (openButton) {
+                const project = workspaceProjects.find((item) => item.id === openButton.dataset.openProject);
+                if (project) {
+                    setActiveProject(project, { preserveRegion: true });
+                    setImportPanelVisibility(false);
+                }
+                return;
+            }
+            const duplicateButton = event.target.closest("[data-duplicate-project]");
+            if (duplicateButton) {
+                duplicateProject(duplicateButton.dataset.duplicateProject);
+                return;
+            }
+            const deleteButton = event.target.closest("[data-delete-project]");
+            if (deleteButton) {
+                deleteProject(deleteButton.dataset.deleteProject);
             }
         });
         layerList?.addEventListener("click", (event) => {
@@ -2598,6 +3054,43 @@
             }
         });
         addLayerBtn?.addEventListener("click", addLayerToActiveProject);
+        closeSidebar?.addEventListener("click", () => {
+            sidebarDismissed = true;
+            sidebar?.classList.remove("visible");
+        });
+        sidebarContent?.addEventListener("click", (event) => {
+            if (event.target.closest("[data-sidebar-open-projects]")) {
+                setImportPanelVisibility(true);
+                return;
+            }
+            if (event.target.closest("[data-sidebar-settings]")) {
+                setImportPanelVisibility(true);
+                return;
+            }
+            if (event.target.closest("[data-sidebar-add-layer]")) {
+                addLayerToActiveProject();
+                return;
+            }
+            const openLayerButton = event.target.closest("[data-open-layer]");
+            if (openLayerButton) {
+                switchToLayer(openLayerButton.dataset.openLayer);
+                return;
+            }
+            const toggleLayerButton = event.target.closest("[data-toggle-layer]");
+            if (toggleLayerButton) {
+                toggleLayerVisibility(toggleLayerButton.dataset.toggleLayer);
+                return;
+            }
+            const renameLayerButton = event.target.closest("[data-rename-layer]");
+            if (renameLayerButton) {
+                renameLayer(renameLayerButton.dataset.renameLayer);
+                return;
+            }
+            const deleteLayerButton = event.target.closest("[data-delete-layer]");
+            if (deleteLayerButton) {
+                deleteLayer(deleteLayerButton.dataset.deleteLayer);
+            }
+        });
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
         downloadProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
         copyShareLinkBtn?.addEventListener("click", () => {
@@ -2753,6 +3246,7 @@
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (!isAddingSurveyPoint) {
                 pendingNewAnnotation = null;
+                hideWorkspaceHint();
             }
         }
 
@@ -3283,6 +3777,7 @@
             }
             showSurveyCallout(annotation, { forceEdit: true });
             setAnnotationDraggable(annotation);
+            setWorkspaceDirty(true);
             updateSurveyTable();
         }
 
@@ -3309,6 +3804,7 @@
             surveyCallout.style.display = "none";
             isCalloutEditing = false;
             activeSurveyAnnotation = null;
+            renderSelectedFeatureInspector();
         }
 
         document.addEventListener("click", (event) => {
@@ -3702,6 +4198,7 @@
 
         function showDropboxConnectedState(profile = {}) {
             dropboxConnected = true;
+            refreshCreateProjectStorageOptions();
             if (connectDropboxBtn) {
                 connectDropboxBtn.style.display = "block";
                 connectDropboxBtn.textContent = "Disconnect Dropbox Account";
@@ -3771,6 +4268,7 @@
         function showDropboxDisconnectedState() {
             dropboxConnected = false;
             dropboxProfile = null;
+            refreshCreateProjectStorageOptions();
             if (connectDropboxBtn) {
                 connectDropboxBtn.style.display = "block";
                 connectDropboxBtn.textContent = "Connect Dropbox Account";
@@ -4628,6 +5126,7 @@
                 setActiveTableRow(annotation.surveyPoint.rowIndex);
             }
             renderSurveyCalloutContent();
+            renderSelectedFeatureInspector();
             if (!document.getElementById("identifierSelectWrapper")) {
                 surveyCalloutCard.parentElement.appendChild(identifierWrapper);
             }
@@ -5006,9 +5505,13 @@
                     setProjectStatus("Updating Dropbox archive…");
                     const result = await saveDropboxArchive();
                     updateSurveyDocumentMetadata(result?.version, currentSurveyDocument?.updatedBy, new Date().toISOString());
+                    if (activeProjectRecord?.metadata) {
+                        activeProjectRecord.metadata.lastSavedAt = activeProjectRecord.metadata.updatedAt;
+                    }
                     setProjectStatus("Dropbox archive updated.", "success");
                     surveyNeedsSave = false;
                     pendingChanges = false;
+                    workspaceDirty = false;
                     undoStack = [];
                     redoStack = [];
                     updateHistoryButtons();
@@ -5024,6 +5527,10 @@
             syncActiveLayerFromSurveyState();
             pendingChanges = false;
             surveyNeedsSave = false;
+            if (activeProjectRecord?.metadata) {
+                activeProjectRecord.metadata.lastSavedAt = activeProjectRecord.metadata.updatedAt;
+            }
+            workspaceDirty = false;
             saveWorkspaceProjects();
             setProjectStatus("Project saved to local browser storage.", "success");
             updateHistoryButtons();
@@ -5047,6 +5554,7 @@
             const dataset = isArchiveView ? archiveData : currentSurveyData;
             if (!dataset?.headers) {
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#97aabd;\">Open or create a project to view attributes.</div>";
+                renderSelectedFeatureInspector();
                 return;
             }
             const headerSource = isArchiveView ? archiveData.headers : dataset.headers;
@@ -5076,6 +5584,7 @@
                     <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">No features yet in this layer.</td></tr>`}</tbody>
                 </table>
             `;
+            renderSelectedFeatureInspector();
             refreshSharePanel();
         }
 
@@ -5563,7 +6072,7 @@ function setImportPanelVisibility(show) {
         function updateHistoryButtons() {
             if (undoBtn) undoBtn.disabled = !undoStack.length;
             if (redoBtn) redoBtn.disabled = !redoStack.length;
-            if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave);
+            if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
             updateWorkspaceContext();
         }
 
@@ -5645,6 +6154,7 @@ function setImportPanelVisibility(show) {
             surveyCallout.style.display = "none";
             activeSurveyAnnotation = null;
             isCalloutEditing = false;
+            renderSelectedFeatureInspector();
         }
 
         function positionSurveyCallout(annotation) {
