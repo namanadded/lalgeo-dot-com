@@ -2890,6 +2890,100 @@
         }
 
         const readerPromises = new WeakMap();
+        window.__lalgeoPrimaryBindingsReady = false;
+
+        function openWorkspacePanelFallback() {
+            if (!importPanel) return;
+            setImportPanelVisibility(true);
+        }
+
+        function openCreateProjectModalFallback() {
+            if (!createProjectModal) return;
+            createProjectModal.hidden = false;
+            createProjectNameInput?.focus();
+        }
+
+        function closeCreateProjectModalFallback() {
+            if (createProjectModal) createProjectModal.hidden = true;
+        }
+
+        function handleCreateProjectSubmitFallback(event) {
+            if (window.__lalgeoPrimaryBindingsReady) return;
+            event.preventDefault();
+            const project = createProjectFromForm();
+            if (!project) return;
+            addProjectToWorkspace(project);
+            closeCreateProjectModalFallback();
+            setProjectStatus(`Created project ${project.name}.`, "success");
+            setImportPanelVisibility(false);
+            setWorkspaceDirty(false);
+            if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
+                if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+                showWorkspaceHint("Click on the map to place your first feature.");
+            }
+        }
+
+        document.addEventListener("click", (event) => {
+            if (window.__lalgeoPrimaryBindingsReady) return;
+            const button = event.target.closest("button");
+            if (!button) return;
+
+            if (button.id === "workspacePanelBtn" || button.id === "openProjectBtn" || button.id === "emptyImportProjectBtn") {
+                event.preventDefault();
+                openWorkspacePanelFallback();
+                return;
+            }
+            if (button.id === "newProjectBtn" || button.id === "drawerNewProjectBtn" || button.id === "emptyCreateProjectBtn") {
+                event.preventDefault();
+                openCreateProjectModalFallback();
+                return;
+            }
+            if (button.id === "createProjectCancelBtn") {
+                event.preventDefault();
+                closeCreateProjectModalFallback();
+                return;
+            }
+            if (button.id === "drawerImportProjectBtn" || button.id === "projectPickerBtn") {
+                event.preventDefault();
+                projectFileInput?.click();
+                return;
+            }
+            if (button.id === "importPanelClose") {
+                event.preventDefault();
+                setImportPanelVisibility(false);
+                return;
+            }
+            if (button.id === "emptyConnectDropboxBtn" || button.id === "drawerConnectDropboxBtn" || button.id === "connectDropboxBtn") {
+                event.preventDefault();
+                openWorkspacePanelFallback();
+                if (button.id === "connectDropboxBtn") {
+                    if (dropboxConnected) {
+                        disconnectDropboxAccount();
+                    } else {
+                        const returnTo = encodeURIComponent(window.location.href.split("#")[0]);
+                        window.location.href = `${WORKER_BASE}/api/auth?returnTo=${returnTo}`;
+                    }
+                }
+                return;
+            }
+            const openProjectTarget = button.closest("[data-open-project]")?.dataset.openProject;
+            if (openProjectTarget) {
+                event.preventDefault();
+                const project = workspaceProjects.find((item) => item.id === openProjectTarget);
+                if (project) {
+                    setActiveProject(project, { preserveRegion: true });
+                    setImportPanelVisibility(false);
+                }
+                return;
+            }
+            const openLayerTarget = button.closest("[data-open-layer]")?.dataset.openLayer;
+            if (openLayerTarget) {
+                event.preventDefault();
+                switchToLayer(openLayerTarget);
+            }
+        });
+
+        createProjectForm?.addEventListener("submit", handleCreateProjectSubmitFallback, true);
 
         const setProjectStatus = (message, state = "") => {
             projectStatus.textContent = message;
@@ -3267,6 +3361,7 @@
             }
             updateSurveyTable();
         });
+        window.__lalgeoPrimaryBindingsReady = true;
 
         function toggleAddSurveyPointMode() {
             isAddingSurveyPoint = !isAddingSurveyPoint;
