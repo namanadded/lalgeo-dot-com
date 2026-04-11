@@ -3138,9 +3138,8 @@
             workspaceHint
         ].filter(Boolean).forEach((element) => {
             ["pointerdown", "mousedown", "touchstart", "click"].forEach((eventName) => {
-                element.addEventListener(eventName, (event) => {
+                element.addEventListener(eventName, () => {
                     suppressMapTapFor();
-                    event.stopPropagation();
                 });
             });
         });
