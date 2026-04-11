@@ -858,6 +858,410 @@
         font-size: 28px;
         cursor: pointer;
     }
+    body {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background: #07111b;
+        color: #e5eef8;
+    }
+    #toolbar {
+        top: 14px;
+        background: rgba(8, 18, 30, 0.82);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 42px rgba(0,0,0,0.28);
+        border-radius: 18px;
+        color: #e5eef8;
+    }
+    .toolbar-shell {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+    }
+    .toolbar-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 6px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .toolbar-group-label {
+        padding: 0 6px 0 4px;
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7dd3c8;
+        font-weight: 700;
+    }
+    .control-btn {
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        padding: 8px 12px;
+    }
+    .control-btn:hover {
+        background: rgba(255,255,255,0.1);
+    }
+    .control-btn.active {
+        background: linear-gradient(135deg, #5cc8c0, #98f0d7);
+        color: #081019;
+        border-color: transparent;
+    }
+    .toolbar-left .brand-logo {
+        height: 28px;
+    }
+    .search-pill {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .search-pill .search-icon,
+    .search-pill input,
+    .search-pill input::placeholder {
+        color: #c1d1e0;
+    }
+    .workspace-context {
+        display: grid;
+        gap: 3px;
+        min-width: 260px;
+        padding: 10px 14px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.05);
+    }
+    .workspace-context-top {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+    .workspace-pill {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: rgba(92, 200, 192, 0.12);
+        color: #7dd3c8;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .workspace-context strong {
+        font-size: 14px;
+    }
+    .workspace-context-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        font-size: 12px;
+        color: #9fb1c2;
+    }
+    #importPanel {
+        inset: 0;
+        justify-content: flex-start;
+        align-items: stretch;
+        background: rgba(2, 8, 18, 0.42);
+        backdrop-filter: blur(8px);
+    }
+    .import-panel-container {
+        width: min(420px, calc(100vw - 28px));
+        max-width: 420px;
+        max-height: none;
+        height: 100vh;
+        top: 0;
+        left: 0;
+        transform: none;
+        border-radius: 0 24px 24px 0;
+        background: rgba(8, 18, 30, 0.94);
+        color: #e5eef8;
+        border-right: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 24px 0 60px rgba(0,0,0,0.35);
+        padding: 22px 20px 28px;
+    }
+    .import-panel-container h3,
+    .import-panel-container h2,
+    .import-panel-container .section-header,
+    .import-section-title {
+        color: #f5fbff;
+    }
+    .import-panel-container p,
+    .dropbox-label,
+    #projectStatus,
+    .workspace-panel-muted {
+        color: #97aabd;
+    }
+    .import-panel-container input[type="url"],
+    .import-panel-container input[type="file"],
+    .import-panel-container select,
+    .workspace-text-input,
+    .workspace-textarea {
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #eef6fb;
+    }
+    .workspace-text-input,
+    .workspace-textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 10px;
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    .workspace-textarea {
+        min-height: 92px;
+        resize: vertical;
+    }
+    .import-primary-btn,
+    .workspace-primary-btn {
+        background: linear-gradient(135deg, #5cc8c0, #98f0d7);
+        color: #081019;
+        border: none;
+        border-radius: 10px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .import-secondary-btn,
+    .workspace-secondary-btn {
+        background: rgba(255,255,255,0.06);
+        color: #eef6fb;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 10px;
+        cursor: pointer;
+    }
+    .workspace-panel-section {
+        margin-top: 18px;
+        padding-top: 18px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .workspace-panel-actions {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+        margin-top: 12px;
+    }
+    .workspace-project-select {
+        width: 100%;
+        margin-top: 8px;
+    }
+    .workspace-record-list,
+    .workspace-layer-list,
+    .workspace-file-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 12px;
+    }
+    .workspace-record-card,
+    .workspace-layer-card,
+    .workspace-file-card,
+    .workspace-settings-card {
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .workspace-record-card.active,
+    .workspace-layer-card.active {
+        border-color: rgba(92, 200, 192, 0.45);
+        box-shadow: inset 0 0 0 1px rgba(92, 200, 192, 0.15);
+    }
+    .workspace-record-header,
+    .workspace-layer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 8px;
+    }
+    .workspace-record-title,
+    .workspace-layer-title {
+        font-weight: 700;
+        color: #f5fbff;
+    }
+    .workspace-record-meta,
+    .workspace-layer-meta {
+        margin-top: 6px;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        font-size: 12px;
+        color: #97aabd;
+    }
+    .workspace-inline-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .mini-btn {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        border-radius: 9px;
+        padding: 7px 10px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .mini-btn.primary {
+        background: rgba(92, 200, 192, 0.14);
+        color: #8ff0dc;
+        border-color: rgba(92, 200, 192, 0.22);
+    }
+    .workspace-empty-state {
+        position: fixed;
+        inset: 0;
+        z-index: 1100;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        pointer-events: none;
+        padding: 24px;
+    }
+    .workspace-empty-state[hidden] {
+        display: none;
+    }
+    .workspace-empty-card {
+        width: min(720px, 100%);
+        padding: 28px;
+        border-radius: 28px;
+        background: rgba(8, 18, 30, 0.82);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 28px 80px rgba(0,0,0,0.36);
+        backdrop-filter: blur(20px);
+        pointer-events: auto;
+    }
+    .workspace-empty-card h2 {
+        margin: 0 0 10px;
+        font-size: 34px;
+        line-height: 1;
+        letter-spacing: -0.04em;
+    }
+    .workspace-empty-card p {
+        margin: 0;
+        max-width: 34rem;
+        color: #9fb1c2;
+        line-height: 1.6;
+        font-size: 15px;
+    }
+    .workspace-empty-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 12px;
+        margin-top: 20px;
+    }
+    .workspace-empty-actions button,
+    .workspace-empty-actions a {
+        min-height: 44px;
+        padding: 0 16px;
+        text-decoration: none;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .workspace-chip-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 18px;
+    }
+    .workspace-chip {
+        padding: 9px 12px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.06);
+        color: #d7e6f3;
+        font-size: 13px;
+    }
+    .workspace-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 4200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(2, 8, 18, 0.6);
+        backdrop-filter: blur(10px);
+        padding: 20px;
+    }
+    .workspace-modal-backdrop[hidden] {
+        display: none;
+    }
+    .workspace-modal {
+        width: min(560px, 100%);
+        padding: 24px;
+        border-radius: 26px;
+        background: rgba(8, 18, 30, 0.95);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 28px 80px rgba(0,0,0,0.42);
+        color: #e5eef8;
+    }
+    .workspace-modal h3 {
+        margin: 0 0 8px;
+        font-size: 28px;
+        letter-spacing: -0.03em;
+    }
+    .workspace-form-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 12px;
+        margin-top: 16px;
+    }
+    .workspace-form-grid .full {
+        grid-column: 1 / -1;
+    }
+    .workspace-field {
+        display: grid;
+        gap: 7px;
+    }
+    .workspace-field label {
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7dd3c8;
+        font-weight: 700;
+    }
+    .workspace-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+    }
+    .workspace-modal-actions button {
+        min-height: 42px;
+        padding: 0 16px;
+    }
+    .workspace-screenshot-banner {
+        position: fixed;
+        top: 116px;
+        left: 16px;
+        z-index: 1000;
+        width: min(320px, calc(100vw - 32px));
+        padding: 14px;
+        border-radius: 18px;
+        background: rgba(8, 18, 30, 0.78);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #eef6fb;
+        box-shadow: 0 18px 42px rgba(0,0,0,0.28);
+        backdrop-filter: blur(16px);
+    }
+    .workspace-screenshot-banner[hidden] {
+        display: none;
+    }
+    .workspace-screenshot-banner h4 {
+        margin: 0 0 6px;
+        font-size: 15px;
+    }
+    .workspace-screenshot-banner p {
+        margin: 0;
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.55;
+    }
+    #dropZone .drop-zone-inner h2 {
+        letter-spacing: -0.02em;
+    }
     @keyframes pulse {
         0% { transform: scale(1); opacity: 1; }
         100% { transform: scale(2); opacity: 0; }
@@ -965,29 +1369,131 @@
         <div class="toolbar-center">
             <div class="search-pill">
                 <span class="search-icon">🔍</span>
-                <input type="text" id="searchInput" placeholder="Search location or survey" aria-label="Search" />
+                <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
                 <button id="searchIconBtn" class="toolbar-btn ghost" aria-label="Open search" style="display:none;">🔍</button>
                 <span id="clearSearch" style="display:none;">×</span>
             </div>
         </div>
         <div class="toolbar-right">
-            <button id="toggleImportBtn" type="button" class="control-btn active">Import</button>
-            <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
-            <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
-            <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
-            <button id="shareMapBtn" type="button" class="control-btn">Share</button>
-            <button id="printButton" type="button" class="control-btn">Print</button>
-            <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
+            <div class="toolbar-shell">
+                <div class="workspace-context" id="workspaceContext">
+                    <div class="workspace-context-top">
+                        <span class="workspace-pill">Workspace</span>
+                        <strong id="workspaceProjectName">Create or open a project</strong>
+                    </div>
+                    <div class="workspace-context-meta">
+                        <span id="workspaceLayerName">Layer: None</span>
+                        <span id="workspaceStorageLabel">Storage: Web</span>
+                        <span id="workspaceSaveStatus">Status: Waiting for project</span>
+                    </div>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Project</span>
+                    <button id="workspacePanelBtn" type="button" class="control-btn active">Projects</button>
+                    <button id="newProjectBtn" type="button" class="control-btn">New</button>
+                    <button id="openProjectBtn" type="button" class="control-btn">Open</button>
+                    <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
+                    <button id="saveChangesBtn" type="button" class="control-btn" disabled>Save</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Edit</span>
+                    <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
+                    <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
+                    <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">Share</span>
+                    <button id="shareMapBtn" type="button" class="control-btn">Share</button>
+                    <button id="printButton" type="button" class="control-btn">Print</button>
+                    <button id="exportProjectBtn" type="button" class="control-btn">Export</button>
+                </div>
+
+                <div class="toolbar-group">
+                    <span class="toolbar-group-label">View</span>
+                    <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
+                </div>
+            </div>
         </div>
     </div>
     <div class="map-controls"></div>
+    <div id="workspaceEmptyState" class="workspace-empty-state">
+        <div class="workspace-empty-card">
+            <h2>Create a project to start editing</h2>
+            <p>Start a new LalGeo project in the browser or import an existing one.</p>
+            <div class="workspace-empty-actions">
+                <button id="emptyCreateProjectBtn" type="button" class="workspace-primary-btn">Create Project</button>
+                <button id="emptyImportProjectBtn" type="button" class="workspace-secondary-btn">Import Existing Project</button>
+                <button id="emptyConnectDropboxBtn" type="button" class="workspace-secondary-btn">Connect Dropbox</button>
+            </div>
+            <div class="workspace-chip-row">
+                <div class="workspace-chip">Browser-based map editing</div>
+                <div class="workspace-chip">Import shapefiles, FGDB, GeoJSON, CSV</div>
+                <div class="workspace-chip">Survey web + mobile tools already live</div>
+            </div>
+        </div>
+    </div>
     <div id="importPanel" hidden>
         <div class="import-panel-container">
             <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-            <h3>Import LalGeo Survey</h3>
-            <p>Drag and drop a LalGeo survey .zip/.lal or folder, pick files, or load from Dropbox.</p>
+            <h3>Workspace panel</h3>
+            <p>Manage projects, layers, imports, and optional Dropbox sync from one place.</p>
+
+            <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
+                <div class="import-section-title">Current project</div>
+                <div class="workspace-record-card active">
+                    <div class="workspace-record-title" id="workspacePanelProjectName">No project open</div>
+                    <div class="workspace-record-meta">
+                        <span id="workspacePanelProjectType">Type: -</span>
+                        <span id="workspacePanelStorage">Storage: Web</span>
+                    </div>
+                    <select id="projectSwitcher" class="workspace-project-select">
+                        <option value="">Select a project</option>
+                    </select>
+                    <div class="workspace-panel-actions">
+                        <button id="drawerNewProjectBtn" type="button" class="workspace-primary-btn">New Project</button>
+                        <button id="drawerOpenProjectBtn" type="button" class="workspace-secondary-btn">Open Project</button>
+                        <button id="drawerImportProjectBtn" type="button" class="workspace-secondary-btn">Import Project</button>
+                        <button id="drawerConnectDropboxBtn" type="button" class="workspace-secondary-btn">Connect Dropbox</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="workspace-panel-section">
+                <div class="import-section-title">Project list</div>
+                <p class="workspace-panel-muted">Project records keep browser, Dropbox, and imported workspaces in one place.</p>
+                <div id="projectList" class="workspace-record-list"></div>
+            </div>
+
+            <div class="workspace-panel-section">
+                <div class="import-section-title">Layers / Surveys</div>
+                <div id="layerList" class="workspace-layer-list"></div>
+                <div class="workspace-inline-actions">
+                    <button id="addLayerBtn" type="button" class="mini-btn primary">Add new layer</button>
+                </div>
+            </div>
+
+            <div class="workspace-panel-section">
+                <div class="import-section-title">Attachments / Project files</div>
+                <div id="projectFilesList" class="workspace-file-list"></div>
+            </div>
+
+            <div class="workspace-panel-section">
+                <div class="import-section-title">Project settings</div>
+                <div class="workspace-settings-card">
+                    <div id="projectSettingsSummary" class="workspace-panel-muted">Use Dropbox for project storage and cross-device access.</div>
+                    <div class="workspace-inline-actions">
+                        <button id="copyShareLinkBtn" type="button" class="mini-btn">Copy share link</button>
+                        <button id="downloadProjectBtn" type="button" class="mini-btn">Download LalGeo project package</button>
+                    </div>
+                </div>
+            </div>
 
             <div class="import-section">
+                <div class="import-section-title section-header">Import existing project</div>
+                <p>Import a LalGeo project from file, Dropbox, or existing survey export.</p>
                 <div class="import-section-title section-header">From file</div>
                 <div class="import-stack">
                     <button id="projectPickerBtn" type="button" class="import-secondary-btn">Select files…</button>
@@ -1009,27 +1515,68 @@
 
             <div class="import-section">
                 <div class="import-section-title section-header">From Dropbox account</div>
-                <div id="dropboxControls" style="padding:18px; border:1px solid rgba(0,0,0,0.06); border-radius:12px; background:rgba(247,249,251,0.9);">
-                    <div style="font-size:14px; font-weight:500; margin-bottom:10px; margin-top:6px; color:#555;">Live Dropbox connection</div>
+                <div id="dropboxControls" style="padding:18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.04);">
+                    <div style="font-size:14px; font-weight:600; margin-bottom:10px; margin-top:6px; color:#eef6fb;">Live Dropbox connection</div>
+                    <div class="workspace-panel-muted" style="margin-bottom:10px;">Use Dropbox for project storage and cross-device access.</div>
                     <div class="import-stack">
                         <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
-                        <div id="dropboxConnectedInfo" style="display:none; background:#e8f0fe; border-radius:8px; padding:10px 12px; font-size:12px; color:#1a73e8;">
+                        <div id="dropboxConnectedInfo" style="display:none; background:rgba(92, 200, 192, 0.12); border-radius:8px; padding:10px 12px; font-size:12px; color:#8ff0dc;">
                             <strong>Connected to Dropbox</strong>
-                            <div id="dropboxUserDetails" style="margin-top:0; color:#1967d2;"></div>
+                            <div id="dropboxUserDetails" style="margin-top:0; color:#b9f7e7;"></div>
                         </div>
                         <div class="dropbox-block">
-                            <div class="dropbox-label">Connected to Dropbox</div>
+                            <div class="dropbox-label">Open Dropbox project</div>
                             <select id="dropboxSurveySelect">
-                                <option value="">— Select survey file —</option>
+                                <option value="">— Select project file —</option>
                             </select>
-                            <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Load selected survey</button>
+                            <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Open selected project</button>
                         </div>
                         <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
                     </div>
                 </div>
             </div>
 
-            <span id="projectStatus">No project loaded.</span>
+            <span id="projectStatus">Create a project or open an existing one.</span>
+        </div>
+    </div>
+    <div id="workspaceCreateModal" class="workspace-modal-backdrop" hidden>
+        <div class="workspace-modal">
+            <h3>Create Project</h3>
+            <p class="workspace-panel-muted">Start a new LalGeo project in the browser and open it directly in the editor.</p>
+            <form id="createProjectForm">
+                <div class="workspace-form-grid">
+                    <div class="workspace-field full">
+                        <label for="createProjectName">Project name</label>
+                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required>
+                    </div>
+                    <div class="workspace-field full">
+                        <label for="createProjectDescription">Description</label>
+                        <textarea id="createProjectDescription" class="workspace-textarea" placeholder="Optional project description"></textarea>
+                    </div>
+                    <div class="workspace-field">
+                        <label for="createProjectType">Base workspace type</label>
+                        <select id="createProjectType" class="workspace-text-input">
+                            <option value="Survey project">Survey project</option>
+                            <option value="GIS workspace">GIS workspace</option>
+                        </select>
+                    </div>
+                    <div class="workspace-field">
+                        <label for="createLayerName">Default layer name</label>
+                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Field Points" required>
+                    </div>
+                    <div class="workspace-field full">
+                        <label for="createStorageDestination">Storage destination</label>
+                        <select id="createStorageDestination" class="workspace-text-input">
+                            <option value="web">Local browser session for now</option>
+                            <option value="dropbox">Dropbox (if connected)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="workspace-modal-actions">
+                    <button id="createProjectCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
+                    <button type="submit" class="workspace-primary-btn">Create Project</button>
+                </div>
+            </form>
         </div>
     </div>
 
@@ -1038,6 +1585,10 @@
         <div id="sidebar-content" style="clear:both; padding-top: 8px;"></div>
     </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
+    <div id="workspaceScreenshotBanner" class="workspace-screenshot-banner" hidden>
+        <h4>Project-first cloud GIS workspace</h4>
+        <p>Project context, layer management, and attribute editing are organized for browser-first editing.</p>
+    </div>
     <div id="surveyCallout">
         <div class="card">
             <button class="close-btn" aria-label="Close">×</button>
@@ -1050,8 +1601,8 @@
     </div>
     <div id="dropZone" class="drop-zone">
         <div class="drop-zone-inner">
-            <h2>Drop survey export</h2>
-            <p>Drop a LalGeo Survey .zip/.lal file or folder to load photos and responses.</p>
+            <h2>Drop a project file to import</h2>
+            <p>Drop a LalGeo project .zip/.lal file or folder to load layers, photos, and responses.</p>
         </div>
     </div>
     <div id="imageModal">
@@ -1080,8 +1631,8 @@
     <div id="sharePanel" hidden>
         <div class="share-panel-header">
             <div>
-                <p class="share-panel-title">Share survey</p>
-                <small style="color:#475569; font-size:12px;">Map on the left, points listed here.</small>
+                <p class="share-panel-title">Share project</p>
+                <small style="color:#475569; font-size:12px;">Map on the left, project features listed here.</small>
             </div>
             <div class="share-panel-actions">
                 <button id="shareCloseBtn" class="share-close-btn" aria-label="Close share panel">×</button>
@@ -1113,6 +1664,43 @@
         let currentSteps = [];
         let voiceNavActive = false;
         let voiceTimeouts = [];
+        const workspaceContext = document.getElementById("workspaceContext");
+        const workspaceProjectNameEl = document.getElementById("workspaceProjectName");
+        const workspaceLayerNameEl = document.getElementById("workspaceLayerName");
+        const workspaceStorageLabelEl = document.getElementById("workspaceStorageLabel");
+        const workspaceSaveStatusEl = document.getElementById("workspaceSaveStatus");
+        const workspacePanelBtn = document.getElementById("workspacePanelBtn");
+        const newProjectBtn = document.getElementById("newProjectBtn");
+        const openProjectBtn = document.getElementById("openProjectBtn");
+        const exportProjectBtn = document.getElementById("exportProjectBtn");
+        const workspaceEmptyState = document.getElementById("workspaceEmptyState");
+        const emptyCreateProjectBtn = document.getElementById("emptyCreateProjectBtn");
+        const emptyImportProjectBtn = document.getElementById("emptyImportProjectBtn");
+        const emptyConnectDropboxBtn = document.getElementById("emptyConnectDropboxBtn");
+        const createProjectModal = document.getElementById("workspaceCreateModal");
+        const createProjectForm = document.getElementById("createProjectForm");
+        const createProjectCancelBtn = document.getElementById("createProjectCancelBtn");
+        const createProjectNameInput = document.getElementById("createProjectName");
+        const createProjectDescriptionInput = document.getElementById("createProjectDescription");
+        const createProjectTypeInput = document.getElementById("createProjectType");
+        const createLayerNameInput = document.getElementById("createLayerName");
+        const createStorageDestinationInput = document.getElementById("createStorageDestination");
+        const projectSwitcher = document.getElementById("projectSwitcher");
+        const projectList = document.getElementById("projectList");
+        const layerList = document.getElementById("layerList");
+        const projectFilesList = document.getElementById("projectFilesList");
+        const addLayerBtn = document.getElementById("addLayerBtn");
+        const copyShareLinkBtn = document.getElementById("copyShareLinkBtn");
+        const downloadProjectBtn = document.getElementById("downloadProjectBtn");
+        const workspacePanelProjectName = document.getElementById("workspacePanelProjectName");
+        const workspacePanelProjectType = document.getElementById("workspacePanelProjectType");
+        const workspacePanelStorage = document.getElementById("workspacePanelStorage");
+        const projectSettingsSummary = document.getElementById("projectSettingsSummary");
+        const drawerNewProjectBtn = document.getElementById("drawerNewProjectBtn");
+        const drawerOpenProjectBtn = document.getElementById("drawerOpenProjectBtn");
+        const drawerImportProjectBtn = document.getElementById("drawerImportProjectBtn");
+        const drawerConnectDropboxBtn = document.getElementById("drawerConnectDropboxBtn");
+        const workspaceScreenshotBanner = document.getElementById("workspaceScreenshotBanner");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
         const projectStatus = document.getElementById("projectStatus");
@@ -1239,6 +1827,8 @@
         let surveyAnnotations = [];
         let activeSurveyAnnotation = null;
         let activeProjectName = "";
+        let activeProjectRecord = null;
+        let activeLayerId = null;
         let identifierField = "";
         let customIdentifierExpression = "";
         let currentSurveyData = null;
@@ -1269,6 +1859,445 @@
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
         let deferredReloadPath = null;
+        const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
+        let workspaceProjects = [];
+
+        function generateWorkspaceId(prefix = "proj") {
+            if (crypto?.randomUUID) return `${prefix}-${crypto.randomUUID()}`;
+            return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+        }
+
+        function createEmptyParsedLayer(layerName = "Field Points") {
+            return {
+                headers: ["Name", "Latitude", "Longitude", "Date"],
+                records: [],
+                latKey: "Latitude",
+                lonKey: "Longitude",
+                questionMeta: {
+                    Name: { type: "text", normalizedType: "text", choices: [] },
+                    Latitude: { type: "number", normalizedType: "number", choices: [] },
+                    Longitude: { type: "number", normalizedType: "number", choices: [] },
+                    Date: { type: "date", normalizedType: "date", choices: [] }
+                },
+                pointMeta: [],
+                archiveRecords: [],
+                archiveHeaders: ["Name", "Latitude", "Longitude", "Date"],
+                archivePointMeta: [],
+                layerName
+            };
+        }
+
+        function createLayerRecord({ name = "Field Points", geometryType = "point", parsed = null } = {}) {
+            return {
+                id: generateWorkspaceId("layer"),
+                name,
+                geometryType,
+                visible: true,
+                fields: parsed?.headers ? [...parsed.headers] : ["Name", "Latitude", "Longitude", "Date"],
+                features: parsed?.records ? [...parsed.records] : [],
+                parsed: parsed || createEmptyParsedLayer(name)
+            };
+        }
+
+        function createProjectRecord({
+            name,
+            description = "",
+            type = "Survey project",
+            storageSource = "Web",
+            source = null,
+            images = {},
+            attachments = [],
+            layers = []
+        }) {
+            const now = new Date().toISOString();
+            return {
+                id: generateWorkspaceId("project"),
+                name: name || "Untitled Project",
+                description,
+                type,
+                storageSource,
+                source,
+                images,
+                attachments,
+                metadata: { createdAt: now, updatedAt: now },
+                layers: layers.length ? layers : [createLayerRecord()],
+                activeLayerId: layers[0]?.id || null
+            };
+        }
+
+        function getStorageLabel(project = activeProjectRecord) {
+            if (!project) return "Web";
+            return project.storageSource || "Web";
+        }
+
+        function formatProjectDate(value) {
+            if (!value) return "Just now";
+            try {
+                return new Date(value).toLocaleString();
+            } catch {
+                return value;
+            }
+        }
+
+        function loadWorkspaceProjects() {
+            try {
+                const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+                const parsed = raw ? JSON.parse(raw) : [];
+                workspaceProjects = Array.isArray(parsed) ? parsed : [];
+            } catch (error) {
+                console.warn("Unable to load workspace projects", error);
+                workspaceProjects = [];
+            }
+        }
+
+        function saveWorkspaceProjects() {
+            try {
+                localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspaceProjects));
+            } catch (error) {
+                console.warn("Unable to persist workspace projects", error);
+            }
+        }
+
+        function markActiveProjectUpdated() {
+            if (!activeProjectRecord) return;
+            activeProjectRecord.metadata = activeProjectRecord.metadata || {};
+            activeProjectRecord.metadata.updatedAt = new Date().toISOString();
+            saveWorkspaceProjects();
+            renderWorkspaceCollections();
+            updateWorkspaceContext();
+        }
+
+        function getActiveLayerRecord() {
+            if (!activeProjectRecord?.layers?.length) return null;
+            const layer = activeProjectRecord.layers.find((item) => item.id === activeLayerId);
+            return layer || activeProjectRecord.layers[0] || null;
+        }
+
+        function syncActiveLayerFromSurveyState() {
+            const layer = getActiveLayerRecord();
+            if (!layer || !currentSurveyData) return;
+            layer.parsed = currentSurveyData;
+            layer.fields = [...(currentSurveyData.headers || [])];
+            layer.features = [...(currentSurveyData.records || [])];
+            activeProjectRecord.activeLayerId = layer.id;
+            activeProjectRecord.images = Object.fromEntries(currentSurveyImages.entries());
+            activeProjectRecord.source = currentSurveySource || null;
+            activeProjectRecord.attachments = Object.keys(activeProjectRecord.images || {}).map((name) => ({
+                id: `file-${name}`,
+                name,
+                type: "image"
+            }));
+            markActiveProjectUpdated();
+        }
+
+        function updateWorkspaceContext() {
+            const layer = getActiveLayerRecord();
+            const hasProject = Boolean(activeProjectRecord);
+            if (workspaceProjectNameEl) workspaceProjectNameEl.textContent = hasProject ? activeProjectRecord.name : "Create or open a project";
+            if (workspaceLayerNameEl) workspaceLayerNameEl.textContent = `Layer: ${layer ? layer.name : "None"}`;
+            if (workspaceStorageLabelEl) workspaceStorageLabelEl.textContent = `Storage: ${getStorageLabel()}`;
+            const unsaved = pendingChanges || surveyNeedsSave;
+            if (workspaceSaveStatusEl) {
+                workspaceSaveStatusEl.textContent = hasProject ? `Status: ${unsaved ? "Unsaved changes" : "Saved"}` : "Status: Waiting for project";
+            }
+            if (workspacePanelProjectName) workspacePanelProjectName.textContent = hasProject ? activeProjectRecord.name : "No project open";
+            if (workspacePanelProjectType) workspacePanelProjectType.textContent = `Type: ${hasProject ? activeProjectRecord.type : "-"}`;
+            if (workspacePanelStorage) workspacePanelStorage.textContent = `Storage: ${getStorageLabel()}`;
+            if (projectSettingsSummary) {
+                projectSettingsSummary.textContent = hasProject
+                    ? `${activeProjectRecord.description || "Project settings and exports are ready for cloud-backed persistence."}`
+                    : "Use Dropbox for project storage and cross-device access.";
+            }
+            if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
+            if (workspaceScreenshotBanner) workspaceScreenshotBanner.hidden = !hasProject;
+        }
+
+        function renderWorkspaceCollections() {
+            if (projectSwitcher) {
+                projectSwitcher.innerHTML = `<option value="">Select a project</option>` + workspaceProjects.map((project) => `
+                    <option value="${escapeHtml(project.id)}" ${project.id === activeProjectRecord?.id ? "selected" : ""}>${escapeHtml(project.name)}</option>
+                `).join("");
+            }
+            if (projectList) {
+                if (!workspaceProjects.length) {
+                    projectList.innerHTML = `<div class="workspace-settings-card">No saved projects yet. Create one in the browser or import an existing project.</div>`;
+                } else {
+                    projectList.innerHTML = workspaceProjects.map((project) => `
+                        <div class="workspace-record-card ${project.id === activeProjectRecord?.id ? "active" : ""}" data-project-id="${escapeHtml(project.id)}">
+                            <div class="workspace-record-header">
+                                <div>
+                                    <div class="workspace-record-title">${escapeHtml(project.name)}</div>
+                                    <div class="workspace-record-meta">
+                                        <span>${escapeHtml(project.type || "Project")}</span>
+                                        <span>${escapeHtml(project.storageSource || "Web")}</span>
+                                        <span>${escapeHtml(formatProjectDate(project.metadata?.updatedAt))}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="workspace-inline-actions">
+                                <button type="button" class="mini-btn primary" data-open-project="${escapeHtml(project.id)}">Open</button>
+                            </div>
+                        </div>
+                    `).join("");
+                }
+            }
+            const layer = getActiveLayerRecord();
+            if (layerList) {
+                if (!activeProjectRecord?.layers?.length) {
+                    layerList.innerHTML = `<div class="workspace-settings-card">Create or open a project to manage layers.</div>`;
+                } else {
+                    layerList.innerHTML = activeProjectRecord.layers.map((item) => `
+                        <div class="workspace-layer-card ${item.id === layer?.id ? "active" : ""}" data-layer-id="${escapeHtml(item.id)}">
+                            <div class="workspace-layer-header">
+                                <div>
+                                    <div class="workspace-layer-title">${escapeHtml(item.name)}</div>
+                                    <div class="workspace-layer-meta">
+                                        <span>${escapeHtml(item.geometryType || "point")}</span>
+                                        <span>${(item.parsed?.records || []).length} features</span>
+                                        <span>${item.visible === false ? "Hidden" : "Visible"}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="workspace-inline-actions">
+                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
+                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
+                                <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
+                            </div>
+                        </div>
+                    `).join("");
+                }
+            }
+            if (projectFilesList) {
+                const files = activeProjectRecord?.attachments || [];
+                projectFilesList.innerHTML = files.length
+                    ? files.map((file) => `<div class="workspace-file-card">${escapeHtml(file.name || "Project file")}</div>`).join("")
+                    : `<div class="workspace-settings-card">No attachments yet. Imported photos and files will appear here.</div>`;
+            }
+        }
+
+        function openCreateProjectModal(defaults = {}) {
+            if (!createProjectModal) return;
+            createProjectNameInput.value = defaults.name || "";
+            createProjectDescriptionInput.value = defaults.description || "";
+            createProjectTypeInput.value = defaults.type || "Survey project";
+            createLayerNameInput.value = defaults.layerName || "Field Points";
+            createStorageDestinationInput.value = defaults.storageDestination || "web";
+            createProjectModal.hidden = false;
+            createProjectNameInput.focus();
+        }
+
+        function closeCreateProjectModal() {
+            if (createProjectModal) createProjectModal.hidden = true;
+        }
+
+        function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
+            activeProjectRecord = project || null;
+            activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            if (!project) {
+                activeProjectName = "";
+                currentSurveyData = null;
+                currentSurveyDocument = null;
+                currentSurveySource = null;
+                currentSurveyImages = new Map();
+                clearSurveyLayers();
+                updateWorkspaceContext();
+                renderWorkspaceCollections();
+                return;
+            }
+            const layer = getActiveLayerRecord();
+            activeProjectName = project.name;
+            currentSurveyData = layer?.parsed || createEmptyParsedLayer(layer?.name || "Field Points");
+            currentSurveyDocument = buildSurveyDocumentFromParsed(currentSurveyData);
+            currentSurveySource = project.source || null;
+            currentSurveyImages = buildImageLookup(project.images || {});
+            archiveData = {
+                headers: currentSurveyData.archiveHeaders || currentSurveyData.headers || [],
+                records: currentSurveyData.archiveRecords || [],
+                pointMeta: currentSurveyData.archivePointMeta || [],
+                latKey: currentSurveyData.latKey,
+                lonKey: currentSurveyData.lonKey
+            };
+            analyzeSurveySchema(currentSurveyData);
+            rebuildPointIndexes(currentSurveyData);
+            if (layer && layer.visible === false) {
+                clearSurveyLayers();
+                setSurveyTableVisibility(true);
+                surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">This layer is hidden. Turn it back on in the workspace panel.</div>`;
+                updateWorkspaceContext();
+                renderWorkspaceCollections();
+                return;
+            }
+            if (render) {
+                renderSurveyProject({
+                    parsed: ensureParsedCoordinates(currentSurveyData),
+                    projectName: project.name,
+                    preserveRegion
+                });
+                setSurveyTableVisibility(true);
+                updateSurveyTable();
+                setAddButtonVisibility(true);
+            }
+            updateWorkspaceContext();
+            renderWorkspaceCollections();
+        }
+
+        function addProjectToWorkspace(project, options = {}) {
+            const existingIndex = workspaceProjects.findIndex((item) => item.id === project.id);
+            if (existingIndex >= 0) {
+                workspaceProjects.splice(existingIndex, 1, project);
+            } else {
+                workspaceProjects.unshift(project);
+            }
+            saveWorkspaceProjects();
+            setActiveProject(project, options);
+        }
+
+        function createProjectFromForm() {
+            const projectName = createProjectNameInput.value.trim();
+            const layerName = createLayerNameInput.value.trim() || "Field Points";
+            if (!projectName) {
+                alert("Project name is required.");
+                return null;
+            }
+            const parsed = createEmptyParsedLayer(layerName);
+            const layer = createLayerRecord({ name: layerName, parsed });
+            const storageSource = createStorageDestinationInput.value === "dropbox" && dropboxConnected ? "Dropbox" : "Web";
+            return createProjectRecord({
+                name: projectName,
+                description: createProjectDescriptionInput.value.trim(),
+                type: createProjectTypeInput.value,
+                storageSource,
+                layers: [layer],
+                source: storageSource === "Dropbox" ? { type: "dropbox-draft" } : { type: "web-local" }
+            });
+        }
+
+        function deriveStorageSourceLabel(source = {}) {
+            if (source?.type === "dropbox") return "Dropbox";
+            if (source?.type === "dropbox-link") return "Imported";
+            if (source?.type === "local-import") return "Imported";
+            return source?.storageSource || "Imported";
+        }
+
+        async function openImportedProject(payload, { preserveRegion = false } = {}) {
+            if (payload?.project?.layers?.length) {
+                const importedProject = payload.project;
+                importedProject.id = generateWorkspaceId("project");
+                importedProject.storageSource = importedProject.storageSource || "Imported";
+                importedProject.metadata = importedProject.metadata || {};
+                importedProject.metadata.updatedAt = new Date().toISOString();
+                addProjectToWorkspace(importedProject, { preserveRegion });
+                setImportPanelVisibility(false);
+                setProjectStatus(`Opened ${importedProject.name}.`, "success");
+                return;
+            }
+            const parsed = ensureParsedCoordinates(payload.survey
+                ? convertSurveyDocumentToParsed(cloneSurveyDocument(payload.survey))
+                : parseSurveyCSV(payload.csvText || ""));
+            const projectName = payload.projectName || "Imported Project";
+            const layer = createLayerRecord({
+                name: payload.layerName || "Imported Layer",
+                parsed
+            });
+            const project = createProjectRecord({
+                name: projectName,
+                description: "Imported into LalGeo Survey workspace",
+                type: parsed.records?.length ? "Survey project" : "GIS workspace",
+                storageSource: deriveStorageSourceLabel(payload.source),
+                source: payload.source || { type: "local-import" },
+                images: payload.images || {},
+                attachments: Object.keys(payload.images || {}).map((name) => ({ id: `file-${name}`, name, type: "image" })),
+                layers: [layer]
+            });
+            addProjectToWorkspace(project, { preserveRegion });
+            await loadSurveyPayload(payload, { preserveRegion, targetProject: project });
+            setImportPanelVisibility(false);
+        }
+
+        function addLayerToActiveProject() {
+            if (!activeProjectRecord) {
+                openCreateProjectModal();
+                return;
+            }
+            const name = window.prompt("Layer name", `Layer ${activeProjectRecord.layers.length + 1}`);
+            if (!name) return;
+            const layer = createLayerRecord({ name: name.trim(), parsed: createEmptyParsedLayer(name.trim()) });
+            activeProjectRecord.layers.push(layer);
+            activeProjectRecord.activeLayerId = layer.id;
+            activeLayerId = layer.id;
+            markActiveProjectUpdated();
+            setActiveProject(activeProjectRecord);
+        }
+
+        function switchToLayer(layerId) {
+            if (!activeProjectRecord) return;
+            activeProjectRecord.activeLayerId = layerId;
+            activeLayerId = layerId;
+            markActiveProjectUpdated();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+        }
+
+        function toggleLayerVisibility(layerId) {
+            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            if (!layer) return;
+            layer.visible = layer.visible === false ? true : false;
+            markActiveProjectUpdated();
+            if (layer.id === activeLayerId && layer.visible === false) {
+                clearSurveyLayers();
+                setSurveyTableVisibility(true);
+                surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">Open or create a project to view attributes.</div>`;
+            } else if (layer.id === activeLayerId) {
+                setActiveProject(activeProjectRecord, { preserveRegion: true });
+            } else {
+                renderWorkspaceCollections();
+            }
+        }
+
+        function renameLayer(layerId) {
+            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            if (!layer) return;
+            const nextName = window.prompt("Rename layer", layer.name);
+            if (!nextName?.trim()) return;
+            layer.name = nextName.trim();
+            if (layer.parsed) layer.parsed.layerName = layer.name;
+            markActiveProjectUpdated();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+        }
+
+        function deleteLayer(layerId) {
+            if (!activeProjectRecord || activeProjectRecord.layers.length <= 1) {
+                alert("Keep at least one layer in the project.");
+                return;
+            }
+            activeProjectRecord.layers = activeProjectRecord.layers.filter((item) => item.id !== layerId);
+            activeProjectRecord.activeLayerId = activeProjectRecord.layers[0]?.id || null;
+            activeLayerId = activeProjectRecord.activeLayerId;
+            markActiveProjectUpdated();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+        }
+
+        function downloadActiveProjectPackage() {
+            if (!activeProjectRecord || !currentSurveyData) {
+                alert("Create or open a project first.");
+                return;
+            }
+            const payload = {
+                project: activeProjectRecord,
+                activeLayerId,
+                survey: buildSurveyDocumentFromParsed(currentSurveyData)
+            };
+            const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${(activeProjectRecord.name || "lalgeo-project").replace(/\s+/g, "-").toLowerCase()}.lal`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setProjectStatus("Project package downloaded.", "success");
+        }
 
         function isCalloutOpen() {
             return surveyCallout && surveyCallout.style.display === "block";
@@ -1325,7 +2354,7 @@
                 try {
                     setProjectStatus("Loading Dropbox link…");
                     const payload = await fetchDropboxSurvey(resolveDropboxLink(dropboxLinkParam));
-                    await loadSurveyPayload(payload);
+                    await openImportedProject(payload);
                     if (autoOpenSharePanel) {
                         openSharePanel();
                     }
@@ -1344,7 +2373,7 @@
             try {
                 setProjectStatus("Downloading from Dropbox…");
                 const payload = await fetchDropboxSurvey(url);
-                await loadSurveyPayload(payload);
+                await openImportedProject(payload);
             } catch (error) {
                 console.error(error);
                 setProjectStatus(error.message || "Unable to fetch Dropbox file.", "error");
@@ -1363,20 +2392,20 @@
         loadDropboxSurveyBtn?.addEventListener("click", async () => {
             const selectedPath = dropboxSurveySelect.value;
             if (!selectedPath) {
-                alert("Select a survey file first.");
+                alert("Select a project file first.");
                 return;
             }
             try {
-                setProjectStatus("Loading survey from Dropbox…");
+                setProjectStatus("Loading project from Dropbox…");
                 const payload = await fetchSurveyFromWorker(selectedPath);
                 if (payload && (payload.survey || payload.csvText)) {
-                    await loadSurveyPayload(payload);
+                    await openImportedProject(payload);
                 } else {
-                    setProjectStatus("Connected to Dropbox, but worker did not return survey data yet.", "error");
+                    setProjectStatus("Connected to Dropbox, but the worker did not return project data yet.", "error");
                 }
             } catch (error) {
                 console.error(error);
-                setProjectStatus(error.message || "Unable to load survey from worker.", "error");
+                setProjectStatus(error.message || "Unable to load project from worker.", "error");
             }
         });
 
@@ -1386,6 +2415,85 @@
         });
         checkDropboxConnectionStatus();
         refreshDropboxSurveyList();
+        loadWorkspaceProjects();
+        renderWorkspaceCollections();
+        updateWorkspaceContext();
+
+        workspacePanelBtn?.addEventListener("click", () => setImportPanelVisibility(!isImportPanelVisible));
+        newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
+        drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
+        emptyCreateProjectBtn?.addEventListener("click", () => openCreateProjectModal());
+        openProjectBtn?.addEventListener("click", () => setImportPanelVisibility(true));
+        drawerOpenProjectBtn?.addEventListener("click", () => setImportPanelVisibility(true));
+        emptyImportProjectBtn?.addEventListener("click", () => setImportPanelVisibility(true));
+        emptyConnectDropboxBtn?.addEventListener("click", () => {
+            setImportPanelVisibility(true);
+            connectDropboxBtn?.click();
+        });
+        drawerImportProjectBtn?.addEventListener("click", () => projectPickerBtn?.click());
+        drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
+        createProjectCancelBtn?.addEventListener("click", closeCreateProjectModal);
+        createProjectModal?.addEventListener("click", (event) => {
+            if (event.target === createProjectModal) closeCreateProjectModal();
+        });
+        createProjectForm?.addEventListener("submit", (event) => {
+            event.preventDefault();
+            const project = createProjectFromForm();
+            if (!project) return;
+            addProjectToWorkspace(project);
+            closeCreateProjectModal();
+            setProjectStatus(`Created project ${project.name}.`, "success");
+            setImportPanelVisibility(false);
+        });
+        projectSwitcher?.addEventListener("change", () => {
+            const selected = workspaceProjects.find((item) => item.id === projectSwitcher.value);
+            if (selected) {
+                setActiveProject(selected, { preserveRegion: true });
+            }
+        });
+        projectList?.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-open-project]");
+            if (!button) return;
+            const project = workspaceProjects.find((item) => item.id === button.dataset.openProject);
+            if (project) {
+                setActiveProject(project, { preserveRegion: true });
+                setImportPanelVisibility(false);
+            }
+        });
+        layerList?.addEventListener("click", (event) => {
+            const openButton = event.target.closest("[data-open-layer]");
+            if (openButton) {
+                switchToLayer(openButton.dataset.openLayer);
+                return;
+            }
+            const toggleButton = event.target.closest("[data-toggle-layer]");
+            if (toggleButton) {
+                toggleLayerVisibility(toggleButton.dataset.toggleLayer);
+                return;
+            }
+            const renameButton = event.target.closest("[data-rename-layer]");
+            if (renameButton) {
+                renameLayer(renameButton.dataset.renameLayer);
+                return;
+            }
+            const deleteButton = event.target.closest("[data-delete-layer]");
+            if (deleteButton) {
+                deleteLayer(deleteButton.dataset.deleteLayer);
+            }
+        });
+        addLayerBtn?.addEventListener("click", addLayerToActiveProject);
+        exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
+        downloadProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
+        copyShareLinkBtn?.addEventListener("click", () => {
+            const link = buildShareUrl();
+            if (!link) {
+                setProjectStatus("Share links are ready when a Dropbox-backed project is open.", "error");
+                return;
+            }
+            navigator.clipboard.writeText(link)
+                .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
+                .catch(() => setProjectStatus("Unable to copy share link.", "error"));
+        });
 
         ["dragenter", "dragover"].forEach(evt =>
             document.addEventListener(evt, (e) => {
@@ -1417,11 +2525,11 @@
 
         shareButton.addEventListener("click", () => {
             if (!activeProjectName) {
-                alert("Import a survey before sharing.");
+                alert("Create a project or open an existing one before sharing.");
                 return;
             }
             if (!isDropboxLinkSource()) {
-                alert("Sharing is only available with a Dropbox link. Load the survey via Dropbox link to share.");
+                alert("Sharing is currently available for Dropbox-linked projects. Open a Dropbox-backed project to share.");
                 return;
             }
             const shareUrl = buildShareUrl();
@@ -1456,7 +2564,7 @@
 
         addSurveyPointBtn.addEventListener("click", () => {
             if (!currentSurveyData) {
-                alert("Load a survey before adding points.");
+                alert("Open a project before adding points.");
                 return;
             }
             toggleAddSurveyPointMode();
@@ -2154,15 +3262,15 @@
             try {
                 setProjectStatus("Processing survey…");
                 const payload = await buildSurveyPayload(files);
-                payload.source = { type: "local" };
-                await loadSurveyPayload(payload);
+                payload.source = { type: "local-import" };
+                await openImportedProject(payload);
             } catch (error) {
                 console.error(error);
                 setProjectStatus(error.message || "Unable to load survey.", "error");
             }
         }
 
-        async function loadSurveyPayload(payload, { preserveRegion = false } = {}) {
+        async function loadSurveyPayload(payload, { preserveRegion = false, targetProject = null } = {}) {
             if (!payload) throw new Error("Missing survey data.");
             if (dropboxAutoRefreshTimer) {
                 clearInterval(dropboxAutoRefreshTimer);
@@ -2233,6 +3341,23 @@
             analyzeSurveySchema(parsed);
             rebuildPointIndexes(parsed);
             parsed = ensureParsedCoordinates(parsed);
+            if (targetProject) {
+                const layer = targetProject.layers?.find((item) => item.id === (targetProject.activeLayerId || targetProject.layers?.[0]?.id));
+                if (layer) {
+                    layer.parsed = parsed;
+                    layer.fields = [...(parsed.headers || [])];
+                    layer.features = [...(parsed.records || [])];
+                }
+                targetProject.images = payload.images || {};
+                targetProject.attachments = Object.keys(payload.images || {}).map((name) => ({ id: `file-${name}`, name, type: "image" }));
+                targetProject.source = payload.source || targetProject.source || null;
+                targetProject.storageSource = deriveStorageSourceLabel(payload.source) || targetProject.storageSource;
+                targetProject.metadata = targetProject.metadata || {};
+                targetProject.metadata.updatedAt = new Date().toISOString();
+                activeProjectRecord = targetProject;
+                activeLayerId = targetProject.activeLayerId || targetProject.layers?.[0]?.id || null;
+                saveWorkspaceProjects();
+            }
             const rendered = renderSurveyProject({
                 parsed,
                 projectName: payload.projectName || "Survey",
@@ -2254,6 +3379,7 @@
             pendingChanges = false;
             surveyNeedsSave = false;
             updateHistoryButtons();
+            syncActiveLayerFromSurveyState();
 
             if (prevCalloutOpen && prevCalloutPointId) {
                 restoreCalloutByPointId(prevCalloutPointId, { forceEdit: prevCalloutEdit });
@@ -2261,6 +3387,8 @@
                     restoreCalloutByCoord(prevCalloutCoord, { forceEdit: prevCalloutEdit });
                 }
             }
+            updateWorkspaceContext();
+            renderWorkspaceCollections();
         }
 
         async function buildSurveyPayload(files) {
@@ -2367,7 +3495,7 @@
                 const data = await response.json();
                 currentDropboxCursor = data.cursor || null;
                 const files = (data.entries || []).filter(entry => entry[".tag"] === "file" && isSurveyArchiveName(entry.name || entry.path_display || ""));
-                dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
+                dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 files.forEach(file => {
                     const option = document.createElement("option");
                     option.value = file.path_display || file.path_lower;
@@ -2380,14 +3508,14 @@
                 if (files.length === 0) {
                     const option = document.createElement("option");
                     option.value = "";
-                    option.textContent = "No .zip/.lal surveys found";
+                    option.textContent = "No .zip/.lal projects found";
                     dropboxSurveySelect.appendChild(option);
                 }
                 showDropboxConnectedState();
                 dropboxConnectStatus.textContent = "Dropbox connected.";
                 startDropboxWatcher();
             } catch (error) {
-                dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
+                dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 dropboxConnectStatus.textContent = error.message;
                 console.error(error);
                 if (error.message && error.message.includes("Connect your Dropbox account")) {
@@ -2431,7 +3559,7 @@
                 });
                 if (!response.ok) throw new Error("Unable to sign out of Dropbox.");
                 showDropboxDisconnectedState();
-                dropboxSurveySelect.innerHTML = `<option value="">— Select survey file —</option>`;
+                dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 dropboxConnectStatus.textContent = "Dropbox disconnected.";
             } catch (error) {
                 console.error(error);
@@ -2493,7 +3621,7 @@
                                 }
                             } catch (reloadErr) {
                                 console.warn("Auto-refresh failed", reloadErr);
-                                setProjectStatus("Remote updates detected. Click Load selected survey to refresh.", "success");
+                                setProjectStatus("Remote updates detected. Open the Dropbox project again to refresh.", "success");
                             }
                         }
                     } else {
@@ -2724,6 +3852,7 @@
             const images = {};
             const csvTexts = [];
             let surveyDoc = null;
+            let projectBundle = null;
             const entries = Object.keys(zip.files);
             await Promise.all(entries.map(async (path) => {
                 const entry = zip.files[path];
@@ -2734,7 +3863,9 @@
                     try {
                         const text = await entry.async("string");
                         const doc = JSON.parse(text);
-                        if (doc && typeof doc === "object" && (doc.fields || doc.points)) {
+                        if (doc?.project?.layers?.length) {
+                            projectBundle = doc;
+                        } else if (doc && typeof doc === "object" && (doc.fields || doc.points)) {
                             surveyDoc = doc;
                         }
                     } catch (err) {
@@ -2747,10 +3878,11 @@
                     images[filename] = `data:${mime};base64,${base64}`;
                 }
             }));
-            if (!csvTexts.length && !surveyDoc) throw new Error("No CSV or survey JSON found inside zip.");
+            if (!csvTexts.length && !surveyDoc && !projectBundle) throw new Error("No CSV or project data found inside zip.");
             return {
                 csvText: csvTexts[0] || null,
                 survey: surveyDoc || null,
+                project: projectBundle?.project || null,
                 images,
                 projectName: projectName || "Survey"
             };
@@ -2761,18 +3893,24 @@
             const jsonFile = files.find(file => file.name.toLowerCase().endsWith(".lal") || file.name.toLowerCase().endsWith(".json"));
             let csvText = null;
             let survey = null;
+            let project = null;
             if (csvFile) {
                 csvText = await readFileAsText(csvFile);
             }
             if (!csvFile && jsonFile) {
                 try {
                     const text = await readFileAsText(jsonFile);
-                    survey = JSON.parse(text);
+                    const parsedJson = JSON.parse(text);
+                    if (parsedJson?.project?.layers?.length) {
+                        project = parsedJson.project;
+                    } else {
+                        survey = parsedJson;
+                    }
                 } catch (err) {
                     console.error("Failed to parse survey JSON", err);
                 }
             }
-            if (!csvText && !survey) throw new Error("No CSV or survey JSON found.");
+            if (!csvText && !survey && !project) throw new Error("No CSV or survey JSON found.");
             const images = {};
             for (const file of files) {
                 if (/\.(jpg|jpeg|png)$/i.test(file.name)) {
@@ -2782,6 +3920,7 @@
             return {
                 csvText,
                 survey,
+                project,
                 images,
                 projectName: stripExtension((csvFile || jsonFile).name)
             };
@@ -3279,12 +4418,11 @@
             map.addAnnotation(marker);
             setAnnotationDraggable(marker);
         });
-            if (!coords.length) {
-                setProjectStatus("No valid coordinates found in CSV.", "error");
-                updateSurveyTable();
-                return false;
-            }
             activeProjectName = projectName;
+            if (!coords.length) {
+                updateSurveyTable();
+                return true;
+            }
             if (!preserveRegion) {
                 if (coords.length === 1) {
                     map.region = new mapkit.CoordinateRegion(coords[0], new mapkit.CoordinateSpan(0.02, 0.02));
@@ -3752,6 +4890,13 @@
                 }
                 return;
             }
+            if (!activeProjectRecord) return;
+            syncActiveLayerFromSurveyState();
+            pendingChanges = false;
+            surveyNeedsSave = false;
+            saveWorkspaceProjects();
+            setProjectStatus("Project saved to local browser storage.", "success");
+            updateHistoryButtons();
         }
 
         function buildCsvFromCurrentSurvey() {
@@ -3771,7 +4916,7 @@
             if (!surveyTable) return;
             const dataset = isArchiveView ? archiveData : currentSurveyData;
             if (!dataset?.headers) {
-                surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">Load a survey to view responses.</div>";
+                surveyTable.innerHTML = "<div style=\"padding:12px; color:#97aabd;\">Open or create a project to view attributes.</div>";
                 return;
             }
             const headerSource = isArchiveView ? archiveData.headers : dataset.headers;
@@ -3798,7 +4943,7 @@
             surveyTable.innerHTML = `
                 <table>
                     <thead><tr>${headerRow}</tr></thead>
-                    <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#5f6368;">No responses yet.</td></tr>`}</tbody>
+                    <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">No features yet in this layer.</td></tr>`}</tbody>
                 </table>
             `;
             refreshSharePanel();
@@ -4091,6 +5236,7 @@ function setImportPanelVisibility(show) {
             isImportPanelVisible = show;
             importPanel.hidden = !show;
             toggleImportBtn?.classList.toggle("active", show);
+            workspacePanelBtn?.classList.toggle("active", show);
         }
 
         function setAddButtonVisibility(show) {
@@ -4287,7 +5433,8 @@ function setImportPanelVisibility(show) {
         function updateHistoryButtons() {
             if (undoBtn) undoBtn.disabled = !undoStack.length;
             if (redoBtn) redoBtn.disabled = !redoStack.length;
-            if (saveChangesBtn) saveChangesBtn.disabled = !pendingChanges;
+            if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave);
+            updateWorkspaceContext();
         }
 
         function renderSurveyFieldControls() {

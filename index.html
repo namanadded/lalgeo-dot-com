@@ -3,164 +3,1151 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LalGeo — Mapping Simplified</title>
-  <meta name="description" content="LalGeo: mapping simplified—turn your data into clear maps and routes fast." />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <title>LalGeo | Cloud GIS Services and SaaS Platform</title>
+  <meta
+    name="description"
+    content="LalGeo provides affordable cloud GIS services, map editing, layer management, data migration, and subscription-based geospatial tools for teams that do not want expensive GIS software."
+  />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     :root {
-      --bg: #0b0c10; --fg:#e7e9ee; --muted:#a2aabb; --card:#12141a; --line:#1c1f26; --accent:#4aa3ff; --accent2:#8b5cf6;
+      --bg: #07111b;
+      --bg-soft: #0d1b29;
+      --panel: rgba(10, 20, 33, 0.78);
+      --panel-strong: rgba(11, 24, 39, 0.92);
+      --line: rgba(152, 181, 201, 0.16);
+      --text: #eff6fb;
+      --muted: #9eb0c1;
+      --accent: #f05a4f;
+      --accent-strong: #ff7b5f;
+      --accent-cool: #5cc8c0;
+      --shadow: 0 30px 90px rgba(0, 0, 0, 0.35);
+      --radius: 28px;
+      --content-width: 1180px;
     }
-    * { box-sizing:border-box }
-    html, body { height:100%; margin:0; font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; color:var(--fg); background: radial-gradient(1200px 600px at 10% -10%, #162133 0%, transparent 60%), radial-gradient(800px 600px at 110% 10%, #221735 0%, transparent 60%), var(--bg); }
-    a { color: inherit; text-decoration: none }
 
-    .wrap { display:grid; grid-template-rows: auto 1fr auto; min-height:100%; }
-    header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:18px 18px; border-bottom:1px solid var(--line); backdrop-filter: blur(6px); position:sticky; top:0; z-index:5; background: linear-gradient(#0b0c10cc,#0b0c10cc); }
-    .brand { display:flex; align-items:center; gap:10px; font-weight:800; letter-spacing:0.2px; }
-    .brand-logo { height:128px; width:auto; display:block }
+    * {
+      box-sizing: border-box;
+    }
 
-    .nav { display:flex; gap:8px; }
-    .nav a { padding:8px 12px; border-radius:10px; border:1px solid var(--line); background:#0f1117; color:#cfd6df; font-weight:600; }
-    .nav a:hover { border-color:#2a3042 }
+    html {
+      scroll-behavior: smooth;
+    }
 
-    .hero { display:grid; place-items:center; padding:60px 18px 30px; text-align:center; }
-    .hero h1 { font-size: clamp(28px, 4vw, 48px); margin:0 0 10px; font-weight:800; letter-spacing:0.2px }
-    .hero p { color: var(--muted); margin:0 auto; max-width: 720px; line-height:1.45 }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: "Manrope", system-ui, sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(240, 90, 79, 0.18), transparent 30%),
+        radial-gradient(circle at 85% 10%, rgba(92, 200, 192, 0.18), transparent 24%),
+        linear-gradient(180deg, #081019 0%, #07111b 38%, #091725 100%);
+    }
 
-    .showcase { max-width: 1100px; margin: 0 auto; padding: 10px 18px 30px; }
-    .showcase h2 { margin: 0 0 8px; font-size: 22px; }
-    .showcase p { margin: 0 0 14px; color: var(--muted); }
-    .showcase-frame { position: relative; width: 100%; padding-top: 56.25%; border-radius: 18px; overflow: hidden; border: 1px solid #1a1f2d; background: #0f1219; box-shadow: 0 6px 30px rgba(0,0,0,.35); }
-    .showcase-frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; }
-    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    a {
+      color: inherit;
+      text-decoration: none;
+    }
 
+    img {
+      max-width: 100%;
+      display: block;
+    }
 
-    .cta { display:grid; grid-template-columns: repeat(3, minmax(220px, 1fr)); gap:14px; padding:30px 18px; max-width: 1100px; margin: 0 auto; }
-    @media (max-width: 860px){ .cta { grid-template-columns: 1fr } }
+    .page-shell {
+      position: relative;
+      overflow: hidden;
+    }
 
-    .card { position:relative; overflow:hidden; border-radius:18px; background: linear-gradient(180deg, #131722, #0f1219); border:1px solid #1a1f2d; box-shadow: 0 6px 30px rgba(0,0,0,.35); }
-    .card .glow { position:absolute; inset:auto -20% 40% -20%; height:160px; background: radial-gradient(50% 60% at 50% 50%, #1b66ff40, transparent 70%); filter: blur(24px); pointer-events:none }
-    .card .body { padding:20px }
-    .card h2 { margin:0 0 8px; font-size: 18px }
-    .card p { margin:0 0 16px; color:var(--muted) }
-    .app-badge { display:inline-block; margin-top:10px; }
-    .app-badge img { height:40px; width:auto; display:block; filter: drop-shadow(0 4px 12px rgba(0,0,0,.35)); }
+    .page-shell::before,
+    .page-shell::after {
+      content: "";
+      position: absolute;
+      inset: auto;
+      width: 34rem;
+      height: 34rem;
+      border-radius: 999px;
+      filter: blur(70px);
+      opacity: 0.3;
+      pointer-events: none;
+      z-index: 0;
+    }
 
-    .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; padding:10px 14px; border-radius:12px; font-weight:700; border:1px solid #23304a; background: linear-gradient(180deg, #1b66ff, #164fc9); color:white; box-shadow: 0 10px 24px rgba(27,102,255,.25); cursor:pointer; }
-    .btn.secondary { background: #101623; border-color:#26334f; color:#d8deea; box-shadow:none }
-    .btn.disabled { background: #141824; border-color:#262c3c; color:#7c8496; box-shadow:none; cursor:not-allowed; }
-    .btn span.kbd { font: 600 11px/1 ui-monospace, SFMono-Regular, Menlo, monospace; padding:4px 6px; border:1px solid #33415e; border-radius:6px; background:#0c1220 }
-    .card-actions { display:flex; align-items:center; gap:12px; flex-wrap:nowrap; }
-    .card-actions .btn { flex: 0 0 auto; }
-    .app-badge { margin: 0 0 0 auto; }
+    .page-shell::before {
+      top: 8rem;
+      left: -10rem;
+      background: rgba(240, 90, 79, 0.28);
+    }
 
-    .footer { padding:20px 18px; border-top:1px solid var(--line); color:#8c96a8; display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap; }
-    .pill { padding:6px 10px; border-radius:999px; background:#0f1117; border:1px solid #1e2230; color:#cfd6df; font-size:12px; }
+    .page-shell::after {
+      top: 22rem;
+      right: -10rem;
+      background: rgba(92, 200, 192, 0.22);
+    }
 
-    .mini { display:flex; gap:8px; align-items:center; color:#a8b3c7 }
+    .container {
+      position: relative;
+      z-index: 1;
+      width: min(calc(100% - 2rem), var(--content-width));
+      margin: 0 auto;
+    }
+
+    .site-header {
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      backdrop-filter: blur(18px);
+      background: rgba(7, 17, 27, 0.7);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .site-header .container {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1rem 0;
+    }
+
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.9rem;
+    }
+
+    .brand-logo {
+      height: 4.9rem;
+      width: auto;
+    }
+
+    .brand-copy {
+      display: flex;
+      flex-direction: column;
+      gap: 0.15rem;
+    }
+
+    .brand-kicker {
+      font-size: 0.72rem;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--accent-cool);
+    }
+
+    .brand-title {
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 1rem;
+      font-weight: 700;
+      letter-spacing: 0.03em;
+    }
+
+    .site-nav {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .site-nav a {
+      color: var(--muted);
+      font-size: 0.96rem;
+      font-weight: 700;
+    }
+
+    .site-nav a:hover {
+      color: var(--text);
+    }
+
+    .button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      min-height: 3.2rem;
+      padding: 0.85rem 1.35rem;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-weight: 800;
+      letter-spacing: 0.01em;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, color 160ms ease;
+    }
+
+    .button:hover {
+      transform: translateY(-2px);
+    }
+
+    .button-primary {
+      color: #081019;
+      background: linear-gradient(135deg, var(--accent-cool), #98f0d7);
+      box-shadow: 0 12px 30px rgba(92, 200, 192, 0.2);
+    }
+
+    .button-secondary {
+      border-color: rgba(255, 255, 255, 0.12);
+      background: rgba(255, 255, 255, 0.03);
+      color: var(--text);
+    }
+
+    .hero {
+      padding: 4.8rem 0 2rem;
+    }
+
+    .hero-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 1.2fr) minmax(280px, 0.85fr);
+      gap: 1.6rem;
+      align-items: stretch;
+    }
+
+    .hero-copy,
+    .hero-panel,
+    .section-card,
+    .feature-card,
+    .process-card,
+    .proof-card,
+    .cta-strip {
+      border: 1px solid var(--line);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(14px);
+    }
+
+    .hero-copy {
+      padding: 2rem;
+      border-radius: calc(var(--radius) + 6px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .hero-copy::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background:
+        linear-gradient(135deg, rgba(255, 255, 255, 0.04), transparent 30%),
+        radial-gradient(circle at 90% 0%, rgba(240, 90, 79, 0.18), transparent 28%);
+      pointer-events: none;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+      padding: 0.55rem 0.8rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--accent-cool);
+      font-size: 0.8rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .hero h1 {
+      margin: 0;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: clamp(2.6rem, 6vw, 5.6rem);
+      line-height: 0.96;
+      letter-spacing: -0.05em;
+      max-width: 11ch;
+    }
+
+    .hero h1 .accent {
+      color: var(--accent-strong);
+    }
+
+    .hero-lead {
+      margin: 1rem 0 0;
+      max-width: 39rem;
+      color: var(--muted);
+      font-size: 1.04rem;
+      line-height: 1.65;
+    }
+
+    .hero-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem;
+      margin-top: 1.35rem;
+    }
+
+    .hero-notes {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 0.8rem;
+      margin-top: 1.35rem;
+    }
+
+    .hero-note {
+      padding: 0.95rem 1rem;
+      border-radius: 1.1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .hero-note span {
+      display: block;
+      color: var(--text);
+      font-size: 0.92rem;
+      line-height: 1.45;
+      font-weight: 700;
+    }
+
+    .hero-panel {
+      padding: 1.6rem;
+      border-radius: var(--radius);
+      display: grid;
+      gap: 1rem;
+      align-content: start;
+      background:
+        linear-gradient(180deg, rgba(14, 29, 44, 0.95), rgba(8, 19, 30, 0.92)),
+        var(--panel-strong);
+    }
+
+    .stack-label {
+      margin: 0;
+      color: var(--accent-cool);
+      font-size: 0.78rem;
+      font-weight: 800;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    .panel-title {
+      margin: 0;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: 1.65rem;
+      line-height: 1.1;
+    }
+
+    .panel-copy {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .platform-list {
+      display: grid;
+      gap: 0.85rem;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .platform-list li {
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+    }
+
+    .platform-list strong {
+      display: block;
+      font-size: 1rem;
+      margin-bottom: 0.18rem;
+    }
+
+    .platform-list span {
+      color: var(--muted);
+      font-size: 0.93rem;
+      line-height: 1.5;
+    }
+
+    .section {
+      padding: 2.2rem 0 0;
+    }
+
+    .section-head {
+      display: flex;
+      align-items: end;
+      justify-content: space-between;
+      gap: 1rem;
+      margin-bottom: 1.1rem;
+    }
+
+    .section-head h2 {
+      margin: 0;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: clamp(1.8rem, 3vw, 2.8rem);
+      line-height: 1;
+      letter-spacing: -0.04em;
+    }
+
+    .section-head p {
+      margin: 0;
+      max-width: 36rem;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .feature-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .feature-grid.three-up,
+    .process-grid.three-up,
+    .proof-grid.three-up,
+    .audience-grid,
+    .pricing-grid {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+
+    .feature-card,
+    .process-card,
+    .proof-card,
+    .section-card {
+      border-radius: 1.5rem;
+      padding: 1.35rem;
+    }
+
+    .feature-tag,
+    .proof-tag,
+    .process-step {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 2.2rem;
+      min-height: 2.2rem;
+      border-radius: 999px;
+      background: rgba(240, 90, 79, 0.12);
+      color: var(--accent-strong);
+      font-size: 0.82rem;
+      font-weight: 800;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .feature-card h3,
+    .process-card h3,
+    .proof-card h3 {
+      margin: 1rem 0 0.5rem;
+      font-size: 1.2rem;
+      line-height: 1.2;
+    }
+
+    .feature-card p,
+    .process-card p,
+    .proof-card p,
+    .section-card p,
+    .section-card li {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+    }
+
+    .split {
+      display: grid;
+      grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+      gap: 1rem;
+    }
+
+    .service-list,
+    .outcome-list {
+      display: grid;
+      gap: 0.8rem;
+      margin: 1rem 0 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .service-list li,
+    .outcome-list li {
+      padding: 0.95rem 1rem;
+      border-radius: 1rem;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .service-list strong,
+    .outcome-list strong {
+      display: block;
+      margin-bottom: 0.2rem;
+      color: var(--text);
+    }
+
+    .process-grid,
+    .proof-grid,
+    .audience-grid,
+    .pricing-grid {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 1rem;
+    }
+
+    .proof-card {
+      background: linear-gradient(180deg, rgba(16, 34, 51, 0.8), rgba(8, 20, 32, 0.82));
+    }
+
+    .preview-frame {
+      border: 1px solid var(--line);
+      background:
+        linear-gradient(180deg, rgba(16, 34, 51, 0.88), rgba(7, 17, 27, 0.96)),
+        var(--panel-strong);
+      border-radius: calc(var(--radius) - 2px);
+      padding: 1rem;
+      box-shadow: var(--shadow);
+    }
+
+    .preview-grid {
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 1rem;
+    }
+
+    .preview-browser,
+    .preview-device,
+    .preview-panel {
+      border-radius: 1.2rem;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      background: rgba(255, 255, 255, 0.03);
+      overflow: hidden;
+      min-height: 15rem;
+    }
+
+    .preview-browser {
+      min-height: 24rem;
+    }
+
+    .preview-topbar {
+      display: flex;
+      align-items: center;
+      gap: 0.45rem;
+      padding: 0.85rem 1rem;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .preview-dot {
+      width: 0.6rem;
+      height: 0.6rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.25);
+    }
+
+    .preview-canvas {
+      position: relative;
+      min-height: 20rem;
+      padding: 1rem;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(92, 200, 192, 0.12), transparent 25%),
+        linear-gradient(180deg, rgba(9, 27, 40, 0.92), rgba(8, 18, 29, 0.98));
+    }
+
+    .preview-map {
+      height: 100%;
+      min-height: 18rem;
+      border-radius: 1rem;
+      background:
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        radial-gradient(circle at 25% 35%, rgba(240, 90, 79, 0.22), transparent 18%),
+        radial-gradient(circle at 70% 55%, rgba(92, 200, 192, 0.18), transparent 22%),
+        #0a1723;
+      background-size: 34px 34px, 34px 34px, auto, auto, auto;
+      position: relative;
+    }
+
+    .preview-map::before,
+    .preview-map::after {
+      content: "";
+      position: absolute;
+      border-radius: 999px;
+      border: 2px solid rgba(92, 200, 192, 0.65);
+    }
+
+    .preview-map::before {
+      width: 10rem;
+      height: 6rem;
+      left: 12%;
+      top: 18%;
+      transform: rotate(-8deg);
+    }
+
+    .preview-map::after {
+      width: 7rem;
+      height: 11rem;
+      right: 14%;
+      bottom: 16%;
+      border-color: rgba(240, 90, 79, 0.72);
+      transform: rotate(14deg);
+    }
+
+    .preview-side {
+      display: grid;
+      gap: 1rem;
+    }
+
+    .preview-panel,
+    .preview-device {
+      padding: 1rem;
+    }
+
+    .preview-label {
+      display: inline-flex;
+      margin-bottom: 0.8rem;
+      padding: 0.45rem 0.7rem;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--accent-cool);
+      font-size: 0.75rem;
+      font-weight: 800;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+    }
+
+    .preview-panel h3,
+    .preview-device h3 {
+      margin: 0 0 0.4rem;
+      font-size: 1.05rem;
+    }
+
+    .preview-panel p,
+    .preview-device p {
+      color: var(--muted);
+      line-height: 1.55;
+      margin: 0;
+    }
+
+    .device-shell {
+      margin-top: 0.9rem;
+      width: 10rem;
+      height: 17rem;
+      border-radius: 1.8rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      background:
+        radial-gradient(circle at 50% 18%, rgba(92, 200, 192, 0.22), transparent 20%),
+        linear-gradient(180deg, #13273a 0%, #0a1826 100%);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .device-shell::before {
+      content: "";
+      position: absolute;
+      left: 50%;
+      top: 0.6rem;
+      width: 3.6rem;
+      height: 0.4rem;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.14);
+    }
+
+    .device-shell::after {
+      content: "";
+      position: absolute;
+      inset: 1.2rem 0.8rem 1rem;
+      border-radius: 1.1rem;
+      background:
+        linear-gradient(rgba(255,255,255,0.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,0.04) 1px, transparent 1px),
+        radial-gradient(circle at 50% 28%, rgba(240, 90, 79, 0.22), transparent 18%),
+        #0b1622;
+      background-size: 26px 26px, 26px 26px, auto, auto;
+    }
+
+    .cta-strip {
+      margin: 1.4rem 0 3.6rem;
+      padding: 1.5rem;
+      border-radius: calc(var(--radius) - 2px);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background:
+        linear-gradient(110deg, rgba(240, 90, 79, 0.16), rgba(92, 200, 192, 0.12)),
+        var(--panel-strong);
+    }
+
+    .cta-strip h2 {
+      margin: 0 0 0.35rem;
+      font-family: "Space Grotesk", system-ui, sans-serif;
+      font-size: clamp(1.5rem, 3vw, 2.4rem);
+      line-height: 1.02;
+    }
+
+    .cta-strip p {
+      margin: 0;
+      color: var(--muted);
+      line-height: 1.65;
+      max-width: 42rem;
+    }
+
+    .site-footer {
+      padding: 0 0 2rem;
+    }
+
+    .footer-box {
+      display: flex;
+      justify-content: space-between;
+      gap: 1rem;
+      padding: 1.25rem 0 2rem;
+      border-top: 1px solid rgba(255, 255, 255, 0.08);
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .footer-box a {
+      color: var(--text);
+    }
+
+    @media (max-width: 1060px) {
+      .hero-grid,
+      .split,
+      .feature-grid,
+      .process-grid,
+      .proof-grid,
+      .audience-grid,
+      .pricing-grid,
+      .preview-grid {
+        grid-template-columns: 1fr 1fr;
+      }
+
+      .hero-panel {
+        grid-column: span 2;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .site-header .container,
+      .footer-box,
+      .cta-strip,
+      .section-head {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .site-nav {
+        width: 100%;
+        justify-content: flex-start;
+      }
+
+      .hero,
+      .section {
+        padding-top: 1.2rem;
+      }
+
+      .hero-grid,
+      .split,
+      .feature-grid,
+      .process-grid,
+      .proof-grid,
+      .audience-grid,
+      .pricing-grid,
+      .preview-grid,
+      .hero-notes {
+        grid-template-columns: 1fr;
+      }
+
+      .brand-copy {
+        display: none;
+      }
+
+      .brand-logo {
+        height: 4.2rem;
+      }
+
+      .hero-copy,
+      .hero-panel,
+      .feature-card,
+      .process-card,
+      .proof-card,
+      .section-card,
+      .cta-strip {
+        padding: 1.2rem;
+      }
+    }
   </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="brand">
-        <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+  <div class="page-shell">
+    <header class="site-header">
+      <div class="container">
+        <a class="brand" href="#top" aria-label="LalGeo homepage">
+          <img class="brand-logo" src="/assets/lalgeo.png" alt="LalGeo logo" />
+          <span class="brand-copy">
+            <span class="brand-kicker">Cloud GIS for Practical Teams</span>
+            <span class="brand-title">Affordable geospatial systems without enterprise software overhead</span>
+          </span>
+        </a>
+
+        <nav class="site-nav" aria-label="Primary">
+          <a href="#services">Services</a>
+          <a href="#platform">Platform</a>
+          <a href="#process">Process</a>
+          <a class="button button-secondary" href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">Book a Demo</a>
+        </nav>
       </div>
-      <nav class="nav"></nav>
     </header>
 
-    <section class="hero">
-      <h1>Mapping Simplified</h1>
-      <p>Load data from Dropbox, polish the map quickly, and deliver it. No additional licenses needed.</p>
-    </section>
+    <main id="top">
+      <section class="hero">
+        <div class="container hero-grid">
+          <div class="hero-copy">
+            <div class="eyebrow">Affordable Cloud GIS for Practical Teams</div>
+            <h1>Create and manage maps without <span class="accent">expensive GIS software.</span></h1>
+            <p class="hero-lead">
+              LalGeo helps practical teams edit, share, and manage spatial data in the cloud without the cost and complexity of traditional GIS platforms.
+            </p>
 
-    <section class="showcase" aria-labelledby="survey-intro-title">
-      <h2 id="survey-intro-title" class="sr-only">LalGeo Survey Intro</h2>
-      <div class="showcase-frame">
-        <iframe title="LalGeo Survey Intro" src="lalgeosurvey-intro.html"></iframe>
-      </div>
-    </section>
+            <div class="hero-actions">
+              <a class="button button-primary" href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">Book a Demo</a>
+              <a class="button button-secondary" href="#platform">Explore the Platform</a>
+            </div>
 
-    <section class="cta">
-      <article class="card">
-        <div class="glow"></div>
-        <div class="body">
-          <h2>AI Search</h2>
-          <p>Type a question like “show median income by county in California” and let LalGeo fetch, map, and explain.</p>
-          <a class="btn" href="https://lalgeo.com/ai-search" aria-label="Open AI Search">Open AI Search</a>
+            <div class="hero-notes">
+              <div class="hero-note">
+                <span>Browser-based map editing</span>
+              </div>
+              <div class="hero-note">
+                <span>Import shapefiles, FGDB, GeoJSON, CSV</span>
+              </div>
+              <div class="hero-note">
+                <span>Survey web + mobile tools already live</span>
+              </div>
+            </div>
+          </div>
+
+          <aside class="hero-panel" id="platform">
+            <p class="stack-label">LalGeo Platform Direction</p>
+            <h2 class="panel-title">A simpler GIS stack for small teams</h2>
+            <p class="panel-copy">
+              Store layers, edit maps, import legacy data, and share operational GIS workflows from one cloud-based environment.
+            </p>
+
+            <ul class="platform-list">
+              <li>
+                <strong>Cloud map editing</strong>
+                <span>Edit features and attributes in the browser.</span>
+              </li>
+              <li>
+                <strong>GIS layer management</strong>
+                <span>Manage layers in a simple cloud workspace.</span>
+              </li>
+              <li>
+                <strong>Data migration and onboarding</strong>
+                <span>Bring in shapefiles, FGDB, GeoJSON, and CSV.</span>
+              </li>
+              <li>
+                <strong>Subscription delivery</strong>
+                <span>Support client access with cloud-based subscriptions.</span>
+              </li>
+            </ul>
+          </aside>
         </div>
-      </article>
+      </section>
 
-      <article class="card">
-        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #8b5cf640, transparent 70%)"></div>
-        <div class="body">
-          <h2>Directions</h2>
-          <p>Clean, voice-ready turn-by-turn, multiple routes, travel time, and mode switching—right on Apple Maps.</p>
-          <a class="btn" href="https://lalgeo.com/directions" aria-label="Open Directions">Open Directions</a>
-        </div>
-      </article>
+      <section class="section" id="services">
+        <div class="container">
+          <div class="section-head">
+            <h2>See what LalGeo already does</h2>
+            <p>
+              Working products and workflows, not just a future concept.
+            </p>
+          </div>
 
-      <article class="card">
-        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #22c55e33, transparent 70%)"></div>
-        <div class="body">
-          <h2>Create a Map</h2>
-          <p>Drag & drop CSV, GeoJSON, Shapefiles (.zip), KML, or GPX. Style layers and share in seconds.</p>
-          <span class="btn disabled" aria-label="Create a map (coming soon)">Coming soon</span>
-        </div>
-      </article>
+          <div class="proof-grid three-up">
+            <article class="proof-card">
+              <span class="proof-tag">Live</span>
+              <h3>Survey Web App</h3>
+              <p>Collect and edit mapped field data in the browser.</p>
+            </article>
 
-      <article class="card">
-        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #f9731633, transparent 70%)"></div>
-        <div class="body">
-          <h2>LalGeo Survey Webapp</h2>
-          <p>Gather on-the-ground insights fast with the LalGeo survey workflow and share results instantly.</p>
-          <a class="btn" href="https://lalgeo.com/lalgeosurvey" aria-label="Open LalGeo Survey">Open LalGeo Survey</a>
-        </div>
-      </article>
+            <article class="proof-card">
+              <span class="proof-tag">Live</span>
+              <h3>Mobile Survey App</h3>
+              <p>Capture field information on-site with a real mobile workflow.</p>
+            </article>
 
-      <article class="card">
-        <div class="glow" style="background: radial-gradient(50% 60% at 50% 50%, #00bcd440, transparent 70%)"></div>
-        <div class="body">
-          <h2>LalGeo Survey iPhone/iPad App</h2>
-          <p>Collect, map, and share field data on the go. Optimized for iPhone and iPad.</p>
-          <div class="card-actions">
-            <a class="btn" href="/lalgeo-app.html" aria-label="Open LalGeo App details">Explore LalGeo App</a>
-            <a class="app-badge" href="https://apps.apple.com/ca/app/lalgeo-survey/id6670320304" aria-label="Download LalGeo Survey on the App Store">
-              <img src="https://toolbox.marketingtools.apple.com/api/assets/featured-content/apps/badges/badge-1/en-us.svg" alt="Download on the App Store">
-            </a>
+            <article class="proof-card">
+              <span class="proof-tag">Next</span>
+              <h3>Client GIS Workspace</h3>
+              <p>The next stage: client-facing layer management, map editing, and subscription access.</p>
+            </article>
           </div>
         </div>
-      </article>
-    </section>
+      </section>
 
-    <section class="hero" style="padding-top:10px">
-      <p class="mini">
-        <span class="pill">New</span> &nbsp; Try the data drop page at <a href="/add-data.html" style="margin-left:6px; text-decoration:underline">/add-data.html</a>
-      </p>
-    </section>
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Import. Edit. Share.</h2>
+            <p>Three clear reasons to move GIS work into a simpler cloud workflow.</p>
+          </div>
 
-    <footer class="footer">
-      <div>© <span id="year"></span> LalGeo</div>
-      <div>
-        Created by: <a href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">Naman Malhotra</a> &nbsp;•&nbsp;
-        Contact: <a href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">www.linkedin.com/in/namanmalhotra</a>
+          <div class="feature-grid three-up">
+            <article class="feature-card">
+              <span class="feature-tag">Import</span>
+              <h3>Bring data in fast</h3>
+              <p>Bring in shapefiles, FGDB, GeoJSON, CSV, and existing client datasets.</p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-tag">Edit</span>
+              <h3>Keep maps current</h3>
+              <p>Update layers, manage map content, and support operational changes in the cloud.</p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-tag">Share</span>
+              <h3>Deliver access simply</h3>
+              <p>Deliver maps and client access through a simple web-based GIS workspace.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>What LalGeo provides</h2>
+            <p>LalGeo combines managed GIS services with cloud products that are already in motion.</p>
+          </div>
+
+          <div class="feature-grid">
+            <article class="feature-card">
+              <span class="feature-tag">01</span>
+              <h3>Managed GIS services</h3>
+              <p>Prepare data, build maps, and support operational workflows.</p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-tag">02</span>
+              <h3>Cloud-based map sharing</h3>
+              <p>Publish maps for teams, clients, and field staff without desktop GIS installs.</p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-tag">03</span>
+              <h3>Online map editing</h3>
+              <p>Maintain features and updates directly in a browser-based environment.</p>
+            </article>
+
+            <article class="feature-card">
+              <span class="feature-tag">04</span>
+              <h3>Data migration and setup</h3>
+              <p>Import client datasets and prepare them for ongoing cloud use.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container split">
+          <article class="section-card">
+            <div class="section-head">
+              <h2>Core services for your clients</h2>
+            </div>
+            <p>
+              LalGeo helps organizations move from scattered GIS files to a practical cloud-based workflow.
+            </p>
+            <ul class="service-list">
+              <li>
+                <strong>Cloud GIS implementation</strong>
+                Set up a client-ready workspace for maps, layers, edits, and collaboration.
+              </li>
+              <li>
+                <strong>Data onboarding package</strong>
+                Import and structure legacy spatial data into one system.
+              </li>
+              <li>
+                <strong>Training and support</strong>
+                Train staff and support operational use after launch.
+              </li>
+              <li>
+                <strong>Custom GIS development</strong>
+                Extend functionality as client needs grow.
+              </li>
+            </ul>
+          </article>
+
+          <article class="section-card">
+            <div class="section-head">
+              <h2>Client outcomes</h2>
+            </div>
+            <ul class="outcome-list">
+              <li>
+                <strong>Lower software overhead</strong>
+                Reduce reliance on expensive GIS vendor ecosystems.
+              </li>
+              <li>
+                <strong>Faster operational updates</strong>
+                Make map and layer changes directly in the browser.
+              </li>
+              <li>
+                <strong>Better access to spatial data</strong>
+                Keep teams, offices, and field staff aligned.
+              </li>
+              <li>
+                <strong>Scalable service model</strong>
+                Start with setup, then grow into subscriptions and support.
+              </li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Built for teams like these</h2>
+            <p>LalGeo is designed for teams that need practical GIS capability without the cost and overhead of large enterprise platforms.</p>
+          </div>
+
+          <div class="audience-grid">
+            <article class="feature-card">
+              <h3>Small municipalities</h3>
+              <p>Keep maps, assets, and operational records accessible without a large GIS stack.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Utilities and infrastructure teams</h3>
+              <p>Manage spatial records, layers, and field updates in one cloud workflow.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Field inspection operations</h3>
+              <p>Connect surveys, map updates, and reporting across web and mobile workflows.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Organizations priced out of enterprise GIS</h3>
+              <p>Get practical capability without the cost and complexity of heavyweight vendor platforms.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section" id="process">
+        <div class="container">
+          <div class="section-head">
+            <h2>How engagement can work</h2>
+            <p>A simple path from existing GIS files to a live cloud workflow.</p>
+          </div>
+
+          <div class="process-grid">
+            <article class="process-card">
+              <span class="process-step">Step 1</span>
+              <h3>Assess current data</h3>
+              <p>Review shapefiles, geodatabases, GeoJSON, spreadsheets, and current workflows.</p>
+            </article>
+
+            <article class="process-card">
+              <span class="process-step">Step 2</span>
+              <h3>Migrate and structure</h3>
+              <p>Load data into LalGeo, organize layers, and prepare browser-based access.</p>
+            </article>
+
+            <article class="process-card">
+              <span class="process-step">Step 3</span>
+              <h3>Train and support teams</h3>
+              <p>Launch editing and sharing workflows, then support the client through onboarding and subscriptions.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Inside the platform</h2>
+            <p>Preview the kinds of workflows LalGeo is built to support as product screens and assets are expanded.</p>
+          </div>
+
+          <div class="preview-frame">
+            <div class="preview-grid">
+              <div class="preview-browser">
+                <div class="preview-topbar">
+                  <span class="preview-dot"></span>
+                  <span class="preview-dot"></span>
+                  <span class="preview-dot"></span>
+                </div>
+                <div class="preview-canvas">
+                  <div class="preview-label">Map Editor Preview</div>
+                  <div class="preview-map" aria-hidden="true"></div>
+                </div>
+              </div>
+
+              <div class="preview-side">
+                <article class="preview-panel">
+                  <div class="preview-label">Layer Management</div>
+                  <h3>Cloud workspace for layers and structure</h3>
+                  <p>Ready for screenshots of the layer panel, imports, and attribute workflows.</p>
+                </article>
+
+                <article class="preview-device">
+                  <div class="preview-label">Survey + Mobile</div>
+                  <h3>Field workflow preview</h3>
+                  <p>Use this area for web survey and mobile collection visuals as assets become available.</p>
+                  <div class="device-shell" aria-hidden="true"></div>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="section-head">
+            <h2>Simple engagement options</h2>
+            <p>A clear commercial model without forcing enterprise-style commitments.</p>
+          </div>
+
+          <div class="pricing-grid">
+            <article class="feature-card">
+              <h3>Implementation</h3>
+              <p>One-time onboarding, migration, and setup.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Subscription</h3>
+              <p>Ongoing cloud access based on storage and usage.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Support</h3>
+              <p>Training, enhancements, and managed GIS help.</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <div class="cta-strip">
+            <div>
+              <h2>Affordable GIS capability for teams that need results.</h2>
+              <p>Launch with data migration and setup, then grow into cloud editing, sharing, and subscription access.</p>
+            </div>
+            <div class="hero-actions">
+              <a class="button button-primary" href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">Book a Demo</a>
+              <a class="button button-secondary" href="#platform">Explore the Platform</a>
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer">
+      <div class="container footer-box">
+        <div>© <span id="year"></span> LalGeo</div>
+        <div>
+          Created by <a href="https://www.linkedin.com/in/namanmalhotra" target="_blank" rel="noopener">Naman Malhotra</a> for cloud-based geospatial services and SaaS delivery.
+        </div>
       </div>
     </footer>
   </div>
 
   <script>
-    document.getElementById('year').textContent = new Date().getFullYear();
+    document.getElementById("year").textContent = new Date().getFullYear();
   </script>
-  <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-NLY6QZ7L7B');
-</script>
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag() { dataLayer.push(arguments); }
+    gtag("js", new Date());
+    gtag("config", "G-NLY6QZ7L7B");
+  </script>
 </body>
 </html>
