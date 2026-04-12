@@ -2283,7 +2283,9 @@
             return [
                 { name: "name", type: "text" },
                 { name: "description", type: "text" },
-                { name: "created_at", type: "text" }
+                { name: "created_at", type: "text" },
+                { name: "symbol_color", type: "dropdown", options: ["Red", "Blue", "Green", "Orange", "Purple"] },
+                { name: "symbol_shape", type: "dropdown", options: ["Circle", "Dot", "Pin", "Plus"] }
             ];
         }
 
@@ -2307,6 +2309,26 @@
             meta.Latitude = { type: "number", normalizedType: "number", choices: [] };
             meta.Longitude = { type: "number", normalizedType: "number", choices: [] };
             return meta;
+        }
+
+        function getSymbolColorValue(value) {
+            const normalized = String(value || "").trim().toLowerCase();
+            const colorMap = {
+                red: "#EA4335",
+                blue: "#4285F4",
+                green: "#34A853",
+                orange: "#FB8C00",
+                purple: "#A142F4"
+            };
+            return colorMap[normalized] || "#EA4335";
+        }
+
+        function getSymbolGlyphValue(value) {
+            const normalized = String(value || "").trim().toLowerCase();
+            if (normalized === "plus") return "+";
+            if (normalized === "pin") return "⌖";
+            if (normalized === "circle") return "◎";
+            return "●";
         }
 
         function createSchemaFromParsed(parsed) {
@@ -3005,8 +3027,14 @@
             const isSelected = featureId === activeFeatureId;
             const isHovered = featureId === hoveredFeatureId;
             const isNew = Boolean(annotation.surveyPoint.isNew);
-            annotation.color = isSelected ? "#5cc8c0" : isHovered ? "#7aa7ff" : isNew ? "#1a73e8" : "#EA4335";
-            annotation.glyphText = isSelected ? "◎" : isHovered ? "◉" : isNew ? "+" : "●";
+            const attrs = annotation.surveyPoint.attributes || {};
+            const baseColor = getSymbolColorValue(attrs.symbol_color);
+            const baseGlyph = getSymbolGlyphValue(attrs.symbol_shape);
+            annotation.color = isSelected ? "#5cc8c0" : isHovered ? "#7aa7ff" : baseColor;
+            annotation.glyphText = isSelected ? "◎" : isHovered ? "◉" : baseGlyph;
+            if (!isNew) {
+                annotation.surveyPoint.isNew = false;
+            }
         }
 
         function refreshAnnotationStyles() {
@@ -3100,7 +3128,9 @@
             layer.features[rowIndex] = { ...feature };
             layer.parsed = buildParsedFromLayer(layer);
             currentSurveyData = layer.parsed;
+            activeSurveyAnnotation.surveyPoint.isNew = false;
             updateAnnotationLabels();
+            updateAnnotationVisualState(activeSurveyAnnotation);
             pendingChanges = true;
             setWorkspaceDirty(true);
             updateSurveyTable();
@@ -4288,6 +4318,12 @@
                     newRecord[header] = autoValue;
                 }
             });
+            if ("symbol_color" in newRecord && !newRecord.symbol_color) {
+                newRecord.symbol_color = "Red";
+            }
+            if ("symbol_shape" in newRecord && !newRecord.symbol_shape) {
+                newRecord.symbol_shape = "Dot";
+            }
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
             if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
@@ -4323,8 +4359,8 @@
             }
             const markerTitle = computeLabelFromAttributes(newRecord, activeProjectName);
             const annotation = new mapkit.MarkerAnnotation(coordinate, {
-                color: "#1a73e8",
-                glyphText: "+",
+                color: getSymbolColorValue(newRecord.symbol_color),
+                glyphText: getSymbolGlyphValue(newRecord.symbol_shape),
                 title: markerTitle || "New point"
             });
             annotation.surveyPoint = {
