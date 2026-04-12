@@ -1272,7 +1272,7 @@
     }
     .workspace-inline-actions {
         display: flex;
-        gap: 8px;
+        gap: 10px;
         flex-wrap: wrap;
         margin-top: 12px;
     }
@@ -1280,8 +1280,9 @@
         border: 1px solid rgba(255,255,255,0.08);
         background: rgba(255,255,255,0.05);
         color: #eef6fb;
-        border-radius: 9px;
-        padding: 7px 10px;
+        border-radius: 10px;
+        padding: 9px 12px;
+        min-height: 38px;
         font-size: 12px;
         font-weight: 600;
         cursor: pointer;
@@ -1290,6 +1291,17 @@
         background: rgba(92, 200, 192, 0.14);
         color: #8ff0dc;
         border-color: rgba(92, 200, 192, 0.22);
+    }
+    .mini-btn:hover,
+    .mini-btn:focus-visible {
+        border-color: rgba(143, 240, 220, 0.28);
+        background: rgba(255,255,255,0.08);
+        outline: none;
+    }
+    .mini-btn.danger {
+        color: #ffb6b0;
+        border-color: rgba(240, 90, 79, 0.22);
+        background: rgba(240, 90, 79, 0.1);
     }
     .workspace-empty-state {
         position: fixed;
@@ -1424,6 +1436,145 @@
     }
     .workspace-validation[hidden] {
         display: none;
+    }
+    .layer-modal-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 4200;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 24px;
+        background: rgba(2, 8, 18, 0.52);
+        backdrop-filter: blur(10px);
+    }
+    .layer-modal-backdrop[hidden] {
+        display: none;
+    }
+    .layer-modal {
+        width: min(640px, 100%);
+        max-height: min(80vh, 760px);
+        overflow: auto;
+        padding: 24px;
+        border-radius: 24px;
+        background: rgba(8, 18, 30, 0.96);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 28px 80px rgba(0,0,0,0.42);
+        color: #e5eef8;
+    }
+    .layer-modal-header {
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+        align-items: flex-start;
+        margin-bottom: 16px;
+    }
+    .layer-modal-header h3 {
+        margin: 0 0 6px;
+        font-size: 26px;
+        letter-spacing: -0.03em;
+    }
+    .layer-modal-close {
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.06);
+        color: #eef6fb;
+        border-radius: 999px;
+        min-width: 38px;
+        height: 38px;
+        cursor: pointer;
+        font-size: 18px;
+    }
+    .layer-modal-body {
+        display: grid;
+        gap: 14px;
+    }
+    .layer-modal-body .workspace-field {
+        gap: 8px;
+    }
+    .layer-modal-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+    .layer-modal-grid .full {
+        grid-column: 1 / -1;
+    }
+    .layer-modal-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 10px;
+        margin-top: 18px;
+    }
+    .layer-modal-actions button {
+        min-height: 42px;
+        padding: 0 16px;
+    }
+    .layer-modal-message {
+        color: #97aabd;
+        font-size: 14px;
+        line-height: 1.55;
+    }
+    .layer-modal-danger {
+        color: #ffb5b5;
+    }
+    .schema-editor-list {
+        display: grid;
+        gap: 10px;
+    }
+    .schema-editor-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+        gap: 10px;
+        align-items: end;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+    }
+    .schema-editor-row.locked {
+        opacity: 0.72;
+    }
+    .style-swatch-row {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+    }
+    .style-swatch {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        min-height: 42px;
+        padding: 0 14px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .style-swatch-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 999px;
+        box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+    }
+    .workspace-inline-actions {
+        display: flex;
+        gap: 10px;
+        flex-wrap: wrap;
+        margin-top: 12px;
+    }
+    .mini-btn {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        border-radius: 10px;
+        padding: 9px 12px;
+        min-height: 38px;
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
     }
     .workspace-screenshot-banner {
         position: fixed;
@@ -1996,7 +2147,7 @@
                         </select>
                     </div>
                 </div>
-                <div id="createProjectHelp" class="workspace-panel-muted">Project name is required. Shortcut: press <strong>N</strong> to open this dialog.</div>
+                <div id="createProjectHelp" class="workspace-panel-muted">Project name is required. Shortcut: press <strong>N</strong> to add a layer when a project is open, or use this dialog to start a new project.</div>
                 <div id="createProjectValidation" class="workspace-validation" hidden>Enter a project name to continue.</div>
                 <div class="workspace-modal-actions">
                     <button id="createProjectCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
@@ -2035,6 +2186,19 @@
         </div>
         <div id="featureDrawerBody" class="feature-drawer-empty">Select a feature to edit attributes.</div>
     </aside>
+    <div id="layerActionModalBackdrop" class="layer-modal-backdrop" hidden>
+        <div id="layerActionModal" class="layer-modal" role="dialog" aria-modal="true" aria-labelledby="layerActionModalTitle" aria-describedby="layerActionModalDescription">
+            <div class="layer-modal-header">
+                <div>
+                    <h3 id="layerActionModalTitle">Layer action</h3>
+                    <p id="layerActionModalDescription" class="workspace-panel-muted">Update the active layer.</p>
+                </div>
+                <button id="layerActionModalClose" type="button" class="layer-modal-close" aria-label="Close layer action dialog">×</button>
+            </div>
+            <div id="layerActionModalBody" class="layer-modal-body"></div>
+            <div id="layerActionModalActions" class="layer-modal-actions"></div>
+        </div>
+    </div>
     <div id="surveyCallout">
         <div class="card">
             <button class="close-btn" aria-label="Close">×</button>
@@ -2162,6 +2326,13 @@
         const featureDrawerBody = document.getElementById("featureDrawerBody");
         const featureDrawerClose = document.getElementById("featureDrawerClose");
         const featureDrawerToggle = document.getElementById("featureDrawerToggle");
+        const layerActionModalBackdrop = document.getElementById("layerActionModalBackdrop");
+        const layerActionModal = document.getElementById("layerActionModal");
+        const layerActionModalTitle = document.getElementById("layerActionModalTitle");
+        const layerActionModalDescription = document.getElementById("layerActionModalDescription");
+        const layerActionModalBody = document.getElementById("layerActionModalBody");
+        const layerActionModalActions = document.getElementById("layerActionModalActions");
+        const layerActionModalClose = document.getElementById("layerActionModalClose");
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
@@ -2329,6 +2500,7 @@
         let localAutosaveTimer = null;
         let isFeatureDrawerMinimized = false;
         let featureDrawerDragState = null;
+        let layerActionModalState = null;
         let deferredReloadPath = null;
         const USE_INLINE_FEATURE_CALLOUT = false;
         const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
@@ -2837,12 +3009,12 @@
                                 </div>
                             </div>
                             <div class="workspace-inline-actions">
-                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
-                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
-                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}">Edit schema</button>
-                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}">Style defaults</button>
-                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
-                                <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
+                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.name)} attribute table and activate the layer">Open table</button>
+                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}" aria-label="Edit schema for ${escapeHtml(item.name)}">Edit schema</button>
+                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}" aria-label="Edit default style for ${escapeHtml(item.name)}">Style defaults</button>
+                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}" aria-label="Rename ${escapeHtml(item.name)} layer">Rename</button>
+                                <button type="button" class="mini-btn danger" data-delete-layer="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.name)} layer">Delete</button>
                             </div>
                         </div>
                     `).join("");
@@ -2898,12 +3070,12 @@
                                 <p>${(item.parsed?.records || []).length} features · ${item.visible === false ? "Hidden" : "Visible"}</p>
                             </div>
                             <div class="workspace-inline-actions">
-                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
-                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
-                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}">Edit schema</button>
-                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}">Style defaults</button>
-                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
-                                <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
+                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.name)} attribute table and activate the layer">Open table</button>
+                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}" aria-label="Edit schema for ${escapeHtml(item.name)}">Edit schema</button>
+                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}" aria-label="Edit default style for ${escapeHtml(item.name)}">Style defaults</button>
+                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}" aria-label="Rename ${escapeHtml(item.name)} layer">Rename</button>
+                                <button type="button" class="mini-btn danger" data-delete-layer="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.name)} layer">Delete</button>
                             </div>
                         </div>
                     `).join("")}
@@ -3456,83 +3628,217 @@
                 openCreateProjectModal();
                 return;
             }
-            const name = window.prompt("Layer name", `Layer ${activeProjectRecord.layers.length + 1}`);
-            if (!name) return;
-            const layer = createLayerRecord({ name: name.trim(), parsed: createEmptyParsedLayer(name.trim()) });
-            activeProjectRecord.layers.push(layer);
-            activeProjectRecord.activeLayerId = layer.id;
-            activeLayerId = layer.id;
-            markActiveProjectUpdated();
-            scheduleLocalAutosave();
-            setActiveProject(activeProjectRecord);
+            openLayerActionModal({
+                title: "New Layer",
+                description: "Create another editable layer in this project.",
+                bodyHtml: `
+                    <div class="layer-modal-grid">
+                        <div class="workspace-field full">
+                            <label for="layerModalName">Layer name</label>
+                            <input id="layerModalName" class="workspace-text-input" type="text" value="Layer ${activeProjectRecord.layers.length + 1}" autofocus>
+                        </div>
+                        <div class="workspace-field full">
+                            <label for="layerModalGeometry">Geometry type</label>
+                            <select id="layerModalGeometry" class="workspace-text-input">
+                                <option value="point">Point</option>
+                                <option value="line" disabled>Line (coming later)</option>
+                                <option value="polygon" disabled>Polygon (coming later)</option>
+                            </select>
+                        </div>
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Create layer",
+                        primary: true,
+                        onClick: () => {
+                            const nameInput = document.getElementById("layerModalName");
+                            const geometryInput = document.getElementById("layerModalGeometry");
+                            const name = nameInput?.value?.trim();
+                            if (!name) {
+                                nameInput?.focus();
+                                return false;
+                            }
+                            const layer = createLayerRecord({
+                                name,
+                                geometryType: geometryInput?.value || "point",
+                                parsed: createEmptyParsedLayer(name)
+                            });
+                            activeProjectRecord.layers.push(layer);
+                            activeProjectRecord.activeLayerId = layer.id;
+                            activeLayerId = layer.id;
+                            markActiveProjectUpdated();
+                            scheduleLocalAutosave();
+                            setActiveProject(activeProjectRecord);
+                            setProjectStatus(`Created layer ${name}.`, "success");
+                            return true;
+                        }
+                    }
+                ]
+            });
         }
 
         function editLayerSchema(layerId) {
-            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            const layer = getLayerById(layerId);
             if (!layer) return;
             ensureLayerStructure(layer);
-            const action = window.prompt(`Edit schema for "${layer.name}"\nType: add, rename, or delete`, "add");
-            if (!action) return;
-            const normalizedAction = action.trim().toLowerCase();
-            if (normalizedAction === "add") {
-                const name = window.prompt("Field name", "status");
-                if (!name?.trim()) return;
-                const fieldName = name.trim();
-                if (layer.schema.some((field) => field.name === fieldName)) {
-                    alert("A field with that name already exists.");
-                    return;
+            const lockedFields = new Set(["created_at", "symbol_color", "symbol_shape"]);
+            const rows = (layer.schema || []).map((field, index) => {
+                const isLocked = lockedFields.has(field.name);
+                return `
+                    <div class="schema-editor-row ${isLocked ? "locked" : ""}" data-schema-row="${index}">
+                        <div class="workspace-field">
+                            <label>Field name</label>
+                            <input class="workspace-text-input" data-schema-name value="${escapeHtml(field.name)}" data-original-name="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>
+                        </div>
+                        <div class="workspace-field">
+                            <label>Type</label>
+                            <select class="workspace-text-input" data-schema-type ${isLocked ? "disabled" : ""}>
+                                <option value="text" ${field.type === "text" ? "selected" : ""}>Text</option>
+                                <option value="number" ${field.type === "number" ? "selected" : ""}>Number</option>
+                                <option value="dropdown" ${field.type === "dropdown" ? "selected" : ""}>Dropdown</option>
+                            </select>
+                        </div>
+                        <div class="workspace-field">
+                            <label>Options</label>
+                            <input class="workspace-text-input" data-schema-options value="${escapeHtml((field.options || []).join(", "))}" placeholder="Option A, Option B" ${field.type === "dropdown" ? "" : "disabled"} ${isLocked ? "readonly" : ""}>
+                        </div>
+                        <button type="button" class="mini-btn ${isLocked ? "" : "danger"}" data-schema-remove ${isLocked ? "disabled" : ""} aria-label="Remove field ${escapeHtml(field.name)}">${isLocked ? "Locked" : "Remove"}</button>
+                    </div>
+                `;
+            }).join("");
+            openLayerActionModal({
+                title: `Schema Editor`,
+                description: `Update the fields for ${layer.name}. System style fields stay locked.`,
+                bodyHtml: `
+                    <div id="schemaEditorList" class="schema-editor-list">${rows}</div>
+                    <div class="workspace-inline-actions">
+                        <button id="schemaEditorAddField" type="button" class="mini-btn primary">Add field</button>
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Save schema",
+                        primary: true,
+                        onClick: () => {
+                            const rowEls = Array.from(document.querySelectorAll("[data-schema-row]"));
+                            const nextSchema = [];
+                            const seen = new Set();
+                            for (const rowEl of rowEls) {
+                                const nameInput = rowEl.querySelector("[data-schema-name]");
+                                const typeInput = rowEl.querySelector("[data-schema-type]");
+                                const optionsInput = rowEl.querySelector("[data-schema-options]");
+                                const originalName = nameInput?.dataset.originalName || "";
+                                const name = nameInput?.value?.trim() || "";
+                                const type = typeInput?.value || "text";
+                                if (!name) {
+                                    nameInput?.focus();
+                                    return false;
+                                }
+                                const normalized = name.toLowerCase();
+                                if (seen.has(normalized)) {
+                                    setProjectStatus(`Field ${name} already exists.`, "error");
+                                    nameInput?.focus();
+                                    return false;
+                                }
+                                seen.add(normalized);
+                                nextSchema.push({
+                                    name,
+                                    originalName,
+                                    type,
+                                    options: type === "dropdown"
+                                        ? (optionsInput?.value || "").split(",").map((value) => value.trim()).filter(Boolean)
+                                        : []
+                                });
+                            }
+                            layer.schema = nextSchema.map((field) => ({
+                                name: field.name,
+                                type: field.type,
+                                options: field.options
+                            }));
+                            (layer.features || []).forEach((feature) => {
+                                const previous = { ...(feature.attributes || {}) };
+                                const nextAttributes = {};
+                                nextSchema.forEach((field) => {
+                                    const sourceName = field.originalName || field.name;
+                                    if (sourceName in previous) nextAttributes[field.name] = previous[sourceName];
+                                    else if (field.name === "created_at") nextAttributes[field.name] = new Date().toISOString();
+                                    else if (field.name === "symbol_color") nextAttributes[field.name] = layer.styleDefaults?.symbol_color || "Red";
+                                    else if (field.name === "symbol_shape") nextAttributes[field.name] = layer.styleDefaults?.symbol_shape || "Dot";
+                                    else nextAttributes[field.name] = "";
+                                });
+                                feature.attributes = nextAttributes;
+                            });
+                            layer.parsed = buildParsedFromLayer(layer);
+                            layer.fields = layer.schema.map((field) => field.name);
+                            markActiveProjectUpdated();
+                            scheduleLocalAutosave();
+                            if (layer.id === activeLayerId) {
+                                setActiveProject(activeProjectRecord, { preserveRegion: true });
+                            } else {
+                                renderWorkspaceCollections();
+                                renderActiveProjectSidebar();
+                            }
+                            setProjectStatus(`Updated schema for ${layer.name}.`, "success");
+                            return true;
+                        }
+                    }
+                ],
+                onOpen: () => {
+                    const syncSchemaOptionVisibility = (rowEl) => {
+                        const typeInput = rowEl.querySelector("[data-schema-type]");
+                        const optionsInput = rowEl.querySelector("[data-schema-options]");
+                        if (!typeInput || !optionsInput) return;
+                        optionsInput.disabled = typeInput.value !== "dropdown" || optionsInput.hasAttribute("readonly");
+                    };
+                    document.getElementById("schemaEditorAddField")?.addEventListener("click", () => {
+                        const list = document.getElementById("schemaEditorList");
+                        if (!list) return;
+                        const index = list.querySelectorAll("[data-schema-row]").length;
+                        const row = document.createElement("div");
+                        row.className = "schema-editor-row";
+                        row.dataset.schemaRow = String(index);
+                        row.innerHTML = `
+                            <div class="workspace-field">
+                                <label>Field name</label>
+                                <input class="workspace-text-input" data-schema-name data-original-name="" placeholder="status">
+                            </div>
+                            <div class="workspace-field">
+                                <label>Type</label>
+                                <select class="workspace-text-input" data-schema-type>
+                                    <option value="text">Text</option>
+                                    <option value="number">Number</option>
+                                    <option value="dropdown">Dropdown</option>
+                                </select>
+                            </div>
+                            <div class="workspace-field">
+                                <label>Options</label>
+                                <input class="workspace-text-input" data-schema-options placeholder="Open, In Progress, Closed" disabled>
+                            </div>
+                            <button type="button" class="mini-btn danger" data-schema-remove>Remove</button>
+                        `;
+                        list.appendChild(row);
+                        row.querySelector("[data-schema-name]")?.focus();
+                        syncSchemaOptionVisibility(row);
+                    });
+                    document.getElementById("schemaEditorList")?.addEventListener("click", (event) => {
+                        const removeButton = event.target.closest("[data-schema-remove]");
+                        if (!removeButton || removeButton.disabled) return;
+                        removeButton.closest("[data-schema-row]")?.remove();
+                    });
+                    document.getElementById("schemaEditorList")?.addEventListener("change", (event) => {
+                        const rowEl = event.target.closest("[data-schema-row]");
+                        if (rowEl) syncSchemaOptionVisibility(rowEl);
+                    });
+                    document.querySelectorAll("[data-schema-row]").forEach(syncSchemaOptionVisibility);
                 }
-                const type = (window.prompt("Field type: text, number, dropdown", "text") || "text").trim().toLowerCase();
-                const field = { name: fieldName, type: ["number", "dropdown"].includes(type) ? type : "text" };
-                if (field.type === "dropdown") {
-                    const rawOptions = window.prompt("Dropdown options separated by commas", "Open,In Progress,Closed") || "";
-                    field.options = rawOptions.split(",").map((value) => value.trim()).filter(Boolean);
-                }
-                layer.schema.push(field);
-                (layer.features || []).forEach((feature) => {
-                    feature.attributes = feature.attributes || {};
-                    feature.attributes[field.name] = field.name === "created_at" ? new Date().toISOString() : "";
-                });
-            } else if (normalizedAction === "rename") {
-                const oldName = window.prompt(`Field to rename\nAvailable: ${(layer.schema || []).map((field) => field.name).join(", ")}`, layer.schema[0]?.name || "");
-                if (!oldName?.trim()) return;
-                const target = layer.schema.find((field) => field.name === oldName.trim());
-                if (!target) {
-                    alert("Field not found.");
-                    return;
-                }
-                const nextName = window.prompt("New field name", target.name);
-                if (!nextName?.trim() || nextName.trim() === target.name) return;
-                const previousName = target.name;
-                target.name = nextName.trim();
-                (layer.features || []).forEach((feature) => {
-                    feature.attributes = feature.attributes || {};
-                    feature.attributes[target.name] = feature.attributes[previousName] ?? "";
-                    delete feature.attributes[previousName];
-                });
-            } else if (normalizedAction === "delete") {
-                const fieldName = window.prompt(`Field to delete\nAvailable: ${(layer.schema || []).map((field) => field.name).join(", ")}`, layer.schema[0]?.name || "");
-                if (!fieldName?.trim()) return;
-                layer.schema = layer.schema.filter((field) => field.name !== fieldName.trim());
-                (layer.features || []).forEach((feature) => {
-                    if (feature.attributes) delete feature.attributes[fieldName.trim()];
-                });
-            } else {
-                return;
-            }
-            layer.parsed = buildParsedFromLayer(layer);
-            layer.fields = layer.schema.map((field) => field.name);
-            markActiveProjectUpdated();
-            scheduleLocalAutosave();
-            if (layer.id === activeLayerId) {
-                setActiveProject(activeProjectRecord, { preserveRegion: true });
-            } else {
-                renderWorkspaceCollections();
-            }
+            });
         }
 
         function editLayerStyleDefaults(layerId) {
-            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            const layer = getLayerById(layerId);
             if (!layer) return;
             ensureLayerStructure(layer);
             const currentDefaults = {
@@ -3541,33 +3847,80 @@
             };
             const colorField = (layer.schema || []).find((field) => field.name === "symbol_color");
             const shapeField = (layer.schema || []).find((field) => field.name === "symbol_shape");
-            const nextColor = window.prompt(
-                `Default symbol color for "${layer.name}"\nOptions: ${(colorField?.options || []).join(", ")}`,
-                currentDefaults.symbol_color
-            );
-            if (!nextColor?.trim()) return;
-            const nextShape = window.prompt(
-                `Default symbol shape for "${layer.name}"\nOptions: ${(shapeField?.options || []).join(", ")}`,
-                currentDefaults.symbol_shape
-            );
-            if (!nextShape?.trim()) return;
-            layer.styleDefaults = {
-                symbol_color: nextColor.trim(),
-                symbol_shape: nextShape.trim()
-            };
-            markActiveProjectUpdated();
-            scheduleLocalAutosave();
-            renderWorkspaceCollections();
-            renderActiveProjectSidebar();
-            setProjectStatus(`Updated style defaults for ${layer.name}.`, "success");
+            openLayerActionModal({
+                title: "Default Style",
+                description: `New points in ${layer.name} will inherit these defaults.`,
+                bodyHtml: `
+                    <div class="layer-modal-grid">
+                        <div class="workspace-field full">
+                            <label for="layerStyleColor">Default colour</label>
+                            <select id="layerStyleColor" class="workspace-text-input">
+                                ${(colorField?.options || []).map((option) => `<option value="${escapeHtml(option)}" ${option === currentDefaults.symbol_color ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                            </select>
+                        </div>
+                        <div class="workspace-field full">
+                            <label for="layerStyleShape">Default symbol</label>
+                            <select id="layerStyleShape" class="workspace-text-input">
+                                ${(shapeField?.options || []).map((option) => `<option value="${escapeHtml(option)}" ${option === currentDefaults.symbol_shape ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                            </select>
+                        </div>
+                        <div class="workspace-field full">
+                            <label>Colour preview</label>
+                            <div class="style-swatch-row">
+                                ${(colorField?.options || []).map((option) => `<button type="button" class="style-swatch" data-style-swatch="${escapeHtml(option)}"><span class="style-swatch-dot" style="background:${getSymbolColorValue(option)}"></span>${escapeHtml(option)}</button>`).join("")}
+                            </div>
+                        </div>
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Save style",
+                        primary: true,
+                        onClick: () => {
+                            const nextColor = document.getElementById("layerStyleColor")?.value?.trim();
+                            const nextShape = document.getElementById("layerStyleShape")?.value?.trim();
+                            if (!nextColor || !nextShape) return false;
+                            layer.styleDefaults = {
+                                symbol_color: nextColor,
+                                symbol_shape: nextShape
+                            };
+                            markActiveProjectUpdated();
+                            scheduleLocalAutosave();
+                            renderWorkspaceCollections();
+                            renderActiveProjectSidebar();
+                            setProjectStatus(`Updated style defaults for ${layer.name}.`, "success");
+                            return true;
+                        }
+                    }
+                ],
+                onOpen: () => {
+                    document.querySelectorAll("[data-style-swatch]").forEach((button) => {
+                        button.addEventListener("click", () => {
+                            const color = button.getAttribute("data-style-swatch");
+                            const select = document.getElementById("layerStyleColor");
+                            if (select && color) select.value = color;
+                        });
+                    });
+                }
+            });
         }
 
-        function switchToLayer(layerId) {
+        function switchToLayer(layerId, { revealTable = true } = {}) {
             if (!activeProjectRecord) return;
             activeProjectRecord.activeLayerId = layerId;
             activeLayerId = layerId;
             markActiveProjectUpdated();
             setActiveProject(activeProjectRecord, { preserveRegion: true });
+            if (revealTable && surveyTablePanel && surveyTableWrapper) {
+                setSurveyTableVisibility(true);
+                surveyTablePanel.classList.add("open");
+                surveyTableWrapper.hidden = false;
+                surveyTableToggleIcon.textContent = "▼";
+                surveyTableToggleLabel.textContent = "Hide attributes table";
+                updateSurveyTable();
+                updateFloatingButtonLayer(true);
+            }
         }
 
         function toggleLayerVisibility(layerId) {
@@ -3588,33 +3941,72 @@
         }
 
         function renameLayer(layerId) {
-            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            const layer = getLayerById(layerId);
             if (!layer) return;
-            const nextName = window.prompt("Rename layer", layer.name);
-            if (!nextName?.trim()) return;
-            layer.name = nextName.trim();
-            if (layer.parsed) layer.parsed.layerName = layer.name;
-            markActiveProjectUpdated();
-            scheduleLocalAutosave();
-            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            openLayerActionModal({
+                title: "Rename Layer",
+                description: "Choose a clear name for this layer.",
+                bodyHtml: `
+                    <div class="workspace-field full">
+                        <label for="renameLayerInput">Layer name</label>
+                        <input id="renameLayerInput" class="workspace-text-input" type="text" value="${escapeHtml(layer.name)}" autofocus>
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Save",
+                        primary: true,
+                        onClick: () => {
+                            const nextName = document.getElementById("renameLayerInput")?.value?.trim();
+                            if (!nextName) return false;
+                            layer.name = nextName;
+                            if (layer.parsed) layer.parsed.layerName = layer.name;
+                            markActiveProjectUpdated();
+                            scheduleLocalAutosave();
+                            setActiveProject(activeProjectRecord, { preserveRegion: true });
+                            setProjectStatus(`Renamed layer to ${nextName}.`, "success");
+                            return true;
+                        }
+                    }
+                ]
+            });
         }
 
         function deleteLayer(layerId) {
             if (!activeProjectRecord || activeProjectRecord.layers.length <= 1) {
-                alert("Keep at least one layer in the project.");
+                showLayerActionInfo("Layer required", "Keep at least one layer in the project.");
                 return;
             }
-            activeProjectRecord.layers = activeProjectRecord.layers.filter((item) => item.id !== layerId);
-            activeProjectRecord.activeLayerId = activeProjectRecord.layers[0]?.id || null;
-            activeLayerId = activeProjectRecord.activeLayerId;
-            markActiveProjectUpdated();
-            scheduleLocalAutosave();
-            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            openLayerActionModal({
+                title: "Delete Layer",
+                description: `Remove ${layer.name} from this project?`,
+                bodyHtml: `<div class="layer-modal-message layer-modal-danger">This removes the layer from the current project. Deleted layers cannot be recovered with undo.</div>`,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Delete layer",
+                        danger: true,
+                        onClick: () => {
+                            activeProjectRecord.layers = activeProjectRecord.layers.filter((item) => item.id !== layerId);
+                            activeProjectRecord.activeLayerId = activeProjectRecord.layers[0]?.id || null;
+                            activeLayerId = activeProjectRecord.activeLayerId;
+                            markActiveProjectUpdated();
+                            scheduleLocalAutosave();
+                            setActiveProject(activeProjectRecord, { preserveRegion: true });
+                            setProjectStatus(`Deleted layer ${layer.name}.`, "success");
+                            return true;
+                        }
+                    }
+                ]
+            });
         }
 
         function downloadActiveProjectPackage() {
             if (!activeProjectRecord || !currentSurveyData) {
-                alert("Create or open a project first.");
+                setProjectStatus("Create or open a project first.", "error");
                 return;
             }
             const payload = {
@@ -3773,6 +4165,94 @@
             }
         };
 
+        function trapLayerActionModalFocus(event) {
+            if (event.key !== "Tab" || layerActionModalBackdrop?.hidden) return;
+            const focusable = Array.from(layerActionModal.querySelectorAll('button, input, textarea, select, [tabindex]:not([tabindex="-1"])'))
+                .filter((element) => !element.disabled && element.offsetParent !== null);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+
+        function closeLayerActionModal() {
+            if (!layerActionModalBackdrop) return;
+            const returnFocusTarget = layerActionModalState?.returnFocusTo;
+            layerActionModalBackdrop.hidden = true;
+            layerActionModalState = null;
+            layerActionModalBody.innerHTML = "";
+            layerActionModalActions.innerHTML = "";
+            document.removeEventListener("keydown", trapLayerActionModalFocus, true);
+            if (returnFocusTarget?.focus) {
+                returnFocusTarget.focus();
+            }
+        }
+
+        function openLayerActionModal({
+            title,
+            description = "",
+            bodyHtml = "",
+            actions = [],
+            onOpen = null,
+            returnFocusTo = document.activeElement
+        }) {
+            if (!layerActionModalBackdrop || !layerActionModalTitle || !layerActionModalBody || !layerActionModalActions) return;
+            layerActionModalTitle.textContent = title;
+            layerActionModalDescription.textContent = description;
+            layerActionModalBody.innerHTML = bodyHtml;
+            layerActionModalActions.innerHTML = actions.map((action, index) => `
+                <button
+                    type="button"
+                    class="${action.primary ? "workspace-primary-btn" : action.danger ? "mini-btn danger" : "workspace-secondary-btn"}"
+                    data-layer-action-modal="${index}"
+                >${escapeHtml(action.label)}</button>
+            `).join("");
+            layerActionModalState = { actions, returnFocusTo };
+            layerActionModalBackdrop.hidden = false;
+            layerActionModalActions.querySelectorAll("[data-layer-action-modal]").forEach((button) => {
+                button.addEventListener("click", async () => {
+                    const action = layerActionModalState?.actions?.[Number(button.dataset.layerActionModal)];
+                    if (!action) return;
+                    const shouldClose = action.onClick ? await action.onClick() : true;
+                    if (shouldClose !== false) {
+                        closeLayerActionModal();
+                    }
+                });
+            });
+            document.addEventListener("keydown", trapLayerActionModalFocus, true);
+            queueMicrotask(() => {
+                onOpen?.();
+                const autofocus = layerActionModal.querySelector("[autofocus], input, select, textarea, button");
+                autofocus?.focus();
+            });
+        }
+
+        function getLayerById(layerId) {
+            return activeProjectRecord?.layers?.find((item) => item.id === layerId) || null;
+        }
+
+        function showLayerActionInfo(title, message) {
+            openLayerActionModal({
+                title,
+                description: "",
+                bodyHtml: `<div class="layer-modal-message">${escapeHtml(message)}</div>`,
+                actions: [{ label: "Close", primary: true }]
+            });
+        }
+
+        layerActionModalClose?.addEventListener("click", closeLayerActionModal);
+        layerActionModalBackdrop?.addEventListener("click", (event) => {
+            if (event.target === layerActionModalBackdrop) {
+                closeLayerActionModal();
+            }
+        });
+
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
 
         projectFileInput.addEventListener("change", async (event) => {
@@ -3799,7 +4279,7 @@
         dropboxLoadBtn.addEventListener("click", async () => {
             const url = resolveDropboxLink(dropboxUrlInput.value.trim());
             if (!url) {
-                alert("Enter a Dropbox shared link first.");
+                setProjectStatus("Enter a Dropbox shared link first.", "error");
                 return;
             }
             try {
@@ -3824,7 +4304,7 @@
         loadDropboxSurveyBtn?.addEventListener("click", async () => {
             const selectedPath = dropboxSurveySelect.value;
             if (!selectedPath) {
-                alert("Select a project file first.");
+                setProjectStatus("Select a project file first.", "error");
                 return;
             }
             try {
@@ -4017,6 +4497,10 @@
         });
         document.addEventListener("keydown", (event) => {
             if (event.key === "Escape") {
+                if (!layerActionModalBackdrop.hidden) {
+                    closeLayerActionModal();
+                    return;
+                }
                 if (isAddingSurveyPoint) {
                     exitAddSurveyPointMode();
                     setProjectStatus("Point placement cancelled.", "success");
@@ -4043,7 +4527,27 @@
             if (isInteractiveField(event.target)) return;
             if (event.key.toLowerCase() === "n") {
                 event.preventDefault();
-                openCreateProjectModal();
+                if (activeProjectRecord) {
+                    addLayerToActiveProject();
+                } else {
+                    openCreateProjectModal();
+                }
+                return;
+            }
+            if (event.key.toLowerCase() === "o") {
+                event.preventDefault();
+                if (!activeProjectRecord) {
+                    setProjectStatus("Create or open a project first.", "error");
+                    return;
+                }
+                setSurveyTableVisibility(true);
+                surveyTablePanel.classList.add("open");
+                surveyTableWrapper.hidden = false;
+                if (floatingButtonIcon) floatingButtonIcon.textContent = "▼";
+                if (showSurveyTableBtnLabel) showSurveyTableBtnLabel.textContent = "Hide attributes table";
+                updateSurveyTable();
+                updateFloatingButtonLayer(true);
+                setProjectStatus("Attributes table opened.", "success");
                 return;
             }
             if (event.key.toLowerCase() === "p") {
@@ -4061,6 +4565,7 @@
             document.getElementById("toolbar"),
             importPanel,
             createProjectModal,
+            layerActionModalBackdrop,
             sidebar,
             surveyTablePanel,
             sharePanel,
@@ -4109,12 +4614,12 @@
                 return;
             }
             if (!isDropboxLinkSource()) {
-                alert("Sharing is currently available for Dropbox-linked projects. Open a Dropbox-backed project to share.");
+                setProjectStatus("Sharing is currently available for Dropbox-linked projects. Open a Dropbox-backed project to share.", "error");
                 return;
             }
             const shareUrl = buildShareUrl();
             if (!shareUrl) {
-                alert("Dropbox link required to share.");
+                setProjectStatus("Dropbox link required to share.", "error");
                 return;
             }
             navigator.clipboard.writeText(shareUrl)
@@ -4126,7 +4631,7 @@
         shareCopyBtn?.addEventListener("click", () => {
             const link = buildShareUrl();
             if (!link) {
-                alert("Dropbox link required to share.");
+                setProjectStatus("Dropbox link required to share.", "error");
                 return;
             }
             navigator.clipboard.writeText(link)
@@ -4144,7 +4649,7 @@
 
         addSurveyPointBtn.addEventListener("click", () => {
             if (!currentSurveyData) {
-                alert("Open a project before adding points.");
+                setProjectStatus("Open a project before adding points.", "error");
                 return;
             }
             toggleAddSurveyPointMode();
