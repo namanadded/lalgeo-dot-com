@@ -1,2 +1,7 @@
 [build]
   publish = "."
+
+[[redirects]]
+  from = "/datamanager"
+  to = "/lalgeo-data-manager.html"
+  status = 200
