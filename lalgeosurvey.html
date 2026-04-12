@@ -2238,10 +2238,6 @@
         </div>
     </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
-    <div id="workspaceScreenshotBanner" class="workspace-screenshot-banner" hidden>
-        <h4>Project-first cloud GIS workspace</h4>
-        <p>Project context, layer management, and attribute editing are organized for browser-first editing.</p>
-    </div>
     <div id="workspaceHint" class="workspace-screenshot-banner" hidden style="top:auto; bottom:22px; left:22px;">
         <h4>Start editing</h4>
         <p>Click Add Point, then click on the map to place your first feature.</p>
@@ -2394,7 +2390,6 @@
         const drawerOpenProjectBtn = document.getElementById("drawerOpenProjectBtn");
         const drawerImportProjectBtn = document.getElementById("drawerImportProjectBtn");
         const drawerConnectDropboxBtn = document.getElementById("drawerConnectDropboxBtn");
-        const workspaceScreenshotBanner = document.getElementById("workspaceScreenshotBanner");
         const workspaceHint = document.getElementById("workspaceHint");
         const mapAddHint = document.getElementById("mapAddHint");
         const workspaceLiveRegion = document.getElementById("workspaceLiveRegion");
@@ -3026,7 +3021,6 @@
                 }
             }
             if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
-            if (workspaceScreenshotBanner) workspaceScreenshotBanner.hidden = !hasProject;
             if (!hasProject) setSidebarVisibility(false);
             if (hasProject) {
                 renderActiveProjectSidebar();
