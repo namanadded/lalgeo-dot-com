@@ -250,12 +250,25 @@
         margin-top: 2px;
         text-align: center;
     }
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
     #addSurveyPointBtn {
         display: none;
     }
     #addSurveyPointBtn.active {
-        background: #1a73e8;
-        color: #fff;
+        background: linear-gradient(135deg, #5cc8c0 0%, #8ff0dc 100%);
+        color: #08121e;
+        border-color: rgba(143,240,220,0.45);
+        box-shadow: 0 0 0 1px rgba(143,240,220,0.2), 0 18px 34px rgba(92,200,192,0.2);
     }
     #importPanel {
         position: absolute;
@@ -1404,6 +1417,14 @@
         min-height: 42px;
         padding: 0 16px;
     }
+    .workspace-validation {
+        margin-top: 8px;
+        font-size: 12px;
+        color: #ffb5b5;
+    }
+    .workspace-validation[hidden] {
+        display: none;
+    }
     .workspace-screenshot-banner {
         position: fixed;
         top: 116px;
@@ -1473,12 +1494,22 @@
         opacity: 1;
         pointer-events: auto;
     }
+    #featureDrawer.minimized {
+        width: min(280px, calc(100vw - 32px));
+        max-height: 110px;
+        overflow: hidden;
+    }
+    #featureDrawer.minimized #featureDrawerBody {
+        display: none;
+    }
     .feature-drawer-header {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
         gap: 12px;
         margin-bottom: 14px;
+        cursor: move;
+        user-select: none;
     }
     .feature-drawer-header h3 {
         margin: 0 0 6px;
@@ -1501,6 +1532,22 @@
         height: 36px;
         cursor: pointer;
         font-size: 18px;
+    }
+    .feature-drawer-controls {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .feature-drawer-toggle {
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.06);
+        color: #eef6fb;
+        border-radius: 999px;
+        min-width: 36px;
+        height: 36px;
+        cursor: pointer;
+        font-size: 14px;
+        font-weight: 700;
     }
     .feature-drawer-form {
         display: grid;
@@ -1758,14 +1805,14 @@
                 <div class="toolbar-group">
                     <span class="toolbar-group-label">Project</span>
                     <button id="workspacePanelBtn" type="button" class="control-btn active">Projects</button>
-                    <button id="newProjectBtn" type="button" class="control-btn">New</button>
+                    <button id="newProjectBtn" type="button" class="control-btn" aria-label="Create a new project (shortcut N)">New</button>
                     <button id="openProjectBtn" type="button" class="control-btn">Open</button>
                     <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
                 </div>
 
                 <div class="toolbar-group">
                     <span class="toolbar-group-label">Edit</span>
-                    <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;">Add point</button>
+                    <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;" aria-label="Add point to the active layer (shortcut P)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add point</button>
                     <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
                     <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
                 </div>
@@ -1912,30 +1959,30 @@
         <div class="workspace-modal">
             <h3>Create Project</h3>
             <p class="workspace-panel-muted">Start a new LalGeo project in the browser and open it directly in the editor.</p>
-            <form id="createProjectForm">
+            <form id="createProjectForm" aria-describedby="createProjectHelp createProjectValidation">
                 <div class="workspace-form-grid">
                     <div class="workspace-field full">
                         <label for="createProjectName">Project name</label>
-                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required>
+                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required aria-required="true" aria-label="Project name">
                     </div>
                     <div class="workspace-field full">
                         <label for="createProjectDescription">Description</label>
-                        <textarea id="createProjectDescription" class="workspace-textarea" placeholder="Optional project description"></textarea>
+                        <textarea id="createProjectDescription" class="workspace-textarea" placeholder="Optional project description" aria-label="Project description"></textarea>
                     </div>
                     <div class="workspace-field">
                         <label for="createProjectType">Base workspace type</label>
-                        <select id="createProjectType" class="workspace-text-input">
+                        <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type">
                             <option value="Survey project">Survey project</option>
                             <option value="GIS workspace">GIS workspace</option>
                         </select>
                     </div>
                     <div class="workspace-field">
                         <label for="createLayerName">Default layer name</label>
-                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required>
+                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required aria-required="true" aria-label="Default layer name">
                     </div>
                     <div class="workspace-field">
                         <label for="createGeometryType">Geometry type</label>
-                        <select id="createGeometryType" class="workspace-text-input">
+                        <select id="createGeometryType" class="workspace-text-input" aria-label="Geometry type">
                             <option value="point">Point</option>
                             <option value="line" disabled>Line (coming later)</option>
                             <option value="polygon" disabled>Polygon (coming later)</option>
@@ -1943,15 +1990,17 @@
                     </div>
                     <div class="workspace-field full">
                         <label for="createStorageDestination">Storage destination</label>
-                        <select id="createStorageDestination" class="workspace-text-input">
+                        <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination">
                             <option value="web">Web workspace</option>
                             <option value="dropbox">Dropbox sync</option>
                         </select>
                     </div>
                 </div>
+                <div id="createProjectHelp" class="workspace-panel-muted">Project name is required. Shortcut: press <strong>N</strong> to open this dialog.</div>
+                <div id="createProjectValidation" class="workspace-validation" hidden>Enter a project name to continue.</div>
                 <div class="workspace-modal-actions">
                     <button id="createProjectCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
-                    <button type="submit" class="workspace-primary-btn">Create Project</button>
+                    <button id="createProjectSubmitBtn" type="submit" class="workspace-primary-btn" disabled>Create Project</button>
                 </div>
             </form>
         </div>
@@ -1970,14 +2019,19 @@
         <h4>Start editing</h4>
         <p>Click Add Point, then click on the map to place your first feature.</p>
     </div>
+    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press P to toggle point placement mode. Press Escape to cancel point placement or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
-    <aside id="featureDrawer" aria-label="Feature Details">
+    <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
+    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite">
         <div class="feature-drawer-header">
             <div>
                 <h3>Feature Details</h3>
                 <div id="featureDrawerMeta" class="feature-drawer-meta"></div>
             </div>
-            <button id="featureDrawerClose" type="button" class="feature-drawer-close" aria-label="Close feature details">×</button>
+            <div class="feature-drawer-controls">
+                <button id="featureDrawerToggle" type="button" class="feature-drawer-toggle" aria-label="Collapse feature details">−</button>
+                <button id="featureDrawerClose" type="button" class="feature-drawer-close" aria-label="Close feature details">×</button>
+            </div>
         </div>
         <div id="featureDrawerBody" class="feature-drawer-empty">Select a feature to edit attributes.</div>
     </aside>
@@ -2076,12 +2130,14 @@
         const createProjectModal = document.getElementById("workspaceCreateModal");
         const createProjectForm = document.getElementById("createProjectForm");
         const createProjectCancelBtn = document.getElementById("createProjectCancelBtn");
+        const createProjectSubmitBtn = document.getElementById("createProjectSubmitBtn");
         const createProjectNameInput = document.getElementById("createProjectName");
         const createProjectDescriptionInput = document.getElementById("createProjectDescription");
         const createProjectTypeInput = document.getElementById("createProjectType");
         const createLayerNameInput = document.getElementById("createLayerName");
         const createGeometryTypeInput = document.getElementById("createGeometryType");
         const createStorageDestinationInput = document.getElementById("createStorageDestination");
+        const createProjectValidation = document.getElementById("createProjectValidation");
         const projectSwitcher = document.getElementById("projectSwitcher");
         const projectList = document.getElementById("projectList");
         const layerList = document.getElementById("layerList");
@@ -2100,10 +2156,12 @@
         const workspaceScreenshotBanner = document.getElementById("workspaceScreenshotBanner");
         const workspaceHint = document.getElementById("workspaceHint");
         const mapAddHint = document.getElementById("mapAddHint");
+        const workspaceLiveRegion = document.getElementById("workspaceLiveRegion");
         const featureDrawer = document.getElementById("featureDrawer");
         const featureDrawerMeta = document.getElementById("featureDrawerMeta");
         const featureDrawerBody = document.getElementById("featureDrawerBody");
         const featureDrawerClose = document.getElementById("featureDrawerClose");
+        const featureDrawerToggle = document.getElementById("featureDrawerToggle");
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
@@ -2269,6 +2327,8 @@
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
         let localAutosaveTimer = null;
+        let isFeatureDrawerMinimized = false;
+        let featureDrawerDragState = null;
         let deferredReloadPath = null;
         const USE_INLINE_FEATURE_CALLOUT = false;
         const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
@@ -2868,7 +2928,18 @@
                 createStorageDestinationInput.value = "web";
             }
             createProjectModal.hidden = false;
+            updateCreateProjectFormState();
             createProjectNameInput.focus();
+        }
+
+        function updateCreateProjectFormState() {
+            const projectName = createProjectNameInput?.value?.trim() || "";
+            const layerName = createLayerNameInput?.value?.trim() || "";
+            const isValid = Boolean(projectName && layerName);
+            if (createProjectSubmitBtn) createProjectSubmitBtn.disabled = !isValid;
+            if (createProjectValidation) createProjectValidation.hidden = isValid;
+            if (createProjectNameInput) createProjectNameInput.setAttribute("aria-invalid", projectName ? "false" : "true");
+            return isValid;
         }
 
         function refreshCreateProjectStorageOptions() {
@@ -2884,6 +2955,45 @@
 
         function closeCreateProjectModal() {
             if (createProjectModal) createProjectModal.hidden = true;
+        }
+
+        function setFeatureDrawerMinimized(minimized) {
+            isFeatureDrawerMinimized = minimized;
+            if (!featureDrawer) return;
+            featureDrawer.classList.toggle("minimized", minimized);
+            if (featureDrawerToggle) {
+                featureDrawerToggle.textContent = minimized ? "+" : "−";
+                featureDrawerToggle.setAttribute("aria-label", minimized ? "Expand feature details" : "Collapse feature details");
+            }
+        }
+
+        function startFeatureDrawerDrag(event) {
+            if (!featureDrawer || window.innerWidth < 900) return;
+            if (event.target.closest("button, input, textarea, select, label")) return;
+            const rect = featureDrawer.getBoundingClientRect();
+            featureDrawerDragState = {
+                offsetX: event.clientX - rect.left,
+                offsetY: event.clientY - rect.top
+            };
+            featureDrawer.style.left = `${rect.left}px`;
+            featureDrawer.style.right = "auto";
+            featureDrawer.style.top = `${rect.top}px`;
+        }
+
+        function dragFeatureDrawer(event) {
+            if (!featureDrawer || !featureDrawerDragState) return;
+            const nextLeft = Math.max(12, Math.min(window.innerWidth - featureDrawer.offsetWidth - 12, event.clientX - featureDrawerDragState.offsetX));
+            const nextTop = Math.max(82, Math.min(window.innerHeight - featureDrawer.offsetHeight - 12, event.clientY - featureDrawerDragState.offsetY));
+            featureDrawer.style.left = `${nextLeft}px`;
+            featureDrawer.style.top = `${nextTop}px`;
+        }
+
+        function stopFeatureDrawerDrag() {
+            featureDrawerDragState = null;
+        }
+
+        function isInteractiveField(target) {
+            return Boolean(target?.closest?.("input, textarea, select, button, [contenteditable='true']"));
         }
 
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
@@ -2964,7 +3074,7 @@
             const projectName = createProjectNameInput.value.trim();
             const layerName = createLayerNameInput.value.trim() || "Points";
             if (!projectName) {
-                alert("Project name is required.");
+                updateCreateProjectFormState();
                 return null;
             }
             const parsed = createEmptyParsedLayer(layerName);
@@ -3658,6 +3768,9 @@
             if (state) {
                 projectStatus.classList.add(state);
             }
+            if (workspaceLiveRegion) {
+                workspaceLiveRegion.textContent = message;
+            }
         };
 
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
@@ -3735,6 +3848,7 @@
         checkDropboxConnectionStatus();
         refreshDropboxSurveyList();
         loadWorkspaceProjects();
+        updateCreateProjectFormState();
         const storedActiveProjectId = localStorage.getItem(WORKSPACE_ACTIVE_KEY);
         if (storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
@@ -3761,11 +3875,17 @@
         drawerImportProjectBtn?.addEventListener("click", () => projectPickerBtn?.click());
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
         createProjectCancelBtn?.addEventListener("click", closeCreateProjectModal);
+        createProjectNameInput?.addEventListener("input", updateCreateProjectFormState);
+        createLayerNameInput?.addEventListener("input", updateCreateProjectFormState);
         createProjectModal?.addEventListener("click", (event) => {
             if (event.target === createProjectModal) closeCreateProjectModal();
         });
         createProjectForm?.addEventListener("submit", (event) => {
             event.preventDefault();
+            if (!updateCreateProjectFormState()) {
+                createProjectNameInput?.focus();
+                return;
+            }
             const project = createProjectFromForm();
             if (!project) return;
             addProjectToWorkspace(project);
@@ -3896,17 +4016,44 @@
                 .catch(() => setProjectStatus("Unable to copy share link.", "error"));
         });
         document.addEventListener("keydown", (event) => {
-            if (event.key !== "Escape") return;
-            if (!createProjectModal.hidden) {
-                closeCreateProjectModal();
+            if (event.key === "Escape") {
+                if (isAddingSurveyPoint) {
+                    exitAddSurveyPointMode();
+                    setProjectStatus("Point placement cancelled.", "success");
+                    return;
+                }
+                if (!createProjectModal.hidden) {
+                    closeCreateProjectModal();
+                    return;
+                }
+                if (!importPanel.hidden) {
+                    setImportPanelVisibility(false);
+                    return;
+                }
+                if (sharePanel?.classList.contains("open")) {
+                    closeSharePanel();
+                    return;
+                }
+                if (featureDrawer?.classList.contains("open")) {
+                    hideSurveyCallout();
+                }
                 return;
             }
-            if (!importPanel.hidden) {
-                setImportPanelVisibility(false);
+            if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+            if (isInteractiveField(event.target)) return;
+            if (event.key.toLowerCase() === "n") {
+                event.preventDefault();
+                openCreateProjectModal();
                 return;
             }
-            if (sharePanel?.classList.contains("open")) {
-                closeSharePanel();
+            if (event.key.toLowerCase() === "p") {
+                event.preventDefault();
+                if (!currentSurveyData) {
+                    setProjectStatus("Open a project before adding points.", "error");
+                    return;
+                }
+                toggleAddSurveyPointMode();
+                return;
             }
         });
 
@@ -4003,6 +4150,14 @@
             toggleAddSurveyPointMode();
         });
         featureDrawerClose?.addEventListener("click", () => hideSurveyCallout());
+        featureDrawerToggle?.addEventListener("click", () => setFeatureDrawerMinimized(!isFeatureDrawerMinimized));
+        document.querySelector(".feature-drawer-header")?.addEventListener("pointerdown", startFeatureDrawerDrag);
+        document.querySelector(".feature-drawer-header")?.addEventListener("dblclick", (event) => {
+            if (event.target.closest("button")) return;
+            setFeatureDrawerMinimized(!isFeatureDrawerMinimized);
+        });
+        document.addEventListener("pointermove", dragFeatureDrawer);
+        document.addEventListener("pointerup", stopFeatureDrawerDrag);
         mapElement?.addEventListener("mousemove", (event) => {
             if (!mapAddHint || !isAddingSurveyPoint) return;
             mapAddHint.hidden = false;
@@ -4066,14 +4221,18 @@
         function toggleAddSurveyPointMode() {
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
+            addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
+            addSurveyPointBtn.textContent = isAddingSurveyPoint ? "Adding point" : "Add point";
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) mapAddHint.hidden = !isAddingSurveyPoint;
             if (isAddingSurveyPoint) {
                 showWorkspaceHint("Click 'Add Point' then click anywhere on the map to start collecting data.");
+                setProjectStatus("Point placement active. Click on the map to add a feature.", "success");
             }
             if (!isAddingSurveyPoint) {
                 pendingNewAnnotation = null;
                 hideWorkspaceHint();
+                setProjectStatus("Point placement cancelled.", "success");
             }
         }
 
@@ -4499,6 +4658,8 @@
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
             addSurveyPointBtn.classList.remove("active");
+            addSurveyPointBtn.setAttribute("aria-pressed", "false");
+            addSurveyPointBtn.textContent = "Add point";
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             if (mapAddHint) mapAddHint.hidden = true;
