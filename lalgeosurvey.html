@@ -149,15 +149,81 @@
         border-radius: 22px;
         border: 1px solid rgba(255,255,255,0.08);
         padding: 18px;
-        display: none;
-        z-index: 999;
+        display: block;
+        z-index: 1150;
         overflow-y: auto;
         font-family: "Inter", system-ui, sans-serif;
         color: #e5eef8;
         backdrop-filter: blur(18px);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-24px);
+        transition: opacity 0.2s ease, transform 0.2s ease;
     }
     #sidebar.visible {
-        display: block;
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(0);
+    }
+    .sidebar-backdrop {
+        position: absolute;
+        inset: 0;
+        background: rgba(4, 12, 20, 0.18);
+        backdrop-filter: blur(4px);
+        z-index: 1140;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 0.2s ease;
+    }
+    .sidebar-backdrop.visible {
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .sidebar-shell {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+    }
+    .sidebar-topbar {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding-bottom: 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-heading {
+        margin: 0;
+        font-size: 16px;
+        font-weight: 700;
+        color: #f5fbff;
+        letter-spacing: -0.02em;
+    }
+    .sidebar-subheading {
+        margin: 4px 0 0;
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.5;
+    }
+    .sidebar-close-btn {
+        min-width: 38px;
+        min-height: 38px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        font-weight: 700;
+    }
+    .sidebar-close-btn:hover,
+    .sidebar-close-btn:focus-visible {
+        outline: none;
+        background: rgba(255,255,255,0.1);
+        border-color: rgba(143,240,220,0.24);
     }
     .workspace-sidebar-section {
         margin-top: 18px;
@@ -1956,6 +2022,7 @@
                 <div class="toolbar-group">
                     <span class="toolbar-group-label">Project</span>
                     <button id="workspacePanelBtn" type="button" class="control-btn active">Projects</button>
+                    <button id="sidebarToggleBtn" type="button" class="control-btn" aria-controls="sidebar" aria-expanded="false">Workspace</button>
                     <button id="newProjectBtn" type="button" class="control-btn" aria-label="Create a new project (shortcut N)">New</button>
                     <button id="openProjectBtn" type="button" class="control-btn">Open</button>
                     <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
@@ -2157,9 +2224,18 @@
         </div>
     </div>
 
-    <div id="sidebar">
-        <span id="closeSidebar" style="cursor:pointer; float:right; font-size:18px; font-weight:bold;">×</span>
-        <div id="sidebar-content" style="clear:both; padding-top: 8px;"></div>
+    <div id="sidebarBackdrop" class="sidebar-backdrop" hidden></div>
+    <div id="sidebar" aria-label="Workspace sidebar" aria-hidden="true">
+        <div class="sidebar-shell">
+            <div class="sidebar-topbar">
+                <div>
+                    <h2 class="sidebar-heading">Workspace Panel</h2>
+                    <p class="sidebar-subheading">Open it when you need project, layer, or route details.</p>
+                </div>
+                <button id="closeSidebar" type="button" class="sidebar-close-btn" aria-label="Close workspace sidebar">×</button>
+            </div>
+            <div id="sidebar-content"></div>
+        </div>
     </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="workspaceScreenshotBanner" class="workspace-screenshot-banner" hidden>
@@ -2284,6 +2360,7 @@
         const workspaceStorageLabelEl = document.getElementById("workspaceStorageLabel");
         const workspaceSaveStatusEl = document.getElementById("workspaceSaveStatus");
         const workspacePanelBtn = document.getElementById("workspacePanelBtn");
+        const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
         const newProjectBtn = document.getElementById("newProjectBtn");
         const openProjectBtn = document.getElementById("openProjectBtn");
         const exportProjectBtn = document.getElementById("exportProjectBtn");
@@ -2333,6 +2410,7 @@
         const layerActionModalBody = document.getElementById("layerActionModalBody");
         const layerActionModalActions = document.getElementById("layerActionModalActions");
         const layerActionModalClose = document.getElementById("layerActionModalClose");
+        const sidebarBackdrop = document.getElementById("sidebarBackdrop");
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
@@ -2507,7 +2585,7 @@
         const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
         let workspaceProjects = [];
-        let sidebarDismissed = false;
+        let sidebarVisible = false;
         let suppressMapTapUntil = 0;
         updateHistoryButtons();
 
@@ -2949,7 +3027,7 @@
             }
             if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
             if (workspaceScreenshotBanner) workspaceScreenshotBanner.hidden = !hasProject;
-            if (sidebar) sidebar.classList.toggle("visible", hasProject && !sidebarDismissed);
+            if (!hasProject) setSidebarVisibility(false);
             if (hasProject) {
                 renderActiveProjectSidebar();
                 const featureCount = (layer?.parsed?.records || []).length;
@@ -3168,6 +3246,20 @@
             return Boolean(target?.closest?.("input, textarea, select, button, [contenteditable='true']"));
         }
 
+        function setSidebarVisibility(show) {
+            sidebarVisible = Boolean(show);
+            sidebar?.classList.toggle("visible", sidebarVisible);
+            sidebar?.setAttribute("aria-hidden", sidebarVisible ? "false" : "true");
+            if (sidebarBackdrop) {
+                sidebarBackdrop.hidden = !sidebarVisible;
+                sidebarBackdrop.classList.toggle("visible", sidebarVisible);
+            }
+            if (sidebarToggleBtn) {
+                sidebarToggleBtn.classList.toggle("active", sidebarVisible);
+                sidebarToggleBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
+            }
+        }
+
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
             if (localAutosaveTimer) {
                 clearTimeout(localAutosaveTimer);
@@ -3175,7 +3267,6 @@
             }
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
-            sidebarDismissed = false;
             if (project?.id) {
                 localStorage.setItem(WORKSPACE_ACTIVE_KEY, project.id);
             }
@@ -4342,6 +4433,13 @@
         updateWorkspaceContext();
 
         workspacePanelBtn?.addEventListener("click", () => setImportPanelVisibility(!isImportPanelVisible));
+        sidebarToggleBtn?.addEventListener("click", () => {
+            if (!activeProjectRecord && !sidebarContent?.textContent?.trim()) {
+                setProjectStatus("Create or open a project first.", "error");
+                return;
+            }
+            setSidebarVisibility(!sidebarVisible);
+        });
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         emptyCreateProjectBtn?.addEventListener("click", () => openCreateProjectModal());
@@ -4436,10 +4534,8 @@
             }
         });
         addLayerBtn?.addEventListener("click", addLayerToActiveProject);
-        closeSidebar?.addEventListener("click", () => {
-            sidebarDismissed = true;
-            sidebar?.classList.remove("visible");
-        });
+        closeSidebar?.addEventListener("click", () => setSidebarVisibility(false));
+        sidebarBackdrop?.addEventListener("click", () => setSidebarVisibility(false));
         sidebarContent?.addEventListener("click", (event) => {
             if (event.target.closest("[data-sidebar-open-projects]")) {
                 setImportPanelVisibility(true);
@@ -4499,6 +4595,10 @@
             if (event.key === "Escape") {
                 if (!layerActionModalBackdrop.hidden) {
                     closeLayerActionModal();
+                    return;
+                }
+                if (sidebarVisible) {
+                    setSidebarVisibility(false);
                     return;
                 }
                 if (isAddingSurveyPoint) {
@@ -4567,6 +4667,7 @@
             createProjectModal,
             layerActionModalBackdrop,
             sidebar,
+            sidebarBackdrop,
             surveyTablePanel,
             sharePanel,
             workspaceEmptyState,
@@ -7982,7 +8083,7 @@ function setImportPanelVisibility(show) {
 
         document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("closeSidebar").addEventListener("click", () => {
-                document.getElementById("sidebar").style.display = "none";
+                setSidebarVisibility(false);
             });
         });
 
@@ -8022,7 +8123,7 @@ function setImportPanelVisibility(show) {
                     const bounds = computeBounds(overlay.routeCoordinates);
                     map.region = bounds;
 
-                    document.getElementById("sidebar").style.display = "block";
+                    setSidebarVisibility(true);
                     if (window.currentRouteData && window.currentRouteData[selectedIndex]) {
                         const selectedRoute = window.currentRouteData[selectedIndex];
                         const durationMinutes = Math.round(selectedRoute.expectedTravelTime / 60);
@@ -8204,7 +8305,7 @@ function setImportPanelVisibility(show) {
                 ${place.category ? `<p>📍 ${place.category}</p>` : ""}
                 <button onclick="getDirections(${place.coordinate.latitude}, ${place.coordinate.longitude})">📍 Get Directions</button>
             `;
-            sidebar.style.display = "block";
+            setSidebarVisibility(true);
         }
 
         function createAnnotation(place) {
@@ -8253,7 +8354,7 @@ function setImportPanelVisibility(show) {
             clearSearch.style.display = "none";
             resultsList.style.display = "none";
             stopVoice(); // Stop voice navigation if active
-            document.getElementById("sidebar").style.display = "none"; // Hide sidebar
+            setSidebarVisibility(false); // Hide sidebar
             if (currentAnnotation) { // Remove current place annotation (if any)
                 map.removeAnnotation(currentAnnotation);
                 currentAnnotation = null;
@@ -8285,7 +8386,7 @@ function setImportPanelVisibility(show) {
         map.addEventListener("singleTap", () => {
             if (shouldSuppressMapTap()) return;
             if (isAddingSurveyPoint) return;
-            document.getElementById("sidebar").style.display = "none";
+            setSidebarVisibility(false);
             hideSurveyCallout();
             closeFeatureDrawer({ clearSelection: true });
             setImportPanelVisibility(false);
@@ -8404,7 +8505,7 @@ function setImportPanelVisibility(show) {
                 // Clear sidebar
                 const sidebarContent = document.getElementById("sidebar-content");
                 sidebarContent.innerHTML = "";
-                document.getElementById("sidebar").style.display = "block";
+                setSidebarVisibility(true);
 
                 // Store for external reference
                 window.currentRouteData = data.routes;
