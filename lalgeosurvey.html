@@ -2257,6 +2257,7 @@
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
         let deferredReloadPath = null;
+        const USE_INLINE_FEATURE_CALLOUT = false;
         const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
         const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
@@ -5743,9 +5744,14 @@
             if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
                 setActiveTableRow(annotation.surveyPoint.rowIndex);
             }
-            renderSurveyCalloutContent();
             renderSelectedFeatureInspector();
             renderFeatureDrawer();
+            if (!USE_INLINE_FEATURE_CALLOUT) {
+                surveyCallout.style.display = "none";
+                flushDeferredReload();
+                return;
+            }
+            renderSurveyCalloutContent();
             if (!document.getElementById("identifierSelectWrapper")) {
                 surveyCalloutCard.parentElement.appendChild(identifierWrapper);
             }
