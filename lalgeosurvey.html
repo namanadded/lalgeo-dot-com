@@ -4413,7 +4413,8 @@
         document.addEventListener("click", (event) => {
             if (surveyCallout.style.display === "block") {
                 const target = event.target;
-                if (!surveyCallout.contains(target) && !isAnnotationElement(target)) {
+                const insideFeatureDrawer = featureDrawer?.contains?.(target);
+                if (!surveyCallout.contains(target) && !isAnnotationElement(target) && !insideFeatureDrawer) {
                     hideSurveyCallout();
                 }
             }
