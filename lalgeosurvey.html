@@ -1431,6 +1431,125 @@
         font-size: 12px;
         line-height: 1.55;
     }
+    #mapAddHint {
+        position: fixed;
+        z-index: 1800;
+        pointer-events: none;
+        padding: 8px 10px;
+        border-radius: 12px;
+        background: rgba(8, 18, 30, 0.88);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: #eef6fb;
+        box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+        font-size: 12px;
+        backdrop-filter: blur(14px);
+        transform: translate(14px, 14px);
+    }
+    #mapAddHint[hidden] {
+        display: none;
+    }
+    #featureDrawer {
+        position: fixed;
+        top: 98px;
+        right: 16px;
+        width: min(380px, calc(100vw - 32px));
+        max-height: calc(100vh - 128px);
+        overflow-y: auto;
+        z-index: 1450;
+        border-radius: 22px;
+        background: rgba(8, 18, 30, 0.94);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 24px 60px rgba(0,0,0,0.36);
+        color: #eef6fb;
+        backdrop-filter: blur(18px);
+        padding: 18px;
+        transform: translateX(calc(100% + 24px));
+        opacity: 0;
+        pointer-events: none;
+        transition: transform 0.24s ease, opacity 0.24s ease;
+    }
+    #featureDrawer.open {
+        transform: translateX(0);
+        opacity: 1;
+        pointer-events: auto;
+    }
+    .feature-drawer-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 12px;
+        margin-bottom: 14px;
+    }
+    .feature-drawer-header h3 {
+        margin: 0 0 6px;
+        font-size: 24px;
+        letter-spacing: -0.03em;
+    }
+    .feature-drawer-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        color: #9fb1c2;
+        font-size: 12px;
+    }
+    .feature-drawer-close {
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.06);
+        color: #eef6fb;
+        border-radius: 999px;
+        min-width: 36px;
+        height: 36px;
+        cursor: pointer;
+        font-size: 18px;
+    }
+    .feature-drawer-form {
+        display: grid;
+        gap: 12px;
+    }
+    .feature-drawer-field {
+        display: grid;
+        gap: 6px;
+    }
+    .feature-drawer-field label {
+        font-size: 11px;
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        color: #7dd3c8;
+        font-weight: 700;
+    }
+    .feature-drawer-field input,
+    .feature-drawer-field select,
+    .feature-drawer-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border-radius: 10px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        padding: 10px 12px;
+        font-size: 14px;
+    }
+    .feature-drawer-field textarea {
+        min-height: 90px;
+        resize: vertical;
+    }
+    .feature-drawer-actions {
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        margin-top: 8px;
+    }
+    .feature-drawer-empty {
+        color: #9fb1c2;
+        font-size: 13px;
+        line-height: 1.6;
+    }
+    .mini-btn.danger,
+    .feature-drawer-delete {
+        border: 1px solid rgba(255,107,107,0.22);
+        background: rgba(255,107,107,0.12);
+        color: #ffb5b5;
+    }
     #surveyTableContext {
         margin-right: auto;
         color: #cbd8e4;
@@ -1839,6 +1958,17 @@
         <h4>Start editing</h4>
         <p>Click Add Point, then click on the map to place your first feature.</p>
     </div>
+    <div id="mapAddHint" hidden>Click on map to add point</div>
+    <aside id="featureDrawer" aria-label="Feature Details">
+        <div class="feature-drawer-header">
+            <div>
+                <h3>Feature Details</h3>
+                <div id="featureDrawerMeta" class="feature-drawer-meta"></div>
+            </div>
+            <button id="featureDrawerClose" type="button" class="feature-drawer-close" aria-label="Close feature details">×</button>
+        </div>
+        <div id="featureDrawerBody" class="feature-drawer-empty">Select a feature to edit attributes.</div>
+    </aside>
     <div id="surveyCallout">
         <div class="card">
             <button class="close-btn" aria-label="Close">×</button>
@@ -1957,6 +2087,11 @@
         const drawerConnectDropboxBtn = document.getElementById("drawerConnectDropboxBtn");
         const workspaceScreenshotBanner = document.getElementById("workspaceScreenshotBanner");
         const workspaceHint = document.getElementById("workspaceHint");
+        const mapAddHint = document.getElementById("mapAddHint");
+        const featureDrawer = document.getElementById("featureDrawer");
+        const featureDrawerMeta = document.getElementById("featureDrawerMeta");
+        const featureDrawerBody = document.getElementById("featureDrawerBody");
+        const featureDrawerClose = document.getElementById("featureDrawerClose");
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
@@ -2099,6 +2234,8 @@
         let currentSurveyImages = new Map();
         let pointIdToRowIndex = new Map();
         let pointIdToDocIndex = new Map();
+        let activeFeatureId = null;
+        let hoveredFeatureId = null;
         let currentDropboxCursor = null;
         let dropboxWatchAbort = null;
         let dropboxProfile = null;
@@ -2141,21 +2278,120 @@
             return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         }
 
+        function getDefaultLayerSchema() {
+            return [
+                { name: "name", type: "text" },
+                { name: "description", type: "text" },
+                { name: "created_at", type: "text" }
+            ];
+        }
+
+        function cloneLayerSchema(schema = getDefaultLayerSchema()) {
+            return schema.map((field) => ({
+                name: field.name,
+                type: field.type || "text",
+                options: Array.isArray(field.options) ? [...field.options] : []
+            }));
+        }
+
+        function buildQuestionMetaFromSchema(schema = []) {
+            const meta = {};
+            schema.forEach((field) => {
+                meta[field.name] = {
+                    type: field.type || "text",
+                    normalizedType: field.type || "text",
+                    choices: Array.isArray(field.options) ? [...field.options] : []
+                };
+            });
+            meta.Latitude = { type: "number", normalizedType: "number", choices: [] };
+            meta.Longitude = { type: "number", normalizedType: "number", choices: [] };
+            return meta;
+        }
+
+        function createSchemaFromParsed(parsed) {
+            const headers = (parsed?.headers || []).filter((header) => header && header !== parsed?.latKey && header !== parsed?.lonKey);
+            if (!headers.length) return cloneLayerSchema();
+            return headers.map((header) => {
+                const meta = parsed?.questionMeta?.[header] || {};
+                return {
+                    name: header,
+                    type: meta.normalizedType || meta.type || "text",
+                    options: Array.isArray(meta.choices) ? [...meta.choices] : []
+                };
+            });
+        }
+
+        function buildLayerFeaturesFromParsed(parsed, schema = createSchemaFromParsed(parsed)) {
+            if (!parsed?.records) return [];
+            const effectiveSchema = cloneLayerSchema(schema);
+            return parsed.records.map((record, index) => {
+                const attrs = {};
+                effectiveSchema.forEach((field) => {
+                    attrs[field.name] = record?.[field.name] ?? "";
+                });
+                const meta = parsed.pointMeta?.[index] || {};
+                return {
+                    id: meta.id || generateWorkspaceId("feature"),
+                    geometry: {
+                        lat: parseFloat(record?.[parsed.latKey]),
+                        lng: parseFloat(record?.[parsed.lonKey])
+                    },
+                    attributes: attrs,
+                    version: meta.version ?? 1
+                };
+            });
+        }
+
+        function buildParsedFromLayer(layer) {
+            const schema = cloneLayerSchema(layer?.schema || getDefaultLayerSchema());
+            const features = Array.isArray(layer?.features) ? layer.features : [];
+            return {
+                headers: [...schema.map((field) => field.name), "Latitude", "Longitude"],
+                records: features.map((feature) => ({
+                    ...Object.fromEntries(schema.map((field) => [field.name, feature.attributes?.[field.name] ?? ""])),
+                    Latitude: feature.geometry?.lat ?? "",
+                    Longitude: feature.geometry?.lng ?? ""
+                })),
+                latKey: "Latitude",
+                lonKey: "Longitude",
+                questionMeta: buildQuestionMetaFromSchema(schema),
+                pointMeta: features.map((feature) => ({
+                    id: feature.id,
+                    version: feature.version ?? 1
+                })),
+                archiveRecords: [],
+                archiveHeaders: [...schema.map((field) => field.name), "Latitude", "Longitude"],
+                archivePointMeta: [],
+                layerName: layer?.name || "Layer"
+            };
+        }
+
+        function ensureLayerStructure(layer) {
+            if (!layer) return layer;
+            if (!Array.isArray(layer.schema) || !layer.schema.length) {
+                layer.schema = createSchemaFromParsed(layer.parsed);
+            }
+            layer.schema = cloneLayerSchema(layer.schema);
+            const featuresLookLegacy = Array.isArray(layer.features) && layer.features.length
+                && (!("geometry" in layer.features[0]) || !("attributes" in layer.features[0]));
+            if (!Array.isArray(layer.features) || !layer.features.length || featuresLookLegacy) {
+                layer.features = buildLayerFeaturesFromParsed(layer.parsed || createEmptyParsedLayer(layer.name), layer.schema);
+            }
+            layer.parsed = buildParsedFromLayer(layer);
+            layer.fields = layer.schema.map((field) => field.name);
+            return layer;
+        }
+
         function createEmptyParsedLayer(layerName = "Field Points") {
             return {
-                headers: ["Name", "Latitude", "Longitude", "Date"],
+                headers: ["name", "description", "created_at", "Latitude", "Longitude"],
                 records: [],
                 latKey: "Latitude",
                 lonKey: "Longitude",
-                questionMeta: {
-                    Name: { type: "text", normalizedType: "text", choices: [] },
-                    Latitude: { type: "number", normalizedType: "number", choices: [] },
-                    Longitude: { type: "number", normalizedType: "number", choices: [] },
-                    Date: { type: "date", normalizedType: "date", choices: [] }
-                },
+                questionMeta: buildQuestionMetaFromSchema(getDefaultLayerSchema()),
                 pointMeta: [],
                 archiveRecords: [],
-                archiveHeaders: ["Name", "Latitude", "Longitude", "Date"],
+                archiveHeaders: ["name", "description", "created_at", "Latitude", "Longitude"],
                 archivePointMeta: [],
                 layerName
             };
@@ -2164,10 +2400,11 @@
         function createDemoParsedLayer(name = "Field Points", points = []) {
             const parsed = createEmptyParsedLayer(name);
             parsed.records = points.map((point) => ({
-                Name: point.name,
+                name: point.name,
+                description: point.description || "",
+                created_at: point.date || new Date().toISOString(),
                 Latitude: point.lat,
-                Longitude: point.lon,
-                Date: point.date || new Date().toISOString()
+                Longitude: point.lon
             }));
             parsed.pointMeta = points.map(() => ({
                 id: generateSurveyPointId(),
@@ -2177,14 +2414,17 @@
         }
 
         function createLayerRecord({ name = "Field Points", geometryType = "point", parsed = null } = {}) {
+            const sourceParsed = parsed || createEmptyParsedLayer(name);
+            const schema = createSchemaFromParsed(sourceParsed);
             return {
                 id: generateWorkspaceId("layer"),
                 name,
                 geometryType,
                 visible: true,
-                fields: parsed?.headers ? [...parsed.headers] : ["Name", "Latitude", "Longitude", "Date"],
-                features: parsed?.records ? [...parsed.records] : [],
-                parsed: parsed || createEmptyParsedLayer(name)
+                schema,
+                fields: schema.map((field) => field.name),
+                features: buildLayerFeaturesFromParsed(sourceParsed, schema),
+                parsed: sourceParsed
             };
         }
 
@@ -2299,15 +2539,16 @@
         function getActiveLayerRecord() {
             if (!activeProjectRecord?.layers?.length) return null;
             const layer = activeProjectRecord.layers.find((item) => item.id === activeLayerId);
-            return layer || activeProjectRecord.layers[0] || null;
+            return ensureLayerStructure(layer || activeProjectRecord.layers[0] || null);
         }
 
         function syncActiveLayerFromSurveyState() {
             const layer = getActiveLayerRecord();
             if (!layer || !currentSurveyData) return;
+            layer.schema = createSchemaFromParsed(currentSurveyData);
             layer.parsed = currentSurveyData;
-            layer.fields = [...(currentSurveyData.headers || [])];
-            layer.features = [...(currentSurveyData.records || [])];
+            layer.fields = layer.schema.map((field) => field.name);
+            layer.features = buildLayerFeaturesFromParsed(currentSurveyData, layer.schema);
             activeProjectRecord.activeLayerId = layer.id;
             activeProjectRecord.images = Object.fromEntries(currentSurveyImages.entries());
             activeProjectRecord.source = currentSurveySource || null;
@@ -2366,7 +2607,7 @@
             if (hasProject) {
                 renderActiveProjectSidebar();
                 const featureCount = (layer?.parsed?.records || []).length;
-                if (!featureCount) showWorkspaceHint();
+                if (!featureCount) showWorkspaceHint("Click 'Add Point' then click anywhere on the map to start collecting data.");
                 else hideWorkspaceHint();
             } else {
                 hideWorkspaceHint();
@@ -2424,6 +2665,7 @@
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}">Edit schema</button>
                                 <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
                                 <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
                             </div>
@@ -2483,6 +2725,7 @@
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}">Edit schema</button>
                                 <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
                                 <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
                             </div>
@@ -2546,6 +2789,7 @@
                 renderWorkspaceCollections();
                 return;
             }
+            activeProjectRecord.layers = (activeProjectRecord.layers || []).map((layer) => ensureLayerStructure(layer));
             const layer = getActiveLayerRecord();
             activeProjectName = project.name;
             currentSurveyData = layer?.parsed || createEmptyParsedLayer(layer?.name || "Field Points");
@@ -2748,6 +2992,122 @@
             selectedFeatureInspector.querySelector("#applyFeatureInspectorBtn")?.addEventListener("click", applySelectedFeatureInspectorChanges);
         }
 
+        function getSelectedFeatureRecord() {
+            const layer = getActiveLayerRecord();
+            if (!layer || !activeSurveyAnnotation?.surveyPoint) return null;
+            return layer.features?.[activeSurveyAnnotation.surveyPoint.rowIndex] || null;
+        }
+
+        function updateAnnotationVisualState(annotation) {
+            if (!annotation?.surveyPoint) return;
+            const featureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            const isSelected = featureId === activeFeatureId;
+            const isHovered = featureId === hoveredFeatureId;
+            const isNew = Boolean(annotation.surveyPoint.isNew);
+            annotation.color = isSelected ? "#5cc8c0" : isHovered ? "#7aa7ff" : isNew ? "#1a73e8" : "#EA4335";
+            annotation.glyphText = isSelected ? "◎" : isHovered ? "◉" : isNew ? "+" : "●";
+        }
+
+        function refreshAnnotationStyles() {
+            surveyAnnotations.forEach(updateAnnotationVisualState);
+        }
+
+        function closeFeatureDrawer({ clearSelection = false } = {}) {
+            if (featureDrawer) featureDrawer.classList.remove("open");
+            if (clearSelection) {
+                activeFeatureId = null;
+                activeSurveyAnnotation = null;
+                setActiveTableRow(-1);
+                refreshAnnotationStyles();
+                renderSelectedFeatureInspector();
+            }
+        }
+
+        function renderFeatureDrawer() {
+            if (!featureDrawerBody || !featureDrawerMeta) return;
+            const layer = getActiveLayerRecord();
+            const feature = getSelectedFeatureRecord();
+            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) {
+                featureDrawerMeta.innerHTML = "";
+                featureDrawerBody.innerHTML = `<div class="feature-drawer-empty">Select a feature to edit attributes.</div>`;
+                closeFeatureDrawer();
+                return;
+            }
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            featureDrawerMeta.innerHTML = `
+                <span class="workspace-badge">${escapeHtml(layer.name)}</span>
+                <span>Feature ID: ${escapeHtml(feature.id || `feature-${rowIndex + 1}`)}</span>
+            `;
+            const fields = (layer.schema || getDefaultLayerSchema()).map((field) => {
+                const value = feature.attributes?.[field.name] ?? "";
+                if (field.type === "dropdown") {
+                    return `
+                        <div class="feature-drawer-field">
+                            <label>${escapeHtml(field.name)}</label>
+                            <select data-feature-field="${escapeHtml(field.name)}">
+                                <option value="">Select…</option>
+                                ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                            </select>
+                        </div>
+                    `;
+                }
+                if (field.name === "description") {
+                    return `
+                        <div class="feature-drawer-field">
+                            <label>${escapeHtml(field.name)}</label>
+                            <textarea data-feature-field="${escapeHtml(field.name)}">${escapeHtml(String(value))}</textarea>
+                        </div>
+                    `;
+                }
+                return `
+                    <div class="feature-drawer-field">
+                        <label>${escapeHtml(field.name)}</label>
+                        <input type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${field.name === "created_at" ? "readonly" : ""}>
+                    </div>
+                `;
+            }).join("");
+            featureDrawerBody.innerHTML = `
+                <div class="feature-drawer-form">
+                    ${fields}
+                    <div class="feature-drawer-actions">
+                        <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete">Delete feature</button>
+                        <button id="featureDrawerSave" type="button" class="workspace-primary-btn">Save</button>
+                    </div>
+                </div>
+            `;
+            featureDrawerBody.querySelector("#featureDrawerSave")?.addEventListener("click", saveFeatureDrawerChanges);
+            featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => deleteActivePoint());
+            featureDrawer.classList.add("open");
+        }
+
+        function saveFeatureDrawerChanges() {
+            const layer = getActiveLayerRecord();
+            const feature = getSelectedFeatureRecord();
+            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const record = currentSurveyData?.records?.[rowIndex];
+            if (!record) return;
+            featureDrawerBody.querySelectorAll("[data-feature-field]").forEach((input) => {
+                const fieldName = input.getAttribute("data-feature-field");
+                if (!fieldName) return;
+                feature.attributes[fieldName] = input.value;
+                record[fieldName] = input.value;
+            });
+            activeSurveyAnnotation.surveyPoint.attributes = { ...feature.attributes };
+            activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName);
+            activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
+            layer.features[rowIndex] = { ...feature };
+            layer.parsed = buildParsedFromLayer(layer);
+            currentSurveyData = layer.parsed;
+            updateAnnotationLabels();
+            pendingChanges = true;
+            setWorkspaceDirty(true);
+            updateSurveyTable();
+            renderSelectedFeatureInspector();
+            renderFeatureDrawer();
+            setProjectStatus("Feature details updated.", "success");
+        }
+
         function applySelectedFeatureInspectorChanges() {
             if (!activeSurveyAnnotation?.surveyPoint || !currentSurveyData) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
@@ -2795,6 +3155,70 @@
             markActiveProjectUpdated();
             setWorkspaceDirty(true);
             setActiveProject(activeProjectRecord);
+        }
+
+        function editLayerSchema(layerId) {
+            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            if (!layer) return;
+            ensureLayerStructure(layer);
+            const action = window.prompt(`Edit schema for "${layer.name}"\nType: add, rename, or delete`, "add");
+            if (!action) return;
+            const normalizedAction = action.trim().toLowerCase();
+            if (normalizedAction === "add") {
+                const name = window.prompt("Field name", "status");
+                if (!name?.trim()) return;
+                const fieldName = name.trim();
+                if (layer.schema.some((field) => field.name === fieldName)) {
+                    alert("A field with that name already exists.");
+                    return;
+                }
+                const type = (window.prompt("Field type: text, number, dropdown", "text") || "text").trim().toLowerCase();
+                const field = { name: fieldName, type: ["number", "dropdown"].includes(type) ? type : "text" };
+                if (field.type === "dropdown") {
+                    const rawOptions = window.prompt("Dropdown options separated by commas", "Open,In Progress,Closed") || "";
+                    field.options = rawOptions.split(",").map((value) => value.trim()).filter(Boolean);
+                }
+                layer.schema.push(field);
+                (layer.features || []).forEach((feature) => {
+                    feature.attributes = feature.attributes || {};
+                    feature.attributes[field.name] = field.name === "created_at" ? new Date().toISOString() : "";
+                });
+            } else if (normalizedAction === "rename") {
+                const oldName = window.prompt(`Field to rename\nAvailable: ${(layer.schema || []).map((field) => field.name).join(", ")}`, layer.schema[0]?.name || "");
+                if (!oldName?.trim()) return;
+                const target = layer.schema.find((field) => field.name === oldName.trim());
+                if (!target) {
+                    alert("Field not found.");
+                    return;
+                }
+                const nextName = window.prompt("New field name", target.name);
+                if (!nextName?.trim() || nextName.trim() === target.name) return;
+                const previousName = target.name;
+                target.name = nextName.trim();
+                (layer.features || []).forEach((feature) => {
+                    feature.attributes = feature.attributes || {};
+                    feature.attributes[target.name] = feature.attributes[previousName] ?? "";
+                    delete feature.attributes[previousName];
+                });
+            } else if (normalizedAction === "delete") {
+                const fieldName = window.prompt(`Field to delete\nAvailable: ${(layer.schema || []).map((field) => field.name).join(", ")}`, layer.schema[0]?.name || "");
+                if (!fieldName?.trim()) return;
+                layer.schema = layer.schema.filter((field) => field.name !== fieldName.trim());
+                (layer.features || []).forEach((feature) => {
+                    if (feature.attributes) delete feature.attributes[fieldName.trim()];
+                });
+            } else {
+                return;
+            }
+            layer.parsed = buildParsedFromLayer(layer);
+            layer.fields = layer.schema.map((field) => field.name);
+            markActiveProjectUpdated();
+            setWorkspaceDirty(true);
+            if (layer.id === activeLayerId) {
+                setActiveProject(activeProjectRecord, { preserveRegion: true });
+            } else {
+                renderWorkspaceCollections();
+            }
         }
 
         function switchToLayer(layerId) {
@@ -3165,6 +3589,11 @@
                 renameLayer(renameButton.dataset.renameLayer);
                 return;
             }
+            const schemaButton = event.target.closest("[data-edit-schema]");
+            if (schemaButton) {
+                editLayerSchema(schemaButton.dataset.editSchema);
+                return;
+            }
             const deleteButton = event.target.closest("[data-delete-layer]");
             if (deleteButton) {
                 deleteLayer(deleteButton.dataset.deleteLayer);
@@ -3196,6 +3625,11 @@
             const toggleLayerButton = event.target.closest("[data-toggle-layer]");
             if (toggleLayerButton) {
                 toggleLayerVisibility(toggleLayerButton.dataset.toggleLayer);
+                return;
+            }
+            const schemaLayerButton = event.target.closest("[data-edit-schema]");
+            if (schemaLayerButton) {
+                editLayerSchema(schemaLayerButton.dataset.editSchema);
                 return;
             }
             const renameLayerButton = event.target.closest("[data-rename-layer]");
@@ -3243,7 +3677,8 @@
             surveyTablePanel,
             sharePanel,
             workspaceEmptyState,
-            workspaceHint
+            workspaceHint,
+            featureDrawer
         ].filter(Boolean).forEach((element) => {
             ["pointerdown", "mousedown", "touchstart", "click"].forEach((eventName) => {
                 element.addEventListener(eventName, () => {
@@ -3326,6 +3761,13 @@
             }
             toggleAddSurveyPointMode();
         });
+        featureDrawerClose?.addEventListener("click", () => hideSurveyCallout());
+        mapElement?.addEventListener("mousemove", (event) => {
+            if (!mapAddHint || !isAddingSurveyPoint) return;
+            mapAddHint.hidden = false;
+            mapAddHint.style.left = `${event.clientX}px`;
+            mapAddHint.style.top = `${event.clientY}px`;
+        });
 
         toggleImportBtn?.addEventListener("click", () => {
             setImportPanelVisibility(!isImportPanelVisible);
@@ -3384,6 +3826,10 @@
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
+            if (mapAddHint) mapAddHint.hidden = !isAddingSurveyPoint;
+            if (isAddingSurveyPoint) {
+                showWorkspaceHint("Click 'Add Point' then click anywhere on the map to start collecting data.");
+            }
             if (!isAddingSurveyPoint) {
                 pendingNewAnnotation = null;
                 hideWorkspaceHint();
@@ -3814,6 +4260,7 @@
             addSurveyPointBtn.classList.remove("active");
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
+            if (mapAddHint) mapAddHint.hidden = true;
         }
 
         async function handleNewSurveyPointPlacement(coordinate) {
@@ -3848,6 +4295,16 @@
                 version: 1
             };
             currentSurveyData.pointMeta.push(placeholderMeta);
+            const layer = getActiveLayerRecord();
+            if (layer) {
+                layer.features = layer.features || [];
+                layer.features.push({
+                    id: placeholderMeta.id,
+                    geometry: { lat: coordinate.latitude, lng: coordinate.longitude },
+                    attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, newRecord[field.name] ?? ""])),
+                    version: placeholderMeta.version
+                });
+            }
             if (!dropboxMode && currentSurveyDocument) {
                 const now = new Date().toISOString();
                 const docPoint = {
@@ -3915,7 +4372,10 @@
             } else {
                 pendingNewAnnotation = annotation;
             }
+            activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            refreshAnnotationStyles();
             showSurveyCallout(annotation, { forceEdit: true });
+            renderFeatureDrawer();
             setAnnotationDraggable(annotation);
             setWorkspaceDirty(true);
             updateSurveyTable();
@@ -3944,6 +4404,9 @@
             surveyCallout.style.display = "none";
             isCalloutEditing = false;
             activeSurveyAnnotation = null;
+            activeFeatureId = null;
+            closeFeatureDrawer();
+            refreshAnnotationStyles();
             renderSelectedFeatureInspector();
         }
 
@@ -4783,7 +5246,7 @@
 
         function isAutoManagedField(header) {
             const normalized = normalizeHeaderName(header);
-            return normalized === "id" || normalized === "date";
+            return normalized === "id" || normalized === "date" || normalized === "created_at";
         }
 
         function normalizeMetaType(meta) {
@@ -4812,6 +5275,9 @@
                 return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
             }
             if (normalized === "date") {
+                return new Date().toISOString();
+            }
+            if (normalized === "created_at") {
                 return new Date().toISOString();
             }
             return undefined;
@@ -5181,11 +5647,20 @@
                     pointId: meta.id || null,
                     pointVersion: meta.version ?? 1
                 };
-            surveyAnnotations.push(marker);
-            rowAnnotationMap.set(index, marker);
-            map.addAnnotation(marker);
-            setAnnotationDraggable(marker);
-        });
+                marker.addEventListener?.("mouseenter", () => {
+                    hoveredFeatureId = marker.surveyPoint.pointId || marker.surveyPoint.rowIndex;
+                    updateAnnotationVisualState(marker);
+                });
+                marker.addEventListener?.("mouseleave", () => {
+                    hoveredFeatureId = null;
+                    updateAnnotationVisualState(marker);
+                });
+                surveyAnnotations.push(marker);
+                rowAnnotationMap.set(index, marker);
+                map.addAnnotation(marker);
+                setAnnotationDraggable(marker);
+                updateAnnotationVisualState(marker);
+            });
             activeProjectName = projectName;
             if (!coords.length) {
                 updateSurveyTable();
@@ -5261,12 +5736,15 @@
         function showSurveyCallout(annotation, options = {}) {
             if (!annotation || !annotation.surveyPoint) return;
             activeSurveyAnnotation = annotation;
+            activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            refreshAnnotationStyles();
             isCalloutEditing = canEditAttributes() && Boolean(options.forceEdit);
             if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
                 setActiveTableRow(annotation.surveyPoint.rowIndex);
             }
             renderSurveyCalloutContent();
             renderSelectedFeatureInspector();
+            renderFeatureDrawer();
             if (!document.getElementById("identifierSelectWrapper")) {
                 surveyCalloutCard.parentElement.appendChild(identifierWrapper);
             }
@@ -5476,6 +5954,10 @@
             if (Number.isInteger(rowIndex) && currentSurveyData?.records?.[rowIndex]) {
                 originalRecord = { ...currentSurveyData.records[rowIndex] };
                 currentSurveyData.records[rowIndex] = { ...currentSurveyData.records[rowIndex], ...updatedAttributes };
+                const layer = getActiveLayerRecord();
+                if (layer?.features?.[rowIndex]) {
+                    layer.features[rowIndex].attributes = { ...layer.features[rowIndex].attributes, ...updatedAttributes };
+                }
             }
             const wasNewPoint = !!activeSurveyAnnotation.surveyPoint.isNew;
             isCalloutEditing = false;
@@ -5521,6 +6003,7 @@
             }
             updateSurveyTable();
             updateHistoryButtons();
+            renderFeatureDrawer();
         }
 
         async function deleteActivePoint() {
@@ -5692,6 +6175,7 @@
         function updateSurveyTable() {
             if (!surveyTable) return;
             const dataset = isArchiveView ? archiveData : currentSurveyData;
+            const activeLayer = getActiveLayerRecord();
             if (!dataset?.headers) {
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#97aabd;\">Open or create a project to view attributes.</div>";
                 renderSelectedFeatureInspector();
@@ -5699,7 +6183,9 @@
             }
             const headerSource = isArchiveView ? archiveData.headers : dataset.headers;
             tableFieldOrder = getOrderedHeaders({ includeHidden: true });
-            const visibleHeaders = getOrderedHeaders({ includeHidden: false });
+            const visibleHeaders = isArchiveView
+                ? getOrderedHeaders({ includeHidden: false })
+                : ((activeLayer?.schema || []).map((field) => field.name).filter((field) => !hiddenFields.has(field)));
             if (!visibleHeaders.length) {
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">All fields are hidden. Enable at least one field.</div>";
                 return;
@@ -6068,6 +6554,10 @@ function setImportPanelVisibility(show) {
             if (!currentSurveyData?.records?.[rowIndex]) return;
             currentSurveyData.records[rowIndex][currentSurveyData.latKey] = coord.lat;
             currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.lon;
+            const layer = getActiveLayerRecord();
+            if (layer?.features?.[rowIndex]) {
+                layer.features[rowIndex].geometry = { lat: coord.lat, lng: coord.lon };
+            }
             const annotation = rowAnnotationMap.get(rowIndex);
             if (annotation) {
                 annotation.coordinate = new mapkit.Coordinate(coord.lat, coord.lon);
@@ -6079,6 +6569,10 @@ function setImportPanelVisibility(show) {
         function removeRecordAt(index) {
             if (!currentSurveyData?.records || index < 0 || index >= currentSurveyData.records.length) return null;
             const record = currentSurveyData.records.splice(index, 1)[0];
+            const layer = getActiveLayerRecord();
+            if (layer?.features) {
+                layer.features.splice(index, 1);
+            }
             if (Array.isArray(currentSurveyData.pointMeta)) {
                 currentSurveyData.pointMeta.splice(index, 1);
             }
@@ -6107,6 +6601,19 @@ function setImportPanelVisibility(show) {
             if (!currentSurveyData?.records) return;
             const rowIndex = Math.min(Math.max(index, 0), currentSurveyData.records.length);
             currentSurveyData.records.splice(rowIndex, 0, record);
+            const layer = getActiveLayerRecord();
+            if (layer) {
+                layer.features = layer.features || [];
+                layer.features.splice(rowIndex, 0, {
+                    id: generateSurveyPointId(),
+                    geometry: {
+                        lat: parseFloat(record[currentSurveyData.latKey]),
+                        lng: parseFloat(record[currentSurveyData.lonKey])
+                    },
+                    attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, record[field.name] ?? ""])),
+                    version: 1
+                });
+            }
             if (Array.isArray(currentSurveyData.pointMeta)) {
                 currentSurveyData.pointMeta.splice(rowIndex, 0, {
                     id: generateSurveyPointId(),
@@ -6294,6 +6801,9 @@ function setImportPanelVisibility(show) {
             surveyCallout.style.display = "none";
             activeSurveyAnnotation = null;
             isCalloutEditing = false;
+            activeFeatureId = null;
+            closeFeatureDrawer();
+            refreshAnnotationStyles();
             renderSelectedFeatureInspector();
         }
 
@@ -6734,6 +7244,7 @@ function setImportPanelVisibility(show) {
             if (isAddingSurveyPoint) return;
             document.getElementById("sidebar").style.display = "none";
             hideSurveyCallout();
+            closeFeatureDrawer({ clearSelection: true });
             setImportPanelVisibility(false);
         });
 
