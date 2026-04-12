@@ -1080,7 +1080,15 @@
         width: 100%;
     }
     .toolbar-reveal-panel {
-        transition: opacity 0.2s ease, transform 0.2s ease, max-height 0.2s ease, margin 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
+        transform-origin: top center;
+        will-change: opacity, transform;
+        transition:
+            opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
+            transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
+            max-height 0.22s ease,
+            margin 0.22s ease,
+            padding 0.22s ease,
+            border-color 0.22s ease;
     }
     .toolbar-edit-group {
         display: none;
@@ -1091,7 +1099,7 @@
     @media (hover: hover) and (pointer: fine) {
         #toolbar .toolbar-shell > .toolbar-reveal-panel {
             opacity: 0;
-            transform: translateY(-8px) scale(0.98);
+            transform: translateY(-4px) scale(0.992);
             pointer-events: none;
             max-height: 0;
             overflow: hidden;
@@ -1099,6 +1107,18 @@
             padding-top: 0;
             padding-bottom: 0;
             border-color: transparent;
+        }
+        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(1) {
+            transition-delay: 0s;
+        }
+        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(2) {
+            transition-delay: 0.02s;
+        }
+        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(4) {
+            transition-delay: 0.04s;
+        }
+        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(5) {
+            transition-delay: 0.06s;
         }
         #toolbar .toolbar-shell > .toolbar-edit-group {
             opacity: 1;
@@ -1115,6 +1135,9 @@
             pointer-events: auto;
             max-height: 220px;
             overflow: visible;
+        }
+        #toolbar:not(:hover):not(:focus-within):not(.toolbar-force-expanded) .toolbar-shell > .toolbar-reveal-panel {
+            transition-delay: 0s;
         }
     }
     .toolbar-group {
