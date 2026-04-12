@@ -1,0 +1,1349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>LalGeo Data Manager</title>
+  <script src="https://unpkg.com/dropbox/dist/Dropbox-sdk.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+  <script src="https://unpkg.com/shpjs@latest/dist/shp.min.js"></script>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #07111b;
+      --panel: rgba(8, 18, 30, 0.88);
+      --panel-2: rgba(14, 24, 36, 0.82);
+      --card: rgba(255, 255, 255, 0.05);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #eef6fb;
+      --muted: #9fb1c2;
+      --accent: #8ff0dc;
+      --accent-2: #5cc8c0;
+      --danger: #ff9c94;
+      --shadow: 0 20px 48px rgba(0, 0, 0, 0.34);
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; font-family: Inter, system-ui, sans-serif; background: radial-gradient(circle at top right, rgba(92,200,192,0.16), transparent 28%), radial-gradient(circle at 10% 18%, rgba(240,90,79,0.12), transparent 20%), var(--bg); color: var(--text); }
+    body.modal-open { overflow: hidden; }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 340px minmax(0, 1fr); }
+    .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 24px 18px; backdrop-filter: blur(20px); }
+    .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+    .brand-row img { height: 26px; }
+    .status-badge { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); padding: 8px 12px; border-radius: 999px; font-size: 12px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 999px; background: var(--danger); }
+    .status-dot.connected { background: var(--accent); }
+    .sidebar-actions, .toolbar-actions, .detail-actions, .modal-actions { display: flex; flex-wrap: wrap; gap: 10px; }
+    .sidebar-actions { margin-top: 18px; }
+    button, select, input, textarea { font: inherit; }
+    button, .button-link { border: 1px solid var(--border); background: var(--card); color: var(--text); border-radius: 12px; padding: 10px 14px; cursor: pointer; transition: transform 0.16s ease, background 0.16s ease, border-color 0.16s ease; }
+    button:hover, button:focus-visible, .button-link:hover, .button-link:focus-visible { outline: none; border-color: rgba(143, 240, 220, 0.3); background: rgba(255, 255, 255, 0.08); transform: translateY(-1px); }
+    button.primary { background: linear-gradient(135deg, var(--accent-2), var(--accent)); color: #07111b; border-color: transparent; }
+    button.ghost { background: transparent; }
+    button.danger { color: var(--danger); background: rgba(240, 90, 79, 0.08); border-color: rgba(240, 90, 79, 0.22); }
+    button:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+    .sidebar-section { margin-top: 22px; }
+    .sidebar-section h2, .sidebar-section h3, .content-header h1, .card h2 { margin: 0; }
+    .sidebar-section p, .card p, .meta-list dd, .meta-list dt, .empty-state p, .helper-text { color: var(--muted); }
+    .layer-search { width: 100%; margin-top: 16px; padding: 11px 13px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); }
+    .layer-list { margin-top: 16px; display: grid; gap: 12px; max-height: calc(100vh - 260px); overflow: auto; padding-right: 4px; }
+    .layer-card { border: 1px solid var(--border); background: rgba(255,255,255,0.04); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
+    .layer-card.active { border-color: rgba(143, 240, 220, 0.3); box-shadow: inset 0 0 0 1px rgba(143,240,220,0.14); }
+    .layer-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
+    .layer-card-title { font-weight: 700; }
+    .layer-meta { display: flex; flex-wrap: wrap; gap: 8px; font-size: 12px; color: var(--muted); }
+    .layer-pill { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: rgba(92,200,192,0.12); color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
+    .layer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .layer-actions button { padding: 8px 10px; font-size: 12px; }
+    .content { padding: 24px; }
+    .content-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 22px; border: 1px solid var(--border); background: var(--panel); border-radius: 24px; box-shadow: var(--shadow); }
+    .content-header p { margin: 8px 0 0; }
+    .toolbar-actions { justify-content: flex-end; }
+    .content-grid { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; }
+    .card { border: 1px solid var(--border); background: var(--panel); border-radius: 24px; padding: 22px; box-shadow: var(--shadow); }
+    .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+    .tab-btn.active { background: rgba(92,200,192,0.14); color: var(--accent); border-color: rgba(92,200,192,0.24); }
+    .tab-panel[hidden] { display: none; }
+    .meta-list { display: grid; grid-template-columns: 140px 1fr; gap: 10px 18px; margin: 0; }
+    .meta-list dt { font-size: 12px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .meta-list dd { margin: 0; }
+    .table-shell { overflow: auto; border: 1px solid var(--border); border-radius: 18px; background: rgba(255,255,255,0.03); }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 14px; border-bottom: 1px solid rgba(255,255,255,0.06); text-align: left; }
+    th { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; cursor: pointer; }
+    td input, td select, .field-input, .field-select, .field-textarea { width: 100%; border-radius: 12px; border: 1px solid var(--border); background: rgba(255,255,255,0.05); color: var(--text); padding: 10px 12px; }
+    .field-textarea { min-height: 110px; resize: vertical; }
+    .inline-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+    .style-swatch-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(82px, 1fr)); gap: 10px; }
+    .style-swatch { padding: 12px; border-radius: 16px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); display: grid; gap: 8px; justify-items: center; cursor: pointer; }
+    .style-swatch.active { border-color: rgba(143,240,220,0.34); box-shadow: inset 0 0 0 1px rgba(143,240,220,0.16); }
+    .swatch-chip { width: 22px; height: 22px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.2); }
+    .empty-state { min-height: 420px; display: grid; place-items: center; text-align: center; padding: 32px; }
+    .empty-state h2 { margin: 0; font-size: 34px; letter-spacing: -0.04em; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    .modal-backdrop { position: fixed; inset: 0; background: rgba(3, 8, 16, 0.72); backdrop-filter: blur(10px); display: grid; place-items: center; z-index: 2000; padding: 20px; }
+    .modal-backdrop[hidden] { display: none; }
+    .modal { width: min(680px, 100%); max-height: calc(100vh - 40px); overflow: auto; border-radius: 28px; background: rgba(9, 19, 31, 0.96); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 24px; }
+    .modal-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; margin-bottom: 18px; }
+    .modal-header p { margin: 6px 0 0; color: var(--muted); }
+    .modal-grid { display: grid; gap: 14px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .modal-grid .full { grid-column: 1 / -1; }
+    .field-label { display: block; margin-bottom: 8px; font-size: 12px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+    .modal-actions { margin-top: 20px; justify-content: flex-end; }
+    .drop-zone { margin-top: 16px; border: 1px dashed rgba(143,240,220,0.28); border-radius: 20px; padding: 24px; text-align: center; background: rgba(255,255,255,0.03); }
+    .drop-zone.dragover { border-color: rgba(143,240,220,0.56); background: rgba(92,200,192,0.1); }
+    .message { border-radius: 16px; padding: 12px 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--muted); }
+    .message.error { color: var(--danger); border-color: rgba(240,90,79,0.22); background: rgba(240,90,79,0.1); }
+    .message.success { color: var(--accent); border-color: rgba(92,200,192,0.26); background: rgba(92,200,192,0.08); }
+    .theme-toggle { min-width: 42px; }
+    @media (max-width: 1100px) {
+      .app-shell { grid-template-columns: 1fr; }
+      .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+      .content-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <div class="brand-row">
+        <img src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+        <button id="themeToggleBtn" type="button" class="theme-toggle" aria-label="Toggle theme">◐</button>
+      </div>
+      <div id="dropboxStatus" class="status-badge" aria-live="polite">
+        <span id="dropboxStatusDot" class="status-dot"></span>
+        <span id="dropboxStatusLabel">Dropbox not connected</span>
+      </div>
+      <div class="sidebar-actions">
+        <button id="connectDropboxBtn" type="button" class="primary">Connect Dropbox</button>
+        <button id="refreshLayersBtn" type="button">Refresh List</button>
+      </div>
+      <div class="sidebar-section">
+        <h2>LalGeoDB</h2>
+        <p>Layers stored as `.lal` files in Dropbox.</p>
+        <div class="sidebar-actions">
+          <button id="importLayerBtn" type="button">Import Layer</button>
+          <button id="createLayerBtn" type="button">Create New Layer</button>
+        </div>
+        <input id="layerSearchInput" class="layer-search" type="search" placeholder="Search layers" aria-label="Search layers">
+      </div>
+      <div id="layerList" class="layer-list" aria-live="polite"></div>
+    </aside>
+
+    <main class="content">
+      <section class="content-header">
+        <div>
+          <p class="layer-pill">LalGeo Data Manager</p>
+          <h1 id="headerTitle">Select a layer</h1>
+          <p id="headerSubtitle">Browse Dropbox-backed `.lal` layers, manage schema, edit attributes, and convert incoming files.</p>
+        </div>
+        <div class="toolbar-actions">
+          <button id="saveLayerBtn" type="button" class="primary" disabled>Save Layer</button>
+          <button id="exportGeoJsonBtn" type="button" disabled>Export GeoJSON</button>
+          <button id="downloadLalBtn" type="button" disabled>Download .lal</button>
+        </div>
+      </section>
+
+      <div class="content-grid">
+        <section class="card">
+          <div id="layerEmptyState" class="empty-state">
+            <div>
+              <h2>Open a LalGeo layer</h2>
+              <p>Connect Dropbox, pick a `.lal` file from `LalGeoDB`, or import a new dataset and convert it to LalGeo format.</p>
+              <div class="toolbar-actions" style="justify-content:center; margin-top:16px;">
+                <button id="emptyCreateLayerBtn" type="button" class="primary">Create New Layer</button>
+                <button id="emptyImportLayerBtn" type="button">Import Layer</button>
+              </div>
+            </div>
+          </div>
+          <div id="layerDetailView" hidden>
+            <div class="tabs" role="tablist" aria-label="Layer sections">
+              <button class="tab-btn active" type="button" data-tab="metadata">Metadata</button>
+              <button class="tab-btn" type="button" data-tab="schema">Schema</button>
+              <button class="tab-btn" type="button" data-tab="attributes">Attributes</button>
+              <button class="tab-btn" type="button" data-tab="style">Style</button>
+            </div>
+
+            <section class="tab-panel" data-panel="metadata">
+              <dl id="metadataList" class="meta-list"></dl>
+            </section>
+
+            <section class="tab-panel" data-panel="schema" hidden>
+              <div class="detail-actions" style="margin-bottom:14px;">
+                <button id="editSchemaBtn" type="button">Edit Schema</button>
+              </div>
+              <div class="table-shell">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Field Name</th>
+                      <th>Data Type</th>
+                      <th>Nullable</th>
+                      <th>Description</th>
+                    </tr>
+                  </thead>
+                  <tbody id="schemaTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="tab-panel" data-panel="attributes" hidden>
+              <div class="detail-actions" style="margin-bottom:14px;">
+                <span class="helper-text">First 50 rows. Double-click a cell to edit.</span>
+              </div>
+              <div class="table-shell">
+                <table id="attributeTable">
+                  <thead id="attributeTableHead"></thead>
+                  <tbody id="attributeTableBody"></tbody>
+                </table>
+              </div>
+            </section>
+
+            <section class="tab-panel" data-panel="style" hidden>
+              <div class="detail-actions" style="margin-bottom:14px;">
+                <button id="saveStyleBtn" type="button">Apply Style</button>
+              </div>
+              <div class="modal-grid">
+                <div>
+                  <label class="field-label" for="styleColorSelect">Default Symbol Color</label>
+                  <select id="styleColorSelect" class="field-select"></select>
+                </div>
+                <div>
+                  <label class="field-label" for="styleShapeSelect">Default Symbol Shape</label>
+                  <select id="styleShapeSelect" class="field-select"></select>
+                </div>
+                <div class="full">
+                  <label class="field-label">Color Swatches</label>
+                  <div id="styleSwatches" class="style-swatch-grid"></div>
+                </div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <aside class="card">
+          <h2>Layer Actions</h2>
+          <p>Manage Dropbox-backed files with version checks and backup snapshots.</p>
+          <div class="detail-actions">
+            <button id="renameLayerBtn" type="button" disabled>Rename</button>
+            <button id="duplicateLayerBtn" type="button" disabled>Duplicate</button>
+            <button id="deleteLayerBtn" type="button" class="danger" disabled>Delete</button>
+          </div>
+          <div id="statusMessage" class="message" style="margin-top:18px;">Connect Dropbox to begin.</div>
+          <div class="sidebar-section">
+            <h3>Safeguards</h3>
+            <p>Every save checks the Dropbox `rev` to catch conflicts. Before overwriting a layer, the current file is copied into `LalGeoDB/_versions` as a restore point.</p>
+          </div>
+          <div class="sidebar-section">
+            <h3>Shortcuts</h3>
+            <p><strong>I</strong> import layer, <strong>R</strong> refresh list, <strong>N</strong> create layer.</p>
+          </div>
+        </aside>
+      </div>
+    </main>
+  </div>
+
+  <div id="modalBackdrop" class="modal-backdrop" hidden>
+    <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
+      <div class="modal-header">
+        <div>
+          <h2 id="modalTitle">Dialog</h2>
+          <p id="modalDescription"></p>
+        </div>
+        <button id="modalCloseBtn" type="button" aria-label="Close dialog">×</button>
+      </div>
+      <div id="modalBody"></div>
+      <div id="modalActions" class="modal-actions"></div>
+    </div>
+  </div>
+
+  <div id="dropboxBridgeHelp" class="sr-only" aria-live="polite"></div>
+
+  <script type="module">
+    import {
+      cloneLayer,
+      cloneSchema,
+      createEmptyLalLayer,
+      exportLayer,
+      generateId,
+      normalizeLalDocument,
+      slugify,
+    } from "./js/lal-file.js";
+    import {
+      DropboxConflictError,
+      LalGeoDropboxClient,
+      getDropboxChooserAppKey,
+      readStoredDropboxToken,
+      WORKER_BASE,
+    } from "./js/dropbox-api.js";
+    import { convertImportFiles, inspectImportFiles } from "./js/import-converters.js";
+
+    const state = {
+      theme: localStorage.getItem("lalgeo_data_manager_theme") || "dark",
+      client: new LalGeoDropboxClient({ accessToken: readStoredDropboxToken() }),
+      layers: [],
+      filteredLayers: [],
+      layerSummaryCache: loadLayerSummaryCache(),
+      selectedLayer: null,
+      selectedFile: null,
+      draftLayer: null,
+      activeTab: "metadata",
+      sort: { field: null, direction: "asc" },
+      modal: null,
+      modalFocusHandler: null,
+      importDraft: null,
+      dirty: false,
+    };
+
+    const els = {
+      body: document.body,
+      themeToggleBtn: document.getElementById("themeToggleBtn"),
+      dropboxStatus: document.getElementById("dropboxStatus"),
+      dropboxStatusDot: document.getElementById("dropboxStatusDot"),
+      dropboxStatusLabel: document.getElementById("dropboxStatusLabel"),
+      connectDropboxBtn: document.getElementById("connectDropboxBtn"),
+      refreshLayersBtn: document.getElementById("refreshLayersBtn"),
+      importLayerBtn: document.getElementById("importLayerBtn"),
+      createLayerBtn: document.getElementById("createLayerBtn"),
+      emptyCreateLayerBtn: document.getElementById("emptyCreateLayerBtn"),
+      emptyImportLayerBtn: document.getElementById("emptyImportLayerBtn"),
+      layerSearchInput: document.getElementById("layerSearchInput"),
+      layerList: document.getElementById("layerList"),
+      headerTitle: document.getElementById("headerTitle"),
+      headerSubtitle: document.getElementById("headerSubtitle"),
+      saveLayerBtn: document.getElementById("saveLayerBtn"),
+      exportGeoJsonBtn: document.getElementById("exportGeoJsonBtn"),
+      downloadLalBtn: document.getElementById("downloadLalBtn"),
+      layerEmptyState: document.getElementById("layerEmptyState"),
+      layerDetailView: document.getElementById("layerDetailView"),
+      metadataList: document.getElementById("metadataList"),
+      schemaTableBody: document.getElementById("schemaTableBody"),
+      attributeTableHead: document.getElementById("attributeTableHead"),
+      attributeTableBody: document.getElementById("attributeTableBody"),
+      styleColorSelect: document.getElementById("styleColorSelect"),
+      styleShapeSelect: document.getElementById("styleShapeSelect"),
+      styleSwatches: document.getElementById("styleSwatches"),
+      renameLayerBtn: document.getElementById("renameLayerBtn"),
+      duplicateLayerBtn: document.getElementById("duplicateLayerBtn"),
+      deleteLayerBtn: document.getElementById("deleteLayerBtn"),
+      editSchemaBtn: document.getElementById("editSchemaBtn"),
+      saveStyleBtn: document.getElementById("saveStyleBtn"),
+      statusMessage: document.getElementById("statusMessage"),
+      tabButtons: [...document.querySelectorAll(".tab-btn")],
+      panels: [...document.querySelectorAll(".tab-panel")],
+      modalBackdrop: document.getElementById("modalBackdrop"),
+      modalTitle: document.getElementById("modalTitle"),
+      modalDescription: document.getElementById("modalDescription"),
+      modalBody: document.getElementById("modalBody"),
+      modalActions: document.getElementById("modalActions"),
+      modalCloseBtn: document.getElementById("modalCloseBtn"),
+      bridgeHelp: document.getElementById("dropboxBridgeHelp"),
+    };
+
+    const STYLE_COLORS = ["Red", "Blue", "Green", "Orange", "Purple"];
+    const STYLE_SHAPES = ["Dot", "Circle", "Pin", "Plus"];
+
+    init();
+
+    async function init() {
+      applyTheme();
+      bindEvents();
+      await bootstrapDropbox();
+      render();
+    }
+
+    function bindEvents() {
+      els.themeToggleBtn.addEventListener("click", () => {
+        state.theme = state.theme === "dark" ? "light" : "dark";
+        localStorage.setItem("lalgeo_data_manager_theme", state.theme);
+        applyTheme();
+      });
+      els.connectDropboxBtn.addEventListener("click", () => {
+        if (state.client.isReady) {
+          setStatus("Dropbox token detected. Refresh the list to continue.", "success");
+          refreshLayers();
+          return;
+        }
+        state.client.startOauth(window.location.href);
+      });
+      els.refreshLayersBtn.addEventListener("click", refreshLayers);
+      els.importLayerBtn.addEventListener("click", openImportModal);
+      els.emptyImportLayerBtn.addEventListener("click", openImportModal);
+      els.createLayerBtn.addEventListener("click", openCreateLayerModal);
+      els.emptyCreateLayerBtn.addEventListener("click", openCreateLayerModal);
+      els.layerSearchInput.addEventListener("input", renderLayerList);
+      els.saveLayerBtn.addEventListener("click", saveSelectedLayer);
+      els.exportGeoJsonBtn.addEventListener("click", () => downloadExport("geojson"));
+      els.downloadLalBtn.addEventListener("click", () => downloadExport("lal"));
+      els.renameLayerBtn.addEventListener("click", openRenameModal);
+      els.duplicateLayerBtn.addEventListener("click", duplicateSelectedLayer);
+      els.deleteLayerBtn.addEventListener("click", openDeleteLayerModal);
+      els.editSchemaBtn.addEventListener("click", openSchemaEditorModal);
+      els.saveStyleBtn.addEventListener("click", commitStyleChanges);
+      els.modalCloseBtn.addEventListener("click", closeModal);
+      els.modalBackdrop.addEventListener("click", (event) => {
+        if (event.target === els.modalBackdrop) closeModal();
+      });
+      els.tabButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.activeTab = button.dataset.tab;
+          renderTabs();
+        });
+      });
+      els.attributeTableHead.addEventListener("click", handleAttributeSort);
+      els.attributeTableBody.addEventListener("dblclick", handleInlineEdit);
+      els.attributeTableBody.addEventListener("change", handleInlineCommit);
+      els.styleColorSelect.addEventListener("change", renderStyleSwatches);
+      document.addEventListener("keydown", handleGlobalShortcuts);
+    }
+
+    async function bootstrapDropbox() {
+      try {
+        await state.client.connectWithExistingSurveySession();
+        setDropboxStatus(state.client.isReady);
+        if (state.client.isReady) {
+          await refreshLayers();
+        } else {
+          setStatus("Connect Dropbox to manage layers in LalGeoDB.", "");
+        }
+      } catch (error) {
+        setDropboxStatus(false);
+        setStatus(error.message || "Dropbox access token missing.", "error");
+        els.bridgeHelp.textContent = "Dropbox authenticated in Survey. Data Manager still needs a token bridge to read and write files.";
+      }
+    }
+
+    function applyTheme() {
+      if (state.theme === "light") {
+        document.documentElement.style.setProperty("--bg", "#edf5fb");
+        document.documentElement.style.setProperty("--panel", "rgba(255,255,255,0.88)");
+        document.documentElement.style.setProperty("--panel-2", "rgba(255,255,255,0.76)");
+        document.documentElement.style.setProperty("--card", "rgba(7, 17, 27, 0.04)");
+        document.documentElement.style.setProperty("--border", "rgba(7, 17, 27, 0.1)");
+        document.documentElement.style.setProperty("--text", "#102130");
+        document.documentElement.style.setProperty("--muted", "#526679");
+      } else {
+        document.documentElement.style.setProperty("--bg", "#07111b");
+        document.documentElement.style.setProperty("--panel", "rgba(8, 18, 30, 0.88)");
+        document.documentElement.style.setProperty("--panel-2", "rgba(14, 24, 36, 0.82)");
+        document.documentElement.style.setProperty("--card", "rgba(255,255,255,0.05)");
+        document.documentElement.style.setProperty("--border", "rgba(255,255,255,0.08)");
+        document.documentElement.style.setProperty("--text", "#eef6fb");
+        document.documentElement.style.setProperty("--muted", "#9fb1c2");
+      }
+    }
+
+    async function refreshLayers() {
+      if (!state.client.isReady) {
+        setStatus("Connect Dropbox and complete the token bridge before refreshing.", "error");
+        return;
+      }
+      try {
+        setStatus("Refreshing LalGeoDB…", "");
+        state.layers = await state.client.listLayers();
+        state.filteredLayers = [...state.layers];
+        if (state.selectedFile) {
+          const fresh = state.layers.find((item) => item.pathLower === state.selectedFile.pathLower);
+          state.selectedFile = fresh || null;
+          if (!fresh) {
+            state.selectedLayer = null;
+            state.draftLayer = null;
+            state.dirty = false;
+          }
+        }
+        render();
+        setStatus(`Loaded ${state.layers.length} layer${state.layers.length === 1 ? "" : "s"} from LalGeoDB.`, "success");
+        hydrateLayerSummaries();
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Unable to refresh Dropbox layers.", "error");
+      }
+    }
+
+    async function selectLayer(file) {
+      try {
+        setStatus(`Opening ${file.name}…`, "");
+        const { layer, file: remoteFile } = await state.client.loadLayer(file.pathDisplay || file.pathLower);
+        state.selectedFile = {
+          ...file,
+          pathDisplay: remoteFile.path_display || file.pathDisplay,
+          pathLower: remoteFile.path_lower || file.pathLower,
+          rev: remoteFile.rev || file.rev,
+          serverModified: remoteFile.server_modified || file.serverModified,
+          clientModified: remoteFile.client_modified || file.clientModified,
+        };
+        state.selectedLayer = normalizeLalDocument(layer);
+        state.draftLayer = cloneLayer(state.selectedLayer);
+        state.dirty = false;
+        writeLayerSummaryCache(state.selectedFile.pathLower, state.selectedLayer);
+        render();
+        setStatus(`Opened ${state.selectedLayer.metadata.name}.`, "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Unable to open layer.", "error");
+      }
+    }
+
+    function render() {
+      renderLayerList();
+      renderDetail();
+      updateActionButtons();
+    }
+
+    function renderLayerList() {
+      const query = els.layerSearchInput.value.trim().toLowerCase();
+      state.filteredLayers = state.layers.filter((layer) => {
+        if (!query) return true;
+        return [layer.name, layer.pathDisplay].join(" ").toLowerCase().includes(query);
+      });
+      if (!state.filteredLayers.length) {
+        els.layerList.innerHTML = `<div class="message">No .lal layers found in /LalGeoDB.</div>`;
+        return;
+      }
+      els.layerList.innerHTML = state.filteredLayers.map((layer) => `
+        <article class="layer-card ${state.selectedFile?.pathLower === layer.pathLower ? "active" : ""}">
+          <div class="layer-card-header">
+            <div>
+              <div class="layer-card-title">${escapeHtml(layer.name.replace(/\.lal$/i, ""))}</div>
+              <div class="layer-meta">
+                <span>${escapeHtml(state.layerSummaryCache[layer.pathLower]?.geometryType || "Unknown geometry")}</span>
+                <span>${escapeHtml(formatFeatureCount(state.layerSummaryCache[layer.pathLower]?.featureCount))}</span>
+                <span>${escapeHtml(formatDate(layer.serverModified || layer.clientModified))}</span>
+                <span>${escapeHtml(layer.rev || "rev ?")}</span>
+              </div>
+            </div>
+            <span class="layer-pill">LAL</span>
+          </div>
+          <div class="layer-actions">
+            <button type="button" data-open-layer="${escapeHtml(layer.pathLower)}">Open</button>
+            <button type="button" data-rename-layer="${escapeHtml(layer.pathLower)}">Rename</button>
+            <button type="button" data-duplicate-layer="${escapeHtml(layer.pathLower)}">Duplicate</button>
+            <button type="button" class="danger" data-delete-layer="${escapeHtml(layer.pathLower)}">Delete</button>
+          </div>
+        </article>
+      `).join("");
+      els.layerList.querySelectorAll("[data-open-layer]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const file = state.layers.find((entry) => entry.pathLower === button.dataset.openLayer);
+          if (file) selectLayer(file);
+        });
+      });
+      els.layerList.querySelectorAll("[data-rename-layer]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const file = state.layers.find((entry) => entry.pathLower === button.dataset.renameLayer);
+          if (file) openRenameModal(file);
+        });
+      });
+      els.layerList.querySelectorAll("[data-duplicate-layer]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const file = state.layers.find((entry) => entry.pathLower === button.dataset.duplicateLayer);
+          if (file) await duplicateSelectedLayer(file);
+        });
+      });
+      els.layerList.querySelectorAll("[data-delete-layer]").forEach((button) => {
+        button.addEventListener("click", () => {
+          const file = state.layers.find((entry) => entry.pathLower === button.dataset.deleteLayer);
+          if (file) openDeleteLayerModal(file);
+        });
+      });
+    }
+
+    function renderDetail() {
+      const layer = state.draftLayer;
+      const file = state.selectedFile;
+      const hasLayer = Boolean(layer && file);
+      els.layerEmptyState.hidden = hasLayer;
+      els.layerDetailView.hidden = !hasLayer;
+      if (!hasLayer) {
+        els.headerTitle.textContent = "Select a layer";
+        els.headerSubtitle.textContent = "Browse Dropbox-backed `.lal` layers, manage schema, edit attributes, and convert incoming files.";
+        return;
+      }
+
+      els.headerTitle.textContent = layer.metadata.name;
+      els.headerSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}`;
+
+      els.metadataList.innerHTML = [
+        ["Name", layer.metadata.name],
+        ["Geometry", layer.metadata.geometryType],
+        ["Features", String(layer.features.length)],
+        ["Created", formatDate(layer.metadata.createdAt)],
+        ["Last Modified", formatDate(file.serverModified || layer.metadata.updatedAt)],
+        ["Dropbox Rev", file.rev || "Unknown"],
+        ["Path", file.pathDisplay || file.pathLower],
+      ].map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join("");
+
+      els.schemaTableBody.innerHTML = layer.schema.map((field) => `
+        <tr>
+          <td>${escapeHtml(field.name)}</td>
+          <td>${escapeHtml(field.type)}</td>
+          <td>${field.nullable === false ? "No" : "Yes"}</td>
+          <td>${escapeHtml(field.description || "—")}</td>
+        </tr>
+      `).join("");
+
+      renderAttributesTable();
+      renderStyleControls();
+      renderTabs();
+    }
+
+    function renderTabs() {
+      els.tabButtons.forEach((button) => {
+        const active = button.dataset.tab === state.activeTab;
+        button.classList.toggle("active", active);
+      });
+      els.panels.forEach((panel) => {
+        panel.hidden = panel.dataset.panel !== state.activeTab;
+      });
+    }
+
+    function renderAttributesTable() {
+      const layer = state.draftLayer;
+      if (!layer) return;
+      const rows = [...layer.features];
+      if (state.sort.field) {
+        rows.sort((a, b) => compareValues(a.properties[state.sort.field], b.properties[state.sort.field], state.sort.direction));
+      }
+      const sample = rows.slice(0, 50);
+      const columns = layer.schema.map((field) => field.name);
+      els.attributeTableHead.innerHTML = `<tr>${columns.map((field) => `<th data-sort="${escapeHtml(field)}">${escapeHtml(field)}</th>`).join("")}</tr>`;
+      els.attributeTableBody.innerHTML = sample.length
+        ? sample.map((feature) => `
+            <tr data-feature-id="${escapeHtml(feature.id)}">
+              ${columns.map((field) => `<td data-field="${escapeHtml(field)}">${escapeHtml(feature.properties?.[field] ?? "")}</td>`).join("")}
+            </tr>
+          `).join("")
+        : `<tr><td colspan="${columns.length}" style="color:var(--muted)">No features in this layer yet.</td></tr>`;
+    }
+
+    function renderStyleControls() {
+      const style = state.draftLayer?.style || { symbolColor: "Red", symbolShape: "Dot" };
+      els.styleColorSelect.innerHTML = STYLE_COLORS.map((color) => `<option value="${color}" ${color === style.symbolColor ? "selected" : ""}>${color}</option>`).join("");
+      els.styleShapeSelect.innerHTML = STYLE_SHAPES.map((shape) => `<option value="${shape}" ${shape === style.symbolShape ? "selected" : ""}>${shape}</option>`).join("");
+      renderStyleSwatches();
+    }
+
+    function renderStyleSwatches() {
+      const selected = els.styleColorSelect.value;
+      els.styleSwatches.innerHTML = STYLE_COLORS.map((color) => `
+        <button type="button" class="style-swatch ${selected === color ? "active" : ""}" data-style-color="${color}">
+          <span class="swatch-chip" style="background:${swatchColor(color)}"></span>
+          <span>${color}</span>
+        </button>
+      `).join("");
+      els.styleSwatches.querySelectorAll("[data-style-color]").forEach((button) => {
+        button.addEventListener("click", () => {
+          els.styleColorSelect.value = button.dataset.styleColor;
+          renderStyleSwatches();
+          markDirty();
+        });
+      });
+    }
+
+    function updateActionButtons() {
+      const hasLayer = Boolean(state.draftLayer && state.selectedFile);
+      els.saveLayerBtn.disabled = !hasLayer || !state.dirty;
+      els.exportGeoJsonBtn.disabled = !hasLayer;
+      els.downloadLalBtn.disabled = !hasLayer;
+      els.renameLayerBtn.disabled = !hasLayer;
+      els.duplicateLayerBtn.disabled = !hasLayer;
+      els.deleteLayerBtn.disabled = !hasLayer;
+      els.editSchemaBtn.disabled = !hasLayer;
+      els.saveStyleBtn.disabled = !hasLayer;
+    }
+
+    function openModal(config) {
+      state.modal = config;
+      if (state.modalFocusHandler) {
+        document.removeEventListener("keydown", state.modalFocusHandler, true);
+        state.modalFocusHandler = null;
+      }
+      els.modalTitle.textContent = config.title;
+      els.modalDescription.textContent = config.description || "";
+      els.modalBody.innerHTML = config.bodyHtml || "";
+      els.modalActions.innerHTML = (config.actions || []).map((action, index) => `
+        <button type="button" class="${action.primary ? "primary" : action.danger ? "danger" : ""}" data-modal-action="${index}">
+          ${escapeHtml(action.label)}
+        </button>
+      `).join("");
+      els.modalActions.querySelectorAll("[data-modal-action]").forEach((button) => {
+        button.addEventListener("click", async () => {
+          const action = config.actions?.[Number(button.dataset.modalAction)];
+          if (!action) return;
+          const keepOpen = await action.onClick?.();
+          if (keepOpen === false) return;
+          closeModal();
+        });
+      });
+      els.body.classList.add("modal-open");
+      els.modalBackdrop.hidden = false;
+      trapModalFocus();
+      queueMicrotask(() => {
+        const focusTarget = els.modalBody.querySelector("[autofocus], input, select, textarea, button");
+        focusTarget?.focus();
+      });
+    }
+
+    function closeModal() {
+      if (state.modalFocusHandler) {
+        document.removeEventListener("keydown", state.modalFocusHandler, true);
+        state.modalFocusHandler = null;
+      }
+      state.modal = null;
+      els.modalBackdrop.hidden = true;
+      els.modalBody.innerHTML = "";
+      els.modalActions.innerHTML = "";
+      els.body.classList.remove("modal-open");
+    }
+
+    function trapModalFocus() {
+      const handler = (event) => {
+        if (event.key === "Escape") {
+          closeModal();
+          return;
+        }
+        if (event.key !== "Tab" || els.modalBackdrop.hidden) return;
+        const focusable = [...els.modalBackdrop.querySelectorAll("button, input, textarea, select")].filter((node) => !node.disabled);
+        if (!focusable.length) return;
+        const first = focusable[0];
+        const last = focusable[focusable.length - 1];
+        if (event.shiftKey && document.activeElement === first) {
+          event.preventDefault();
+          last.focus();
+        } else if (!event.shiftKey && document.activeElement === last) {
+          event.preventDefault();
+          first.focus();
+        }
+      };
+      state.modalFocusHandler = handler;
+      document.addEventListener("keydown", handler, true);
+    }
+
+    function openCreateLayerModal() {
+      openModal({
+        title: "Create New Layer",
+        description: "Start a new empty `.lal` layer in LalGeoDB.",
+        bodyHtml: `
+          <div class="modal-grid">
+            <div class="full">
+              <label class="field-label" for="newLayerName">Layer Name</label>
+              <input id="newLayerName" class="field-input" type="text" placeholder="Water Valves" autofocus>
+            </div>
+            <div>
+              <label class="field-label" for="newLayerGeometry">Geometry Type</label>
+              <select id="newLayerGeometry" class="field-select">
+                <option>Point</option>
+                <option>LineString</option>
+                <option>Polygon</option>
+              </select>
+            </div>
+          </div>
+        `,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Create Layer",
+            primary: true,
+            onClick: async () => {
+              const name = document.getElementById("newLayerName").value.trim();
+              const geometryType = document.getElementById("newLayerGeometry").value;
+              if (!name) return false;
+              const layer = createEmptyLalLayer({ name, geometryType });
+              await saveNewLayer(layer);
+            },
+          },
+        ],
+      });
+    }
+
+    async function saveNewLayer(layer) {
+      try {
+        const file = await state.client.saveLayer(layer, {
+          path: `${state.client.folderPath}/${slugify(layer.metadata.name)}.lal`,
+        });
+        await refreshLayers();
+        const newFile = state.layers.find((entry) => entry.pathLower === file.path_lower) || {
+          name: file.name,
+          pathLower: file.path_lower,
+          pathDisplay: file.path_display,
+          rev: file.rev,
+          serverModified: file.server_modified,
+          clientModified: file.client_modified,
+        };
+        await selectLayer(newFile);
+        setStatus(`Created ${layer.metadata.name}.`, "success");
+      } catch (error) {
+        setStatus(error.message || "Unable to create layer.", "error");
+      }
+    }
+
+    function openRenameModal(file = state.selectedFile) {
+      if (!file) return;
+      const currentName = file.name.replace(/\.lal$/i, "");
+      openModal({
+        title: "Rename Layer",
+        description: "Change the Dropbox file name for this layer.",
+        bodyHtml: `
+          <label class="field-label" for="renameLayerInput">Layer Name</label>
+          <input id="renameLayerInput" class="field-input" type="text" value="${escapeHtml(currentName)}" autofocus>
+        `,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Save",
+            primary: true,
+            onClick: async () => {
+              const nextName = document.getElementById("renameLayerInput").value.trim();
+              if (!nextName) return false;
+              try {
+                await state.client.renameLayer(file.pathDisplay || file.pathLower, nextName);
+                await refreshLayers();
+                const renamed = state.layers.find((entry) => entry.name.replace(/\.lal$/i, "") === nextName);
+                if (renamed) await selectLayer(renamed);
+                setStatus(`Renamed layer to ${nextName}.`, "success");
+              } catch (error) {
+                setStatus(error.message || "Unable to rename layer.", "error");
+                return false;
+              }
+            },
+          },
+        ],
+      });
+    }
+
+    async function duplicateSelectedLayer(file = state.selectedFile) {
+      if (!file) return;
+      const baseName = file.name.replace(/\.lal$/i, "");
+      try {
+        await state.client.duplicateLayer(file.pathDisplay || file.pathLower, `${baseName} copy`);
+        await refreshLayers();
+        setStatus(`Duplicated ${baseName}.`, "success");
+      } catch (error) {
+        setStatus(error.message || "Unable to duplicate layer.", "error");
+      }
+    }
+
+    function openDeleteLayerModal(file = state.selectedFile) {
+      if (!file) return;
+      if (state.layers.length <= 1) {
+        setStatus("Keep at least one layer in LalGeoDB.", "error");
+        return;
+      }
+      openModal({
+        title: "Delete Layer",
+        description: `Delete ${file.name}?`,
+        bodyHtml: `<div class="message error">This removes the layer file from Dropbox. Previous backup snapshots remain in /LalGeoDB/_versions.</div>`,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Delete Layer",
+            danger: true,
+            onClick: async () => {
+              try {
+                await state.client.deleteLayer(file.pathDisplay || file.pathLower);
+                if (state.selectedFile?.pathLower === file.pathLower) {
+                  state.selectedFile = null;
+                  state.selectedLayer = null;
+                  state.draftLayer = null;
+                  state.dirty = false;
+                }
+                await refreshLayers();
+                render();
+                setStatus(`Deleted ${file.name}.`, "success");
+              } catch (error) {
+                setStatus(error.message || "Unable to delete layer.", "error");
+                return false;
+              }
+            },
+          },
+        ],
+      });
+    }
+
+    function openSchemaEditorModal() {
+      const layer = state.draftLayer;
+      if (!layer) return;
+      const rows = layer.schema.map((field, index) => `
+        <div class="modal-grid" data-schema-row="${index}" style="padding:12px; border:1px solid var(--border); border-radius:16px; margin-bottom:12px;">
+          <div>
+            <label class="field-label">Field Name</label>
+            <input class="field-input" data-schema-name value="${escapeHtml(field.name)}">
+          </div>
+          <div>
+            <label class="field-label">Data Type</label>
+            <select class="field-select" data-schema-type>
+              ${["text", "number", "dropdown"].map((type) => `<option value="${type}" ${field.type === type ? "selected" : ""}>${type}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Nullable</label>
+            <select class="field-select" data-schema-nullable>
+              <option value="true" ${field.nullable !== false ? "selected" : ""}>Yes</option>
+              <option value="false" ${field.nullable === false ? "selected" : ""}>No</option>
+            </select>
+          </div>
+          <div>
+            <label class="field-label">Description</label>
+            <input class="field-input" data-schema-description value="${escapeHtml(field.description || "")}">
+          </div>
+          <div class="full">
+            <label class="field-label">Dropdown Options</label>
+            <input class="field-input" data-schema-options value="${escapeHtml((field.options || []).join(", "))}" placeholder="Open, Pending, Closed">
+          </div>
+          <div class="full">
+            <button type="button" class="danger" data-schema-remove>Remove field</button>
+          </div>
+        </div>
+      `).join("");
+
+      openModal({
+        title: "Schema Editor",
+        description: "Add, rename, or remove schema fields.",
+        bodyHtml: `
+          <div id="schemaEditorRows">${rows}</div>
+          <button id="schemaEditorAddBtn" type="button">Add Field</button>
+        `,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Save Schema",
+            primary: true,
+            onClick: () => {
+              const nextSchema = [...document.querySelectorAll("[data-schema-row]")].map((row) => ({
+                name: row.querySelector("[data-schema-name]").value.trim(),
+                type: row.querySelector("[data-schema-type]").value,
+                nullable: row.querySelector("[data-schema-nullable]").value !== "false",
+                description: row.querySelector("[data-schema-description]").value.trim(),
+                options: row.querySelector("[data-schema-options]").value.split(",").map((item) => item.trim()).filter(Boolean),
+              })).filter((field) => field.name);
+              if (!nextSchema.length) return false;
+              state.draftLayer.schema = cloneSchema(nextSchema);
+              state.draftLayer.features.forEach((feature) => {
+                const nextProps = {};
+                nextSchema.forEach((field) => {
+                  nextProps[field.name] = feature.properties?.[field.name] ?? "";
+                });
+                feature.properties = nextProps;
+              });
+              markDirty();
+            },
+          },
+        ],
+      });
+
+      document.getElementById("schemaEditorAddBtn").addEventListener("click", () => {
+        const wrapper = document.getElementById("schemaEditorRows");
+        const index = wrapper.children.length;
+        wrapper.insertAdjacentHTML("beforeend", `
+          <div class="modal-grid" data-schema-row="${index}" style="padding:12px; border:1px solid var(--border); border-radius:16px; margin-top:12px;">
+            <div><label class="field-label">Field Name</label><input class="field-input" data-schema-name placeholder="status"></div>
+            <div><label class="field-label">Data Type</label><select class="field-select" data-schema-type><option value="text">text</option><option value="number">number</option><option value="dropdown">dropdown</option></select></div>
+            <div><label class="field-label">Nullable</label><select class="field-select" data-schema-nullable><option value="true">Yes</option><option value="false">No</option></select></div>
+            <div><label class="field-label">Description</label><input class="field-input" data-schema-description></div>
+            <div class="full"><label class="field-label">Dropdown Options</label><input class="field-input" data-schema-options placeholder="Open, Pending, Closed"></div>
+            <div class="full"><button type="button" class="danger" data-schema-remove>Remove field</button></div>
+          </div>
+        `);
+        bindSchemaRemoveButtons();
+      });
+      bindSchemaRemoveButtons();
+    }
+
+    function bindSchemaRemoveButtons() {
+      document.querySelectorAll("[data-schema-remove]").forEach((button) => {
+        button.onclick = () => button.closest("[data-schema-row]").remove();
+      });
+    }
+
+    async function saveSelectedLayer() {
+      if (!state.draftLayer || !state.selectedFile) return;
+      try {
+        state.draftLayer.metadata.updatedAt = new Date().toISOString();
+        state.draftLayer.metadata.lastModifiedBy = "LalGeo Data Manager";
+        const response = await state.client.saveLayer(state.draftLayer, {
+          path: state.selectedFile.pathDisplay || state.selectedFile.pathLower,
+          rev: state.selectedFile.rev,
+        });
+        state.selectedFile = {
+          ...state.selectedFile,
+          rev: response.rev,
+          serverModified: response.server_modified,
+          clientModified: response.client_modified,
+        };
+        state.selectedLayer = cloneLayer(state.draftLayer);
+        state.dirty = false;
+        writeLayerSummaryCache(state.selectedFile.pathLower, state.selectedLayer);
+        await refreshLayers();
+        render();
+        setStatus(`Saved ${state.selectedLayer.metadata.name}.`, "success");
+      } catch (error) {
+        console.error(error);
+        if (error instanceof DropboxConflictError) {
+          openConflictModal(error.latestRev);
+          return;
+        }
+        setStatus(error.message || "Unable to save layer.", "error");
+      }
+    }
+
+    function openConflictModal(latestRev) {
+      openModal({
+        title: "Dropbox Conflict Detected",
+        description: "This layer changed in Dropbox since you opened it.",
+        bodyHtml: `
+          <div class="message error">
+            Your copy is based on rev <strong>${escapeHtml(state.selectedFile?.rev || "unknown")}</strong>. Dropbox now reports <strong>${escapeHtml(latestRev || "a newer revision")}</strong>.
+          </div>
+          <p class="helper-text">You can reload the latest version or force an overwrite after checking the differences.</p>
+        `,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Reload Latest",
+            primary: true,
+            onClick: async () => {
+              await refreshLayers();
+              const refreshed = state.layers.find((entry) => entry.pathLower === state.selectedFile?.pathLower);
+              if (refreshed) await selectLayer(refreshed);
+              setStatus("Reloaded latest Dropbox version.", "success");
+            },
+          },
+          {
+            label: "Overwrite Anyway",
+            danger: true,
+            onClick: async () => {
+              const latest = await state.client.tryGetMetadata(state.selectedFile.pathDisplay || state.selectedFile.pathLower);
+              if (!latest?.rev) return false;
+              state.selectedFile.rev = latest.rev;
+              await saveSelectedLayer();
+            },
+          },
+        ],
+      });
+    }
+
+    function commitStyleChanges() {
+      if (!state.draftLayer) return;
+      state.draftLayer.style.symbolColor = els.styleColorSelect.value;
+      state.draftLayer.style.symbolShape = els.styleShapeSelect.value;
+      markDirty();
+      setStatus("Layer style updated in the draft. Save to sync Dropbox.", "success");
+    }
+
+    function downloadExport(format) {
+      const layer = state.draftLayer;
+      if (!layer) return;
+      const file = exportLayer(layer, format);
+      const blob = new Blob([file.contents], { type: file.mimeType });
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = file.fileName;
+      link.click();
+      URL.revokeObjectURL(link.href);
+    }
+
+    function openImportModal() {
+      openModal({
+        title: "Import Layer",
+        description: "Convert a local file into `.lal` and save it to LalGeoDB.",
+        bodyHtml: `
+          <div class="message">Supported formats: GeoJSON, Shapefile (.zip or .shp + .dbf + .shx), CSV, KML, GPX, and .lal.</div>
+          <div id="importDropZone" class="drop-zone" tabindex="0" aria-label="Drop files here to import">
+            <p><strong>Drop files here</strong> or choose files from your computer.</p>
+            <div class="modal-actions" style="justify-content:center;">
+              <button id="importLocalBtn" type="button" class="primary">Choose Local Files</button>
+              <button id="importDropboxChooserBtn" type="button">Choose From Dropbox</button>
+            </div>
+            <input id="importFileInput" type="file" hidden multiple>
+          </div>
+          <div id="importConfigArea" style="margin-top:18px;"></div>
+        `,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Convert & Save",
+            primary: true,
+            onClick: async () => {
+              if (!state.importDraft?.files?.length) {
+                setStatus("Choose a file to import first.", "error");
+                return false;
+              }
+              try {
+                const config = buildImportConfig();
+                const layer = await convertImportFiles(state.importDraft.files, config);
+                await saveNewLayer(layer);
+              } catch (error) {
+                setStatus(error.message || "Import failed.", "error");
+                return false;
+              }
+            },
+          },
+        ],
+      });
+
+      const dropZone = document.getElementById("importDropZone");
+      const fileInput = document.getElementById("importFileInput");
+      document.getElementById("importLocalBtn").addEventListener("click", () => fileInput.click());
+      fileInput.addEventListener("change", () => handleImportFiles([...fileInput.files]));
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropZone.classList.add("dragover");
+        });
+      });
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropZone.addEventListener(eventName, (event) => {
+          event.preventDefault();
+          dropZone.classList.remove("dragover");
+        });
+      });
+      dropZone.addEventListener("drop", (event) => handleImportFiles([...event.dataTransfer.files]));
+      document.getElementById("importDropboxChooserBtn").addEventListener("click", launchDropboxChooserImport);
+    }
+
+    async function handleImportFiles(files) {
+      try {
+        state.importDraft = { files };
+        const inspection = await inspectImportFiles(files);
+        state.importDraft.inspection = inspection;
+        renderImportConfig(inspection);
+        setStatus(`Ready to import ${files.map((file) => file.name).join(", ")}.`, "success");
+      } catch (error) {
+        setStatus(error.message || "Unable to inspect import file.", "error");
+      }
+    }
+
+    function renderImportConfig(inspection) {
+      const container = document.getElementById("importConfigArea");
+      if (!container) return;
+      if (inspection.type !== "csv") {
+        container.innerHTML = `<div class="message success">Detected ${escapeHtml(inspection.type.toUpperCase())}. The layer will be converted and stored in LalGeoDB.</div>`;
+        return;
+      }
+      container.innerHTML = `
+        <div class="modal-grid">
+          <div class="full">
+            <label class="field-label" for="importLayerName">Layer Name</label>
+            <input id="importLayerName" class="field-input" value="${escapeHtml(state.importDraft.files[0].name.replace(/\.[^.]+$/, ""))}">
+          </div>
+          <div>
+            <label class="field-label" for="csvLatField">Latitude Column</label>
+            <select id="csvLatField" class="field-select">
+              <option value="">Select latitude</option>
+              ${inspection.headers.map((header) => `<option value="${escapeHtml(header)}">${escapeHtml(header)}</option>`).join("")}
+            </select>
+          </div>
+          <div>
+            <label class="field-label" for="csvLonField">Longitude Column</label>
+            <select id="csvLonField" class="field-select">
+              <option value="">Select longitude</option>
+              ${inspection.headers.map((header) => `<option value="${escapeHtml(header)}">${escapeHtml(header)}</option>`).join("")}
+            </select>
+          </div>
+          <div class="full">
+            <label class="field-label" for="csvWktField">WKT Column (optional)</label>
+            <select id="csvWktField" class="field-select">
+              <option value="">No WKT column</option>
+              ${inspection.headers.map((header) => `<option value="${escapeHtml(header)}">${escapeHtml(header)}</option>`).join("")}
+            </select>
+          </div>
+        </div>
+        <div class="table-shell" style="margin-top:16px;">
+          <table>
+            <thead><tr>${inspection.headers.map((header) => `<th>${escapeHtml(header)}</th>`).join("")}</tr></thead>
+            <tbody>${inspection.previewRows.map((row) => `<tr>${inspection.headers.map((header) => `<td>${escapeHtml(row?.[header] ?? "")}</td>`).join("")}</tr>`).join("")}</tbody>
+          </table>
+        </div>
+      `;
+    }
+
+    function buildImportConfig() {
+      const inspection = state.importDraft?.inspection || {};
+      const layerNameInput = document.getElementById("importLayerName");
+      return {
+        layerName: layerNameInput?.value?.trim() || state.importDraft.files[0].name.replace(/\.[^.]+$/, ""),
+        csvText: inspection.csvText,
+        latField: document.getElementById("csvLatField")?.value || "",
+        lonField: document.getElementById("csvLonField")?.value || "",
+        wktField: document.getElementById("csvWktField")?.value || "",
+      };
+    }
+
+    function launchDropboxChooserImport() {
+      const appKey = getDropboxChooserAppKey();
+      if (!appKey || !globalThis.Dropbox?.choose) {
+        setStatus("Dropbox Chooser needs a Dropbox app key. Add one to window.LALGEO_DROPBOX_CHOOSER_APP_KEY or localStorage.", "error");
+        return;
+      }
+      globalThis.Dropbox.choose({
+        linkType: "direct",
+        multiselect: false,
+        extensions: [".lal", ".geojson", ".json", ".zip", ".csv", ".kml", ".gpx"],
+        success: async (files) => {
+          try {
+            const file = files[0];
+            const response = await fetch(file.link);
+            const blob = await response.blob();
+            const imported = new File([blob], file.name, { type: blob.type });
+            await handleImportFiles([imported]);
+          } catch (error) {
+            setStatus(error.message || "Unable to import from Dropbox Chooser.", "error");
+          }
+        },
+      });
+    }
+
+    function handleAttributeSort(event) {
+      const th = event.target.closest("[data-sort]");
+      if (!th) return;
+      const field = th.dataset.sort;
+      if (state.sort.field === field) {
+        state.sort.direction = state.sort.direction === "asc" ? "desc" : "asc";
+      } else {
+        state.sort.field = field;
+        state.sort.direction = "asc";
+      }
+      renderAttributesTable();
+    }
+
+    function handleInlineEdit(event) {
+      const cell = event.target.closest("td[data-field]");
+      if (!cell || cell.querySelector("input")) return;
+      const featureRow = cell.closest("tr[data-feature-id]");
+      const field = cell.dataset.field;
+      const feature = state.draftLayer.features.find((item) => item.id === featureRow.dataset.featureId);
+      if (!feature) return;
+      const schemaField = state.draftLayer.schema.find((item) => item.name === field);
+      const current = feature.properties?.[field] ?? "";
+      if (schemaField?.type === "dropdown") {
+        cell.innerHTML = `<select class="field-select" data-inline-editor>${(schemaField.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(current) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}</select>`;
+      } else {
+        const type = schemaField?.type === "number" ? "number" : "text";
+        cell.innerHTML = `<input class="field-input" data-inline-editor type="${type}" value="${escapeHtml(current)}">`;
+      }
+      cell.querySelector("[data-inline-editor]").focus();
+    }
+
+    function handleInlineCommit(event) {
+      const input = event.target.closest("[data-inline-editor]");
+      if (!input) return;
+      const cell = input.closest("td[data-field]");
+      const row = input.closest("tr[data-feature-id]");
+      const feature = state.draftLayer.features.find((item) => item.id === row.dataset.featureId);
+      if (!feature) return;
+      feature.properties[cell.dataset.field] = input.value;
+      markDirty();
+      renderAttributesTable();
+    }
+
+    function markDirty() {
+      state.dirty = true;
+      updateActionButtons();
+      setStatus("Layer has unsaved changes.", "");
+    }
+
+    function setStatus(message, kind = "") {
+      els.statusMessage.textContent = message;
+      els.statusMessage.className = `message${kind ? ` ${kind}` : ""}`;
+    }
+
+    function setDropboxStatus(connected) {
+      els.dropboxStatusDot.classList.toggle("connected", connected);
+      els.dropboxStatusLabel.textContent = connected ? "Dropbox token ready" : "Dropbox not connected";
+      els.connectDropboxBtn.textContent = connected ? "Dropbox Ready" : "Connect Dropbox";
+    }
+
+    async function hydrateLayerSummaries() {
+      const missing = state.layers.filter((layer) => !state.layerSummaryCache[layer.pathLower]);
+      if (!missing.length || !state.client.isReady) return;
+      for (const file of missing.slice(0, 8)) {
+        try {
+          const { layer } = await state.client.loadLayer(file.pathDisplay || file.pathLower);
+          writeLayerSummaryCache(file.pathLower, layer);
+        } catch (error) {
+          console.warn("Unable to hydrate layer summary", file.pathLower, error);
+        }
+      }
+      renderLayerList();
+    }
+
+    function loadLayerSummaryCache() {
+      try {
+        const raw = localStorage.getItem("lalgeo_data_manager_layer_summaries");
+        return raw ? JSON.parse(raw) : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function writeLayerSummaryCache(pathLower, layer) {
+      if (!pathLower || !layer) return;
+      state.layerSummaryCache[pathLower] = {
+        geometryType: layer.metadata?.geometryType || layer.features?.[0]?.geometry?.type || "Unknown",
+        featureCount: Array.isArray(layer.features) ? layer.features.length : 0,
+        updatedAt: layer.metadata?.updatedAt || null,
+      };
+      localStorage.setItem("lalgeo_data_manager_layer_summaries", JSON.stringify(state.layerSummaryCache));
+    }
+
+    function formatFeatureCount(value) {
+      if (typeof value !== "number") return "Feature count unknown";
+      return `${value} feature${value === 1 ? "" : "s"}`;
+    }
+
+    function formatDate(value) {
+      if (!value) return "Unknown";
+      const date = new Date(value);
+      return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+    }
+
+    function compareValues(a, b, direction) {
+      const left = a ?? "";
+      const right = b ?? "";
+      if (typeof left === "number" && typeof right === "number") {
+        return direction === "asc" ? left - right : right - left;
+      }
+      return direction === "asc"
+        ? String(left).localeCompare(String(right))
+        : String(right).localeCompare(String(left));
+    }
+
+    function swatchColor(color) {
+      return ({
+        Red: "#EA4335",
+        Blue: "#4285F4",
+        Green: "#34A853",
+        Orange: "#FB8C00",
+        Purple: "#A142F4",
+      })[color] || "#EA4335";
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+    }
+
+    function handleGlobalShortcuts(event) {
+      if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (event.target.closest("input, textarea, select")) return;
+      const key = event.key.toLowerCase();
+      if (key === "i") {
+        event.preventDefault();
+        openImportModal();
+      }
+      if (key === "r") {
+        event.preventDefault();
+        refreshLayers();
+      }
+      if (key === "n") {
+        event.preventDefault();
+        openCreateLayerModal();
+      }
+    }
+  </script>
+</body>
+</html>
