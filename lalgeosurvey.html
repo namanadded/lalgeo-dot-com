@@ -6030,21 +6030,33 @@
                     setProjectStatus(error.message || "Unable to archive point.", "error");
                 }
             } else {
-                removeRecordAt(rowIndex);
+                const archived = archiveLocalPoint(rowIndex);
+                if (archived) {
+                    recordAction({
+                        type: "delete",
+                        rowIndex,
+                        archiveIndex: archived.archiveIndex,
+                        archivedEntry: archived.entry,
+                        featureId: archived.entry.feature?.id || archived.entry.pointMeta?.id || null
+                    });
+                    setWorkspaceDirty(true);
+                    setProjectStatus("Feature moved to archive.", "success");
+                }
             }
             hideSurveyCallout();
             updateSurveyTable();
             updateHistoryButtons();
         }
 
-        async function restoreArchivedPoint(archiveIndex) {
-            const archiveMeta = archiveData.pointMeta?.[archiveIndex];
-            const archiveRecord = archiveData.records?.[archiveIndex];
+        async function restoreArchivedPoint(archiveIndex, options = {}) {
+            const archiveMeta = options.archivedEntry?.pointMeta || archiveData.pointMeta?.[archiveIndex];
+            const archiveRecord = options.archivedEntry?.record || archiveData.records?.[archiveIndex];
             if (!archiveMeta) return;
 
             const mergeRestoredPoint = (point) => {
                 if (!point || !currentSurveyData) return;
                 const attrs = point.attributes || archiveRecord || {};
+                const layer = getActiveLayerRecord();
                 // ensure headers include any new fields
                 Object.keys(attrs).forEach((h) => {
                     if (h && !currentSurveyData.headers.includes(h)) {
@@ -6059,6 +6071,18 @@
                     updatedAt: point.updatedAt,
                     updatedBy: point.updatedBy
                 });
+                if (layer) {
+                    layer.features = layer.features || [];
+                    layer.features.push(options.archivedEntry?.feature || archiveMeta.feature || {
+                        id: point.id,
+                        geometry: {
+                            lat: Number.isFinite(parseFloat(attrs[currentSurveyData.latKey])) ? parseFloat(attrs[currentSurveyData.latKey]) : null,
+                            lng: Number.isFinite(parseFloat(attrs[currentSurveyData.lonKey])) ? parseFloat(attrs[currentSurveyData.lonKey]) : null
+                        },
+                        attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, attrs[field.name] ?? ""])),
+                        version: point.version ?? 1
+                    });
+                }
                 // keep document in sync if available
                 if (currentSurveyDocument) {
                     const lat = currentSurveyData.latKey ? parseFloat(attrs[currentSurveyData.latKey]) : null;
@@ -6121,8 +6145,13 @@
                     updatedAt: new Date().toISOString(),
                     updatedBy: null
                 });
-                isArchiveView = false;
-                archiveToggleBtn.textContent = "Show archive";
+                if (!options.skipHistory) {
+                    isArchiveView = false;
+                    archiveToggleBtn.textContent = "Show archive";
+                }
+                pendingChanges = true;
+                setWorkspaceDirty(true);
+                updateHistoryButtons();
             }
         }
 
@@ -6531,10 +6560,13 @@ function setImportPanelVisibility(show) {
             if (!undoStack.length) return;
             const action = undoStack.pop();
             if (action.type === "add") {
-                const removedRecord = removeRecordAt(action.rowIndex);
-                if (removedRecord) {
+                const removedEntry = removeRecordAt(action.rowIndex);
+                if (removedEntry) {
                     redoStack.push({ ...action });
                 }
+            } else if (action.type === "delete") {
+                restoreArchivedPoint(action.archiveIndex, { skipHistory: true, archivedEntry: action.archivedEntry });
+                redoStack.push({ ...action });
             } else if (action.type === "move") {
                 applyMove(action.rowIndex, action.from);
                 redoStack.push({ type: "move", rowIndex: action.rowIndex, from: action.to, to: action.from });
@@ -6549,12 +6581,34 @@ function setImportPanelVisibility(show) {
             if (action.type === "add") {
                 insertRecordAt(action.rowIndex, action.record);
             }
+            if (action.type === "delete") {
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                if (rowIndex !== -1) {
+                    const archived = archiveLocalPoint(rowIndex);
+                    if (archived) {
+                        undoStack.push({
+                            ...action,
+                            archiveIndex: archived.archiveIndex,
+                            archivedEntry: archived.entry
+                        });
+                    }
+                }
+                pendingChanges = true;
+                updateHistoryButtons();
+                return;
+            }
             if (action.type === "move") {
                 applyMove(action.rowIndex, action.to);
             }
             undoStack.push(action);
             pendingChanges = true;
             updateHistoryButtons();
+        }
+
+        function findRowIndexByFeatureId(featureId) {
+            const layer = getActiveLayerRecord();
+            if (!layer?.features?.length || !featureId) return -1;
+            return layer.features.findIndex((feature) => feature.id === featureId);
         }
 
         function applyMove(rowIndex, coord) {
@@ -6577,11 +6631,13 @@ function setImportPanelVisibility(show) {
             if (!currentSurveyData?.records || index < 0 || index >= currentSurveyData.records.length) return null;
             const record = currentSurveyData.records.splice(index, 1)[0];
             const layer = getActiveLayerRecord();
+            const feature = layer?.features?.[index] ? { ...layer.features[index], attributes: { ...(layer.features[index].attributes || {}) } } : null;
             if (layer?.features) {
                 layer.features.splice(index, 1);
             }
+            let pointMetaEntry = null;
             if (Array.isArray(currentSurveyData.pointMeta)) {
-                currentSurveyData.pointMeta.splice(index, 1);
+                pointMetaEntry = currentSurveyData.pointMeta.splice(index, 1)[0] || null;
             }
             const annotation = rowAnnotationMap.get(index);
             if (annotation) {
@@ -6601,7 +6657,39 @@ function setImportPanelVisibility(show) {
                 }
             });
             updateSurveyTable();
-            return record;
+            return {
+                record,
+                feature,
+                pointMeta: pointMetaEntry,
+                rowIndex: index
+            };
+        }
+
+        function archiveLocalPoint(rowIndex) {
+            const removedEntry = removeRecordAt(rowIndex);
+            if (!removedEntry?.record) return null;
+            archiveData.headers = [...(currentSurveyData?.headers || archiveData.headers || [])];
+            archiveData.latKey = currentSurveyData?.latKey || archiveData.latKey;
+            archiveData.lonKey = currentSurveyData?.lonKey || archiveData.lonKey;
+            archiveData.records = Array.isArray(archiveData.records) ? archiveData.records : [];
+            archiveData.pointMeta = Array.isArray(archiveData.pointMeta) ? archiveData.pointMeta : [];
+            archiveData.archiveHeaders = archiveData.headers;
+            archiveData.records.unshift({ ...removedEntry.record });
+            archiveData.pointMeta.unshift({
+                ...(removedEntry.pointMeta || {}),
+                id: removedEntry.feature?.id || removedEntry.pointMeta?.id || generateSurveyPointId(),
+                version: removedEntry.feature?.version ?? removedEntry.pointMeta?.version ?? 1,
+                feature: removedEntry.feature || null,
+                archivedAt: new Date().toISOString()
+            });
+            return {
+                archiveIndex: 0,
+                entry: {
+                    record: { ...removedEntry.record },
+                    feature: removedEntry.feature || null,
+                    pointMeta: removedEntry.pointMeta || null
+                }
+            };
         }
 
         function insertRecordAt(index, record) {
