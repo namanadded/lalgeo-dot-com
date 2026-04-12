@@ -1079,6 +1079,44 @@
         gap: 8px;
         width: 100%;
     }
+    .toolbar-reveal-panel {
+        transition: opacity 0.2s ease, transform 0.2s ease, max-height 0.2s ease, margin 0.2s ease, padding 0.2s ease, border-color 0.2s ease;
+    }
+    .toolbar-edit-group {
+        display: none;
+    }
+    #toolbar.has-edit-session .toolbar-edit-group {
+        display: inline-flex;
+    }
+    @media (hover: hover) and (pointer: fine) {
+        #toolbar .toolbar-shell > .toolbar-reveal-panel {
+            opacity: 0;
+            transform: translateY(-8px) scale(0.98);
+            pointer-events: none;
+            max-height: 0;
+            overflow: hidden;
+            margin: 0;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-color: transparent;
+        }
+        #toolbar .toolbar-shell > .toolbar-edit-group {
+            opacity: 1;
+            transform: none;
+            pointer-events: auto;
+            max-height: 72px;
+            overflow: visible;
+        }
+        #toolbar:hover .toolbar-shell > .toolbar-reveal-panel,
+        #toolbar:focus-within .toolbar-shell > .toolbar-reveal-panel,
+        #toolbar.toolbar-force-expanded .toolbar-shell > .toolbar-reveal-panel {
+            opacity: 1;
+            transform: translateY(0) scale(1);
+            pointer-events: auto;
+            max-height: 220px;
+            overflow: visible;
+        }
+    }
     .toolbar-group {
         display: inline-flex;
         align-items: center;
@@ -2007,7 +2045,7 @@
         </div>
         <div class="toolbar-right">
             <div class="toolbar-shell">
-                <div class="workspace-context" id="workspaceContext">
+                <div class="workspace-context toolbar-reveal-panel" id="workspaceContext">
                     <div class="workspace-context-top">
                         <span class="workspace-pill">Workspace</span>
                         <strong id="workspaceProjectName">Create or open a project</strong>
@@ -2019,7 +2057,7 @@
                     </div>
                 </div>
 
-                <div class="toolbar-group">
+                <div class="toolbar-group toolbar-reveal-panel">
                     <span class="toolbar-group-label">Project</span>
                     <button id="workspacePanelBtn" type="button" class="control-btn active">Projects</button>
                     <button id="sidebarToggleBtn" type="button" class="control-btn" aria-controls="sidebar" aria-expanded="false">Workspace</button>
@@ -2028,21 +2066,21 @@
                     <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
                 </div>
 
-                <div class="toolbar-group">
+                <div id="toolbarEditGroup" class="toolbar-group toolbar-edit-group">
                     <span class="toolbar-group-label">Edit</span>
                     <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;" aria-label="Add point to the active layer (shortcut P)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add point</button>
                     <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
                     <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
                 </div>
 
-                <div class="toolbar-group">
+                <div class="toolbar-group toolbar-reveal-panel">
                     <span class="toolbar-group-label">Share</span>
                     <button id="shareMapBtn" type="button" class="control-btn">Share</button>
                     <button id="printButton" type="button" class="control-btn">Print</button>
                     <button id="exportProjectBtn" type="button" class="control-btn">Export</button>
                 </div>
 
-                <div class="toolbar-group">
+                <div class="toolbar-group toolbar-reveal-panel">
                     <span class="toolbar-group-label">View</span>
                     <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
                 </div>
@@ -2351,6 +2389,8 @@
         let voiceNavActive = false;
         let voiceTimeouts = [];
         const workspaceContext = document.getElementById("workspaceContext");
+        const toolbar = document.getElementById("toolbar");
+        const toolbarEditGroup = document.getElementById("toolbarEditGroup");
         const workspaceProjectNameEl = document.getElementById("workspaceProjectName");
         const workspaceLayerNameEl = document.getElementById("workspaceLayerName");
         const workspaceStorageLabelEl = document.getElementById("workspaceStorageLabel");
@@ -3254,6 +3294,11 @@
             }
         }
 
+        function updateToolbarDockState() {
+            const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
+            toolbar?.classList.toggle("has-edit-session", hasEditingSession);
+        }
+
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
             if (localAutosaveTimer) {
                 clearTimeout(localAutosaveTimer);
@@ -3274,6 +3319,7 @@
                 renderSelectedFeatureInspector();
                 updateWorkspaceContext();
                 renderWorkspaceCollections();
+                updateToolbarDockState();
                 return;
             }
             activeProjectRecord.layers = (activeProjectRecord.layers || []).map((layer) => ensureLayerStructure(layer));
@@ -3299,6 +3345,7 @@
                 renderSelectedFeatureInspector();
                 updateWorkspaceContext();
                 renderWorkspaceCollections();
+                updateToolbarDockState();
                 return;
             }
             if (render && mapReady && map) {
@@ -3314,6 +3361,7 @@
             renderSelectedFeatureInspector();
             updateWorkspaceContext();
             renderWorkspaceCollections();
+            updateToolbarDockState();
         }
 
         function addProjectToWorkspace(project, options = {}) {
