@@ -1506,6 +1506,19 @@
         display: grid;
         gap: 12px;
     }
+    .feature-drawer-section {
+        display: grid;
+        gap: 10px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .feature-drawer-section-label {
+        font-size: 11px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7dd3c8;
+        font-weight: 700;
+    }
     .feature-drawer-field {
         display: grid;
         gap: 6px;
@@ -1748,7 +1761,6 @@
                     <button id="newProjectBtn" type="button" class="control-btn">New</button>
                     <button id="openProjectBtn" type="button" class="control-btn">Open</button>
                     <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
-                    <button id="saveChangesBtn" type="button" class="control-btn" disabled>Save</button>
                 </div>
 
                 <div class="toolbar-group">
@@ -2256,6 +2268,7 @@
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
         let dropboxAutoRefreshTimer = null;
+        let localAutosaveTimer = null;
         let deferredReloadPath = null;
         const USE_INLINE_FEATURE_CALLOUT = false;
         const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
@@ -2287,6 +2300,13 @@
                 { name: "symbol_color", type: "dropdown", options: ["Red", "Blue", "Green", "Orange", "Purple"] },
                 { name: "symbol_shape", type: "dropdown", options: ["Circle", "Dot", "Pin", "Plus"] }
             ];
+        }
+
+        function getDefaultLayerStyleDefaults() {
+            return {
+                symbol_color: "Red",
+                symbol_shape: "Dot"
+            };
         }
 
         function cloneLayerSchema(schema = getDefaultLayerSchema()) {
@@ -2395,11 +2415,41 @@
                 layer.schema = createSchemaFromParsed(layer.parsed);
             }
             layer.schema = cloneLayerSchema(layer.schema);
+            const defaultSchema = getDefaultLayerSchema();
+            defaultSchema.forEach((defaultField) => {
+                if (!layer.schema.some((field) => field.name === defaultField.name)) {
+                    layer.schema.push({
+                        name: defaultField.name,
+                        type: defaultField.type || "text",
+                        options: Array.isArray(defaultField.options) ? [...defaultField.options] : []
+                    });
+                }
+            });
+            layer.styleDefaults = {
+                ...getDefaultLayerStyleDefaults(),
+                ...(layer.styleDefaults || {})
+            };
             const featuresLookLegacy = Array.isArray(layer.features) && layer.features.length
                 && (!("geometry" in layer.features[0]) || !("attributes" in layer.features[0]));
             if (!Array.isArray(layer.features) || !layer.features.length || featuresLookLegacy) {
                 layer.features = buildLayerFeaturesFromParsed(layer.parsed || createEmptyParsedLayer(layer.name), layer.schema);
             }
+            (layer.features || []).forEach((feature) => {
+                feature.attributes = feature.attributes || {};
+                defaultSchema.forEach((field) => {
+                    if (!(field.name in feature.attributes)) {
+                        if (field.name === "created_at") {
+                            feature.attributes[field.name] = new Date().toISOString();
+                        } else if (field.name === "symbol_color") {
+                            feature.attributes[field.name] = layer.styleDefaults.symbol_color;
+                        } else if (field.name === "symbol_shape") {
+                            feature.attributes[field.name] = layer.styleDefaults.symbol_shape;
+                        } else {
+                            feature.attributes[field.name] = "";
+                        }
+                    }
+                });
+            });
             layer.parsed = buildParsedFromLayer(layer);
             layer.fields = layer.schema.map((field) => field.name);
             return layer;
@@ -2407,14 +2457,14 @@
 
         function createEmptyParsedLayer(layerName = "Field Points") {
             return {
-                headers: ["name", "description", "created_at", "Latitude", "Longitude"],
+                headers: ["name", "description", "created_at", "symbol_color", "symbol_shape", "Latitude", "Longitude"],
                 records: [],
                 latKey: "Latitude",
                 lonKey: "Longitude",
                 questionMeta: buildQuestionMetaFromSchema(getDefaultLayerSchema()),
                 pointMeta: [],
                 archiveRecords: [],
-                archiveHeaders: ["name", "description", "created_at", "Latitude", "Longitude"],
+                archiveHeaders: ["name", "description", "created_at", "symbol_color", "symbol_shape", "Latitude", "Longitude"],
                 archivePointMeta: [],
                 layerName
             };
@@ -2426,6 +2476,8 @@
                 name: point.name,
                 description: point.description || "",
                 created_at: point.date || new Date().toISOString(),
+                symbol_color: point.symbol_color || "Red",
+                symbol_shape: point.symbol_shape || "Dot",
                 Latitude: point.lat,
                 Longitude: point.lon
             }));
@@ -2444,6 +2496,7 @@
                 name,
                 geometryType,
                 visible: true,
+                styleDefaults: getDefaultLayerStyleDefaults(),
                 schema,
                 fields: schema.map((field) => field.name),
                 features: buildLayerFeaturesFromParsed(sourceParsed, schema),
@@ -2550,6 +2603,42 @@
             updateHistoryButtons();
         }
 
+        function isLocalWorkspaceProject(project = activeProjectRecord) {
+            if (!project) return false;
+            return !String(project.storageSource || "").toLowerCase().includes("dropbox");
+        }
+
+        function scheduleLocalAutosave(delay = 500) {
+            if (!activeProjectRecord || !isLocalWorkspaceProject()) return;
+            pendingChanges = true;
+            workspaceDirty = true;
+            updateHistoryButtons();
+            if (localAutosaveTimer) clearTimeout(localAutosaveTimer);
+            localAutosaveTimer = window.setTimeout(() => {
+                localAutosaveTimer = null;
+                persistSurveyEditsIfNeeded();
+            }, delay);
+        }
+
+        function cloneLocalRowEntry(index) {
+            if (!currentSurveyData?.records?.[index]) return null;
+            const layer = getActiveLayerRecord();
+            return {
+                rowIndex: index,
+                record: { ...currentSurveyData.records[index] },
+                feature: layer?.features?.[index]
+                    ? {
+                        ...layer.features[index],
+                        geometry: { ...(layer.features[index].geometry || {}) },
+                        attributes: { ...(layer.features[index].attributes || {}) }
+                    }
+                    : null,
+                pointMeta: currentSurveyData.pointMeta?.[index]
+                    ? { ...currentSurveyData.pointMeta[index] }
+                    : null
+            };
+        }
+
         function markActiveProjectUpdated() {
             if (!activeProjectRecord) return;
             activeProjectRecord.metadata = activeProjectRecord.metadata || {};
@@ -2603,7 +2692,9 @@
             if (workspaceSaveStatusEl) {
                 const statusLabel = !hasProject
                     ? "Waiting to start"
-                    : unsaved
+                    : localAutosaveTimer
+                        ? "Autosaving"
+                        : unsaved
                         ? "Unsaved changes"
                         : (activeProjectRecord?.metadata?.lastSavedAt === activeProjectRecord?.metadata?.updatedAt ? "Saved" : "Ready");
                 workspaceSaveStatusEl.textContent = `Status: ${statusLabel}`;
@@ -2689,6 +2780,7 @@
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
                                 <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}">Edit schema</button>
+                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}">Style defaults</button>
                                 <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
                                 <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
                             </div>
@@ -2749,6 +2841,7 @@
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}">Open</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}">${item.visible === false ? "Show" : "Hide"}</button>
                                 <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}">Edit schema</button>
+                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}">Style defaults</button>
                                 <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}">Rename</button>
                                 <button type="button" class="mini-btn" data-delete-layer="${escapeHtml(item.id)}">Delete</button>
                             </div>
@@ -2794,6 +2887,10 @@
         }
 
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
+            if (localAutosaveTimer) {
+                clearTimeout(localAutosaveTimer);
+                localAutosaveTimer = null;
+            }
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
             sidebarDismissed = false;
@@ -2907,7 +3004,7 @@
             }));
             copy.activeLayerId = copy.layers?.[0]?.id || null;
             addProjectToWorkspace(copy);
-            setWorkspaceDirty(true);
+            scheduleLocalAutosave();
             setProjectStatus(`Duplicated ${project.name}.`, "success");
         }
 
@@ -3052,6 +3149,72 @@
             }
         }
 
+        function normalizeFeatureFieldValue(field, value) {
+            if (field?.type === "number") {
+                if (value === "" || value === null || value === undefined) return "";
+                const parsed = Number(value);
+                return Number.isFinite(parsed) ? parsed : "";
+            }
+            return value ?? "";
+        }
+
+        function applyFeatureAttributesToRow(rowIndex, nextAttributes, options = {}) {
+            const layer = getActiveLayerRecord();
+            const feature = layer?.features?.[rowIndex];
+            const record = currentSurveyData?.records?.[rowIndex];
+            if (!layer || !feature || !record) return false;
+            const schema = layer.schema || getDefaultLayerSchema();
+            schema.forEach((field) => {
+                const nextValue = normalizeFeatureFieldValue(field, nextAttributes[field.name]);
+                feature.attributes[field.name] = nextValue;
+                record[field.name] = nextValue;
+            });
+            if (!feature.attributes.created_at) {
+                feature.attributes.created_at = new Date().toISOString();
+                record.created_at = feature.attributes.created_at;
+            }
+            activeSurveyAnnotation.surveyPoint.attributes = { ...feature.attributes };
+            activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName);
+            activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
+            layer.features[rowIndex] = {
+                ...feature,
+                attributes: { ...feature.attributes }
+            };
+            layer.parsed = buildParsedFromLayer(layer);
+            currentSurveyData = layer.parsed;
+            activeSurveyAnnotation.surveyPoint.isNew = false;
+            updateAnnotationLabels();
+            updateAnnotationVisualState(activeSurveyAnnotation);
+            updateSurveyTable();
+            renderSelectedFeatureInspector();
+            if (options.renderDrawer !== false) renderFeatureDrawer();
+            return true;
+        }
+
+        function commitFeatureFieldChange(fieldName, rawValue) {
+            const layer = getActiveLayerRecord();
+            const feature = getSelectedFeatureRecord();
+            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const schemaField = (layer.schema || []).find((field) => field.name === fieldName);
+            if (!schemaField) return;
+            const before = { ...(feature.attributes || {}) };
+            const nextValue = normalizeFeatureFieldValue(schemaField, rawValue);
+            if ((before[fieldName] ?? "") === nextValue) return;
+            const after = { ...before, [fieldName]: nextValue };
+            if (!after.created_at) after.created_at = new Date().toISOString();
+            if (applyFeatureAttributesToRow(rowIndex, after)) {
+                recordAction({
+                    type: "edit-attributes",
+                    rowIndex,
+                    featureId: feature.id,
+                    before,
+                    after
+                });
+                setProjectStatus("Feature details updated.", "success");
+            }
+        }
+
         function renderFeatureDrawer() {
             if (!featureDrawerBody || !featureDrawerMeta) return;
             const layer = getActiveLayerRecord();
@@ -3067,7 +3230,10 @@
                 <span class="workspace-badge">${escapeHtml(layer.name)}</span>
                 <span>Feature ID: ${escapeHtml(feature.id || `feature-${rowIndex + 1}`)}</span>
             `;
-            const fields = (layer.schema || getDefaultLayerSchema()).map((field) => {
+            const styleFieldNames = new Set(["symbol_color", "symbol_shape"]);
+            const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !styleFieldNames.has(field.name));
+            const styleFields = (layer.schema || getDefaultLayerSchema()).filter((field) => styleFieldNames.has(field.name));
+            const fields = attributeFields.map((field) => {
                 const value = feature.attributes?.[field.name] ?? "";
                 if (field.type === "dropdown") {
                     return `
@@ -3095,78 +3261,81 @@
                     </div>
                 `;
             }).join("");
+            const styleSection = styleFields.length ? `
+                <div class="feature-drawer-section">
+                    <div class="feature-drawer-section-label">Style</div>
+                    ${styleFields.map((field) => {
+                        const value = feature.attributes?.[field.name] ?? "";
+                        return `
+                            <div class="feature-drawer-field">
+                                <label>${escapeHtml(field.name.replace("symbol_", "").replace("_", " "))}</label>
+                                <select data-feature-field="${escapeHtml(field.name)}">
+                                    <option value="">Select…</option>
+                                    ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                                </select>
+                            </div>
+                        `;
+                    }).join("")}
+                </div>
+            ` : "";
             featureDrawerBody.innerHTML = `
                 <div class="feature-drawer-form">
                     ${fields}
+                    ${styleSection}
                     <div class="feature-drawer-actions">
                         <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete">Delete feature</button>
-                        <button id="featureDrawerSave" type="button" class="workspace-primary-btn">Save</button>
+                        <span class="workspace-panel-muted">Changes autosave to your workspace.</span>
                     </div>
                 </div>
             `;
-            featureDrawerBody.querySelector("#featureDrawerSave")?.addEventListener("click", saveFeatureDrawerChanges);
+            featureDrawerBody.querySelectorAll("[data-feature-field]").forEach((input) => {
+                const commit = () => commitFeatureFieldChange(input.getAttribute("data-feature-field"), input.value);
+                input.addEventListener("change", commit);
+                if (input.tagName === "INPUT" || input.tagName === "TEXTAREA") {
+                    input.addEventListener("blur", commit);
+                }
+            });
             featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => deleteActivePoint());
             featureDrawer.classList.add("open");
-        }
-
-        function saveFeatureDrawerChanges() {
-            const layer = getActiveLayerRecord();
-            const feature = getSelectedFeatureRecord();
-            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
-            const record = currentSurveyData?.records?.[rowIndex];
-            if (!record) return;
-            featureDrawerBody.querySelectorAll("[data-feature-field]").forEach((input) => {
-                const fieldName = input.getAttribute("data-feature-field");
-                if (!fieldName) return;
-                feature.attributes[fieldName] = input.value;
-                record[fieldName] = input.value;
-            });
-            activeSurveyAnnotation.surveyPoint.attributes = { ...feature.attributes };
-            activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName);
-            activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
-            layer.features[rowIndex] = { ...feature };
-            layer.parsed = buildParsedFromLayer(layer);
-            currentSurveyData = layer.parsed;
-            activeSurveyAnnotation.surveyPoint.isNew = false;
-            updateAnnotationLabels();
-            updateAnnotationVisualState(activeSurveyAnnotation);
-            pendingChanges = true;
-            setWorkspaceDirty(true);
-            updateSurveyTable();
-            renderSelectedFeatureInspector();
-            renderFeatureDrawer();
-            setProjectStatus("Feature details updated.", "success");
         }
 
         function applySelectedFeatureInspectorChanges() {
             if (!activeSurveyAnnotation?.surveyPoint || !currentSurveyData) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const layer = getActiveLayerRecord();
+            const feature = getSelectedFeatureRecord();
             const record = currentSurveyData.records[rowIndex];
+            if (!layer || !feature || !record) return;
+            const before = { ...(feature.attributes || {}) };
+            const after = { ...before };
             selectedFeatureInspector.querySelectorAll("[data-inspector-field]").forEach((input) => {
                 const field = input.getAttribute("data-inspector-field");
                 if (!field) return;
-                record[field] = input.value;
+                const schemaField = (layer.schema || []).find((item) => item.name === field);
+                after[field] = normalizeFeatureFieldValue(schemaField, input.value);
             });
-            activeSurveyAnnotation.surveyPoint.attributes = { ...record };
-            activeSurveyAnnotation.title = computeLabelFromAttributes(record, activeProjectName);
-            activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
+            if (JSON.stringify(before) === JSON.stringify(after)) return;
+            applyFeatureAttributesToRow(rowIndex, after);
             if (currentSurveyDocument) {
                 updateDocumentPoint({
                     id: activeSurveyAnnotation.surveyPoint.pointId,
-                    lat: parseFloat(record[currentSurveyData.latKey]),
-                    lon: parseFloat(record[currentSurveyData.lonKey]),
-                    attributes: { ...record },
+                    lat: parseFloat(currentSurveyData.records[rowIndex][currentSurveyData.latKey]),
+                    lon: parseFloat(currentSurveyData.records[rowIndex][currentSurveyData.lonKey]),
+                    attributes: { ...currentSurveyData.records[rowIndex] },
                     version: activeSurveyAnnotation.surveyPoint.pointVersion ?? 1
                 });
             }
             if (isDropboxSurvey()) {
                 markSurveyDirty();
             } else {
-                pendingChanges = true;
-                setWorkspaceDirty(true);
+                recordAction({
+                    type: "edit-attributes",
+                    rowIndex,
+                    featureId: feature.id,
+                    before,
+                    after
+                });
             }
-            updateSurveyTable();
             renderSelectedFeatureInspector();
             renderSurveyCalloutContent();
             setProjectStatus("Feature attributes updated.", "success");
@@ -3184,7 +3353,7 @@
             activeProjectRecord.activeLayerId = layer.id;
             activeLayerId = layer.id;
             markActiveProjectUpdated();
-            setWorkspaceDirty(true);
+            scheduleLocalAutosave();
             setActiveProject(activeProjectRecord);
         }
 
@@ -3244,12 +3413,43 @@
             layer.parsed = buildParsedFromLayer(layer);
             layer.fields = layer.schema.map((field) => field.name);
             markActiveProjectUpdated();
-            setWorkspaceDirty(true);
+            scheduleLocalAutosave();
             if (layer.id === activeLayerId) {
                 setActiveProject(activeProjectRecord, { preserveRegion: true });
             } else {
                 renderWorkspaceCollections();
             }
+        }
+
+        function editLayerStyleDefaults(layerId) {
+            const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
+            if (!layer) return;
+            ensureLayerStructure(layer);
+            const currentDefaults = {
+                ...getDefaultLayerStyleDefaults(),
+                ...(layer.styleDefaults || {})
+            };
+            const colorField = (layer.schema || []).find((field) => field.name === "symbol_color");
+            const shapeField = (layer.schema || []).find((field) => field.name === "symbol_shape");
+            const nextColor = window.prompt(
+                `Default symbol color for "${layer.name}"\nOptions: ${(colorField?.options || []).join(", ")}`,
+                currentDefaults.symbol_color
+            );
+            if (!nextColor?.trim()) return;
+            const nextShape = window.prompt(
+                `Default symbol shape for "${layer.name}"\nOptions: ${(shapeField?.options || []).join(", ")}`,
+                currentDefaults.symbol_shape
+            );
+            if (!nextShape?.trim()) return;
+            layer.styleDefaults = {
+                symbol_color: nextColor.trim(),
+                symbol_shape: nextShape.trim()
+            };
+            markActiveProjectUpdated();
+            scheduleLocalAutosave();
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
+            setProjectStatus(`Updated style defaults for ${layer.name}.`, "success");
         }
 
         function switchToLayer(layerId) {
@@ -3265,7 +3465,7 @@
             if (!layer) return;
             layer.visible = layer.visible === false ? true : false;
             markActiveProjectUpdated();
-            setWorkspaceDirty(true);
+            scheduleLocalAutosave();
             if (layer.id === activeLayerId && layer.visible === false) {
                 clearSurveyLayers();
                 setSurveyTableVisibility(true);
@@ -3285,7 +3485,7 @@
             layer.name = nextName.trim();
             if (layer.parsed) layer.parsed.layerName = layer.name;
             markActiveProjectUpdated();
-            setWorkspaceDirty(true);
+            scheduleLocalAutosave();
             setActiveProject(activeProjectRecord, { preserveRegion: true });
         }
 
@@ -3298,7 +3498,7 @@
             activeProjectRecord.activeLayerId = activeProjectRecord.layers[0]?.id || null;
             activeLayerId = activeProjectRecord.activeLayerId;
             markActiveProjectUpdated();
-            setWorkspaceDirty(true);
+            scheduleLocalAutosave();
             setActiveProject(activeProjectRecord, { preserveRegion: true });
         }
 
@@ -3625,6 +3825,11 @@
                 editLayerSchema(schemaButton.dataset.editSchema);
                 return;
             }
+            const styleButton = event.target.closest("[data-edit-layer-style]");
+            if (styleButton) {
+                editLayerStyleDefaults(styleButton.dataset.editLayerStyle);
+                return;
+            }
             const deleteButton = event.target.closest("[data-delete-layer]");
             if (deleteButton) {
                 deleteLayer(deleteButton.dataset.deleteLayer);
@@ -3661,6 +3866,11 @@
             const schemaLayerButton = event.target.closest("[data-edit-schema]");
             if (schemaLayerButton) {
                 editLayerSchema(schemaLayerButton.dataset.editSchema);
+                return;
+            }
+            const styleLayerButton = event.target.closest("[data-edit-layer-style]");
+            if (styleLayerButton) {
+                editLayerStyleDefaults(styleLayerButton.dataset.editLayerStyle);
                 return;
             }
             const renameLayerButton = event.target.closest("[data-rename-layer]");
@@ -4318,11 +4528,16 @@
                     newRecord[header] = autoValue;
                 }
             });
+            const layer = getActiveLayerRecord();
+            const layerDefaults = {
+                ...getDefaultLayerStyleDefaults(),
+                ...(layer?.styleDefaults || {})
+            };
             if ("symbol_color" in newRecord && !newRecord.symbol_color) {
-                newRecord.symbol_color = "Red";
+                newRecord.symbol_color = layerDefaults.symbol_color;
             }
             if ("symbol_shape" in newRecord && !newRecord.symbol_shape) {
-                newRecord.symbol_shape = "Dot";
+                newRecord.symbol_shape = layerDefaults.symbol_shape;
             }
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
@@ -4332,7 +4547,6 @@
                 version: 1
             };
             currentSurveyData.pointMeta.push(placeholderMeta);
-            const layer = getActiveLayerRecord();
             if (layer) {
                 layer.features = layer.features || [];
                 layer.features.push({
@@ -4408,13 +4622,18 @@
                 pendingNewAnnotation = null;
             } else {
                 pendingNewAnnotation = annotation;
+                recordAction({
+                    type: "add",
+                    rowIndex,
+                    featureId: placeholderMeta.id,
+                    entry: cloneLocalRowEntry(rowIndex)
+                });
             }
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             refreshAnnotationStyles();
             showSurveyCallout(annotation, { forceEdit: true });
             renderFeatureDrawer();
             setAnnotationDraggable(annotation);
-            setWorkspaceDirty(true);
             updateSurveyTable();
         }
 
@@ -6034,11 +6253,6 @@
             } else if (wasNewPoint) {
                 activeSurveyAnnotation.surveyPoint.isNew = false;
                 pendingNewAnnotation = null;
-                recordAction({
-                    type: "add",
-                    rowIndex,
-                    record: { ...currentSurveyData.records[rowIndex] }
-                });
                 updateSurveyTable();
             } else {
                 pendingChanges = true;
@@ -6075,7 +6289,6 @@
                         archivedEntry: archived.entry,
                         featureId: archived.entry.feature?.id || archived.entry.pointMeta?.id || null
                     });
-                    setWorkspaceDirty(true);
                     setProjectStatus("Feature moved to archive.", "success");
                 }
             }
@@ -6185,8 +6398,7 @@
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
                 }
-                pendingChanges = true;
-                setWorkspaceDirty(true);
+                scheduleLocalAutosave();
                 updateHistoryButtons();
             }
         }
@@ -6219,6 +6431,7 @@
                 return;
             }
             if (!activeProjectRecord) return;
+            if (!forceSave && !pendingChanges && !surveyNeedsSave && !workspaceDirty) return;
             syncActiveLayerFromSurveyState();
             pendingChanges = false;
             surveyNeedsSave = false;
@@ -6227,7 +6440,7 @@
             }
             workspaceDirty = false;
             saveWorkspaceProjects();
-            setProjectStatus("Project saved to local browser storage.", "success");
+            setProjectStatus("Project autosaved to local browser storage.", "success");
             updateHistoryButtons();
         }
 
@@ -6589,6 +6802,7 @@ function setImportPanelVisibility(show) {
             undoStack.push(action);
             redoStack = [];
             pendingChanges = true;
+            scheduleLocalAutosave();
             updateHistoryButtons();
         }
 
@@ -6596,18 +6810,25 @@ function setImportPanelVisibility(show) {
             if (!undoStack.length) return;
             const action = undoStack.pop();
             if (action.type === "add") {
-                const removedEntry = removeRecordAt(action.rowIndex);
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                const removedEntry = removeRecordAt(rowIndex === -1 ? action.rowIndex : rowIndex);
                 if (removedEntry) {
-                    redoStack.push({ ...action });
+                    redoStack.push({ ...action, entry: removedEntry });
                 }
             } else if (action.type === "delete") {
                 restoreArchivedPoint(action.archiveIndex, { skipHistory: true, archivedEntry: action.archivedEntry });
                 redoStack.push({ ...action });
             } else if (action.type === "move") {
-                applyMove(action.rowIndex, action.from);
-                redoStack.push({ type: "move", rowIndex: action.rowIndex, from: action.to, to: action.from });
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                applyMove(rowIndex === -1 ? action.rowIndex : rowIndex, action.from);
+                redoStack.push({ type: "move", rowIndex: action.rowIndex, featureId: action.featureId, from: action.to, to: action.from });
+            } else if (action.type === "edit-attributes") {
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                if (applyFeatureAttributesToRow(rowIndex === -1 ? action.rowIndex : rowIndex, action.before)) {
+                    redoStack.push({ ...action });
+                }
             }
-            pendingChanges = true;
+            scheduleLocalAutosave();
             updateHistoryButtons();
         }
 
@@ -6615,7 +6836,7 @@ function setImportPanelVisibility(show) {
             if (!redoStack.length) return;
             const action = redoStack.pop();
             if (action.type === "add") {
-                insertRecordAt(action.rowIndex, action.record);
+                insertRecordAt(action.rowIndex, action.entry);
             }
             if (action.type === "delete") {
                 const rowIndex = findRowIndexByFeatureId(action.featureId);
@@ -6629,15 +6850,20 @@ function setImportPanelVisibility(show) {
                         });
                     }
                 }
-                pendingChanges = true;
+                scheduleLocalAutosave();
                 updateHistoryButtons();
                 return;
             }
             if (action.type === "move") {
-                applyMove(action.rowIndex, action.to);
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                applyMove(rowIndex === -1 ? action.rowIndex : rowIndex, action.to);
+            }
+            if (action.type === "edit-attributes") {
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                applyFeatureAttributesToRow(rowIndex === -1 ? action.rowIndex : rowIndex, action.after);
             }
             undoStack.push(action);
-            pendingChanges = true;
+            scheduleLocalAutosave();
             updateHistoryButtons();
         }
 
@@ -6659,6 +6885,7 @@ function setImportPanelVisibility(show) {
             if (annotation) {
                 annotation.coordinate = new mapkit.Coordinate(coord.lat, coord.lon);
                 annotation.surveyPoint.coordinate = annotation.coordinate;
+                updateAnnotationVisualState(annotation);
             }
             updateSurveyTable();
         }
@@ -6728,25 +6955,33 @@ function setImportPanelVisibility(show) {
             };
         }
 
-        function insertRecordAt(index, record) {
+        function insertRecordAt(index, entry) {
             if (!currentSurveyData?.records) return;
             const rowIndex = Math.min(Math.max(index, 0), currentSurveyData.records.length);
+            const record = entry?.record ? { ...entry.record } : { ...(entry || {}) };
             currentSurveyData.records.splice(rowIndex, 0, record);
             const layer = getActiveLayerRecord();
             if (layer) {
                 layer.features = layer.features || [];
-                layer.features.splice(rowIndex, 0, {
-                    id: generateSurveyPointId(),
-                    geometry: {
-                        lat: parseFloat(record[currentSurveyData.latKey]),
-                        lng: parseFloat(record[currentSurveyData.lonKey])
-                    },
-                    attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, record[field.name] ?? ""])),
-                    version: 1
-                });
+                const feature = entry?.feature
+                    ? {
+                        ...entry.feature,
+                        geometry: { ...(entry.feature.geometry || {}) },
+                        attributes: { ...(entry.feature.attributes || {}) }
+                    }
+                    : {
+                        id: generateSurveyPointId(),
+                        geometry: {
+                            lat: parseFloat(record[currentSurveyData.latKey]),
+                            lng: parseFloat(record[currentSurveyData.lonKey])
+                        },
+                        attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, record[field.name] ?? ""])),
+                        version: 1
+                    };
+                layer.features.splice(rowIndex, 0, feature);
             }
             if (Array.isArray(currentSurveyData.pointMeta)) {
-                currentSurveyData.pointMeta.splice(rowIndex, 0, {
+                currentSurveyData.pointMeta.splice(rowIndex, 0, entry?.pointMeta ? { ...entry.pointMeta } : {
                     id: generateSurveyPointId(),
                     version: 1
                 });
@@ -6764,15 +6999,24 @@ function setImportPanelVisibility(show) {
             const lat = parseFloat(record[currentSurveyData.latKey]);
             const lon = parseFloat(record[currentSurveyData.lonKey]);
             if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+            const pointMeta = currentSurveyData.pointMeta?.[rowIndex] || {};
             const coord = new mapkit.Coordinate(lat, lon);
             const attributes = { ...record };
             const markerTitle = computeLabelFromAttributes(attributes, activeProjectName);
             const annotation = new mapkit.MarkerAnnotation(coord, {
-                color: "#EA4335",
-                glyphText: "●",
+                color: getSymbolColorValue(attributes.symbol_color),
+                glyphText: getSymbolGlyphValue(attributes.symbol_shape),
                 title: markerTitle
             });
-            annotation.surveyPoint = { coordinate: coord, attributes, imageSrc: null, title: markerTitle, rowIndex };
+            annotation.surveyPoint = {
+                coordinate: coord,
+                attributes,
+                imageSrc: null,
+                title: markerTitle,
+                rowIndex,
+                pointId: pointMeta.id || null,
+                pointVersion: pointMeta.version ?? 1
+            };
             surveyAnnotations.push(annotation);
             map.addAnnotation(annotation);
             rowAnnotationMap = new Map();
@@ -6782,6 +7026,7 @@ function setImportPanelVisibility(show) {
                 }
             });
             setAnnotationDraggable(annotation);
+            updateAnnotationVisualState(annotation);
         }
 
         function setAnnotationDraggable(annotation) {
@@ -6839,6 +7084,7 @@ function setImportPanelVisibility(show) {
                 recordAction({
                     type: "move",
                     rowIndex,
+                    featureId: annotation.surveyPoint?.pointId || getActiveLayerRecord()?.features?.[rowIndex]?.id || null,
                     from: start,
                     to: { lat: coord.latitude, lon: coord.longitude }
                 });
