@@ -1324,7 +1324,7 @@
         display: inline-flex;
         align-items: center;
         gap: 2px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
     .menu-bar-btn {
         text-decoration: none;
@@ -1365,15 +1365,21 @@
     .toolbar-center,
     .toolbar-right {
         min-width: 0;
+        display: flex;
+        align-items: center;
+        flex-wrap: nowrap;
     }
     .toolbar-left {
         justify-content: flex-start;
+        overflow: hidden;
     }
     .toolbar-center {
         justify-content: center;
+        overflow: hidden;
     }
     .toolbar-right {
         justify-content: flex-end;
+        justify-self: end;
     }
     .search-pill {
         width: 28px;
