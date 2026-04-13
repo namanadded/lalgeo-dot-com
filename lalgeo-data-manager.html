@@ -428,7 +428,8 @@
           refreshLayers();
           return;
         }
-        state.client.startOauth(window.location.href);
+        const surveyConnected = localStorage.getItem("lalgeo_survey_dropbox_connected") === "1";
+        state.client.startOauth(window.location.href, { bridgeAttempted: surveyConnected });
       });
       els.refreshLayersBtn.addEventListener("click", refreshLayers);
       els.importLayerBtn.addEventListener("click", openImportModal);
@@ -475,14 +476,17 @@
 
     async function bootstrapDropbox() {
       try {
-        await state.client.connectWithExistingSurveySession();
+        const sessionState = await state.client.connectWithExistingSurveySession();
         setDropboxStatus(state.client.isReady);
         if (state.client.isReady) {
           await refreshLayers();
-        } else if (state.client.profile && !state.bridgeAttempted) {
-          // If Survey already authenticated Dropbox via the shared worker session,
-          // try a one-time silent bridge through the same auth endpoint.
+        } else if (sessionState?.surveyConnected && !state.bridgeAttempted) {
+          // Survey already authenticated Dropbox via the shared worker session.
+          // Complete a one-time silent bridge so the Data Manager can use Dropbox directly.
           state.client.startOauth(window.location.href, { bridgeAttempted: true });
+        } else if (sessionState?.surveyConnected) {
+          setStatus("Survey Dropbox session found, but the token handoff did not complete. Click Reuse Survey Dropbox to retry.", "error");
+          els.bridgeHelp.textContent = "Survey Dropbox session found. Use the Reuse Survey Dropbox button to retry the token handoff.";
         } else {
           setStatus("Connect Dropbox to manage layers in LalGeoDB.", "");
         }
@@ -515,7 +519,13 @@
 
     async function refreshLayers() {
       if (!state.client.isReady) {
-        setStatus("Connect Dropbox and complete the token bridge before refreshing.", "error");
+        const surveyConnected = localStorage.getItem("lalgeo_survey_dropbox_connected") === "1";
+        setStatus(
+          surveyConnected
+            ? "Reuse the Survey Dropbox session or reconnect Dropbox before refreshing."
+            : "Connect Dropbox before refreshing the LalGeoDB list.",
+          "error"
+        );
         return;
       }
       try {

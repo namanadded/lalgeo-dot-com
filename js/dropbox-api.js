@@ -61,17 +61,17 @@ export class LalGeoDropboxClient {
     if (tokenFromUrl) {
       this.setAccessToken(tokenFromUrl, true);
       localStorage.setItem(SURVEY_DROPBOX_CONNECTED_KEY, "1");
-      return { tokenBridged: true };
+      return { tokenBridged: true, surveyConnected: true };
     }
     const workerProfile = await this.fetchWorkerProfile();
     if (workerProfile) {
       this.profile = workerProfile;
       localStorage.setItem(SURVEY_DROPBOX_CONNECTED_KEY, "1");
     }
-    if (!this.accessToken) {
-      throw new Error("Dropbox is authenticated in Survey, but the Data Manager still needs an access-token bridge.");
-    }
-    return { tokenBridged: false };
+    return {
+      tokenBridged: false,
+      surveyConnected: Boolean(workerProfile),
+    };
   }
 
   async fetchWorkerProfile() {
