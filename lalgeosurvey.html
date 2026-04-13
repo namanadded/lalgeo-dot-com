@@ -1466,6 +1466,12 @@
         flex-wrap: wrap;
         margin-top: 12px;
     }
+    .workspace-sidebar-helper {
+        margin: 0 0 12px;
+        color: #97aabd;
+        font-size: 12px;
+        line-height: 1.45;
+    }
     .mini-btn {
         border: 1px solid rgba(255,255,255,0.08);
         background: rgba(255,255,255,0.05);
@@ -3268,13 +3274,9 @@
                                     </div>
                                 </div>
                             </div>
-                    <div class="workspace-inline-actions">
+                            <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
-                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}" aria-label="Edit schema for ${escapeHtml(item.name)}">Edit schema</button>
-                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}" aria-label="Edit default style for ${escapeHtml(item.name)}">Style defaults</button>
-                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}" aria-label="Rename ${escapeHtml(item.name)} layer">Rename</button>
-                                <button type="button" class="mini-btn danger" data-delete-layer="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.name)} layer">Delete</button>
                             </div>
                         </div>
                     `).join("");
@@ -3323,6 +3325,7 @@
                     <div class="workspace-sidebar-actions">
                         <button type="button" class="mini-btn primary" data-sidebar-add-layer="1">Add Layer</button>
                     </div>
+                    <p class="workspace-sidebar-helper">Use Data Manager for schema, style defaults, rename, and delete.</p>
                     ${(activeProjectRecord.layers || []).map((item) => `
                         <div class="workspace-sidebar-row" data-sidebar-layer="${escapeHtml(item.id)}">
                             <div>
@@ -3332,10 +3335,6 @@
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
-                                <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}" aria-label="Edit schema for ${escapeHtml(item.name)}">Edit schema</button>
-                                <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}" aria-label="Edit default style for ${escapeHtml(item.name)}">Style defaults</button>
-                                <button type="button" class="mini-btn" data-rename-layer="${escapeHtml(item.id)}" aria-label="Rename ${escapeHtml(item.name)} layer">Rename</button>
-                                <button type="button" class="mini-btn danger" data-delete-layer="${escapeHtml(item.id)}" aria-label="Delete ${escapeHtml(item.name)} layer">Delete</button>
                             </div>
                         </div>
                     `).join("")}
@@ -4814,26 +4813,6 @@
             const toggleButton = event.target.closest("[data-toggle-layer]");
             if (toggleButton) {
                 toggleLayerVisibility(toggleButton.dataset.toggleLayer);
-                return;
-            }
-            const renameButton = event.target.closest("[data-rename-layer]");
-            if (renameButton) {
-                renameLayer(renameButton.dataset.renameLayer);
-                return;
-            }
-            const schemaButton = event.target.closest("[data-edit-schema]");
-            if (schemaButton) {
-                editLayerSchema(schemaButton.dataset.editSchema);
-                return;
-            }
-            const styleButton = event.target.closest("[data-edit-layer-style]");
-            if (styleButton) {
-                editLayerStyleDefaults(styleButton.dataset.editLayerStyle);
-                return;
-            }
-            const deleteButton = event.target.closest("[data-delete-layer]");
-            if (deleteButton) {
-                deleteLayer(deleteButton.dataset.deleteLayer);
             }
         });
         addLayerBtn?.addEventListener("click", addLayerToActiveProject);
@@ -4860,26 +4839,6 @@
             const toggleLayerButton = event.target.closest("[data-toggle-layer]");
             if (toggleLayerButton) {
                 toggleLayerVisibility(toggleLayerButton.dataset.toggleLayer);
-                return;
-            }
-            const schemaLayerButton = event.target.closest("[data-edit-schema]");
-            if (schemaLayerButton) {
-                editLayerSchema(schemaLayerButton.dataset.editSchema);
-                return;
-            }
-            const styleLayerButton = event.target.closest("[data-edit-layer-style]");
-            if (styleLayerButton) {
-                editLayerStyleDefaults(styleLayerButton.dataset.editLayerStyle);
-                return;
-            }
-            const renameLayerButton = event.target.closest("[data-rename-layer]");
-            if (renameLayerButton) {
-                renameLayer(renameLayerButton.dataset.renameLayer);
-                return;
-            }
-            const deleteLayerButton = event.target.closest("[data-delete-layer]");
-            if (deleteLayerButton) {
-                deleteLayer(deleteLayerButton.dataset.deleteLayer);
             }
         });
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
