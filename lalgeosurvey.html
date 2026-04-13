@@ -1299,6 +1299,236 @@
         font-size: 11px;
         color: #9fb1c2;
     }
+    #toolbar {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        transform: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        padding: 8px 12px;
+        border-radius: 14px;
+    }
+    .toolbar-left .brand-logo {
+        margin-right: 8px;
+    }
+    .menu-bar-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
+    }
+    .menu-bar-btn {
+        text-decoration: none;
+        border-radius: 9px;
+        border: 1px solid transparent;
+        background: transparent;
+        color: #e5eef8;
+        padding: 7px 10px;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+    }
+    .menu-bar-btn:hover,
+    .menu-bar-btn.active {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.08);
+    }
+    .toolbar-project-mini {
+        align-items: center;
+        text-align: center;
+    }
+    .toolbar-project-mini strong {
+        max-width: 360px;
+    }
+    .toolbar-project-mini span {
+        max-width: 520px;
+    }
+    #sidebar {
+        top: 84px;
+        left: 12px;
+        width: 300px;
+        max-height: calc(100vh - 96px);
+        opacity: 1;
+        pointer-events: auto;
+        transform: none;
+    }
+    body.sidebar-persistent .sidebar-backdrop,
+    body.sidebar-persistent .sidebar-close-btn,
+    body.sidebar-persistent .sidebar-subheading {
+        display: none !important;
+    }
+    body.sidebar-persistent .sidebar-topbar {
+        padding-bottom: 0;
+        border-bottom: none;
+    }
+    .layer-pane-actions {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+        margin-bottom: 12px;
+    }
+    .layer-pane-helper {
+        margin: 0 0 10px;
+        font-size: 12px;
+        line-height: 1.45;
+        color: #97aabd;
+    }
+    .layer-pane-row {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.06);
+        margin-top: 10px;
+    }
+    .layer-pane-row.active {
+        border-color: rgba(92, 200, 192, 0.45);
+        box-shadow: inset 0 0 0 1px rgba(92, 200, 192, 0.18);
+    }
+    .layer-pane-row h5 {
+        margin: 0;
+        font-size: 14px;
+    }
+    .layer-pane-row p {
+        margin: 0;
+        font-size: 12px;
+        color: #9fb1c2;
+    }
+    #editDock {
+        top: 90px;
+        left: 324px;
+        right: auto;
+        flex-direction: row;
+        padding: 8px;
+    }
+    .dock-btn {
+        min-width: 108px;
+    }
+    #featureDrawer {
+        right: 388px;
+        top: 96px;
+    }
+    #dataCatalogPane {
+        position: absolute;
+        top: 84px;
+        right: 12px;
+        width: 360px;
+        max-height: calc(100vh - 96px);
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+        border-radius: 22px;
+        background: rgba(8, 18, 30, 0.9);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 42px rgba(0,0,0,0.28);
+        backdrop-filter: blur(18px);
+        color: #e5eef8;
+        z-index: 1145;
+        transition: transform 0.2s ease, opacity 0.2s ease;
+    }
+    #dataCatalogPane.hidden-pane {
+        transform: translateX(calc(100% + 20px));
+        opacity: 0;
+        pointer-events: none;
+    }
+    .data-pane-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .data-pane-header h3 {
+        margin: 0;
+        font-size: 18px;
+    }
+    .data-pane-header p {
+        margin: 4px 0 0;
+        font-size: 12px;
+        color: #9fb1c2;
+        line-height: 1.45;
+    }
+    .data-pane-table-wrap {
+        overflow: auto;
+        border-radius: 14px;
+        border: 1px solid rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.03);
+    }
+    .data-pane-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+    }
+    .data-pane-table th,
+    .data-pane-table td {
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255,255,255,0.06);
+        text-align: left;
+        vertical-align: top;
+    }
+    .data-pane-table th {
+        position: sticky;
+        top: 0;
+        background: rgba(8, 18, 30, 0.98);
+        font-size: 10px;
+        letter-spacing: 0.12em;
+        text-transform: uppercase;
+        color: #7dd3c8;
+    }
+    .data-pane-table tbody tr {
+        cursor: pointer;
+    }
+    .data-pane-table tbody tr:hover,
+    .data-pane-table tbody tr.active {
+        background: rgba(92, 200, 192, 0.08);
+    }
+    .data-pane-meta {
+        display: grid;
+        gap: 8px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.04);
+        border: 1px solid rgba(255,255,255,0.06);
+        font-size: 12px;
+        color: #c2d2e1;
+    }
+    .data-pane-meta strong {
+        color: #eef6fb;
+        font-size: 13px;
+    }
+    .data-pane-note {
+        margin: 0;
+        font-size: 11px;
+        color: #97aabd;
+    }
+    #dropboxProjectContextMenu {
+        position: absolute;
+        z-index: 1600;
+        min-width: 160px;
+        padding: 8px;
+        border-radius: 12px;
+        background: rgba(8, 18, 30, 0.96);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 42px rgba(0,0,0,0.32);
+        display: grid;
+        gap: 6px;
+    }
+    #dropboxProjectContextMenu[hidden] {
+        display: none;
+    }
+    .context-menu-btn {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+        color: #eef6fb;
+        border-radius: 10px;
+        padding: 8px 10px;
+        text-align: left;
+        cursor: pointer;
+    }
     #importPanel {
         inset: 0;
         justify-content: flex-start;
@@ -1381,6 +1611,10 @@
         border: 1px solid rgba(255,255,255,0.08);
         border-radius: 10px;
         cursor: pointer;
+    }
+    a.workspace-secondary-btn,
+    a.mini-btn {
+        text-decoration: none;
     }
     .workspace-panel-section {
         margin-top: 18px;
@@ -2166,24 +2400,25 @@
     <div id="toolbar">
         <div class="toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+            <div class="menu-bar-actions">
+                <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="importPanel" aria-expanded="false">Workspace</button>
+                <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="dataCatalogPane" aria-expanded="true">Data Manager</button>
+                <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false">Menu</button>
+            </div>
+        </div>
+        <div class="toolbar-center">
             <div class="toolbar-project-mini">
                 <strong id="toolbarProjectName">No project open</strong>
                 <span id="toolbarProjectMeta">Create or open a project to start editing.</span>
             </div>
         </div>
-        <div class="toolbar-center">
+        <div class="toolbar-right">
             <div class="search-pill collapsed" id="toolbarSearchShell">
                 <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
                 <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Close search">×</button>
                 <span id="clearSearch" style="display:none;">×</span>
             </div>
-        </div>
-        <div class="toolbar-right">
-            <button id="sidebarToggleBtn" type="button" class="control-btn active" aria-controls="sidebar" aria-expanded="false">Workspace</button>
-            <a id="openDataManagerBtn" href="/datamanager" class="control-btn" aria-label="Open LalGeo Data Manager">Data Manager</a>
-            <button id="toolbarMenuBtn" type="button" class="control-btn" aria-controls="toolbarMenuTray" aria-expanded="false">Menu</button>
-            <button id="toolbarPinBtn" type="button" class="control-btn ghost" aria-pressed="false" aria-label="Pin top menu open">📌</button>
         </div>
     </div>
     <div id="toolbarMenuTray" hidden>
@@ -2213,7 +2448,7 @@
         </div>
     </div>
     <div id="editDock" aria-label="Editing controls">
-        <button id="addSurveyPointBtn" type="button" class="control-btn dock-btn" style="display:none;" aria-label="Add point to the active layer (shortcut A)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add point</button>
+        <button id="addSurveyPointBtn" type="button" class="control-btn dock-btn" style="display:none;" aria-label="Add a new point to the active layer (shortcut A)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add New</button>
         <button id="undoBtn" type="button" class="control-btn dock-btn" disabled>Undo</button>
         <button id="redoBtn" type="button" class="control-btn dock-btn" disabled>Redo</button>
         <button id="myLocationBtn" type="button" class="control-btn dock-btn" aria-label="My location">My Location</button>
@@ -2400,20 +2635,51 @@
         <div class="sidebar-shell">
             <div class="sidebar-topbar">
                 <div>
-                    <h2 class="sidebar-heading">Workspace Panel</h2>
-                    <p class="sidebar-subheading">Open it when you need project, layer, or route details.</p>
+                    <h2 class="sidebar-heading">Layers</h2>
+                    <p class="sidebar-subheading">Current project layers and quick map controls.</p>
                 </div>
                 <button id="closeSidebar" type="button" class="sidebar-close-btn" aria-label="Close workspace sidebar">×</button>
             </div>
             <div id="sidebar-content"></div>
         </div>
     </div>
+    <aside id="dataCatalogPane" aria-label="Dropbox project browser">
+        <div class="data-pane-header">
+            <div>
+                <h3>Data Manager</h3>
+                <p>Dropbox projects you can preview and add to the map.</p>
+            </div>
+            <button id="closeDataPaneBtn" type="button" class="mini-btn" aria-label="Close data manager pane">Close</button>
+        </div>
+        <div class="data-pane-table-wrap">
+            <table class="data-pane-table">
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Type</th>
+                        <th>Modified</th>
+                    </tr>
+                </thead>
+                <tbody id="dataCatalogTableBody">
+                    <tr><td colspan="3">Connect Dropbox to browse projects.</td></tr>
+                </tbody>
+            </table>
+        </div>
+        <div id="dataCatalogMeta" class="data-pane-meta">
+            <strong>No Dropbox project selected</strong>
+            <div>Select a file, drag it onto the map, or right-click and choose Add to Map.</div>
+        </div>
+        <p class="data-pane-note">Right-click for Add to Map. Drag a row onto the map to load it into the current workspace.</p>
+    </aside>
+    <div id="dropboxProjectContextMenu" hidden>
+        <button id="contextAddToMapBtn" type="button" class="context-menu-btn">Add to Map</button>
+    </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="workspaceHint" class="workspace-screenshot-banner" hidden style="top:auto; bottom:22px; left:22px;">
         <h4>Start editing</h4>
-        <p>Click Add Point, then click on the map to place your first feature.</p>
+        <p>Click Add New, then click on the map to place your first feature.</p>
     </div>
-    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press P to toggle point placement mode. Press Escape to cancel point placement or close panels.</div>
+    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel point placement or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
     <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite">
@@ -2518,7 +2784,6 @@
         let map = null;
         let mapReady = false;
         let toolbarMenuVisible = false;
-        let toolbarPinned = false;
         let toolbarSearchExpanded = false;
         let voiceLang = 'en-US'; // Your chosen language
         let currentSteps = [];
@@ -2535,7 +2800,7 @@
         const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
         const toolbarMenuBtn = document.getElementById("toolbarMenuBtn");
         const toolbarMenuTray = document.getElementById("toolbarMenuTray");
-        const toolbarPinBtn = document.getElementById("toolbarPinBtn");
+        const openDataManagerBtn = document.getElementById("openDataManagerBtn");
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
         const toolbarSearchShell = document.getElementById("toolbarSearchShell");
@@ -2592,6 +2857,12 @@
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
+        const dataCatalogPane = document.getElementById("dataCatalogPane");
+        const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
+        const dataCatalogTableBody = document.getElementById("dataCatalogTableBody");
+        const dataCatalogMeta = document.getElementById("dataCatalogMeta");
+        const dropboxProjectContextMenu = document.getElementById("dropboxProjectContextMenu");
+        const contextAddToMapBtn = document.getElementById("contextAddToMapBtn");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
         const projectStatus = document.getElementById("projectStatus");
@@ -2734,6 +3005,9 @@
         let activeFeatureId = null;
         let hoveredFeatureId = null;
         let currentDropboxCursor = null;
+        let currentDropboxProjects = [];
+        let selectedDropboxProjectPath = null;
+        let contextDropboxProjectPath = null;
         let dropboxWatchAbort = null;
         let dropboxProfile = null;
         let isPersistingEdits = false;
@@ -2763,7 +3037,8 @@
         const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
         let workspaceProjects = [];
-        let sidebarVisible = false;
+        let sidebarVisible = true;
+        let dataPaneVisible = true;
         let suppressMapTapUntil = 0;
         updateHistoryButtons();
 
@@ -3163,7 +3438,7 @@
             markActiveProjectUpdated();
         }
 
-        function showWorkspaceHint(message = "Click Add Point, then click on the map to place your first feature.") {
+        function showWorkspaceHint(message = "Click Add New, then click on the map to place your first feature.") {
             if (!workspaceHint) return;
             workspaceHint.querySelector("p").textContent = message;
             workspaceHint.hidden = false;
@@ -3219,7 +3494,7 @@
             if (hasProject) {
                 renderActiveProjectSidebar();
                 const featureCount = (layer?.parsed?.records || []).length;
-                if (!featureCount) showWorkspaceHint("Click 'Add Point' then click anywhere on the map to start collecting data.");
+                if (!featureCount) showWorkspaceHint("Click 'Add New' then click anywhere on the map to start collecting data.");
                 else hideWorkspaceHint();
             } else {
                 hideWorkspaceHint();
@@ -3293,22 +3568,23 @@
         function renderActiveProjectSidebar() {
             if (!sidebarContent) return;
             if (!activeProjectRecord) {
-                sidebarContent.innerHTML = "";
+                sidebarContent.innerHTML = `
+                    <div class="layer-pane-actions">
+                        <button type="button" class="mini-btn primary" data-sidebar-add-layer="1">Add Layer</button>
+                    </div>
+                    <p class="layer-pane-helper">Create or open a project to manage layers here. Use Workspace for imports and Dropbox connection.</p>
+                `;
                 return;
             }
             const layer = getActiveLayerRecord();
             sidebarContent.innerHTML = `
                 <div>
-                    <p class="workspace-section-kicker">Active project</p>
+                    <p class="workspace-section-kicker">Current project</p>
                     <h3 class="workspace-sidebar-title">${escapeHtml(activeProjectRecord.name)}</h3>
                     <div class="workspace-sidebar-meta">
                         <span class="workspace-badge">${escapeHtml(getStorageLabel())}</span>
                         <span>${escapeHtml(activeProjectRecord.type)}</span>
                         <span>${escapeHtml(formatProjectDate(activeProjectRecord.metadata?.updatedAt))}</span>
-                    </div>
-                    <div class="workspace-sidebar-actions">
-                        <button type="button" class="mini-btn primary" data-sidebar-open-projects="1">Open projects</button>
-                        <button type="button" class="mini-btn" data-sidebar-settings="1">Project settings</button>
                     </div>
                 </div>
                 <div class="workspace-sidebar-section">
@@ -3322,12 +3598,13 @@
                 </div>
                 <div class="workspace-sidebar-section">
                     <p class="workspace-section-kicker">Layers</p>
-                    <div class="workspace-sidebar-actions">
+                    <div class="layer-pane-actions">
                         <button type="button" class="mini-btn primary" data-sidebar-add-layer="1">Add Layer</button>
+                        <button type="button" class="mini-btn" data-sidebar-open-projects="1">Workspace</button>
                     </div>
-                    <p class="workspace-sidebar-helper">Use Data Manager for schema, style defaults, rename, and delete.</p>
+                    <p class="layer-pane-helper">Switch layers for editing, hide them on the map, or remove them from the project.</p>
                     ${(activeProjectRecord.layers || []).map((item) => `
-                        <div class="workspace-sidebar-row" data-sidebar-layer="${escapeHtml(item.id)}">
+                        <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}">
                             <div>
                                 <h5>${escapeHtml(item.name)}</h5>
                                 <p>${(item.parsed?.records || []).length} features · ${item.visible === false ? "Hidden" : "Visible"}</p>
@@ -3335,6 +3612,7 @@
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mini-btn danger" data-remove-layer="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from this project">Remove</button>
                             </div>
                         </div>
                     `).join("")}
@@ -3346,6 +3624,63 @@
             const isActiveLayer = layer?.id === activeLayerId;
             const tableOpen = Boolean(surveyTablePanel && !surveyTablePanel.hidden && surveyTablePanel.classList.contains("open"));
             return isActiveLayer && tableOpen ? "Close table" : "Open table";
+        }
+
+        function hideDropboxProjectContextMenu() {
+            contextDropboxProjectPath = null;
+            if (dropboxProjectContextMenu) dropboxProjectContextMenu.hidden = true;
+        }
+
+        async function openDropboxProjectPath(path) {
+            if (!path) return;
+            try {
+                setProjectStatus("Loading project from Dropbox…");
+                const payload = await fetchSurveyFromWorker(path);
+                if (payload && (payload.survey || payload.csvText)) {
+                    await openImportedProject(payload);
+                } else {
+                    setProjectStatus("Connected to Dropbox, but the worker did not return project data yet.", "error");
+                }
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Unable to load project from worker.", "error");
+            }
+        }
+
+        function renderDropboxCatalogPane() {
+            if (!dataCatalogTableBody || !dataCatalogMeta) return;
+            if (!dropboxConnected) {
+                dataCatalogTableBody.innerHTML = `<tr><td colspan="3">Connect Dropbox to browse .lal and .zip projects.</td></tr>`;
+                dataCatalogMeta.innerHTML = `<strong>Dropbox not connected</strong><div>Use the Workspace panel or the button above to connect Dropbox.</div>`;
+                return;
+            }
+            if (!currentDropboxProjects.length) {
+                dataCatalogTableBody.innerHTML = `<tr><td colspan="3">No .lal or .zip projects found in Dropbox.</td></tr>`;
+                dataCatalogMeta.innerHTML = `<strong>No Dropbox projects selected</strong><div>Drag a row onto the map or right-click and choose Add to Map when files are available.</div>`;
+                return;
+            }
+            dataCatalogTableBody.innerHTML = currentDropboxProjects.map((file) => `
+                <tr
+                    data-dropbox-project-row="${escapeHtml(file.path_display || file.path_lower || "")}"
+                    draggable="true"
+                    class="${selectedDropboxProjectPath === (file.path_display || file.path_lower || "") ? "active" : ""}"
+                >
+                    <td>${escapeHtml(file.name || "Project")}</td>
+                    <td>${escapeHtml((file.name || "").toLowerCase().endsWith(".zip") ? "ZIP" : "LAL")}</td>
+                    <td>${escapeHtml(formatProjectDate(file.server_modified || file.client_modified || ""))}</td>
+                </tr>
+            `).join("");
+            const selected = currentDropboxProjects.find((item) => (item.path_display || item.path_lower) === selectedDropboxProjectPath) || currentDropboxProjects[0];
+            if (selected) {
+                selectedDropboxProjectPath = selected.path_display || selected.path_lower;
+                dataCatalogMeta.innerHTML = `
+                    <strong>${escapeHtml(selected.name || "Dropbox project")}</strong>
+                    <div>Path: ${escapeHtml(selected.path_display || selected.path_lower || "-")}</div>
+                    <div>Type: ${escapeHtml((selected.name || "").toLowerCase().endsWith(".zip") ? "Project archive" : "LalGeo layer")}</div>
+                    <div>Modified: ${escapeHtml(formatProjectDate(selected.server_modified || selected.client_modified || ""))}</div>
+                    <div>Size: ${escapeHtml(Math.round((selected.size || 0) / 1024))} KB</div>
+                `;
+            }
         }
 
         function openCreateProjectModal(defaults = {}) {
@@ -3434,17 +3769,30 @@
         }
 
         function setSidebarVisibility(show) {
-            sidebarVisible = Boolean(show);
+            const persistent = window.innerWidth > 980;
+            sidebarVisible = persistent ? true : Boolean(show);
             sidebar?.classList.toggle("visible", sidebarVisible);
             sidebar?.setAttribute("aria-hidden", sidebarVisible ? "false" : "true");
+            document.body.classList.toggle("sidebar-persistent", persistent);
             if (sidebarBackdrop) {
-                sidebarBackdrop.hidden = !sidebarVisible;
-                sidebarBackdrop.classList.toggle("visible", sidebarVisible);
+                sidebarBackdrop.hidden = persistent || !sidebarVisible;
+                sidebarBackdrop.classList.toggle("visible", !persistent && sidebarVisible);
             }
             if (sidebarToggleBtn) {
-                sidebarToggleBtn.classList.toggle("active", sidebarVisible);
-                sidebarToggleBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
+                sidebarToggleBtn.classList.toggle("active", isImportPanelVisible);
+                sidebarToggleBtn.setAttribute("aria-expanded", isImportPanelVisible ? "true" : "false");
             }
+        }
+
+        function setDataPaneVisibility(show) {
+            dataPaneVisible = Boolean(show);
+            dataCatalogPane?.classList.toggle("hidden-pane", !dataPaneVisible);
+            openDataManagerBtn?.classList.toggle("active", dataPaneVisible);
+            openDataManagerBtn?.setAttribute("aria-expanded", dataPaneVisible ? "true" : "false");
+            if (featureDrawer) {
+                featureDrawer.style.right = dataPaneVisible ? "388px" : "16px";
+            }
+            if (!dataPaneVisible) hideDropboxProjectContextMenu();
         }
 
         function updateToolbarDockState() {
@@ -4682,23 +5030,17 @@
                 setProjectStatus("Select a project file first.", "error");
                 return;
             }
-            try {
-                setProjectStatus("Loading project from Dropbox…");
-                const payload = await fetchSurveyFromWorker(selectedPath);
-                if (payload && (payload.survey || payload.csvText)) {
-                    await openImportedProject(payload);
-                } else {
-                    setProjectStatus("Connected to Dropbox, but the worker did not return project data yet.", "error");
-                }
-            } catch (error) {
-                console.error(error);
-                setProjectStatus(error.message || "Unable to load project from worker.", "error");
-            }
+            selectedDropboxProjectPath = selectedPath;
+            renderDropboxCatalogPane();
+            await openDropboxProjectPath(selectedPath);
         });
 
         window.addEventListener("focus", () => {
             checkDropboxConnectionStatus();
             refreshDropboxSurveyList(true);
+        });
+        window.addEventListener("resize", () => {
+            setSidebarVisibility(sidebarVisible);
         });
         checkDropboxConnectionStatus();
         refreshDropboxSurveyList();
@@ -4716,25 +5058,23 @@
         renderWorkspaceCollections();
         updateWorkspaceContext();
         setToolbarMenuVisibility(false);
-        setToolbarPinned(false);
+        setSidebarVisibility(true);
+        setDataPaneVisibility(true);
+        renderDropboxCatalogPane();
 
         workspacePanelBtn?.addEventListener("click", () => {
-            setToolbarMenuVisibility(true);
             setImportPanelVisibility(!isImportPanelVisible);
         });
         sidebarToggleBtn?.addEventListener("click", () => {
-            if (!activeProjectRecord && !sidebarContent?.textContent?.trim()) {
-                setProjectStatus("Create or open a project first.", "error");
-                return;
-            }
-            setSidebarVisibility(!sidebarVisible);
+            setImportPanelVisibility(!isImportPanelVisible);
         });
         toolbarMenuBtn?.addEventListener("click", () => {
-            setToolbarMenuVisibility(toolbarPinned ? true : !toolbarMenuVisible);
+            setToolbarMenuVisibility(!toolbarMenuVisible);
         });
-        toolbarPinBtn?.addEventListener("click", () => {
-            setToolbarPinned(!toolbarPinned);
+        openDataManagerBtn?.addEventListener("click", () => {
+            setDataPaneVisibility(!dataPaneVisible);
         });
+        closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         emptyCreateProjectBtn?.addEventListener("click", () => openCreateProjectModal());
@@ -4749,11 +5089,67 @@
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = toolbarMenuBtn?.contains(event.target);
-            if (!toolbarPinned && toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
+            if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
+            }
+            if (dropboxProjectContextMenu && !dropboxProjectContextMenu.contains(event.target)) {
+                hideDropboxProjectContextMenu();
             }
         });
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
+        dataCatalogTableBody?.addEventListener("click", (event) => {
+            const row = event.target.closest("[data-dropbox-project-row]");
+            if (!row) return;
+            selectedDropboxProjectPath = row.dataset.dropboxProjectRow;
+            renderDropboxCatalogPane();
+        });
+        dataCatalogTableBody?.addEventListener("dblclick", async (event) => {
+            const row = event.target.closest("[data-dropbox-project-row]");
+            if (!row) return;
+            selectedDropboxProjectPath = row.dataset.dropboxProjectRow;
+            renderDropboxCatalogPane();
+            await openDropboxProjectPath(selectedDropboxProjectPath);
+        });
+        dataCatalogTableBody?.addEventListener("contextmenu", (event) => {
+            const row = event.target.closest("[data-dropbox-project-row]");
+            if (!row) return;
+            event.preventDefault();
+            contextDropboxProjectPath = row.dataset.dropboxProjectRow;
+            selectedDropboxProjectPath = contextDropboxProjectPath;
+            renderDropboxCatalogPane();
+            if (dropboxProjectContextMenu) {
+                dropboxProjectContextMenu.hidden = false;
+                dropboxProjectContextMenu.style.left = `${event.pageX}px`;
+                dropboxProjectContextMenu.style.top = `${event.pageY}px`;
+            }
+        });
+        dataCatalogTableBody?.addEventListener("dragstart", (event) => {
+            const row = event.target.closest("[data-dropbox-project-row]");
+            if (!row || !event.dataTransfer) return;
+            event.dataTransfer.setData("text/lalgeo-dropbox-path", row.dataset.dropboxProjectRow);
+            event.dataTransfer.effectAllowed = "copy";
+            selectedDropboxProjectPath = row.dataset.dropboxProjectRow;
+            renderDropboxCatalogPane();
+        });
+        contextAddToMapBtn?.addEventListener("click", async () => {
+            const path = contextDropboxProjectPath || selectedDropboxProjectPath;
+            hideDropboxProjectContextMenu();
+            await openDropboxProjectPath(path);
+        });
+        mapElement?.addEventListener("dragover", (event) => {
+            if (event.dataTransfer?.types?.includes("text/lalgeo-dropbox-path")) {
+                event.preventDefault();
+                event.dataTransfer.dropEffect = "copy";
+            }
+        });
+        mapElement?.addEventListener("drop", async (event) => {
+            const path = event.dataTransfer?.getData("text/lalgeo-dropbox-path");
+            if (!path) return;
+            event.preventDefault();
+            selectedDropboxProjectPath = path;
+            renderDropboxCatalogPane();
+            await openDropboxProjectPath(path);
+        });
         createProjectCancelBtn?.addEventListener("click", closeCreateProjectModal);
         createProjectNameInput?.addEventListener("input", updateCreateProjectFormState);
         createLayerNameInput?.addEventListener("input", updateCreateProjectFormState);
@@ -4839,6 +5235,11 @@
             const toggleLayerButton = event.target.closest("[data-toggle-layer]");
             if (toggleLayerButton) {
                 toggleLayerVisibility(toggleLayerButton.dataset.toggleLayer);
+                return;
+            }
+            const removeLayerButton = event.target.closest("[data-remove-layer]");
+            if (removeLayerButton) {
+                deleteLayer(removeLayerButton.dataset.removeLayer);
             }
         });
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
@@ -4859,8 +5260,16 @@
                     closeLayerActionModal();
                     return;
                 }
+                if (dropboxProjectContextMenu && !dropboxProjectContextMenu.hidden) {
+                    hideDropboxProjectContextMenu();
+                    return;
+                }
                 if (sidebarVisible) {
                     setSidebarVisibility(false);
+                    return;
+                }
+                if (dataPaneVisible && window.innerWidth <= 980) {
+                    setDataPaneVisibility(false);
                     return;
                 }
                 if (isAddingSurveyPoint) {
@@ -5096,11 +5505,11 @@
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            addSurveyPointBtn.textContent = isAddingSurveyPoint ? "Adding point" : "Add point";
+            addSurveyPointBtn.textContent = isAddingSurveyPoint ? "Adding New" : "Add New";
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) mapAddHint.hidden = !isAddingSurveyPoint;
             if (isAddingSurveyPoint) {
-                showWorkspaceHint("Click 'Add Point' then click anywhere on the map to start collecting data.");
+                showWorkspaceHint("Click 'Add New' then click anywhere on the map to start collecting data.");
                 setProjectStatus("Point placement active. Click on the map to add a feature.", "success");
             }
             if (!isAddingSurveyPoint) {
@@ -5533,7 +5942,7 @@
             isAddingSurveyPoint = false;
             addSurveyPointBtn.classList.remove("active");
             addSurveyPointBtn.setAttribute("aria-pressed", "false");
-            addSurveyPointBtn.textContent = "Add point";
+            addSurveyPointBtn.textContent = "Add New";
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             if (mapAddHint) mapAddHint.hidden = true;
@@ -6021,6 +6430,7 @@
                 const data = await response.json();
                 currentDropboxCursor = data.cursor || null;
                 const files = (data.entries || []).filter(entry => entry[".tag"] === "file" && isSurveyArchiveName(entry.name || entry.path_display || ""));
+                currentDropboxProjects = files;
                 dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 files.forEach(file => {
                     const option = document.createElement("option");
@@ -6037,12 +6447,17 @@
                     option.textContent = "No .zip/.lal projects found";
                     dropboxSurveySelect.appendChild(option);
                 }
+                selectedDropboxProjectPath = dropboxSurveySelect.value || selectedDropboxProjectPath || files[0]?.path_display || files[0]?.path_lower || null;
+                renderDropboxCatalogPane();
                 showDropboxConnectedState();
                 dropboxConnectStatus.textContent = "Dropbox connected.";
                 startDropboxWatcher();
             } catch (error) {
+                currentDropboxProjects = [];
+                selectedDropboxProjectPath = null;
                 dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 dropboxConnectStatus.textContent = error.message;
+                renderDropboxCatalogPane();
                 console.error(error);
                 if (error.message && error.message.includes("Connect your Dropbox account")) {
                     showDropboxDisconnectedState();
@@ -6111,6 +6526,7 @@
                 const email = profile.email;
                 dropboxUserDetails.textContent = [name, email && `(${email})`].filter(Boolean).join(" ") || "Connected";
             }
+            renderDropboxCatalogPane();
         }
 
         function startDropboxWatcher() {
@@ -6168,6 +6584,8 @@
         function showDropboxDisconnectedState() {
             dropboxConnected = false;
             dropboxProfile = null;
+            currentDropboxProjects = [];
+            selectedDropboxProjectPath = null;
             refreshCreateProjectStorageOptions();
             if (connectDropboxBtn) {
                 connectDropboxBtn.style.display = "block";
@@ -6177,6 +6595,7 @@
             }
             if (dropboxConnectedInfo) dropboxConnectedInfo.style.display = "none";
             if (dropboxUserDetails) dropboxUserDetails.textContent = "";
+            renderDropboxCatalogPane();
         }
 
         async function fetchSurveyFromWorker(path) {
@@ -7827,15 +8246,6 @@ function setToolbarMenuVisibility(show) {
             if (toolbarMenuBtn) {
                 toolbarMenuBtn.classList.toggle("menu-open", toolbarMenuVisible);
                 toolbarMenuBtn.setAttribute("aria-expanded", toolbarMenuVisible ? "true" : "false");
-            }
-        }
-
-        function setToolbarPinned(pinned) {
-            toolbarPinned = Boolean(pinned);
-            toolbarPinBtn?.setAttribute("aria-pressed", toolbarPinned ? "true" : "false");
-            toolbarPinBtn?.classList.toggle("active", toolbarPinned);
-            if (toolbarPinned) {
-                setToolbarMenuVisibility(true);
             }
         }
 
