@@ -1338,6 +1338,7 @@
         isBusy: false,
         error: "",
         progress: "Choose a supported file to inspect and convert.",
+        dropboxFiles: [],
       };
       openModal({
         title: "Import Layer",
@@ -1351,6 +1352,22 @@
               <button id="importDropboxChooserBtn" type="button">Choose From Dropbox</button>
             </div>
             <input id="importFileInput" type="file" hidden multiple>
+          </div>
+          <div class="drop-zone" style="margin-top:16px; text-align:left;">
+            <p style="margin-top:0;"><strong>Open an existing Dropbox project</strong></p>
+            <p class="helper-text" style="margin-top:8px;">Use the same Dropbox project list as LalGeo Survey to import existing <code>.zip</code> or <code>.lal</code> files.</p>
+            <div class="modal-grid" style="margin-top:12px;">
+              <div class="full">
+                <label class="field-label" for="importDropboxFileSelect">Dropbox project file</label>
+                <select id="importDropboxFileSelect" class="field-select" aria-label="Select a Dropbox .zip or .lal file to import">
+                  <option value="">— Select Dropbox file —</option>
+                </select>
+              </div>
+            </div>
+            <div class="modal-actions" style="justify-content:flex-start;">
+              <button id="importDropboxExistingBtn" type="button">Load From Dropbox</button>
+            </div>
+            <div id="importDropboxListStatus" class="helper-text" style="margin-top:8px;">Connect Dropbox to list existing project files.</div>
           </div>
           <div id="importProgress" class="message modal-feedback" aria-live="polite">Choose a supported file to inspect and convert.</div>
           <div id="importError" class="message error modal-feedback" hidden></div>
@@ -1387,6 +1404,7 @@
         ],
         onOpen: () => {
           syncImportActionState();
+          refreshDropboxImportList();
         },
       });
 
@@ -1408,6 +1426,113 @@
       });
       dropZone.addEventListener("drop", (event) => handleImportFiles([...event.dataTransfer.files]));
       document.getElementById("importDropboxChooserBtn").addEventListener("click", launchDropboxChooserImport);
+      document.getElementById("importDropboxExistingBtn").addEventListener("click", loadSelectedDropboxImport);
+    }
+
+    async function refreshDropboxImportList(preserveSelection = false) {
+      const select = document.getElementById("importDropboxFileSelect");
+      const status = document.getElementById("importDropboxListStatus");
+      const previousValue = preserveSelection ? select?.value : "";
+      if (!select || !status) return;
+      select.innerHTML = `<option value="">Loading…</option>`;
+      try {
+        const response = await fetch(`${WORKER_BASE}/api/surveys/list`, { credentials: "include" });
+        if (!response.ok) {
+          throw new Error(response.status === 401 ? "Connect Dropbox to list existing project files." : "Unable to list Dropbox project files.");
+        }
+        const data = await response.json();
+        const files = (data.entries || []).filter((entry) => entry[".tag"] === "file" && isDropboxProjectArchiveName(entry.name || entry.path_display || ""));
+        state.importDraft = {
+          ...(state.importDraft || {}),
+          dropboxFiles: files,
+        };
+        select.innerHTML = `<option value="">— Select Dropbox file —</option>`;
+        files.forEach((file) => {
+          const option = document.createElement("option");
+          option.value = file.path_display || file.path_lower;
+          option.textContent = `${file.name} (${Math.max(1, Math.round((file.size || 0) / 1024))} KB)`;
+          select.appendChild(option);
+        });
+        if (preserveSelection && previousValue) {
+          select.value = previousValue;
+        }
+        if (!files.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "No .zip/.lal project files found";
+          select.appendChild(option);
+        }
+        status.textContent = files.length
+          ? `Found ${files.length} Dropbox project file${files.length === 1 ? "" : "s"}.`
+          : "No .zip/.lal project files found in Dropbox.";
+      } catch (error) {
+        state.importDraft = {
+          ...(state.importDraft || {}),
+          dropboxFiles: [],
+        };
+        select.innerHTML = `<option value="">— Select Dropbox file —</option>`;
+        status.textContent = error.message || "Unable to list Dropbox project files.";
+      }
+    }
+
+    async function loadSelectedDropboxImport() {
+      const select = document.getElementById("importDropboxFileSelect");
+      const selectedPath = select?.value || "";
+      if (!selectedPath) {
+        setImportFeedback({ error: "Select a Dropbox .zip or .lal file first." });
+        return;
+      }
+      try {
+        setImportFeedback({ progress: "Downloading Dropbox file…" });
+        const files = await downloadDropboxImportFiles(selectedPath);
+        await handleImportFiles(files);
+        const status = document.getElementById("importDropboxListStatus");
+        if (status) status.textContent = `Loaded ${files.map((file) => file.name).join(", ")} from Dropbox.`;
+      } catch (error) {
+        setImportFeedback({ error: error.message || "Unable to load Dropbox file." });
+      }
+    }
+
+    async function downloadDropboxImportFiles(path) {
+      const fileName = String(path.split("/").filter(Boolean).pop() || "import");
+      const lower = fileName.toLowerCase();
+      if (lower.endsWith(".zip")) {
+        try {
+          const csvResponse = await fetch(`${WORKER_BASE}/api/surveys/load?path=${encodeURIComponent(path)}&format=csv`, {
+            credentials: "include",
+          });
+          const contentType = csvResponse.headers.get("content-type") || "";
+          if (csvResponse.ok && contentType.includes("text/csv")) {
+            const csvText = await csvResponse.text();
+            return [new File([csvText], fileName.replace(/\.zip$/i, ".csv"), { type: "text/csv" })];
+          }
+        } catch (error) {
+          console.warn("CSV extraction from Dropbox project failed; falling back to raw zip download.", error);
+        }
+      }
+      const response = await state.client.client.filesDownload({ path });
+      const result = response.result || response;
+      const blob = result.fileBlob || result.fileBinary || response.fileBlob || response.fileBinary;
+      if (!blob) throw new Error("Dropbox download returned no file data.");
+      return [new File([blob], fileName, { type: blob.type || guessImportMimeType(fileName) })];
+    }
+
+    function isDropboxProjectArchiveName(name = "") {
+      let target = String(name || "").trim();
+      try {
+        const parsed = new URL(target);
+        target = parsed.pathname.split("/").pop() || target;
+      } catch {
+        target = target.split("/").pop() || target;
+      }
+      return /\.(zip|lal)$/i.test(target);
+    }
+
+    function guessImportMimeType(name = "") {
+      const lower = String(name || "").toLowerCase();
+      if (lower.endsWith(".lal")) return "application/octet-stream";
+      if (lower.endsWith(".zip")) return "application/zip";
+      return "application/octet-stream";
     }
 
     async function handleImportFiles(files) {
