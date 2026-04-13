@@ -167,13 +167,33 @@
     }
     .modal-feedback { margin-top: 16px; }
     .toolbar-note { font-size: 12px; color: var(--muted); }
-    .inspector-backdrop { position: fixed; inset: 0; background: rgba(3, 8, 16, 0.58); backdrop-filter: blur(8px); display:grid; place-items:center; z-index: 1900; padding: 24px; }
-    .inspector-backdrop[hidden] { display:none; }
-    .inspector-modal { width: min(1180px, 100%); max-height: calc(100vh - 48px); overflow: auto; border-radius: 30px; background: rgba(9, 19, 31, 0.97); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 26px; }
+    .inspector-panel {
+      position: fixed;
+      top: 16px;
+      right: 16px;
+      bottom: 16px;
+      width: min(620px, calc(100vw - 32px));
+      border-radius: 30px;
+      background: rgba(9, 19, 31, 0.98);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      padding: 26px;
+      overflow: auto;
+      z-index: 1900;
+      transform: translateX(calc(100% + 24px));
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.22s ease, opacity 0.18s ease;
+    }
+    .inspector-panel.open {
+      transform: translateX(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
     .inspector-header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom: 20px; }
     .inspector-header h2 { margin: 0; font-size: 40px; letter-spacing: -0.05em; }
     .inspector-subtitle { margin-top: 10px; color: var(--muted); }
-    .inspector-layout { display:grid; grid-template-columns: minmax(0, 1fr) 300px; gap:18px; }
+    .inspector-layout { display:grid; grid-template-columns: 1fr; gap:18px; }
     .inspector-sidecard { border:1px solid var(--border); border-radius:22px; background: rgba(255,255,255,0.04); padding:18px; display:grid; gap:16px; align-content:start; }
     .inspector-sidecard h3 { margin:0; font-size: 24px; letter-spacing:-0.03em; }
     .inspector-sidecard .detail-actions { margin-top: 6px; }
@@ -181,8 +201,20 @@
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
       .content-grid { grid-template-columns: 1fr; }
-      .inspector-layout { grid-template-columns: 1fr; }
       .catalog-table { min-width: 720px; }
+      .inspector-panel {
+        top: auto;
+        left: 12px;
+        right: 12px;
+        bottom: 12px;
+        width: auto;
+        max-height: 78vh;
+        border-radius: 26px;
+        transform: translateY(calc(100% + 24px));
+      }
+      .inspector-panel.open {
+        transform: translateY(0);
+      }
     }
   </style>
 </head>
@@ -273,8 +305,7 @@
     </main>
   </div>
 
-  <div id="inspectorBackdrop" class="inspector-backdrop" hidden>
-    <div class="inspector-modal" role="dialog" aria-modal="true" aria-labelledby="inspectorTitle" aria-describedby="inspectorSubtitle">
+  <aside id="inspectorPanel" class="inspector-panel" role="dialog" aria-modal="false" aria-labelledby="inspectorTitle" aria-describedby="inspectorSubtitle">
       <div class="inspector-header">
         <div>
           <p class="layer-pill">Layer Inspector</p>
@@ -376,8 +407,7 @@
           <div class="message">This inspector works more like a catalog item sheet: select a project, review it, then close when finished.</div>
         </aside>
       </div>
-    </div>
-  </div>
+  </aside>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden>
     <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDescription">
@@ -464,7 +494,7 @@
       exportGeoJsonBtn: document.getElementById("exportGeoJsonBtn"),
       downloadLalBtn: document.getElementById("downloadLalBtn"),
       layerEmptyState: document.getElementById("layerEmptyState"),
-      inspectorBackdrop: document.getElementById("inspectorBackdrop"),
+      inspectorPanel: document.getElementById("inspectorPanel"),
       inspectorTitle: document.getElementById("inspectorTitle"),
       inspectorSubtitle: document.getElementById("inspectorSubtitle"),
       inspectorCloseBtn: document.getElementById("inspectorCloseBtn"),
@@ -550,9 +580,6 @@
       els.modalCloseBtn.addEventListener("click", closeModal);
       els.modalBackdrop.addEventListener("click", (event) => {
         if (event.target === els.modalBackdrop) closeModal();
-      });
-      els.inspectorBackdrop.addEventListener("click", (event) => {
-        if (event.target === els.inspectorBackdrop) closeInspector();
       });
       document.addEventListener("click", handleDocumentClick, true);
       window.addEventListener("resize", hideLayerContextMenu);
@@ -831,7 +858,7 @@
             ? "Choose a Dropbox project from the center catalog to inspect metadata, schema, attributes, and style."
             : "Dropbox is connected. Create a new layer or import data from the sidebar to populate LalGeoDB.")
           : "Connect Dropbox, pick a `.lal` or `.zip` project file, or import a new dataset and convert it to LalGeo format.";
-        els.inspectorBackdrop.hidden = true;
+        els.inspectorPanel.classList.remove("open");
         return;
       }
 
@@ -864,7 +891,7 @@
       renderAttributesTable();
       renderStyleControls();
       renderTabs();
-      els.inspectorBackdrop.hidden = !state.inspectorOpen;
+      els.inspectorPanel.classList.toggle("open", state.inspectorOpen);
     }
 
     function renderTabs() {
@@ -966,7 +993,7 @@
 
     function closeInspector() {
       state.inspectorOpen = false;
-      els.inspectorBackdrop.hidden = true;
+      els.inspectorPanel.classList.remove("open");
     }
 
     function openModal(config) {
