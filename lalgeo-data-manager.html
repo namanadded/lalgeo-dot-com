@@ -156,8 +156,8 @@
         <button id="refreshLayersBtn" type="button">Refresh List</button>
       </div>
       <div class="sidebar-section">
-        <h2>LalGeoDB</h2>
-        <p>Layers stored as `.lal` files in Dropbox.</p>
+        <h2>Dropbox Projects</h2>
+        <p>Browse existing <code>.lal</code> and <code>.zip</code> project files, then save managed layers into <code>LalGeoDB</code>.</p>
         <div class="sidebar-actions">
           <button id="importLayerBtn" type="button" aria-label="Import a layer into LalGeo Data Manager">Import Layer</button>
           <button id="createLayerBtn" type="button" aria-label="Create a new LalGeo layer">Create New Layer</button>
@@ -180,7 +180,7 @@
         <div>
           <p class="layer-pill">LalGeo Data Manager</p>
           <h1 id="headerTitle">Select a layer</h1>
-          <p id="headerSubtitle">Browse Dropbox-backed `.lal` layers, manage schema, edit attributes, and convert incoming files.</p>
+          <p id="headerSubtitle">Browse Dropbox-backed project files, manage schema, edit attributes, and convert incoming files.</p>
         </div>
         <div class="toolbar-actions">
           <button id="saveLayerBtn" type="button" class="primary" disabled>Save Layer</button>
@@ -194,7 +194,7 @@
           <div id="layerEmptyState" class="empty-state">
             <div>
               <h2>Open a LalGeo layer</h2>
-              <p id="emptyStateCopy">Connect Dropbox, pick a `.lal` file from `LalGeoDB`, or import a new dataset and convert it to LalGeo format.</p>
+              <p id="emptyStateCopy">Connect Dropbox, pick a <code>.lal</code> or <code>.zip</code> project file, or import a new dataset and convert it to LalGeo format.</p>
               <div id="emptyStateActions" class="toolbar-actions empty-actions" style="justify-content:center; margin-top:16px;">
                 <button id="emptyCreateLayerBtn" type="button" class="primary">Create New Layer</button>
                 <button id="emptyImportLayerBtn" type="button">Import Layer</button>
@@ -491,7 +491,7 @@
           setStatus("Survey Dropbox session found, but the token handoff did not complete. Click Reuse Survey Dropbox to retry.", "error");
           els.bridgeHelp.textContent = "Survey Dropbox session found. Use the Reuse Survey Dropbox button to retry the token handoff.";
         } else {
-          setStatus("Connect Dropbox to manage layers in LalGeoDB.", "");
+        setStatus("Connect Dropbox to browse LalGeo project files.", "");
         }
       } catch (error) {
         setDropboxStatus(false);
@@ -526,13 +526,13 @@
         setStatus(
           surveyConnected
             ? "Reuse the Survey Dropbox session or reconnect Dropbox before refreshing."
-            : "Connect Dropbox before refreshing the LalGeoDB list.",
+            : "Connect Dropbox before refreshing the Dropbox project list.",
           "error"
         );
         return;
       }
       try {
-        setStatus("Refreshing LalGeoDB…", "");
+        setStatus("Refreshing Dropbox project files…", "");
         state.layers = await state.client.listLayers();
         state.filteredLayers = [...state.layers];
         if (state.selectedFile) {
@@ -545,7 +545,7 @@
           }
         }
         render();
-        setStatus(`Loaded ${state.layers.length} layer${state.layers.length === 1 ? "" : "s"} from LalGeoDB.`, "success");
+        setStatus(`Loaded ${state.layers.length} Dropbox project file${state.layers.length === 1 ? "" : "s"}.`, "success");
         hydrateLayerSummaries();
       } catch (error) {
         console.error(error);
@@ -594,21 +594,40 @@
     async function selectLayer(file) {
       try {
         setStatus(`Opening ${file.name}…`, "");
-        const { layer, file: remoteFile } = await state.client.loadLayer(file.pathDisplay || file.pathLower);
+        let openedLayer;
+        let remoteFile;
+        if (getFileType(file.name) === "zip") {
+          const download = await state.client.downloadFile(file.pathDisplay || file.pathLower);
+          const importedFile = new File([download.blob], file.name, { type: "application/zip" });
+          openedLayer = await convertImportFiles([importedFile], {
+            layerName: file.name.replace(/\.zip$/i, ""),
+          });
+          remoteFile = download.file;
+        } else {
+          const response = await state.client.loadLayer(file.pathDisplay || file.pathLower);
+          openedLayer = response.layer;
+          remoteFile = response.file;
+        }
         state.selectedFile = {
           ...file,
+          fileType: getFileType(file.name),
           pathDisplay: remoteFile.path_display || file.pathDisplay,
           pathLower: remoteFile.path_lower || file.pathLower,
           rev: remoteFile.rev || file.rev,
           serverModified: remoteFile.server_modified || file.serverModified,
           clientModified: remoteFile.client_modified || file.clientModified,
         };
-        state.selectedLayer = normalizeLalDocument(layer);
+        state.selectedLayer = normalizeLalDocument(openedLayer);
         state.draftLayer = cloneLayer(state.selectedLayer);
         state.dirty = false;
         writeLayerSummaryCache(state.selectedFile.pathLower, state.selectedLayer);
         render();
-        setStatus(`Opened ${state.selectedLayer.metadata.name}.`, "success");
+        setStatus(
+          getFileType(file.name) === "zip"
+            ? `Imported ${file.name} from Dropbox. Save it to create a managed .lal layer.`
+            : `Opened ${state.selectedLayer.metadata.name}.`,
+          "success",
+        );
       } catch (error) {
         console.error(error);
         setStatus(error.message || "Unable to open layer.", "error");
@@ -629,28 +648,28 @@
       });
       state.filteredLayers.sort((left, right) => compareLayerRows(left, right, state.layerSort));
       if (!state.filteredLayers.length) {
-        els.layerList.innerHTML = `<div class="message">No .lal layers found in /LalGeoDB.</div>`;
+        els.layerList.innerHTML = `<div class="message">No Dropbox <code>.lal</code> or <code>.zip</code> project files were found.</div>`;
         return;
       }
       els.layerList.innerHTML = state.filteredLayers.map((layer) => `
         <article class="layer-card ${state.selectedFile?.pathLower === layer.pathLower ? "active" : ""}">
           <div class="layer-card-header">
             <div>
-              <div class="layer-card-title">${escapeHtml(layer.name.replace(/\.lal$/i, ""))}</div>
+              <div class="layer-card-title">${escapeHtml(layer.name.replace(/\.(lal|zip)$/i, ""))}</div>
               <div class="layer-meta">
-                <span>${escapeHtml(state.layerSummaryCache[layer.pathLower]?.geometryType || "Unknown geometry")}</span>
-                <span>${escapeHtml(formatFeatureCount(state.layerSummaryCache[layer.pathLower]?.featureCount))}</span>
+                <span>${escapeHtml(layer.fileType === "zip" ? "Project archive" : (state.layerSummaryCache[layer.pathLower]?.geometryType || "Unknown geometry"))}</span>
+                <span>${escapeHtml(layer.fileType === "zip" ? "Ready to import" : formatFeatureCount(state.layerSummaryCache[layer.pathLower]?.featureCount))}</span>
                 <span>${escapeHtml(formatDate(layer.serverModified || layer.clientModified))}</span>
                 <span>${escapeHtml(layer.rev || "rev ?")}</span>
               </div>
             </div>
-            <span class="layer-pill">LAL</span>
+            <span class="layer-pill">${escapeHtml((layer.fileType || "lal").toUpperCase())}</span>
           </div>
           <div class="layer-actions">
-            <button type="button" aria-label="Open ${escapeHtml(layer.name)}" data-open-layer="${escapeHtml(layer.pathLower)}">Open</button>
-            <button type="button" aria-label="Rename ${escapeHtml(layer.name)}" data-rename-layer="${escapeHtml(layer.pathLower)}">Rename</button>
-            <button type="button" aria-label="Duplicate ${escapeHtml(layer.name)}" data-duplicate-layer="${escapeHtml(layer.pathLower)}">Duplicate</button>
-            <button type="button" class="danger" aria-label="Delete ${escapeHtml(layer.name)}" data-delete-layer="${escapeHtml(layer.pathLower)}">Delete</button>
+            <button type="button" aria-label="Open ${escapeHtml(layer.name)}" data-open-layer="${escapeHtml(layer.pathLower)}">${layer.fileType === "zip" ? "Import" : "Open"}</button>
+            <button type="button" aria-label="Rename ${escapeHtml(layer.name)}" data-rename-layer="${escapeHtml(layer.pathLower)}" ${layer.fileType === "zip" ? "disabled" : ""}>Rename</button>
+            <button type="button" aria-label="Duplicate ${escapeHtml(layer.name)}" data-duplicate-layer="${escapeHtml(layer.pathLower)}" ${layer.fileType === "zip" ? "disabled" : ""}>Duplicate</button>
+            <button type="button" class="danger" aria-label="Delete ${escapeHtml(layer.name)}" data-delete-layer="${escapeHtml(layer.pathLower)}" ${layer.fileType === "zip" ? "disabled" : ""}>Delete</button>
           </div>
         </article>
       `).join("");
@@ -692,18 +711,18 @@
         els.layerEmptyState.classList.toggle("compact", connected);
         els.emptyStateActions.hidden = connected;
         els.headerTitle.textContent = "Select a layer";
-        els.headerSubtitle.textContent = "Browse Dropbox-backed `.lal` layers, manage schema, edit attributes, and convert incoming files.";
+        els.headerSubtitle.textContent = "Browse Dropbox-backed `.lal` and `.zip` project files, manage schema, edit attributes, and convert incoming files.";
         els.emptyStateCopy.textContent = connected
           ? (hasLayers
-            ? "Choose a layer from the sidebar to review schema, attributes, and style settings."
+            ? "Choose a Dropbox project from the sidebar to review schema, attributes, and style settings."
             : "Dropbox is connected. Create a new layer or import data from the sidebar to populate LalGeoDB.")
-          : "Connect Dropbox, pick a `.lal` file from `LalGeoDB`, or import a new dataset and convert it to LalGeo format.";
+          : "Connect Dropbox, pick a `.lal` or `.zip` project file, or import a new dataset and convert it to LalGeo format.";
         return;
       }
 
       els.emptyStateActions.hidden = true;
       els.headerTitle.textContent = layer.metadata.name;
-      els.headerSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}`;
+      els.headerSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}${file.fileType === "zip" ? " • opened from Dropbox archive" : ""}`;
 
       els.metadataList.innerHTML = [
         ["Name", layer.metadata.name],
@@ -713,6 +732,7 @@
         ["Last Modified", formatDate(file.serverModified || layer.metadata.updatedAt)],
         ["Dropbox Rev", file.rev || "Unknown"],
         ["Path", file.pathDisplay || file.pathLower],
+        ["Source File", String(file.fileType || "lal").toUpperCase()],
       ].map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join("");
 
       els.schemaTableBody.innerHTML = layer.schema.map((field) => `
@@ -813,12 +833,14 @@
     function updateActionButtons() {
       const hasLayer = Boolean(state.draftLayer && state.selectedFile);
       const connected = state.client.isReady;
+      const selectedFileType = getFileType(state.selectedFile?.name || "");
+      const canManageDropboxFile = hasLayer && selectedFileType !== "zip";
       els.saveLayerBtn.disabled = !hasLayer || !state.dirty;
       els.exportGeoJsonBtn.disabled = !hasLayer;
       els.downloadLalBtn.disabled = !hasLayer;
-      els.renameLayerBtn.disabled = !hasLayer;
-      els.duplicateLayerBtn.disabled = !hasLayer;
-      els.deleteLayerBtn.disabled = !hasLayer;
+      els.renameLayerBtn.disabled = !canManageDropboxFile;
+      els.duplicateLayerBtn.disabled = !canManageDropboxFile;
+      els.deleteLayerBtn.disabled = !canManageDropboxFile;
       els.editSchemaBtn.disabled = !hasLayer;
       els.saveStyleBtn.disabled = !hasLayer;
       els.disconnectDropboxBtn.disabled = !connected;
@@ -1205,12 +1227,21 @@
       try {
         state.draftLayer.metadata.updatedAt = new Date().toISOString();
         state.draftLayer.metadata.lastModifiedBy = "LalGeo Data Manager";
+        const selectedFileType = getFileType(state.selectedFile.name);
+        const savePath = selectedFileType === "zip"
+          ? `${state.client.folderPath}/${slugify(state.draftLayer.metadata.name)}.lal`
+          : (state.selectedFile.pathDisplay || state.selectedFile.pathLower);
+        const saveRev = selectedFileType === "zip" ? null : state.selectedFile.rev;
         const response = await state.client.saveLayer(state.draftLayer, {
-          path: state.selectedFile.pathDisplay || state.selectedFile.pathLower,
-          rev: state.selectedFile.rev,
+          path: savePath,
+          rev: saveRev,
         });
         state.selectedFile = {
           ...state.selectedFile,
+          name: response.name || `${slugify(state.draftLayer.metadata.name)}.lal`,
+          fileType: "lal",
+          pathLower: response.path_lower || state.selectedFile.pathLower,
+          pathDisplay: response.path_display || state.selectedFile.pathDisplay,
           rev: response.rev,
           serverModified: response.server_modified,
           clientModified: response.client_modified,
@@ -1220,7 +1251,12 @@
         writeLayerSummaryCache(state.selectedFile.pathLower, state.selectedLayer);
         await refreshLayers();
         render();
-        setStatus(`Saved ${state.selectedLayer.metadata.name}.`, "success");
+        setStatus(
+          selectedFileType === "zip"
+            ? `Saved ${state.selectedLayer.metadata.name} into LalGeoDB as a managed .lal layer.`
+            : `Saved ${state.selectedLayer.metadata.name}.`,
+          "success",
+        );
       } catch (error) {
         console.error(error);
         if (error instanceof DropboxConflictError) {
@@ -1837,6 +1873,13 @@
       const leftDate = new Date(left.serverModified || left.clientModified || 0).getTime();
       const rightDate = new Date(right.serverModified || right.clientModified || 0).getTime();
       return mode === "date-asc" ? leftDate - rightDate : rightDate - leftDate;
+    }
+
+    function getFileType(name = "") {
+      const lower = String(name).toLowerCase();
+      if (lower.endsWith(".zip")) return "zip";
+      if (lower.endsWith(".lal")) return "lal";
+      return "";
     }
 
     function swatchColor(color) {

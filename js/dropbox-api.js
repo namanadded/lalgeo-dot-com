@@ -5,6 +5,13 @@ export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
 export const TOKEN_STORAGE_SESSION_KEY = "lalgeo_dropbox_access_token_session";
 export const CHOOSER_APP_KEY_KEY = "lalgeo_dropbox_chooser_app_key";
 export const SURVEY_DROPBOX_CONNECTED_KEY = "lalgeo_survey_dropbox_connected";
+const PROJECT_EXTENSIONS = new Set(["lal", "zip"]);
+const PROJECT_SCAN_ROOTS = ["/LalGeoDB", "/Apps/LalGeo", "/Apps/LalGeoSurvey", ""];
+
+function isProjectArchiveName(name = "", path = "") {
+  const value = String(name || path).toLowerCase();
+  return value.endsWith(".lal") || value.endsWith(".zip");
+}
 
 function getSdk() {
   const ctor = globalThis.Dropbox?.Dropbox;
@@ -137,30 +144,78 @@ export class LalGeoDropboxClient {
   }
 
   async listLayers() {
+    try {
+      return await this.listLayersFromWorker();
+    } catch (workerError) {
+      console.warn("Worker project list failed; falling back to Dropbox SDK listing.", workerError);
+    }
     await this.ensureFolderStructure();
-    let cursor = null;
+    return this.listLayersViaSdk();
+  }
+
+  async listLayersFromWorker() {
+    const response = await fetch(`${WORKER_BASE}/api/surveys/list`, { credentials: "include" });
+    if (!response.ok) {
+      throw new Error(response.status === 401 ? "Connect your Dropbox account to list files." : "Unable to list Dropbox project files.");
+    }
+    const data = await response.json();
+    const rows = (data.entries || [])
+      .filter((entry) => entry[".tag"] === "file" && isProjectArchiveName(entry.name || "", entry.path_display || entry.path_lower || ""))
+      .filter((entry) => !String(entry.path_lower || "").toLowerCase().includes("/_versions/"))
+      .map((entry) => ({
+        id: entry.id || entry.path_lower || entry.path_display || entry.name,
+        pathLower: String(entry.path_lower || "").toLowerCase(),
+        pathDisplay: entry.path_display || entry.path_lower || entry.name,
+        name: entry.name,
+        serverModified: entry.server_modified,
+        clientModified: entry.client_modified,
+        rev: entry.rev,
+        size: entry.size,
+        fileType: String(entry.name || "").split(".").pop()?.toLowerCase() || "",
+      }));
+    return rows.sort((a, b) => String(a.name).localeCompare(String(b.name)));
+  }
+
+  async listLayersViaSdk() {
     const rows = [];
-    do {
-      const response = cursor
-        ? await this.client.filesListFolderContinue({ cursor })
-        : await this.client.filesListFolder({ path: this.folderPath });
-      const entries = response.result?.entries || response.entries || [];
-      entries.forEach((entry) => {
-        if (entry[".tag"] !== "file") return;
-        if (!String(entry.name || "").toLowerCase().endsWith(".lal")) return;
-        rows.push({
-          id: entry.id,
-          pathLower: entry.path_lower,
-          pathDisplay: entry.path_display,
-          name: entry.name,
-          serverModified: entry.server_modified,
-          clientModified: entry.client_modified,
-          rev: entry.rev,
-          size: entry.size,
+    const seenPaths = new Set();
+    for (const root of PROJECT_SCAN_ROOTS) {
+      let cursor = null;
+      do {
+        let response;
+        try {
+          response = cursor
+            ? await this.client.filesListFolderContinue({ cursor })
+            : await this.client.filesListFolder({ path: root, recursive: true });
+        } catch (error) {
+          const summary = String(error?.error?.error_summary || error?.message || error?.status || "");
+          if (summary.includes("not_found")) break;
+          throw error;
+        }
+        const entries = response.result?.entries || response.entries || [];
+        entries.forEach((entry) => {
+          if (entry[".tag"] !== "file") return;
+          const pathLower = String(entry.path_lower || "").toLowerCase();
+          if (!pathLower || seenPaths.has(pathLower)) return;
+          if (pathLower.startsWith(`${this.versionsPath.toLowerCase()}/`)) return;
+          const extension = String(entry.name || "").split(".").pop()?.toLowerCase() || "";
+          if (!PROJECT_EXTENSIONS.has(extension)) return;
+          seenPaths.add(pathLower);
+          rows.push({
+            id: entry.id,
+            pathLower,
+            pathDisplay: entry.path_display,
+            name: entry.name,
+            serverModified: entry.server_modified,
+            clientModified: entry.client_modified,
+            rev: entry.rev,
+            size: entry.size,
+            fileType: extension,
+          });
         });
-      });
-      cursor = (response.result?.has_more || response.has_more) ? (response.result?.cursor || response.cursor) : null;
-    } while (cursor);
+        cursor = (response.result?.has_more || response.has_more) ? (response.result?.cursor || response.cursor) : null;
+      } while (cursor);
+    }
     return rows.sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
 
@@ -177,6 +232,15 @@ export class LalGeoDropboxClient {
     };
     layer.metadata.updatedAt = result.server_modified || layer.metadata.updatedAt;
     return { layer, file: result };
+  }
+
+  async downloadFile(path) {
+    const response = await this.client.filesDownload({ path });
+    const result = response.result || response;
+    return {
+      file: result,
+      blob: result.fileBlob || result.fileBinary || response.fileBlob || response.fileBinary,
+    };
   }
 
   async saveLayer(layer, options = {}) {
