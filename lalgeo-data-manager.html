@@ -26,7 +26,7 @@
     * { box-sizing: border-box; }
     html, body { margin: 0; min-height: 100%; font-family: Inter, system-ui, sans-serif; background: radial-gradient(circle at top right, rgba(92,200,192,0.16), transparent 28%), radial-gradient(circle at 10% 18%, rgba(240,90,79,0.12), transparent 20%), var(--bg); color: var(--text); }
     body.modal-open { overflow: hidden; }
-    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 340px minmax(0, 1fr); }
+    .app-shell { min-height: 100vh; display: grid; grid-template-columns: 320px minmax(0, 1fr); }
     .sidebar { background: var(--panel); border-right: 1px solid var(--border); padding: 24px 18px; backdrop-filter: blur(20px); }
     .brand-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
     .brand-row img { height: 26px; }
@@ -45,8 +45,8 @@
     .sidebar-section { margin-top: 22px; }
     .sidebar-section h2, .sidebar-section h3, .content-header h1, .card h2 { margin: 0; }
     .sidebar-section p, .card p, .meta-list dd, .meta-list dt, .empty-state p, .helper-text { color: var(--muted); }
-    .layer-search { width: 100%; margin-top: 16px; padding: 11px 13px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); }
-    .layer-list { margin-top: 16px; display: grid; gap: 12px; max-height: calc(100vh - 260px); overflow: auto; padding-right: 4px; }
+    .layer-search { width: 100%; padding: 11px 13px; border-radius: 14px; border: 1px solid var(--border); background: rgba(255,255,255,0.04); color: var(--text); }
+    .layer-list { display: grid; gap: 12px; max-height: calc(100vh - 320px); overflow: auto; padding-right: 4px; }
     .layer-card { border: 1px solid var(--border); background: rgba(255,255,255,0.04); border-radius: 18px; padding: 14px; display: grid; gap: 10px; }
     .layer-card.active { border-color: rgba(143, 240, 220, 0.3); box-shadow: inset 0 0 0 1px rgba(143,240,220,0.14); }
     .layer-card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; }
@@ -61,8 +61,24 @@
     .content-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 22px; border: 1px solid var(--border); background: var(--panel); border-radius: 24px; box-shadow: var(--shadow); }
     .content-header p { margin: 8px 0 0; }
     .toolbar-actions { justify-content: flex-end; }
-    .content-grid { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 18px; }
+    .content-grid { margin-top: 18px; display: grid; grid-template-columns: minmax(0, 1fr); gap: 18px; }
     .card { border: 1px solid var(--border); background: var(--panel); border-radius: 24px; padding: 22px; box-shadow: var(--shadow); }
+    .catalog-toolbar { display:flex; gap:12px; align-items:center; justify-content:space-between; margin-bottom:18px; flex-wrap:wrap; }
+    .catalog-toolbar-left { display:flex; gap:12px; align-items:center; flex-wrap:wrap; flex:1; min-width:280px; }
+    .catalog-toolbar-right { display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+    .catalog-list-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap:16px; }
+    .catalog-card { border:1px solid var(--border); background:rgba(255,255,255,0.04); border-radius:22px; padding:18px; display:grid; gap:14px; cursor:pointer; transition: transform 0.16s ease, border-color 0.16s ease, background 0.16s ease, box-shadow 0.16s ease; }
+    .catalog-card:hover, .catalog-card:focus-visible { outline:none; transform: translateY(-2px); border-color: rgba(143,240,220,0.3); background: rgba(255,255,255,0.06); box-shadow: 0 16px 32px rgba(0,0,0,0.2); }
+    .catalog-card.active { border-color: rgba(143,240,220,0.34); box-shadow: inset 0 0 0 1px rgba(143,240,220,0.14); }
+    .catalog-card-header { display:flex; align-items:flex-start; justify-content:space-between; gap:12px; }
+    .catalog-card-title { font-size: 24px; font-weight: 800; letter-spacing: -0.03em; }
+    .catalog-card-subtitle { color: var(--muted); font-size: 13px; }
+    .catalog-meta-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap:10px 14px; }
+    .catalog-meta-item { display:grid; gap:4px; }
+    .catalog-meta-item span:first-child { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; }
+    .catalog-meta-item span:last-child { font-size: 14px; }
+    .catalog-card-actions { display:flex; gap:10px; flex-wrap:wrap; }
+    .catalog-card-actions button { padding:9px 12px; }
     .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
     .tab-btn.active { background: rgba(92,200,192,0.14); color: var(--accent); border-color: rgba(92,200,192,0.24); }
     .tab-panel[hidden] { display: none; }
@@ -132,10 +148,21 @@
     }
     .modal-feedback { margin-top: 16px; }
     .toolbar-note { font-size: 12px; color: var(--muted); }
+    .inspector-backdrop { position: fixed; inset: 0; background: rgba(3, 8, 16, 0.58); backdrop-filter: blur(8px); display:grid; place-items:center; z-index: 1900; padding: 24px; }
+    .inspector-backdrop[hidden] { display:none; }
+    .inspector-modal { width: min(1180px, 100%); max-height: calc(100vh - 48px); overflow: auto; border-radius: 30px; background: rgba(9, 19, 31, 0.97); border: 1px solid var(--border); box-shadow: var(--shadow); padding: 26px; }
+    .inspector-header { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; margin-bottom: 20px; }
+    .inspector-header h2 { margin: 0; font-size: 40px; letter-spacing: -0.05em; }
+    .inspector-subtitle { margin-top: 10px; color: var(--muted); }
+    .inspector-layout { display:grid; grid-template-columns: minmax(0, 1fr) 300px; gap:18px; }
+    .inspector-sidecard { border:1px solid var(--border); border-radius:22px; background: rgba(255,255,255,0.04); padding:18px; display:grid; gap:16px; align-content:start; }
+    .inspector-sidecard h3 { margin:0; font-size: 24px; letter-spacing:-0.03em; }
+    .inspector-sidecard .detail-actions { margin-top: 6px; }
     @media (max-width: 1100px) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
       .content-grid { grid-template-columns: 1fr; }
+      .inspector-layout { grid-template-columns: 1fr; }
     }
   </style>
 </head>
@@ -162,17 +189,16 @@
           <button id="importLayerBtn" type="button" aria-label="Import a layer into LalGeo Data Manager">Import Layer</button>
           <button id="createLayerBtn" type="button" aria-label="Create a new LalGeo layer">Create New Layer</button>
         </div>
-        <input id="layerSearchInput" class="layer-search" type="search" placeholder="Search layers" aria-label="Search layers">
-        <div class="sidebar-toolbar-row">
-          <select id="layerSortSelect" class="field-select sort-select" aria-label="Sort layers">
-            <option value="date-desc">Newest first</option>
-            <option value="date-asc">Oldest first</option>
-            <option value="name-asc">Name A to Z</option>
-            <option value="name-desc">Name Z to A</option>
-          </select>
-        </div>
       </div>
-      <div id="layerList" class="layer-list" aria-live="polite"></div>
+      <div id="statusMessage" class="message" style="margin-top:18px;">Connect Dropbox to begin.</div>
+      <div class="sidebar-section">
+        <h3>Safeguards</h3>
+        <p>Every save checks the Dropbox `rev` to catch conflicts. Before overwriting a layer, the current file is copied into `LalGeoDB/_versions` as a restore point.</p>
+      </div>
+      <div class="sidebar-section">
+        <h3>Shortcuts</h3>
+        <p><strong>I</strong> import layer, <strong>R</strong> refresh list, <strong>N</strong> create layer.</p>
+      </div>
     </aside>
 
     <main class="content">
@@ -183,121 +209,146 @@
           <p id="headerSubtitle">Browse Dropbox-backed project files, manage schema, edit attributes, and convert incoming files.</p>
         </div>
         <div class="toolbar-actions">
-          <button id="saveLayerBtn" type="button" class="primary" disabled>Save Layer</button>
-          <button id="exportGeoJsonBtn" type="button" disabled>Export GeoJSON</button>
-          <button id="downloadLalBtn" type="button" disabled>Download .lal</button>
+          <div class="toolbar-note">Select a project card to open its catalog inspector.</div>
         </div>
       </section>
 
       <div class="content-grid">
         <section class="card">
-          <div id="layerEmptyState" class="empty-state">
+          <div class="catalog-toolbar">
+            <div class="catalog-toolbar-left">
+              <input id="layerSearchInput" class="layer-search" type="search" placeholder="Search Dropbox projects" aria-label="Search layers">
+              <select id="layerSortSelect" class="field-select sort-select" aria-label="Sort layers">
+                <option value="date-desc">Newest first</option>
+                <option value="date-asc">Oldest first</option>
+                <option value="name-asc">Name A to Z</option>
+                <option value="name-desc">Name Z to A</option>
+              </select>
+            </div>
+            <div class="catalog-toolbar-right">
+              <span class="toolbar-note">Click any layer card to inspect metadata, schema, attributes, and style.</span>
+            </div>
+          </div>
+          <div id="layerEmptyState" class="empty-state compact">
             <div>
-              <h2>Open a LalGeo layer</h2>
-              <p id="emptyStateCopy">Connect Dropbox, pick a <code>.lal</code> or <code>.zip</code> project file, or import a new dataset and convert it to LalGeo format.</p>
+              <h2>Browse your Dropbox projects</h2>
+              <p id="emptyStateCopy">Connect Dropbox, then click any <code>.lal</code> or <code>.zip</code> project card to inspect it in a catalog-style popup.</p>
               <div id="emptyStateActions" class="toolbar-actions empty-actions" style="justify-content:center; margin-top:16px;">
                 <button id="emptyCreateLayerBtn" type="button" class="primary">Create New Layer</button>
                 <button id="emptyImportLayerBtn" type="button">Import Layer</button>
               </div>
             </div>
           </div>
-          <div id="layerDetailView" hidden>
-            <div class="tabs" role="tablist" aria-label="Layer sections">
-              <button class="tab-btn active" type="button" data-tab="metadata">Metadata</button>
-              <button class="tab-btn" type="button" data-tab="schema">Schema</button>
-              <button class="tab-btn" type="button" data-tab="attributes">Attributes</button>
-              <button class="tab-btn" type="button" data-tab="style">Style</button>
-            </div>
+          <div id="layerList" class="catalog-list-grid" aria-live="polite"></div>
+        </section>
+      </div>
+    </main>
+  </div>
 
-            <section class="tab-panel" data-panel="metadata">
-              <dl id="metadataList" class="meta-list"></dl>
-            </section>
-
-            <section class="tab-panel" data-panel="schema" hidden>
-              <div class="detail-actions" style="margin-bottom:14px;">
-                <button id="editSchemaBtn" type="button">Edit Schema</button>
-              </div>
-              <div class="table-shell">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Field Name</th>
-                      <th>Data Type</th>
-                      <th>Nullable</th>
-                      <th>Description</th>
-                    </tr>
-                  </thead>
-                  <tbody id="schemaTableBody"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="tab-panel" data-panel="attributes" hidden>
-              <div class="detail-actions" style="margin-bottom:14px;">
-                <span class="helper-text">First 50 rows. Double-click a cell to edit.</span>
-              </div>
-              <div class="table-shell">
-                <table id="attributeTable">
-                  <thead id="attributeTableHead"></thead>
-                  <tbody id="attributeTableBody"></tbody>
-                </table>
-              </div>
-            </section>
-
-            <section class="tab-panel" data-panel="style" hidden>
-              <div class="detail-actions" style="margin-bottom:14px;">
-                <button id="saveStyleBtn" type="button">Apply Style</button>
-              </div>
-              <div class="modal-grid">
-                <div>
-                  <label class="field-label" for="styleColorSelect">Default Symbol Color</label>
-                  <select id="styleColorSelect" class="field-select"></select>
-                </div>
-                <div>
-                  <label class="field-label" for="styleShapeSelect">Default Symbol Shape</label>
-                  <select id="styleShapeSelect" class="field-select"></select>
-                </div>
-                <div>
-                  <label class="field-label" for="styleColorPicker">Custom Color</label>
-                  <input id="styleColorPicker" class="field-input" type="color" aria-label="Choose custom symbol color">
-                </div>
-                <div>
-                  <label class="field-label">Shape Quick Select</label>
-                  <div id="styleShapeChoices" class="shape-choice-grid"></div>
-                </div>
-                <div class="full">
-                  <label class="field-label">Color Swatches</label>
-                  <div id="styleSwatches" class="style-swatch-grid"></div>
-                </div>
-                <div class="full style-preview-row">
-                  <div id="stylePreviewDot" class="style-preview-dot">●</div>
-                  <div class="toolbar-note">Preview of the default symbol used when this layer is opened elsewhere.</div>
-                </div>
-              </div>
-            </section>
+  <div id="inspectorBackdrop" class="inspector-backdrop" hidden>
+    <div class="inspector-modal" role="dialog" aria-modal="true" aria-labelledby="inspectorTitle" aria-describedby="inspectorSubtitle">
+      <div class="inspector-header">
+        <div>
+          <p class="layer-pill">Layer Inspector</p>
+          <h2 id="inspectorTitle">Layer</h2>
+          <p id="inspectorSubtitle" class="inspector-subtitle">Inspect Dropbox project metadata, schema, attributes, and style.</p>
+        </div>
+        <div class="detail-actions">
+          <button id="saveLayerBtn" type="button" class="primary" disabled>Save Layer</button>
+          <button id="exportGeoJsonBtn" type="button" disabled>Export GeoJSON</button>
+          <button id="downloadLalBtn" type="button" disabled>Download .lal</button>
+          <button id="inspectorCloseBtn" type="button" aria-label="Close layer inspector">Close</button>
+        </div>
+      </div>
+      <div class="inspector-layout">
+        <section class="card" style="box-shadow:none; padding:0; background:transparent; border:none;">
+          <div class="tabs" role="tablist" aria-label="Layer sections">
+            <button class="tab-btn active" type="button" data-tab="metadata">Metadata</button>
+            <button class="tab-btn" type="button" data-tab="schema">Schema</button>
+            <button class="tab-btn" type="button" data-tab="attributes">Attributes</button>
+            <button class="tab-btn" type="button" data-tab="style">Style</button>
           </div>
+
+          <section class="tab-panel" data-panel="metadata">
+            <dl id="metadataList" class="meta-list"></dl>
+          </section>
+
+          <section class="tab-panel" data-panel="schema" hidden>
+            <div class="detail-actions" style="margin-bottom:14px;">
+              <button id="editSchemaBtn" type="button">Edit Schema</button>
+            </div>
+            <div class="table-shell">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Field Name</th>
+                    <th>Data Type</th>
+                    <th>Nullable</th>
+                    <th>Description</th>
+                  </tr>
+                </thead>
+                <tbody id="schemaTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" data-panel="attributes" hidden>
+            <div class="detail-actions" style="margin-bottom:14px;">
+              <span class="helper-text">First 50 rows. Double-click a cell to edit.</span>
+            </div>
+            <div class="table-shell">
+              <table id="attributeTable">
+                <thead id="attributeTableHead"></thead>
+                <tbody id="attributeTableBody"></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section class="tab-panel" data-panel="style" hidden>
+            <div class="detail-actions" style="margin-bottom:14px;">
+              <button id="saveStyleBtn" type="button">Apply Style</button>
+            </div>
+            <div class="modal-grid">
+              <div>
+                <label class="field-label" for="styleColorSelect">Default Symbol Color</label>
+                <select id="styleColorSelect" class="field-select"></select>
+              </div>
+              <div>
+                <label class="field-label" for="styleShapeSelect">Default Symbol Shape</label>
+                <select id="styleShapeSelect" class="field-select"></select>
+              </div>
+              <div>
+                <label class="field-label" for="styleColorPicker">Custom Color</label>
+                <input id="styleColorPicker" class="field-input" type="color" aria-label="Choose custom symbol color">
+              </div>
+              <div>
+                <label class="field-label">Shape Quick Select</label>
+                <div id="styleShapeChoices" class="shape-choice-grid"></div>
+              </div>
+              <div class="full">
+                <label class="field-label">Color Swatches</label>
+                <div id="styleSwatches" class="style-swatch-grid"></div>
+              </div>
+              <div class="full style-preview-row">
+                <div id="stylePreviewDot" class="style-preview-dot">●</div>
+                <div class="toolbar-note">Preview of the default symbol used when this layer is opened elsewhere.</div>
+              </div>
+            </div>
+          </section>
         </section>
 
-        <aside class="card">
-          <h2>Layer Actions</h2>
-          <p>Manage Dropbox-backed files with version checks and backup snapshots.</p>
+        <aside class="inspector-sidecard">
+          <h3>Layer Actions</h3>
+          <p>Manage the selected Dropbox-backed file from one place.</p>
           <div class="detail-actions">
             <button id="renameLayerBtn" type="button" disabled>Rename</button>
             <button id="duplicateLayerBtn" type="button" disabled>Duplicate</button>
             <button id="deleteLayerBtn" type="button" class="danger" disabled>Delete</button>
           </div>
-          <div id="statusMessage" class="message" style="margin-top:18px;">Connect Dropbox to begin.</div>
-          <div class="sidebar-section">
-            <h3>Safeguards</h3>
-            <p>Every save checks the Dropbox `rev` to catch conflicts. Before overwriting a layer, the current file is copied into `LalGeoDB/_versions` as a restore point.</p>
-          </div>
-          <div class="sidebar-section">
-            <h3>Shortcuts</h3>
-            <p><strong>I</strong> import layer, <strong>R</strong> refresh list, <strong>N</strong> create layer.</p>
-          </div>
+          <div class="message">This inspector works more like a catalog item sheet: select a project, review it, then close when finished.</div>
         </aside>
       </div>
-    </main>
+    </div>
   </div>
 
   <div id="modalBackdrop" class="modal-backdrop" hidden>
@@ -344,6 +395,7 @@
       selectedLayer: null,
       selectedFile: null,
       draftLayer: null,
+      inspectorOpen: false,
       activeTab: "metadata",
       sort: { field: null, direction: "asc" },
       layerSort: "date-desc",
@@ -378,7 +430,10 @@
       exportGeoJsonBtn: document.getElementById("exportGeoJsonBtn"),
       downloadLalBtn: document.getElementById("downloadLalBtn"),
       layerEmptyState: document.getElementById("layerEmptyState"),
-      layerDetailView: document.getElementById("layerDetailView"),
+      inspectorBackdrop: document.getElementById("inspectorBackdrop"),
+      inspectorTitle: document.getElementById("inspectorTitle"),
+      inspectorSubtitle: document.getElementById("inspectorSubtitle"),
+      inspectorCloseBtn: document.getElementById("inspectorCloseBtn"),
       metadataList: document.getElementById("metadataList"),
       schemaTableBody: document.getElementById("schemaTableBody"),
       attributeTableHead: document.getElementById("attributeTableHead"),
@@ -452,9 +507,13 @@
       els.deleteLayerBtn.addEventListener("click", openDeleteLayerModal);
       els.editSchemaBtn.addEventListener("click", openSchemaEditorModal);
       els.saveStyleBtn.addEventListener("click", commitStyleChanges);
+      els.inspectorCloseBtn.addEventListener("click", closeInspector);
       els.modalCloseBtn.addEventListener("click", closeModal);
       els.modalBackdrop.addEventListener("click", (event) => {
         if (event.target === els.modalBackdrop) closeModal();
+      });
+      els.inspectorBackdrop.addEventListener("click", (event) => {
+        if (event.target === els.inspectorBackdrop) closeInspector();
       });
       els.tabButtons.forEach((button) => {
         button.addEventListener("click", () => {
@@ -619,6 +678,7 @@
         };
         state.selectedLayer = normalizeLalDocument(openedLayer);
         state.draftLayer = cloneLayer(state.selectedLayer);
+        state.inspectorOpen = true;
         state.dirty = false;
         writeLayerSummaryCache(state.selectedFile.pathLower, state.selectedLayer);
         render();
@@ -652,47 +712,65 @@
         return;
       }
       els.layerList.innerHTML = state.filteredLayers.map((layer) => `
-        <article class="layer-card ${state.selectedFile?.pathLower === layer.pathLower ? "active" : ""}">
-          <div class="layer-card-header">
+        <article class="catalog-card ${state.selectedFile?.pathLower === layer.pathLower ? "active" : ""}" tabindex="0" role="button" aria-label="Open ${escapeHtml(layer.name)} in the layer inspector" data-layer-card="${escapeHtml(layer.pathLower)}">
+          <div class="catalog-card-header">
             <div>
-              <div class="layer-card-title">${escapeHtml(layer.name.replace(/\.(lal|zip)$/i, ""))}</div>
-              <div class="layer-meta">
-                <span>${escapeHtml(layer.fileType === "zip" ? "Project archive" : (state.layerSummaryCache[layer.pathLower]?.geometryType || "Unknown geometry"))}</span>
-                <span>${escapeHtml(layer.fileType === "zip" ? "Ready to import" : formatFeatureCount(state.layerSummaryCache[layer.pathLower]?.featureCount))}</span>
-                <span>${escapeHtml(formatDate(layer.serverModified || layer.clientModified))}</span>
-                <span>${escapeHtml(layer.rev || "rev ?")}</span>
-              </div>
+              <div class="catalog-card-title">${escapeHtml(layer.name.replace(/\.(lal|zip)$/i, ""))}</div>
+              <div class="catalog-card-subtitle">${escapeHtml(layer.fileType === "zip" ? "Dropbox project archive ready to import" : "Managed LalGeo layer in Dropbox")}</div>
             </div>
             <span class="layer-pill">${escapeHtml((layer.fileType || "lal").toUpperCase())}</span>
           </div>
-          <div class="layer-actions">
-            <button type="button" aria-label="Open ${escapeHtml(layer.name)}" data-open-layer="${escapeHtml(layer.pathLower)}">${layer.fileType === "zip" ? "Import" : "Open"}</button>
+          <div class="catalog-meta-grid">
+            <div class="catalog-meta-item"><span>Geometry</span><span>${escapeHtml(layer.fileType === "zip" ? "Project archive" : (state.layerSummaryCache[layer.pathLower]?.geometryType || "Unknown"))}</span></div>
+            <div class="catalog-meta-item"><span>Features</span><span>${escapeHtml(layer.fileType === "zip" ? "Ready to import" : formatFeatureCount(state.layerSummaryCache[layer.pathLower]?.featureCount))}</span></div>
+            <div class="catalog-meta-item"><span>Modified</span><span>${escapeHtml(formatDate(layer.serverModified || layer.clientModified))}</span></div>
+            <div class="catalog-meta-item"><span>Dropbox Rev</span><span>${escapeHtml(layer.rev || "rev ?")}</span></div>
+          </div>
+          <div class="catalog-card-actions">
+            <button type="button" aria-label="Inspect ${escapeHtml(layer.name)}" data-open-layer="${escapeHtml(layer.pathLower)}">${layer.fileType === "zip" ? "Import & Inspect" : "Inspect"}</button>
             <button type="button" aria-label="Rename ${escapeHtml(layer.name)}" data-rename-layer="${escapeHtml(layer.pathLower)}" ${layer.fileType === "zip" ? "disabled" : ""}>Rename</button>
             <button type="button" aria-label="Duplicate ${escapeHtml(layer.name)}" data-duplicate-layer="${escapeHtml(layer.pathLower)}" ${layer.fileType === "zip" ? "disabled" : ""}>Duplicate</button>
             <button type="button" class="danger" aria-label="Delete ${escapeHtml(layer.name)}" data-delete-layer="${escapeHtml(layer.pathLower)}" ${layer.fileType === "zip" ? "disabled" : ""}>Delete</button>
           </div>
         </article>
       `).join("");
+      els.layerList.querySelectorAll("[data-layer-card]").forEach((card) => {
+        const openLayer = () => {
+          const file = state.layers.find((entry) => entry.pathLower === card.dataset.layerCard);
+          if (file) selectLayer(file);
+        };
+        card.addEventListener("click", openLayer);
+        card.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openLayer();
+          }
+        });
+      });
       els.layerList.querySelectorAll("[data-open-layer]").forEach((button) => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
           const file = state.layers.find((entry) => entry.pathLower === button.dataset.openLayer);
           if (file) selectLayer(file);
         });
       });
       els.layerList.querySelectorAll("[data-rename-layer]").forEach((button) => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
           const file = state.layers.find((entry) => entry.pathLower === button.dataset.renameLayer);
           if (file) openRenameModal(file);
         });
       });
       els.layerList.querySelectorAll("[data-duplicate-layer]").forEach((button) => {
-        button.addEventListener("click", async () => {
+        button.addEventListener("click", async (event) => {
+          event.stopPropagation();
           const file = state.layers.find((entry) => entry.pathLower === button.dataset.duplicateLayer);
           if (file) await duplicateSelectedLayer(file);
         });
       });
       els.layerList.querySelectorAll("[data-delete-layer]").forEach((button) => {
-        button.addEventListener("click", () => {
+        button.addEventListener("click", (event) => {
+          event.stopPropagation();
           const file = state.layers.find((entry) => entry.pathLower === button.dataset.deleteLayer);
           if (file) openDeleteLayerModal(file);
         });
@@ -703,26 +781,29 @@
       const layer = state.draftLayer;
       const file = state.selectedFile;
       const hasLayer = Boolean(layer && file);
-      els.layerEmptyState.hidden = hasLayer;
-      els.layerDetailView.hidden = !hasLayer;
+      els.layerEmptyState.hidden = state.layers.length > 0 || state.client.isReady;
       if (!hasLayer) {
         const connected = state.client.isReady;
         const hasLayers = state.layers.length > 0;
+        els.layerEmptyState.hidden = connected && hasLayers;
         els.layerEmptyState.classList.toggle("compact", connected);
         els.emptyStateActions.hidden = connected;
         els.headerTitle.textContent = "Select a layer";
         els.headerSubtitle.textContent = "Browse Dropbox-backed `.lal` and `.zip` project files, manage schema, edit attributes, and convert incoming files.";
         els.emptyStateCopy.textContent = connected
           ? (hasLayers
-            ? "Choose a Dropbox project from the sidebar to review schema, attributes, and style settings."
+            ? "Choose a Dropbox project from the center catalog to inspect metadata, schema, attributes, and style."
             : "Dropbox is connected. Create a new layer or import data from the sidebar to populate LalGeoDB.")
           : "Connect Dropbox, pick a `.lal` or `.zip` project file, or import a new dataset and convert it to LalGeo format.";
+        els.inspectorBackdrop.hidden = true;
         return;
       }
 
       els.emptyStateActions.hidden = true;
       els.headerTitle.textContent = layer.metadata.name;
       els.headerSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}${file.fileType === "zip" ? " • opened from Dropbox archive" : ""}`;
+      els.inspectorTitle.textContent = layer.metadata.name;
+      els.inspectorSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}${file.fileType === "zip" ? " • Dropbox archive source" : " • Dropbox-backed layer"}`;
 
       els.metadataList.innerHTML = [
         ["Name", layer.metadata.name],
@@ -747,6 +828,7 @@
       renderAttributesTable();
       renderStyleControls();
       renderTabs();
+      els.inspectorBackdrop.hidden = !state.inspectorOpen;
     }
 
     function renderTabs() {
@@ -844,6 +926,11 @@
       els.editSchemaBtn.disabled = !hasLayer;
       els.saveStyleBtn.disabled = !hasLayer;
       els.disconnectDropboxBtn.disabled = !connected;
+    }
+
+    function closeInspector() {
+      state.inspectorOpen = false;
+      els.inspectorBackdrop.hidden = true;
     }
 
     function openModal(config) {
@@ -1918,6 +2005,10 @@
       if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
       if (event.target.closest("input, textarea, select")) return;
       const key = event.key.toLowerCase();
+      if (key === "escape" && state.inspectorOpen) {
+        event.preventDefault();
+        closeInspector();
+      }
       if (key === "i") {
         event.preventDefault();
         openImportModal();
