@@ -1886,8 +1886,13 @@
     .feature-drawer-actions {
         display: flex;
         justify-content: space-between;
-        gap: 10px;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 12px;
         margin-top: 8px;
+    }
+    .feature-drawer-actions .workspace-inline-actions {
+        margin-top: 0;
     }
     .feature-drawer-empty {
         color: #9fb1c2;
@@ -3789,7 +3794,10 @@
                     ${fields}
                     ${styleSection}
                     <div class="feature-drawer-actions">
-                        <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete">Delete feature</button>
+                        <div class="workspace-inline-actions">
+                            <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete">Delete feature</button>
+                            <button id="featureDrawerDone" type="button" class="mini-btn primary">Done</button>
+                        </div>
                         <span class="workspace-panel-muted">Changes autosave to your workspace.</span>
                     </div>
                 </div>
@@ -3802,6 +3810,10 @@
                 }
             });
             featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => deleteActivePoint());
+            featureDrawerBody.querySelector("#featureDrawerDone")?.addEventListener("click", () => {
+                hideSurveyCallout();
+                setProjectStatus("Feature details saved and closed.", "success");
+            });
             featureDrawer.classList.add("open");
         }
 
