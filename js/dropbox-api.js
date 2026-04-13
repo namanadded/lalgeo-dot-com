@@ -69,7 +69,8 @@ export class LalGeoDropboxClient {
       throw new Error("Dropbox access token missing.");
     }
     const DropboxCtor = getSdk();
-    return new DropboxCtor({ accessToken: this.accessToken, fetch });
+    const boundFetch = globalThis.fetch?.bind(globalThis);
+    return new DropboxCtor({ accessToken: this.accessToken, fetch: boundFetch });
   }
 
   async connectWithExistingSurveySession() {
