@@ -558,7 +558,18 @@
       els.disconnectDropboxBtn.disabled = true;
       els.disconnectDropboxBtn.textContent = "Logging out…";
       try {
-        await state.client.logout();
+        if (typeof state.client.logout === "function") {
+          await state.client.logout();
+        } else {
+          if (typeof state.client.clearAccessToken === "function") {
+            state.client.clearAccessToken();
+          }
+          await fetch(`${WORKER_BASE}/api/logout`, {
+            method: "POST",
+            credentials: "include",
+          }).catch(() => {});
+          localStorage.removeItem("lalgeo_survey_dropbox_connected");
+        }
         state.layers = [];
         state.filteredLayers = [];
         state.selectedLayer = null;
