@@ -1305,10 +1305,7 @@
         right: 8px;
         min-height: 26px;
         transform: none;
-        display: grid;
-        grid-template-columns: auto 1fr auto;
-        grid-template-rows: auto;
-        grid-template-areas: "toolbar-left toolbar-center toolbar-right";
+        display: flex;
         align-items: center;
         gap: 10px;
         padding: 3px 10px;
@@ -1372,16 +1369,19 @@
         flex-wrap: nowrap;
     }
     .toolbar-left {
+        flex: 0 0 auto;
         justify-content: flex-start;
         overflow: hidden;
     }
     .toolbar-center {
+        flex: 1 1 auto;
         justify-content: center;
         overflow: hidden;
     }
     .toolbar-right {
+        flex: 0 0 auto;
         justify-content: flex-end;
-        justify-self: end;
+        margin-left: auto;
     }
     .search-pill {
         width: 28px;
