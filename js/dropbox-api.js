@@ -4,6 +4,7 @@ export const WORKER_BASE = "https://dropbox.lalgeo.com";
 export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
 export const TOKEN_STORAGE_SESSION_KEY = "lalgeo_dropbox_access_token_session";
 export const CHOOSER_APP_KEY_KEY = "lalgeo_dropbox_chooser_app_key";
+export const SURVEY_DROPBOX_CONNECTED_KEY = "lalgeo_survey_dropbox_connected";
 
 function getSdk() {
   const ctor = globalThis.Dropbox?.Dropbox;
@@ -59,11 +60,13 @@ export class LalGeoDropboxClient {
     const tokenFromUrl = consumeDropboxTokenFromUrl();
     if (tokenFromUrl) {
       this.setAccessToken(tokenFromUrl, true);
+      localStorage.setItem(SURVEY_DROPBOX_CONNECTED_KEY, "1");
       return { tokenBridged: true };
     }
     const workerProfile = await this.fetchWorkerProfile();
     if (workerProfile) {
       this.profile = workerProfile;
+      localStorage.setItem(SURVEY_DROPBOX_CONNECTED_KEY, "1");
     }
     if (!this.accessToken) {
       throw new Error("Dropbox is authenticated in Survey, but the Data Manager still needs an access-token bridge.");
@@ -85,9 +88,12 @@ export class LalGeoDropboxClient {
     }
   }
 
-  startOauth(returnTo = window.location.href) {
+  startOauth(returnTo = window.location.href, options = {}) {
     const nextUrl = new URL(returnTo);
     nextUrl.searchParams.set("dropboxReturn", "1");
+    if (options.bridgeAttempted) {
+      nextUrl.searchParams.set("dropboxBridgeAttempted", "1");
+    }
     window.location.href = `${WORKER_BASE}/api/auth?returnTo=${encodeURIComponent(nextUrl.toString())}`;
   }
 
@@ -245,7 +251,12 @@ export class LalGeoDropboxClient {
 }
 
 export function readStoredDropboxToken() {
-  return localStorage.getItem(TOKEN_STORAGE_KEY) || sessionStorage.getItem(TOKEN_STORAGE_SESSION_KEY) || globalThis.LALGEO_DROPBOX_ACCESS_TOKEN || "";
+  return localStorage.getItem(TOKEN_STORAGE_KEY)
+    || sessionStorage.getItem(TOKEN_STORAGE_SESSION_KEY)
+    || localStorage.getItem("dropboxAccessToken")
+    || sessionStorage.getItem("dropboxAccessToken")
+    || globalThis.LALGEO_DROPBOX_ACCESS_TOKEN
+    || "";
 }
 
 export function consumeDropboxTokenFromUrl() {
@@ -254,6 +265,9 @@ export function consumeDropboxTokenFromUrl() {
   if (token) {
     localStorage.setItem(TOKEN_STORAGE_KEY, token);
     sessionStorage.setItem(TOKEN_STORAGE_SESSION_KEY, token);
+    localStorage.setItem("dropboxAccessToken", token);
+    sessionStorage.setItem("dropboxAccessToken", token);
+    localStorage.setItem(SURVEY_DROPBOX_CONNECTED_KEY, "1");
     url.searchParams.delete("dropboxAccessToken");
     url.searchParams.delete("dbx_access_token");
     window.history.replaceState({}, "", url.toString());
@@ -272,4 +286,3 @@ async function extractArrayBuffer(blobLike) {
   if (blobLike?.buffer) return blobLike.buffer;
   throw new Error("Unable to read Dropbox file contents.");
 }
-

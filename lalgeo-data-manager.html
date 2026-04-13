@@ -55,6 +55,8 @@
     .layer-pill { display: inline-flex; padding: 4px 9px; border-radius: 999px; background: rgba(92,200,192,0.12); color: var(--accent); font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; }
     .layer-actions { display: flex; flex-wrap: wrap; gap: 8px; }
     .layer-actions button { padding: 8px 10px; font-size: 12px; }
+    .sidebar-toolbar-row { display:flex; gap:10px; align-items:center; margin-top:14px; }
+    .sort-select { min-width: 150px; }
     .content { padding: 24px; }
     .content-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; padding: 22px; border: 1px solid var(--border); background: var(--panel); border-radius: 24px; box-shadow: var(--shadow); }
     .content-header p { margin: 8px 0 0; }
@@ -80,6 +82,8 @@
     .swatch-chip { width: 22px; height: 22px; border-radius: 999px; border: 2px solid rgba(255,255,255,0.2); }
     .empty-state { min-height: 420px; display: grid; place-items: center; text-align: center; padding: 32px; }
     .empty-state h2 { margin: 0; font-size: 34px; letter-spacing: -0.04em; }
+    .empty-state.compact { min-height: 320px; }
+    .empty-actions[hidden] { display:none; }
     .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
     .modal-backdrop { position: fixed; inset: 0; background: rgba(3, 8, 16, 0.72); backdrop-filter: blur(10px); display: grid; place-items: center; z-index: 2000; padding: 20px; }
     .modal-backdrop[hidden] { display: none; }
@@ -96,6 +100,38 @@
     .message.error { color: var(--danger); border-color: rgba(240,90,79,0.22); background: rgba(240,90,79,0.1); }
     .message.success { color: var(--accent); border-color: rgba(92,200,192,0.26); background: rgba(92,200,192,0.08); }
     .theme-toggle { min-width: 42px; }
+    .geometry-choices, .shape-choice-grid { display:grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap:10px; }
+    .choice-chip {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 14px 12px;
+      background: rgba(255,255,255,0.04);
+      color: var(--text);
+      text-align: left;
+      display: grid;
+      gap: 6px;
+    }
+    .choice-chip.active {
+      border-color: rgba(143,240,220,0.35);
+      background: rgba(92,200,192,0.12);
+      box-shadow: inset 0 0 0 1px rgba(143,240,220,0.14);
+    }
+    .choice-chip small { color: var(--muted); display:block; }
+    .choice-chip[aria-pressed="true"] { color: var(--accent); }
+    .style-preview-row { display:flex; gap:12px; align-items:center; margin-top:12px; }
+    .style-preview-dot {
+      width: 42px;
+      height: 42px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      color:#fff;
+      font-weight:700;
+      border: 2px solid rgba(255,255,255,0.18);
+      box-shadow: 0 12px 26px rgba(0,0,0,0.22);
+    }
+    .modal-feedback { margin-top: 16px; }
+    .toolbar-note { font-size: 12px; color: var(--muted); }
     @media (max-width: 1100px) {
       .app-shell { grid-template-columns: 1fr; }
       .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
@@ -122,10 +158,18 @@
         <h2>LalGeoDB</h2>
         <p>Layers stored as `.lal` files in Dropbox.</p>
         <div class="sidebar-actions">
-          <button id="importLayerBtn" type="button">Import Layer</button>
-          <button id="createLayerBtn" type="button">Create New Layer</button>
+          <button id="importLayerBtn" type="button" aria-label="Import a layer into LalGeo Data Manager">Import Layer</button>
+          <button id="createLayerBtn" type="button" aria-label="Create a new LalGeo layer">Create New Layer</button>
         </div>
         <input id="layerSearchInput" class="layer-search" type="search" placeholder="Search layers" aria-label="Search layers">
+        <div class="sidebar-toolbar-row">
+          <select id="layerSortSelect" class="field-select sort-select" aria-label="Sort layers">
+            <option value="date-desc">Newest first</option>
+            <option value="date-asc">Oldest first</option>
+            <option value="name-asc">Name A to Z</option>
+            <option value="name-desc">Name Z to A</option>
+          </select>
+        </div>
       </div>
       <div id="layerList" class="layer-list" aria-live="polite"></div>
     </aside>
@@ -149,8 +193,8 @@
           <div id="layerEmptyState" class="empty-state">
             <div>
               <h2>Open a LalGeo layer</h2>
-              <p>Connect Dropbox, pick a `.lal` file from `LalGeoDB`, or import a new dataset and convert it to LalGeo format.</p>
-              <div class="toolbar-actions" style="justify-content:center; margin-top:16px;">
+              <p id="emptyStateCopy">Connect Dropbox, pick a `.lal` file from `LalGeoDB`, or import a new dataset and convert it to LalGeo format.</p>
+              <div id="emptyStateActions" class="toolbar-actions empty-actions" style="justify-content:center; margin-top:16px;">
                 <button id="emptyCreateLayerBtn" type="button" class="primary">Create New Layer</button>
                 <button id="emptyImportLayerBtn" type="button">Import Layer</button>
               </div>
@@ -212,9 +256,21 @@
                   <label class="field-label" for="styleShapeSelect">Default Symbol Shape</label>
                   <select id="styleShapeSelect" class="field-select"></select>
                 </div>
+                <div>
+                  <label class="field-label" for="styleColorPicker">Custom Color</label>
+                  <input id="styleColorPicker" class="field-input" type="color" aria-label="Choose custom symbol color">
+                </div>
+                <div>
+                  <label class="field-label">Shape Quick Select</label>
+                  <div id="styleShapeChoices" class="shape-choice-grid"></div>
+                </div>
                 <div class="full">
                   <label class="field-label">Color Swatches</label>
                   <div id="styleSwatches" class="style-swatch-grid"></div>
+                </div>
+                <div class="full style-preview-row">
+                  <div id="stylePreviewDot" class="style-preview-dot">●</div>
+                  <div class="toolbar-note">Preview of the default symbol used when this layer is opened elsewhere.</div>
                 </div>
               </div>
             </section>
@@ -289,10 +345,12 @@
       draftLayer: null,
       activeTab: "metadata",
       sort: { field: null, direction: "asc" },
+      layerSort: "date-desc",
       modal: null,
       modalFocusHandler: null,
       importDraft: null,
       dirty: false,
+      bridgeAttempted: new URL(window.location.href).searchParams.get("dropboxBridgeAttempted") === "1",
     };
 
     const els = {
@@ -307,7 +365,10 @@
       createLayerBtn: document.getElementById("createLayerBtn"),
       emptyCreateLayerBtn: document.getElementById("emptyCreateLayerBtn"),
       emptyImportLayerBtn: document.getElementById("emptyImportLayerBtn"),
+      emptyStateCopy: document.getElementById("emptyStateCopy"),
+      emptyStateActions: document.getElementById("emptyStateActions"),
       layerSearchInput: document.getElementById("layerSearchInput"),
+      layerSortSelect: document.getElementById("layerSortSelect"),
       layerList: document.getElementById("layerList"),
       headerTitle: document.getElementById("headerTitle"),
       headerSubtitle: document.getElementById("headerSubtitle"),
@@ -322,7 +383,10 @@
       attributeTableBody: document.getElementById("attributeTableBody"),
       styleColorSelect: document.getElementById("styleColorSelect"),
       styleShapeSelect: document.getElementById("styleShapeSelect"),
+      styleColorPicker: document.getElementById("styleColorPicker"),
       styleSwatches: document.getElementById("styleSwatches"),
+      styleShapeChoices: document.getElementById("styleShapeChoices"),
+      stylePreviewDot: document.getElementById("stylePreviewDot"),
       renameLayerBtn: document.getElementById("renameLayerBtn"),
       duplicateLayerBtn: document.getElementById("duplicateLayerBtn"),
       deleteLayerBtn: document.getElementById("deleteLayerBtn"),
@@ -372,6 +436,10 @@
       els.createLayerBtn.addEventListener("click", openCreateLayerModal);
       els.emptyCreateLayerBtn.addEventListener("click", openCreateLayerModal);
       els.layerSearchInput.addEventListener("input", renderLayerList);
+      els.layerSortSelect.addEventListener("change", () => {
+        state.layerSort = els.layerSortSelect.value;
+        renderLayerList();
+      });
       els.saveLayerBtn.addEventListener("click", saveSelectedLayer);
       els.exportGeoJsonBtn.addEventListener("click", () => downloadExport("geojson"));
       els.downloadLalBtn.addEventListener("click", () => downloadExport("lal"));
@@ -393,7 +461,15 @@
       els.attributeTableHead.addEventListener("click", handleAttributeSort);
       els.attributeTableBody.addEventListener("dblclick", handleInlineEdit);
       els.attributeTableBody.addEventListener("change", handleInlineCommit);
-      els.styleColorSelect.addEventListener("change", renderStyleSwatches);
+      els.attributeTableBody.addEventListener("focusout", handleInlineCommit);
+      els.styleColorSelect.addEventListener("change", () => {
+        els.styleColorPicker.value = swatchColor(els.styleColorSelect.value);
+        renderStyleSwatches();
+      });
+      els.styleColorPicker.addEventListener("input", () => {
+        renderStyleSwatches();
+      });
+      els.styleShapeSelect.addEventListener("change", renderStyleShapeChoices);
       document.addEventListener("keydown", handleGlobalShortcuts);
     }
 
@@ -403,6 +479,10 @@
         setDropboxStatus(state.client.isReady);
         if (state.client.isReady) {
           await refreshLayers();
+        } else if (state.client.profile && !state.bridgeAttempted) {
+          // If Survey already authenticated Dropbox via the shared worker session,
+          // try a one-time silent bridge through the same auth endpoint.
+          state.client.startOauth(window.location.href, { bridgeAttempted: true });
         } else {
           setStatus("Connect Dropbox to manage layers in LalGeoDB.", "");
         }
@@ -496,6 +576,7 @@
         if (!query) return true;
         return [layer.name, layer.pathDisplay].join(" ").toLowerCase().includes(query);
       });
+      state.filteredLayers.sort((left, right) => compareLayerRows(left, right, state.layerSort));
       if (!state.filteredLayers.length) {
         els.layerList.innerHTML = `<div class="message">No .lal layers found in /LalGeoDB.</div>`;
         return;
@@ -515,10 +596,10 @@
             <span class="layer-pill">LAL</span>
           </div>
           <div class="layer-actions">
-            <button type="button" data-open-layer="${escapeHtml(layer.pathLower)}">Open</button>
-            <button type="button" data-rename-layer="${escapeHtml(layer.pathLower)}">Rename</button>
-            <button type="button" data-duplicate-layer="${escapeHtml(layer.pathLower)}">Duplicate</button>
-            <button type="button" class="danger" data-delete-layer="${escapeHtml(layer.pathLower)}">Delete</button>
+            <button type="button" aria-label="Open ${escapeHtml(layer.name)}" data-open-layer="${escapeHtml(layer.pathLower)}">Open</button>
+            <button type="button" aria-label="Rename ${escapeHtml(layer.name)}" data-rename-layer="${escapeHtml(layer.pathLower)}">Rename</button>
+            <button type="button" aria-label="Duplicate ${escapeHtml(layer.name)}" data-duplicate-layer="${escapeHtml(layer.pathLower)}">Duplicate</button>
+            <button type="button" class="danger" aria-label="Delete ${escapeHtml(layer.name)}" data-delete-layer="${escapeHtml(layer.pathLower)}">Delete</button>
           </div>
         </article>
       `).join("");
@@ -555,11 +636,21 @@
       els.layerEmptyState.hidden = hasLayer;
       els.layerDetailView.hidden = !hasLayer;
       if (!hasLayer) {
+        const connected = state.client.isReady;
+        const hasLayers = state.layers.length > 0;
+        els.layerEmptyState.classList.toggle("compact", connected);
+        els.emptyStateActions.hidden = connected;
         els.headerTitle.textContent = "Select a layer";
         els.headerSubtitle.textContent = "Browse Dropbox-backed `.lal` layers, manage schema, edit attributes, and convert incoming files.";
+        els.emptyStateCopy.textContent = connected
+          ? (hasLayers
+            ? "Choose a layer from the sidebar to review schema, attributes, and style settings."
+            : "Dropbox is connected. Create a new layer or import data from the sidebar to populate LalGeoDB.")
+          : "Connect Dropbox, pick a `.lal` file from `LalGeoDB`, or import a new dataset and convert it to LalGeo format.";
         return;
       }
 
+      els.emptyStateActions.hidden = true;
       els.headerTitle.textContent = layer.metadata.name;
       els.headerSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}`;
 
@@ -620,7 +711,9 @@
       const style = state.draftLayer?.style || { symbolColor: "Red", symbolShape: "Dot" };
       els.styleColorSelect.innerHTML = STYLE_COLORS.map((color) => `<option value="${color}" ${color === style.symbolColor ? "selected" : ""}>${color}</option>`).join("");
       els.styleShapeSelect.innerHTML = STYLE_SHAPES.map((shape) => `<option value="${shape}" ${shape === style.symbolShape ? "selected" : ""}>${shape}</option>`).join("");
+      els.styleColorPicker.value = swatchColor(style.symbolColor);
       renderStyleSwatches();
+      renderStyleShapeChoices();
     }
 
     function renderStyleSwatches() {
@@ -634,10 +727,36 @@
       els.styleSwatches.querySelectorAll("[data-style-color]").forEach((button) => {
         button.addEventListener("click", () => {
           els.styleColorSelect.value = button.dataset.styleColor;
+          els.styleColorPicker.value = swatchColor(button.dataset.styleColor);
           renderStyleSwatches();
           markDirty();
         });
       });
+      updateStylePreview();
+    }
+
+    function renderStyleShapeChoices() {
+      const selected = els.styleShapeSelect.value;
+      els.styleShapeChoices.innerHTML = STYLE_SHAPES.map((shape) => `
+        <button type="button" class="choice-chip ${selected === shape ? "active" : ""}" data-style-shape="${shape}" aria-pressed="${selected === shape ? "true" : "false"}">
+          <strong>${shapeGlyph(shape)}</strong>
+          <small>${shape}</small>
+        </button>
+      `).join("");
+      els.styleShapeChoices.querySelectorAll("[data-style-shape]").forEach((button) => {
+        button.addEventListener("click", () => {
+          els.styleShapeSelect.value = button.dataset.styleShape;
+          renderStyleShapeChoices();
+          markDirty();
+        });
+      });
+      updateStylePreview();
+    }
+
+    function updateStylePreview() {
+      if (!els.stylePreviewDot) return;
+      els.stylePreviewDot.style.background = els.styleColorPicker.value || swatchColor(els.styleColorSelect.value);
+      els.stylePreviewDot.textContent = shapeGlyph(els.styleShapeSelect.value);
     }
 
     function updateActionButtons() {
@@ -654,6 +773,7 @@
 
     function openModal(config) {
       state.modal = config;
+      state.modalReturnFocus = document.activeElement;
       if (state.modalFocusHandler) {
         document.removeEventListener("keydown", state.modalFocusHandler, true);
         state.modalFocusHandler = null;
@@ -678,6 +798,7 @@
       els.body.classList.add("modal-open");
       els.modalBackdrop.hidden = false;
       trapModalFocus();
+      config.onOpen?.();
       queueMicrotask(() => {
         const focusTarget = els.modalBody.querySelector("[autofocus], input, select, textarea, button");
         focusTarget?.focus();
@@ -694,6 +815,7 @@
       els.modalBody.innerHTML = "";
       els.modalActions.innerHTML = "";
       els.body.classList.remove("modal-open");
+      state.modalReturnFocus?.focus?.();
     }
 
     function trapModalFocus() {
@@ -727,16 +849,22 @@
           <div class="modal-grid">
             <div class="full">
               <label class="field-label" for="newLayerName">Layer Name</label>
-              <input id="newLayerName" class="field-input" type="text" placeholder="Water Valves" autofocus>
+              <input id="newLayerName" class="field-input" type="text" placeholder="Inspection points" aria-describedby="newLayerHelp" autofocus>
+              <div id="newLayerHelp" class="toolbar-note" style="margin-top:8px;">A name is required before the layer can be created.</div>
             </div>
-            <div>
-              <label class="field-label" for="newLayerGeometry">Geometry Type</label>
-              <select id="newLayerGeometry" class="field-select">
-                <option>Point</option>
-                <option>LineString</option>
-                <option>Polygon</option>
-              </select>
+            <div class="full">
+              <label class="field-label">Geometry Type</label>
+              <div id="newLayerGeometryChoices" class="geometry-choices" role="group" aria-label="Geometry type">
+                ${["Point", "LineString", "Polygon"].map((type, index) => `
+                  <button type="button" class="choice-chip ${index === 0 ? "active" : ""}" data-geometry-choice="${type}" aria-pressed="${index === 0 ? "true" : "false"}">
+                    <strong>${type}</strong>
+                    <small>${type === "Point" ? "Markers and inspections" : type === "LineString" ? "Routes and utilities" : "Areas and boundaries"}</small>
+                  </button>
+                `).join("")}
+              </div>
+              <input id="newLayerGeometry" type="hidden" value="Point">
             </div>
+            <div id="newLayerError" class="message error full" hidden>Layer name is required.</div>
           </div>
         `,
         actions: [
@@ -747,13 +875,42 @@
             onClick: async () => {
               const name = document.getElementById("newLayerName").value.trim();
               const geometryType = document.getElementById("newLayerGeometry").value;
-              if (!name) return false;
+              if (!name) {
+                updateCreateLayerValidation();
+                return false;
+              }
               const layer = createEmptyLalLayer({ name, geometryType });
               await saveNewLayer(layer);
             },
           },
         ],
+        onOpen: () => {
+          const nameInput = document.getElementById("newLayerName");
+          const createButton = getModalActionButton(1);
+          const geometryButtons = [...document.querySelectorAll("[data-geometry-choice]")];
+          nameInput.value = "";
+          createButton.disabled = true;
+          nameInput.addEventListener("input", updateCreateLayerValidation);
+          geometryButtons.forEach((button) => {
+            button.addEventListener("click", () => {
+              document.getElementById("newLayerGeometry").value = button.dataset.geometryChoice;
+              geometryButtons.forEach((item) => {
+                const active = item === button;
+                item.classList.toggle("active", active);
+                item.setAttribute("aria-pressed", String(active));
+              });
+            });
+          });
+        },
       });
+    }
+
+    function updateCreateLayerValidation() {
+      const name = document.getElementById("newLayerName")?.value.trim() || "";
+      const createButton = getModalActionButton(1);
+      const error = document.getElementById("newLayerError");
+      if (createButton) createButton.disabled = !name;
+      if (error) error.hidden = Boolean(name);
     }
 
     async function saveNewLayer(layer) {
@@ -811,16 +968,51 @@
       });
     }
 
-    async function duplicateSelectedLayer(file = state.selectedFile) {
+    function duplicateSelectedLayer(file = state.selectedFile) {
       if (!file) return;
       const baseName = file.name.replace(/\.lal$/i, "");
-      try {
-        await state.client.duplicateLayer(file.pathDisplay || file.pathLower, `${baseName} copy`);
-        await refreshLayers();
-        setStatus(`Duplicated ${baseName}.`, "success");
-      } catch (error) {
-        setStatus(error.message || "Unable to duplicate layer.", "error");
-      }
+      openModal({
+        title: "Duplicate Layer",
+        description: "Create a second Dropbox-backed copy with a new file name.",
+        bodyHtml: `
+          <label class="field-label" for="duplicateLayerInput">New Layer Name</label>
+          <input id="duplicateLayerInput" class="field-input" type="text" value="${escapeHtml(`${baseName} copy`)}" autofocus>
+          <div id="duplicateLayerError" class="message error modal-feedback" hidden>Provide a name for the copied layer.</div>
+        `,
+        actions: [
+          { label: "Cancel" },
+          {
+            label: "Duplicate",
+            primary: true,
+            onClick: async () => {
+              const nextName = document.getElementById("duplicateLayerInput").value.trim();
+              if (!nextName) {
+                document.getElementById("duplicateLayerError").hidden = false;
+                return false;
+              }
+              try {
+                await state.client.duplicateLayer(file.pathDisplay || file.pathLower, nextName);
+                await refreshLayers();
+                setStatus(`Duplicated ${baseName}.`, "success");
+              } catch (error) {
+                setStatus(error.message || "Unable to duplicate layer.", "error");
+                return false;
+              }
+            },
+          },
+        ],
+        onOpen: () => {
+          const duplicateInput = document.getElementById("duplicateLayerInput");
+          const duplicateButton = getModalActionButton(1);
+          const syncDuplicateState = () => {
+            const valid = Boolean(duplicateInput.value.trim());
+            duplicateButton.disabled = !valid;
+            document.getElementById("duplicateLayerError").hidden = valid;
+          };
+          duplicateInput.addEventListener("input", syncDuplicateState);
+          syncDuplicateState();
+        },
+      });
     }
 
     function openDeleteLayerModal(file = state.selectedFile) {
@@ -999,6 +1191,60 @@
         actions: [
           { label: "Cancel" },
           {
+            label: "Compare",
+            onClick: async () => {
+              openConflictComparisonModal(latestRev);
+              return false;
+            },
+          },
+          {
+            label: "Reload Latest",
+            primary: true,
+            onClick: async () => {
+              await refreshLayers();
+              const refreshed = state.layers.find((entry) => entry.pathLower === state.selectedFile?.pathLower);
+              if (refreshed) await selectLayer(refreshed);
+              setStatus("Reloaded latest Dropbox version.", "success");
+            },
+          },
+          {
+            label: "Overwrite Anyway",
+            danger: true,
+            onClick: async () => {
+              const latest = await state.client.tryGetMetadata(state.selectedFile.pathDisplay || state.selectedFile.pathLower);
+              if (!latest?.rev) return false;
+              state.selectedFile.rev = latest.rev;
+              await saveSelectedLayer();
+            },
+          },
+        ],
+      });
+    }
+
+    function openConflictComparisonModal(latestRev) {
+      const layer = state.draftLayer;
+      const summaryRows = [
+        ["Local feature count", String(layer?.features?.length ?? 0)],
+        ["Local schema fields", layer?.schema?.map((field) => field.name).join(", ") || "None"],
+        ["Your revision", state.selectedFile?.rev || "unknown"],
+        ["Dropbox revision", latestRev || "newer revision"],
+      ];
+      openModal({
+        title: "Compare Pending Changes",
+        description: "Review your local draft summary before choosing whether to reload or overwrite.",
+        bodyHtml: `
+          <div class="table-shell">
+            <table>
+              <tbody>
+                ${summaryRows.map(([label, value]) => `<tr><th>${escapeHtml(label)}</th><td>${escapeHtml(value)}</td></tr>`).join("")}
+              </tbody>
+            </table>
+          </div>
+          <div class="message" style="margin-top:16px;">Dropbox does not expose a structured diff here, so this comparison summarizes your local draft against the newer Dropbox revision.</div>
+        `,
+        actions: [
+          { label: "Back" },
+          {
             label: "Reload Latest",
             primary: true,
             onClick: async () => {
@@ -1025,6 +1271,7 @@
     function commitStyleChanges() {
       if (!state.draftLayer) return;
       state.draftLayer.style.symbolColor = els.styleColorSelect.value;
+      state.draftLayer.style.symbolColorHex = els.styleColorPicker.value;
       state.draftLayer.style.symbolShape = els.styleShapeSelect.value;
       markDirty();
       setStatus("Layer style updated in the draft. Save to sync Dropbox.", "success");
@@ -1043,6 +1290,13 @@
     }
 
     function openImportModal() {
+      state.importDraft = {
+        files: [],
+        inspection: null,
+        isBusy: false,
+        error: "",
+        progress: "Choose a supported file to inspect and convert.",
+      };
       openModal({
         title: "Import Layer",
         description: "Convert a local file into `.lal` and save it to LalGeoDB.",
@@ -1056,6 +1310,8 @@
             </div>
             <input id="importFileInput" type="file" hidden multiple>
           </div>
+          <div id="importProgress" class="message modal-feedback" aria-live="polite">Choose a supported file to inspect and convert.</div>
+          <div id="importError" class="message error modal-feedback" hidden></div>
           <div id="importConfigArea" style="margin-top:18px;"></div>
         `,
         actions: [
@@ -1065,20 +1321,31 @@
             primary: true,
             onClick: async () => {
               if (!state.importDraft?.files?.length) {
-                setStatus("Choose a file to import first.", "error");
+                setImportFeedback({ error: "Choose a file to import first." });
                 return false;
               }
               try {
+                state.importDraft.isBusy = true;
+                syncImportActionState();
+                setImportFeedback({ progress: "Converting source data into LalGeo format…" });
                 const config = buildImportConfig();
                 const layer = await convertImportFiles(state.importDraft.files, config);
+                setImportFeedback({ progress: "Saving converted layer to Dropbox…" });
                 await saveNewLayer(layer);
+                state.importDraft.isBusy = false;
+                syncImportActionState();
               } catch (error) {
-                setStatus(error.message || "Import failed.", "error");
+                state.importDraft.isBusy = false;
+                syncImportActionState();
+                setImportFeedback({ error: error.message || "Import failed." });
                 return false;
               }
             },
           },
         ],
+        onOpen: () => {
+          syncImportActionState();
+        },
       });
 
       const dropZone = document.getElementById("importDropZone");
@@ -1103,13 +1370,19 @@
 
     async function handleImportFiles(files) {
       try {
-        state.importDraft = { files };
+        state.importDraft = { ...state.importDraft, files, error: "", progress: "Inspecting import file…" };
+        syncImportActionState();
+        setImportFeedback({ progress: "Inspecting import file…" });
         const inspection = await inspectImportFiles(files);
         state.importDraft.inspection = inspection;
         renderImportConfig(inspection);
+        syncImportActionState();
         setStatus(`Ready to import ${files.map((file) => file.name).join(", ")}.`, "success");
+        setImportFeedback({ progress: `Ready to import ${files.map((file) => file.name).join(", ")}.` });
       } catch (error) {
-        setStatus(error.message || "Unable to inspect import file.", "error");
+        state.importDraft = { ...state.importDraft, inspection: null, error: error.message || "Unable to inspect import file." };
+        syncImportActionState();
+        setImportFeedback({ error: error.message || "Unable to inspect import file." });
       }
     }
 
@@ -1155,18 +1428,68 @@
           </table>
         </div>
       `;
+      ["importLayerName", "csvLatField", "csvLonField", "csvWktField"].forEach((id) => {
+        document.getElementById(id)?.addEventListener("input", syncImportActionState);
+        document.getElementById(id)?.addEventListener("change", syncImportActionState);
+      });
+      syncImportActionState();
     }
 
     function buildImportConfig() {
       const inspection = state.importDraft?.inspection || {};
       const layerNameInput = document.getElementById("importLayerName");
-      return {
+      const config = {
         layerName: layerNameInput?.value?.trim() || state.importDraft.files[0].name.replace(/\.[^.]+$/, ""),
         csvText: inspection.csvText,
         latField: document.getElementById("csvLatField")?.value || "",
         lonField: document.getElementById("csvLonField")?.value || "",
         wktField: document.getElementById("csvWktField")?.value || "",
       };
+      const validationError = getImportValidationError(config, inspection.type);
+      if (validationError) {
+        throw new Error(validationError);
+      }
+      return config;
+    }
+
+    function getImportValidationError(config, type) {
+      if (!config.layerName?.trim()) return "Layer name is required.";
+      if (type !== "csv") return "";
+      if (config.wktField) return "";
+      if (!config.latField || !config.lonField) {
+        return "Select latitude and longitude columns, or choose a WKT column.";
+      }
+      return "";
+    }
+
+    function syncImportActionState() {
+      const convertButton = getModalActionButton(1);
+      if (!convertButton || !state.importDraft) return;
+      const type = state.importDraft.inspection?.type;
+      let disabled = state.importDraft.isBusy || !state.importDraft.files?.length;
+      if (!disabled && type) {
+        const config = {
+          layerName: document.getElementById("importLayerName")?.value?.trim() || state.importDraft.files?.[0]?.name?.replace(/\.[^.]+$/, "") || "",
+          latField: document.getElementById("csvLatField")?.value || "",
+          lonField: document.getElementById("csvLonField")?.value || "",
+          wktField: document.getElementById("csvWktField")?.value || "",
+        };
+        disabled = Boolean(getImportValidationError(config, type));
+      }
+      convertButton.disabled = disabled;
+      convertButton.textContent = state.importDraft.isBusy ? "Working…" : "Convert & Save";
+    }
+
+    function setImportFeedback({ progress = "", error = "" } = {}) {
+      const progressEl = document.getElementById("importProgress");
+      const errorEl = document.getElementById("importError");
+      if (progressEl && progress) {
+        progressEl.textContent = progress;
+      }
+      if (errorEl) {
+        errorEl.hidden = !error;
+        errorEl.textContent = error;
+      }
     }
 
     function launchDropboxChooserImport() {
@@ -1231,7 +1554,19 @@
       const row = input.closest("tr[data-feature-id]");
       const feature = state.draftLayer.features.find((item) => item.id === row.dataset.featureId);
       if (!feature) return;
-      feature.properties[cell.dataset.field] = input.value;
+      const schemaField = state.draftLayer.schema.find((item) => item.name === cell.dataset.field);
+      const nextValue = input.value;
+      if (schemaField?.nullable === false && String(nextValue).trim() === "") {
+        setStatus(`${schemaField.name} is required.`, "error");
+        renderAttributesTable();
+        return;
+      }
+      if (schemaField?.type === "number" && String(nextValue).trim() !== "" && !Number.isFinite(Number(nextValue))) {
+        setStatus(`${schemaField.name} must be numeric.`, "error");
+        renderAttributesTable();
+        return;
+      }
+      feature.properties[cell.dataset.field] = schemaField?.type === "number" && String(nextValue).trim() !== "" ? Number(nextValue) : nextValue;
       markDirty();
       renderAttributesTable();
     }
@@ -1248,9 +1583,18 @@
     }
 
     function setDropboxStatus(connected) {
+      const surveyConnected = localStorage.getItem("lalgeo_survey_dropbox_connected") === "1";
       els.dropboxStatusDot.classList.toggle("connected", connected);
-      els.dropboxStatusLabel.textContent = connected ? "Dropbox token ready" : "Dropbox not connected";
-      els.connectDropboxBtn.textContent = connected ? "Dropbox Ready" : "Connect Dropbox";
+      els.dropboxStatusLabel.textContent = connected
+        ? "Dropbox token ready"
+        : surveyConnected
+          ? "Survey Dropbox session detected"
+          : "Dropbox not connected";
+      els.connectDropboxBtn.textContent = connected
+        ? "Dropbox Ready"
+        : surveyConnected
+          ? "Reuse Survey Dropbox"
+          : "Connect Dropbox";
     }
 
     async function hydrateLayerSummaries() {
@@ -1308,6 +1652,14 @@
         : String(right).localeCompare(String(left));
     }
 
+    function compareLayerRows(left, right, mode) {
+      if (mode === "name-asc") return String(left.name).localeCompare(String(right.name));
+      if (mode === "name-desc") return String(right.name).localeCompare(String(left.name));
+      const leftDate = new Date(left.serverModified || left.clientModified || 0).getTime();
+      const rightDate = new Date(right.serverModified || right.clientModified || 0).getTime();
+      return mode === "date-asc" ? leftDate - rightDate : rightDate - leftDate;
+    }
+
     function swatchColor(color) {
       return ({
         Red: "#EA4335",
@@ -1316,6 +1668,19 @@
         Orange: "#FB8C00",
         Purple: "#A142F4",
       })[color] || "#EA4335";
+    }
+
+    function shapeGlyph(shape) {
+      return ({
+        Dot: "●",
+        Circle: "◎",
+        Pin: "⌖",
+        Plus: "+",
+      })[shape] || "●";
+    }
+
+    function getModalActionButton(index) {
+      return els.modalActions.querySelector(`[data-modal-action="${index}"]`);
     }
 
     function escapeHtml(value) {
