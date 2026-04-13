@@ -1066,6 +1066,14 @@
     }
     #toolbar {
         top: 14px;
+        left: 16px;
+        right: 16px;
+        transform: none;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 14px;
         background: rgba(8, 18, 30, 0.82);
         border: 1px solid rgba(255,255,255,0.08);
         box-shadow: 0 18px 42px rgba(0,0,0,0.28);
@@ -1079,66 +1087,52 @@
         gap: 6px;
         width: 100%;
     }
-    .toolbar-reveal-panel {
-        transform-origin: top center;
-        will-change: opacity, transform;
-        transition:
-            opacity 0.22s cubic-bezier(0.22, 1, 0.36, 1),
-            transform 0.28s cubic-bezier(0.22, 1, 0.36, 1),
-            max-height 0.22s ease,
-            margin 0.22s ease,
-            padding 0.22s ease,
-            border-color 0.22s ease;
+    #toolbarMenuTray {
+        position: absolute;
+        top: 78px;
+        right: 16px;
+        z-index: 1195;
+        display: grid;
+        gap: 10px;
+        min-width: 320px;
+        max-width: min(520px, calc(100vw - 32px));
+        padding: 12px;
+        border-radius: 18px;
+        background: rgba(8, 18, 30, 0.92);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 42px rgba(0,0,0,0.34);
+        backdrop-filter: blur(20px);
     }
-    .toolbar-edit-group {
+    #toolbarMenuTray[hidden] {
         display: none;
     }
-    #toolbar.has-edit-session .toolbar-edit-group {
-        display: inline-flex;
+    #editDock {
+        position: absolute;
+        top: 96px;
+        left: 16px;
+        z-index: 1185;
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        padding: 10px;
+        border-radius: 18px;
+        background: rgba(8, 18, 30, 0.86);
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 18px 42px rgba(0,0,0,0.26);
+        backdrop-filter: blur(18px);
+        opacity: 0;
+        pointer-events: none;
+        transform: translateX(-8px);
+        transition: opacity 0.18s ease, transform 0.18s ease;
     }
-    @media (hover: hover) and (pointer: fine) {
-        #toolbar .toolbar-shell > .toolbar-reveal-panel {
-            opacity: 0;
-            transform: translateY(-4px) scale(0.992);
-            pointer-events: none;
-            max-height: 0;
-            overflow: hidden;
-            margin: 0;
-            padding-top: 0;
-            padding-bottom: 0;
-            border-color: transparent;
-        }
-        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(1) {
-            transition-delay: 0s;
-        }
-        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(2) {
-            transition-delay: 0.02s;
-        }
-        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(4) {
-            transition-delay: 0.04s;
-        }
-        #toolbar .toolbar-shell > .toolbar-reveal-panel:nth-child(5) {
-            transition-delay: 0.06s;
-        }
-        #toolbar .toolbar-shell > .toolbar-edit-group {
-            opacity: 1;
-            transform: none;
-            pointer-events: auto;
-            max-height: 72px;
-            overflow: visible;
-        }
-        #toolbar:hover .toolbar-shell > .toolbar-reveal-panel,
-        #toolbar:focus-within .toolbar-shell > .toolbar-reveal-panel,
-        #toolbar.toolbar-force-expanded .toolbar-shell > .toolbar-reveal-panel {
-            opacity: 1;
-            transform: translateY(0) scale(1);
-            pointer-events: auto;
-            max-height: 220px;
-            overflow: visible;
-        }
-        #toolbar:not(:hover):not(:focus-within):not(.toolbar-force-expanded) .toolbar-shell > .toolbar-reveal-panel {
-            transition-delay: 0s;
-        }
+    #editDock.active {
+        opacity: 1;
+        pointer-events: auto;
+        transform: translateX(0);
+    }
+    .dock-btn {
+        min-width: 132px;
+        justify-content: center;
     }
     .toolbar-group {
         display: inline-flex;
@@ -1187,17 +1181,85 @@
         color: #081019;
         border-color: transparent;
     }
+    .control-btn.ghost {
+        background: rgba(255,255,255,0.02);
+    }
+    .control-btn.menu-open {
+        background: rgba(125, 211, 200, 0.18);
+        border-color: rgba(125, 211, 200, 0.36);
+    }
+    .toolbar-left,
+    .toolbar-center,
+    .toolbar-right {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+    }
+    .toolbar-left {
+        min-width: 0;
+        flex: 0 1 auto;
+    }
+    .toolbar-center {
+        flex: 1 1 auto;
+        justify-content: center;
+        min-width: 0;
+    }
+    .toolbar-right {
+        flex: 0 0 auto;
+        justify-content: flex-end;
+    }
     .toolbar-left .brand-logo {
         height: 24px;
+    }
+    .toolbar-project-mini {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+    }
+    .toolbar-project-mini strong {
+        font-size: 14px;
+        color: #eef6fb;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 240px;
+    }
+    .toolbar-project-mini span {
+        font-size: 11px;
+        color: #9fb2c7;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 320px;
     }
     .search-pill {
         background: rgba(255,255,255,0.06);
         border: 1px solid rgba(255,255,255,0.08);
+        min-width: 46px;
+        width: min(520px, 100%);
+        transition: width 0.22s ease, padding 0.22s ease, border-color 0.18s ease, background 0.18s ease;
+        overflow: hidden;
     }
     .search-pill .search-icon,
     .search-pill input,
     .search-pill input::placeholder {
         color: #c1d1e0;
+    }
+    #toolbarSearchShell.collapsed {
+        width: 46px;
+        min-width: 46px;
+        padding-left: 4px;
+        padding-right: 4px;
+    }
+    #toolbarSearchShell.collapsed input,
+    #toolbarSearchShell.collapsed #collapseSearchBtn,
+    #toolbarSearchShell.collapsed #clearSearch,
+    #toolbarSearchShell.collapsed .search-icon {
+        display: none;
+    }
+    #toolbarSearchShell input {
+        min-width: 280px;
     }
     .workspace-context {
         display: grid;
@@ -2007,11 +2069,10 @@
 
         #toolbar {
             display: flex;
-            flex-direction: column;
-            align-items: flex-start;
+            flex-wrap: wrap;
+            align-items: center;
             gap: 8px;
             padding: 10px;
-            width: auto;
             left: 12px;
             right: 12px;
             transform: none;
@@ -2021,6 +2082,14 @@
             justify-content: flex-start;
             flex-wrap: wrap;
             gap: 6px;
+        }
+
+        #toolbarMenuTray {
+            top: 86px;
+            left: 12px;
+            right: 12px;
+            min-width: 0;
+            max-width: none;
         }
 
         .workspace-context,
@@ -2039,6 +2108,18 @@
         .workspace-form-grid {
             grid-template-columns: 1fr;
         }
+        #editDock {
+            top: auto;
+            bottom: 96px;
+            left: 12px;
+            right: auto;
+            flex-direction: row;
+            flex-wrap: wrap;
+            max-width: calc(100vw - 24px);
+        }
+        .dock-btn {
+            min-width: 110px;
+        }
         #sidebar {
             width: calc(100vw - 24px);
             max-height: 44vh;
@@ -2052,6 +2133,11 @@
 
         #toolbar input[type="text"] {
             width: 100%;
+            min-width: 0;
+        }
+
+        .toolbar-project-mini {
+            max-width: calc(100vw - 180px);
         }
 
         .show-survey-table-btn {
@@ -2074,59 +2160,57 @@
     <div id="toolbar">
         <div class="toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+            <div class="toolbar-project-mini">
+                <strong id="toolbarProjectName">No project open</strong>
+                <span id="toolbarProjectMeta">Create or open a project to start editing.</span>
+            </div>
         </div>
         <div class="toolbar-center">
-            <div class="search-pill">
-                <span class="search-icon">🔍</span>
+            <div class="search-pill collapsed" id="toolbarSearchShell">
+                <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
-                <button id="searchIconBtn" class="toolbar-btn ghost" aria-label="Open search" style="display:none;">🔍</button>
+                <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Close search">×</button>
                 <span id="clearSearch" style="display:none;">×</span>
             </div>
         </div>
         <div class="toolbar-right">
-            <div class="toolbar-shell">
-                <div class="workspace-context toolbar-reveal-panel" id="workspaceContext">
-                    <div class="workspace-context-top">
-                        <span class="workspace-pill">Workspace</span>
-                        <strong id="workspaceProjectName">Create or open a project</strong>
-                    </div>
-                    <div class="workspace-context-meta">
-                        <span id="workspaceLayerName">Layer: None</span>
-                        <span id="workspaceStorageLabel">Storage: Web</span>
-                        <span id="workspaceSaveStatus">Status: Waiting for project</span>
-                    </div>
-                </div>
-
-                <div class="toolbar-group toolbar-reveal-panel">
-                    <span class="toolbar-group-label">Project</span>
-                    <button id="workspacePanelBtn" type="button" class="control-btn active">Projects</button>
-                    <button id="sidebarToggleBtn" type="button" class="control-btn" aria-controls="sidebar" aria-expanded="false">Workspace</button>
-                    <a id="openDataManagerBtn" href="/datamanager" class="control-btn" aria-label="Open LalGeo Data Manager">Data Manager</a>
-                    <button id="newProjectBtn" type="button" class="control-btn" aria-label="Create a new project (shortcut N)">New</button>
-                    <button id="openProjectBtn" type="button" class="control-btn">Open</button>
-                    <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
-                </div>
-
-                <div id="toolbarEditGroup" class="toolbar-group toolbar-edit-group">
-                    <span class="toolbar-group-label">Edit</span>
-                    <button id="addSurveyPointBtn" type="button" class="control-btn" style="display:none;" aria-label="Add point to the active layer (shortcut P)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add point</button>
-                    <button id="undoBtn" type="button" class="control-btn" disabled>Undo</button>
-                    <button id="redoBtn" type="button" class="control-btn" disabled>Redo</button>
-                </div>
-
-                <div class="toolbar-group toolbar-reveal-panel">
-                    <span class="toolbar-group-label">Share</span>
-                    <button id="shareMapBtn" type="button" class="control-btn">Share</button>
-                    <button id="printButton" type="button" class="control-btn">Print</button>
-                    <button id="exportProjectBtn" type="button" class="control-btn">Export</button>
-                </div>
-
-                <div class="toolbar-group toolbar-reveal-panel">
-                    <span class="toolbar-group-label">View</span>
-                    <button id="myLocationBtn" type="button" class="control-btn" aria-label="My location">My Location</button>
-                </div>
+            <button id="sidebarToggleBtn" type="button" class="control-btn active" aria-controls="sidebar" aria-expanded="false">Workspace</button>
+            <a id="openDataManagerBtn" href="/datamanager" class="control-btn" aria-label="Open LalGeo Data Manager">Data Manager</a>
+            <button id="toolbarMenuBtn" type="button" class="control-btn" aria-controls="toolbarMenuTray" aria-expanded="false">Menu</button>
+            <button id="toolbarPinBtn" type="button" class="control-btn ghost" aria-pressed="false" aria-label="Pin top menu open">📌</button>
+        </div>
+    </div>
+    <div id="toolbarMenuTray" hidden>
+        <div class="workspace-context" id="workspaceContext">
+            <div class="workspace-context-top">
+                <span class="workspace-pill">Workspace</span>
+                <strong id="workspaceProjectName">Create or open a project</strong>
+            </div>
+            <div class="workspace-context-meta">
+                <span id="workspaceLayerName">Layer: None</span>
+                <span id="workspaceStorageLabel">Storage: Web</span>
+                <span id="workspaceSaveStatus">Status: Waiting for project</span>
             </div>
         </div>
+        <div class="toolbar-group">
+            <span class="toolbar-group-label">Projects</span>
+            <button id="workspacePanelBtn" type="button" class="control-btn">Projects</button>
+            <button id="newProjectBtn" type="button" class="control-btn" aria-label="Create a new project (shortcut N)">New</button>
+            <button id="openProjectBtn" type="button" class="control-btn">Open</button>
+            <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
+        </div>
+        <div class="toolbar-group">
+            <span class="toolbar-group-label">Share</span>
+            <button id="shareMapBtn" type="button" class="control-btn">Share</button>
+            <button id="printButton" type="button" class="control-btn">Print</button>
+            <button id="exportProjectBtn" type="button" class="control-btn">Export</button>
+        </div>
+    </div>
+    <div id="editDock" aria-label="Editing controls">
+        <button id="addSurveyPointBtn" type="button" class="control-btn dock-btn" style="display:none;" aria-label="Add point to the active layer (shortcut A)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add point</button>
+        <button id="undoBtn" type="button" class="control-btn dock-btn" disabled>Undo</button>
+        <button id="redoBtn" type="button" class="control-btn dock-btn" disabled>Redo</button>
+        <button id="myLocationBtn" type="button" class="control-btn dock-btn" aria-label="My location">My Location</button>
     </div>
     <div class="map-controls"></div>
     <div id="workspaceEmptyState" class="workspace-empty-state">
@@ -2427,6 +2511,9 @@
         let locationWatcher = null;
         let map = null;
         let mapReady = false;
+        let toolbarMenuVisible = false;
+        let toolbarPinned = false;
+        let toolbarSearchExpanded = false;
         let voiceLang = 'en-US'; // Your chosen language
         let currentSteps = [];
         let voiceNavActive = false;
@@ -2440,6 +2527,13 @@
         const workspaceSaveStatusEl = document.getElementById("workspaceSaveStatus");
         const workspacePanelBtn = document.getElementById("workspacePanelBtn");
         const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
+        const toolbarMenuBtn = document.getElementById("toolbarMenuBtn");
+        const toolbarMenuTray = document.getElementById("toolbarMenuTray");
+        const toolbarPinBtn = document.getElementById("toolbarPinBtn");
+        const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
+        const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
+        const toolbarSearchShell = document.getElementById("toolbarSearchShell");
+        const collapseSearchBtn = document.getElementById("collapseSearchBtn");
         const newProjectBtn = document.getElementById("newProjectBtn");
         const openProjectBtn = document.getElementById("openProjectBtn");
         const exportProjectBtn = document.getElementById("exportProjectBtn");
@@ -3076,19 +3170,27 @@
         function updateWorkspaceContext() {
             const layer = getActiveLayerRecord();
             const hasProject = Boolean(activeProjectRecord);
+            const unsaved = pendingChanges || surveyNeedsSave || workspaceDirty;
+            const statusLabel = !hasProject
+                ? "Waiting to start"
+                : localAutosaveTimer
+                    ? "Autosaving"
+                    : unsaved
+                    ? "Unsaved changes"
+                    : (activeProjectRecord?.metadata?.lastSavedAt === activeProjectRecord?.metadata?.updatedAt ? "Saved" : "Ready");
             if (workspaceProjectNameEl) workspaceProjectNameEl.textContent = hasProject ? activeProjectRecord.name : "No project open";
             if (workspaceLayerNameEl) workspaceLayerNameEl.textContent = `Layer: ${layer ? layer.name : "None"}`;
             if (workspaceStorageLabelEl) workspaceStorageLabelEl.textContent = `Storage: ${getStorageLabel()}`;
-            const unsaved = pendingChanges || surveyNeedsSave || workspaceDirty;
             if (workspaceSaveStatusEl) {
-                const statusLabel = !hasProject
-                    ? "Waiting to start"
-                    : localAutosaveTimer
-                        ? "Autosaving"
-                        : unsaved
-                        ? "Unsaved changes"
-                        : (activeProjectRecord?.metadata?.lastSavedAt === activeProjectRecord?.metadata?.updatedAt ? "Saved" : "Ready");
                 workspaceSaveStatusEl.textContent = `Status: ${statusLabel}`;
+            }
+            if (toolbarProjectNameCompact) {
+                toolbarProjectNameCompact.textContent = hasProject ? activeProjectRecord.name : "No project open";
+            }
+            if (toolbarProjectMeta) {
+                toolbarProjectMeta.textContent = hasProject
+                    ? `${layer ? layer.name : "No active layer"} · ${statusLabel}`
+                    : "Create or open a project to start editing.";
             }
             if (workspacePanelProjectName) workspacePanelProjectName.textContent = hasProject ? activeProjectRecord.name : "No project open";
             if (workspacePanelProjectType) workspacePanelProjectType.textContent = `Type: ${hasProject ? activeProjectRecord.type : "-"}`;
@@ -3349,6 +3451,7 @@
         function updateToolbarDockState() {
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
             toolbar?.classList.toggle("has-edit-session", hasEditingSession);
+            document.getElementById("editDock")?.classList.toggle("active", hasEditingSession);
         }
 
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
@@ -4613,14 +4716,25 @@
         }
         renderWorkspaceCollections();
         updateWorkspaceContext();
+        setToolbarMenuVisibility(false);
+        setToolbarPinned(false);
 
-        workspacePanelBtn?.addEventListener("click", () => setImportPanelVisibility(!isImportPanelVisible));
+        workspacePanelBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(true);
+            setImportPanelVisibility(!isImportPanelVisible);
+        });
         sidebarToggleBtn?.addEventListener("click", () => {
             if (!activeProjectRecord && !sidebarContent?.textContent?.trim()) {
                 setProjectStatus("Create or open a project first.", "error");
                 return;
             }
             setSidebarVisibility(!sidebarVisible);
+        });
+        toolbarMenuBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(toolbarPinned ? true : !toolbarMenuVisible);
+        });
+        toolbarPinBtn?.addEventListener("click", () => {
+            setToolbarPinned(!toolbarPinned);
         });
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
@@ -4633,6 +4747,13 @@
             connectDropboxBtn?.click();
         });
         drawerImportProjectBtn?.addEventListener("click", () => projectPickerBtn?.click());
+        document.addEventListener("click", (event) => {
+            const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
+            const onToolbarMenuButton = toolbarMenuBtn?.contains(event.target);
+            if (!toolbarPinned && toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
+                setToolbarMenuVisibility(false);
+            }
+        });
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
         createProjectCancelBtn?.addEventListener("click", closeCreateProjectModal);
         createProjectNameInput?.addEventListener("input", updateCreateProjectFormState);
@@ -4834,7 +4955,13 @@
                 setProjectStatus("Attributes table opened.", "success");
                 return;
             }
-            if (event.key.toLowerCase() === "p") {
+            if (event.key === "/") {
+                event.preventDefault();
+                setSearchExpanded(true);
+                document.getElementById("searchInput")?.focus();
+                return;
+            }
+            if (event.key.toLowerCase() === "a") {
                 event.preventDefault();
                 if (!currentSurveyData) {
                     setProjectStatus("Open a project before adding points.", "error");
@@ -7735,17 +7862,47 @@ function updateFloatingButtonLayer(panelOpen) {
     document.getElementById("printButton").style.zIndex = zIndex;
 }
 
+function setToolbarMenuVisibility(show) {
+            toolbarMenuVisible = Boolean(show);
+            if (toolbarMenuTray) toolbarMenuTray.hidden = !toolbarMenuVisible;
+            if (toolbarMenuBtn) {
+                toolbarMenuBtn.classList.toggle("menu-open", toolbarMenuVisible);
+                toolbarMenuBtn.setAttribute("aria-expanded", toolbarMenuVisible ? "true" : "false");
+            }
+        }
+
+        function setToolbarPinned(pinned) {
+            toolbarPinned = Boolean(pinned);
+            toolbarPinBtn?.setAttribute("aria-pressed", toolbarPinned ? "true" : "false");
+            toolbarPinBtn?.classList.toggle("active", toolbarPinned);
+            if (toolbarPinned) {
+                setToolbarMenuVisibility(true);
+            }
+        }
+
+        function setSearchExpanded(show) {
+            toolbarSearchExpanded = Boolean(show);
+            toolbarSearchShell?.classList.toggle("collapsed", !toolbarSearchExpanded);
+            if (toolbarSearchExpanded) {
+                document.getElementById("searchInput")?.focus();
+            }
+        }
+
 function setImportPanelVisibility(show) {
             if (!importPanel) return;
             isImportPanelVisible = show;
             importPanel.hidden = !show;
             toggleImportBtn?.classList.toggle("active", show);
             workspacePanelBtn?.classList.toggle("active", show);
+            if (show) {
+                setToolbarMenuVisibility(true);
+            }
         }
 
         function setAddButtonVisibility(show) {
             if (!addSurveyPointBtn) return;
             addSurveyPointBtn.style.display = show ? "inline-flex" : "none";
+            document.getElementById("editDock")?.classList.toggle("active", show);
         }
 
         function recordAction(action) {
@@ -8435,6 +8592,7 @@ function setImportPanelVisibility(show) {
 
         const searchField = document.getElementById("searchInput");
         const search = new mapkit.Search({ region: map.region });
+        setSearchExpanded(false);
         fetch("https://ipapi.co/json/")
           .then(res => res.json())
           .then(data => {
@@ -8457,6 +8615,11 @@ function setImportPanelVisibility(show) {
 
         searchField.addEventListener("input", () => {
             clearSearch.style.display = searchField.value ? "inline" : "none";
+        });
+        searchField.addEventListener("blur", () => {
+            if (!searchField.value.trim()) {
+                setSearchExpanded(false);
+            }
         });
 
         const resultsList = document.createElement("ul");
@@ -9005,11 +9168,10 @@ function setImportPanelVisibility(show) {
         }
         const searchIconBtn = document.getElementById("searchIconBtn");
         searchIconBtn?.addEventListener("click", () => {
-            const input = document.getElementById("searchInput");
-            input?.classList.toggle("active");
-            if (input && input.classList.contains("active")) {
-                input.focus();
-            }
+            setSearchExpanded(!toolbarSearchExpanded);
+        });
+        collapseSearchBtn?.addEventListener("click", () => {
+            setSearchExpanded(false);
         });
         document.getElementById("printButton").addEventListener("click", () => window.print());
         window.addEventListener("beforeunload", (event) => {
