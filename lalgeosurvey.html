@@ -1651,7 +1651,7 @@
     }
     .schema-editor-row {
         display: grid;
-        grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 1.4fr) auto;
+        grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.9fr) minmax(0, 1.15fr) minmax(0, 1fr) auto auto auto;
         gap: 10px;
         align-items: end;
         padding: 12px;
@@ -1659,8 +1659,16 @@
         background: rgba(255,255,255,0.04);
         border: 1px solid rgba(255,255,255,0.06);
     }
+    .schema-editor-row.dragging {
+        opacity: 0.58;
+        border-color: rgba(125, 211, 200, 0.4);
+    }
     .schema-editor-row.locked {
         opacity: 0.72;
+    }
+    .schema-editor-move {
+        min-width: 38px;
+        text-align: center;
     }
     .style-swatch-row {
         display: flex;
@@ -1827,6 +1835,9 @@
         cursor: pointer;
         font-size: 14px;
         font-weight: 700;
+    }
+    .feature-drawer-toggle {
+        display: none;
     }
     .feature-drawer-form {
         display: grid;
@@ -2360,7 +2371,7 @@
         <div class="bottom-bar">
             <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
                 <span id="surveyTableToggleIcon">▲</span>
-                <span id="surveyTableToggleLabel">Show attributes table</span>
+                <span id="surveyTableToggleLabel">Open table</span>
             </button>
         </div>
         <div id="surveyPanelActions">
@@ -2685,7 +2696,8 @@
             return schema.map((field) => ({
                 name: field.name,
                 type: field.type || "text",
-                options: Array.isArray(field.options) ? [...field.options] : []
+                options: Array.isArray(field.options) ? [...field.options] : [],
+                defaultValue: field.defaultValue ?? ""
             }));
         }
 
@@ -2695,7 +2707,8 @@
                 meta[field.name] = {
                     type: field.type || "text",
                     normalizedType: field.type || "text",
-                    choices: Array.isArray(field.options) ? [...field.options] : []
+                    choices: Array.isArray(field.options) ? [...field.options] : [],
+                    defaultValue: field.defaultValue ?? ""
                 };
             });
             meta.Latitude = { type: "number", normalizedType: "number", choices: [] };
@@ -2731,7 +2744,8 @@
                 return {
                     name: header,
                     type: meta.normalizedType || meta.type || "text",
-                    options: Array.isArray(meta.choices) ? [...meta.choices] : []
+                    options: Array.isArray(meta.choices) ? [...meta.choices] : [],
+                    defaultValue: meta.defaultValue ?? ""
                 };
             });
         }
@@ -2817,7 +2831,7 @@
                         } else if (field.name === "symbol_shape") {
                             feature.attributes[field.name] = layer.styleDefaults.symbol_shape;
                         } else {
-                            feature.attributes[field.name] = "";
+                            feature.attributes[field.name] = field.defaultValue ?? "";
                         }
                     }
                 });
@@ -3147,8 +3161,8 @@
                                     </div>
                                 </div>
                             </div>
-                            <div class="workspace-inline-actions">
-                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.name)} attribute table and activate the layer">Open table</button>
+                    <div class="workspace-inline-actions">
+                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
                                 <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}" aria-label="Edit schema for ${escapeHtml(item.name)}">Edit schema</button>
                                 <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}" aria-label="Edit default style for ${escapeHtml(item.name)}">Style defaults</button>
@@ -3209,7 +3223,7 @@
                                 <p>${(item.parsed?.records || []).length} features · ${item.visible === false ? "Hidden" : "Visible"}</p>
                             </div>
                             <div class="workspace-inline-actions">
-                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="Open ${escapeHtml(item.name)} attribute table and activate the layer">Open table</button>
+                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
                                 <button type="button" class="mini-btn" data-edit-schema="${escapeHtml(item.id)}" aria-label="Edit schema for ${escapeHtml(item.name)}">Edit schema</button>
                                 <button type="button" class="mini-btn" data-edit-layer-style="${escapeHtml(item.id)}" aria-label="Edit default style for ${escapeHtml(item.name)}">Style defaults</button>
@@ -3220,6 +3234,12 @@
                     `).join("")}
                 </div>
             `;
+        }
+
+        function getLayerTableActionLabel(layer) {
+            const isActiveLayer = layer?.id === activeLayerId;
+            const tableOpen = Boolean(surveyTablePanel && !surveyTablePanel.hidden && surveyTablePanel.classList.contains("open"));
+            return isActiveLayer && tableOpen ? "Close table" : "Open table";
         }
 
         function openCreateProjectModal(defaults = {}) {
@@ -3273,8 +3293,8 @@
             if (!featureDrawer) return;
             featureDrawer.classList.toggle("minimized", minimized);
             if (featureDrawerToggle) {
-                featureDrawerToggle.textContent = minimized ? "+" : "−";
-                featureDrawerToggle.setAttribute("aria-label", minimized ? "Expand feature details" : "Collapse feature details");
+                featureDrawerToggle.textContent = "×";
+                featureDrawerToggle.setAttribute("aria-label", "Close feature details");
             }
         }
 
@@ -3547,11 +3567,15 @@
             selectedFeatureInspector.innerHTML = `
                 <div class="feature-inspector-title"><span class="workspace-badge">${escapeHtml(layer?.name || "Layer")}</span>Selected feature</div>
                 <div class="feature-inspector-grid">${fields}</div>
-                <div class="feature-inspector-actions">
-                    <button type="button" class="mini-btn primary" id="applyFeatureInspectorBtn">Apply changes</button>
-                </div>
+                <div class="workspace-panel-muted">Changes autosave when you tab or click out of a field.</div>
             `;
-            selectedFeatureInspector.querySelector("#applyFeatureInspectorBtn")?.addEventListener("click", applySelectedFeatureInspectorChanges);
+            selectedFeatureInspector.querySelectorAll("[data-inspector-field]").forEach((input) => {
+                const commit = () => commitInspectorFieldChange(input);
+                input.addEventListener("change", commit);
+                if (input.tagName === "INPUT" || input.tagName === "TEXTAREA") {
+                    input.addEventListener("blur", commit);
+                }
+            });
         }
 
         function getSelectedFeatureRecord() {
@@ -3657,6 +3681,46 @@
             }
         }
 
+        function commitInspectorFieldChange(input) {
+            if (!input || !activeSurveyAnnotation?.surveyPoint || !currentSurveyData) return;
+            const field = input.getAttribute("data-inspector-field");
+            if (!field) return;
+            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const layer = getActiveLayerRecord();
+            const feature = getSelectedFeatureRecord();
+            const record = currentSurveyData.records[rowIndex];
+            if (!layer || !feature || !record) return;
+            const schemaField = (layer.schema || []).find((item) => item.name === field);
+            const before = { ...(feature.attributes || {}) };
+            const nextValue = normalizeFeatureFieldValue(schemaField, input.value);
+            if ((before[field] ?? "") === nextValue) return;
+            const after = { ...before, [field]: nextValue };
+            applyFeatureAttributesToRow(rowIndex, after);
+            if (currentSurveyDocument) {
+                updateDocumentPoint({
+                    id: activeSurveyAnnotation.surveyPoint.pointId,
+                    lat: parseFloat(currentSurveyData.records[rowIndex][currentSurveyData.latKey]),
+                    lon: parseFloat(currentSurveyData.records[rowIndex][currentSurveyData.lonKey]),
+                    attributes: { ...currentSurveyData.records[rowIndex] },
+                    version: activeSurveyAnnotation.surveyPoint.pointVersion ?? 1
+                });
+            }
+            if (isDropboxSurvey()) {
+                markSurveyDirty();
+            } else {
+                recordAction({
+                    type: "edit-attributes",
+                    rowIndex,
+                    featureId: feature.id,
+                    before,
+                    after
+                });
+            }
+            renderSelectedFeatureInspector();
+            renderSurveyCalloutContent();
+            setProjectStatus("Feature attributes autosaved.", "success");
+        }
+
         function renderFeatureDrawer() {
             if (!featureDrawerBody || !featureDrawerMeta) return;
             const layer = getActiveLayerRecord();
@@ -3741,48 +3805,6 @@
             featureDrawer.classList.add("open");
         }
 
-        function applySelectedFeatureInspectorChanges() {
-            if (!activeSurveyAnnotation?.surveyPoint || !currentSurveyData) return;
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
-            const layer = getActiveLayerRecord();
-            const feature = getSelectedFeatureRecord();
-            const record = currentSurveyData.records[rowIndex];
-            if (!layer || !feature || !record) return;
-            const before = { ...(feature.attributes || {}) };
-            const after = { ...before };
-            selectedFeatureInspector.querySelectorAll("[data-inspector-field]").forEach((input) => {
-                const field = input.getAttribute("data-inspector-field");
-                if (!field) return;
-                const schemaField = (layer.schema || []).find((item) => item.name === field);
-                after[field] = normalizeFeatureFieldValue(schemaField, input.value);
-            });
-            if (JSON.stringify(before) === JSON.stringify(after)) return;
-            applyFeatureAttributesToRow(rowIndex, after);
-            if (currentSurveyDocument) {
-                updateDocumentPoint({
-                    id: activeSurveyAnnotation.surveyPoint.pointId,
-                    lat: parseFloat(currentSurveyData.records[rowIndex][currentSurveyData.latKey]),
-                    lon: parseFloat(currentSurveyData.records[rowIndex][currentSurveyData.lonKey]),
-                    attributes: { ...currentSurveyData.records[rowIndex] },
-                    version: activeSurveyAnnotation.surveyPoint.pointVersion ?? 1
-                });
-            }
-            if (isDropboxSurvey()) {
-                markSurveyDirty();
-            } else {
-                recordAction({
-                    type: "edit-attributes",
-                    rowIndex,
-                    featureId: feature.id,
-                    before,
-                    after
-                });
-            }
-            renderSelectedFeatureInspector();
-            renderSurveyCalloutContent();
-            setProjectStatus("Feature attributes updated.", "success");
-        }
-
         function addLayerToActiveProject() {
             if (!activeProjectRecord) {
                 openCreateProjectModal();
@@ -3795,7 +3817,7 @@
                     <div class="layer-modal-grid">
                         <div class="workspace-field full">
                             <label for="layerModalName">Layer name</label>
-                            <input id="layerModalName" class="workspace-text-input" type="text" value="Layer ${activeProjectRecord.layers.length + 1}" autofocus>
+                            <input id="layerModalName" class="workspace-text-input" type="text" placeholder="Inspection points" autofocus>
                         </div>
                         <div class="workspace-field full">
                             <label for="layerModalGeometry">Geometry type</label>
@@ -3805,6 +3827,7 @@
                                 <option value="polygon" disabled>Polygon (coming later)</option>
                             </select>
                         </div>
+                        <div id="layerModalValidation" class="workspace-validation full" hidden>Enter a layer name to continue.</div>
                     </div>
                 `,
                 actions: [
@@ -3817,6 +3840,7 @@
                             const geometryInput = document.getElementById("layerModalGeometry");
                             const name = nameInput?.value?.trim();
                             if (!name) {
+                                document.getElementById("layerModalValidation")?.removeAttribute("hidden");
                                 nameInput?.focus();
                                 return false;
                             }
@@ -3835,7 +3859,19 @@
                             return true;
                         }
                     }
-                ]
+                ],
+                onOpen: () => {
+                    const nameInput = document.getElementById("layerModalName");
+                    const createButton = layerActionModalActions.querySelector('[data-layer-action-modal="1"]');
+                    const validation = document.getElementById("layerModalValidation");
+                    const syncLayerModalState = () => {
+                        const valid = Boolean(nameInput?.value?.trim());
+                        if (createButton) createButton.disabled = !valid;
+                        if (validation) validation.hidden = valid;
+                    };
+                    nameInput?.addEventListener("input", syncLayerModalState);
+                    syncLayerModalState();
+                }
             });
         }
 
@@ -3847,7 +3883,7 @@
             const rows = (layer.schema || []).map((field, index) => {
                 const isLocked = lockedFields.has(field.name);
                 return `
-                    <div class="schema-editor-row ${isLocked ? "locked" : ""}" data-schema-row="${index}">
+                    <div class="schema-editor-row ${isLocked ? "locked" : ""}" data-schema-row="${index}" ${isLocked ? "" : 'draggable="true"'}>
                         <div class="workspace-field">
                             <label>Field name</label>
                             <input class="workspace-text-input" data-schema-name value="${escapeHtml(field.name)}" data-original-name="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>
@@ -3864,6 +3900,12 @@
                             <label>Options</label>
                             <input class="workspace-text-input" data-schema-options value="${escapeHtml((field.options || []).join(", "))}" placeholder="Option A, Option B" ${field.type === "dropdown" ? "" : "disabled"} ${isLocked ? "readonly" : ""}>
                         </div>
+                        <div class="workspace-field">
+                            <label>Default</label>
+                            <input class="workspace-text-input" data-schema-default value="${escapeHtml(field.defaultValue ?? "")}" ${isLocked ? "readonly" : ""} placeholder="Optional default value">
+                        </div>
+                        <button type="button" class="mini-btn schema-editor-move" data-schema-move="up" ${isLocked ? "disabled" : ""} aria-label="Move field ${escapeHtml(field.name)} up">↑</button>
+                        <button type="button" class="mini-btn schema-editor-move" data-schema-move="down" ${isLocked ? "disabled" : ""} aria-label="Move field ${escapeHtml(field.name)} down">↓</button>
                         <button type="button" class="mini-btn ${isLocked ? "" : "danger"}" data-schema-remove ${isLocked ? "disabled" : ""} aria-label="Remove field ${escapeHtml(field.name)}">${isLocked ? "Locked" : "Remove"}</button>
                     </div>
                 `;
@@ -3873,6 +3915,7 @@
                 description: `Update the fields for ${layer.name}. System style fields stay locked.`,
                 bodyHtml: `
                     <div id="schemaEditorList" class="schema-editor-list">${rows}</div>
+                    <div class="workspace-panel-muted">Drag fields to reorder them. Default values apply to new records only.</div>
                     <div class="workspace-inline-actions">
                         <button id="schemaEditorAddField" type="button" class="mini-btn primary">Add field</button>
                     </div>
@@ -3908,6 +3951,7 @@
                                     name,
                                     originalName,
                                     type,
+                                    defaultValue: rowEl.querySelector("[data-schema-default]")?.value ?? "",
                                     options: type === "dropdown"
                                         ? (optionsInput?.value || "").split(",").map((value) => value.trim()).filter(Boolean)
                                         : []
@@ -3916,6 +3960,7 @@
                             layer.schema = nextSchema.map((field) => ({
                                 name: field.name,
                                 type: field.type,
+                                defaultValue: field.defaultValue ?? "",
                                 options: field.options
                             }));
                             (layer.features || []).forEach((feature) => {
@@ -3960,10 +4005,11 @@
                         const row = document.createElement("div");
                         row.className = "schema-editor-row";
                         row.dataset.schemaRow = String(index);
+                        row.draggable = true;
                         row.innerHTML = `
                             <div class="workspace-field">
                                 <label>Field name</label>
-                                <input class="workspace-text-input" data-schema-name data-original-name="" placeholder="status">
+                                <input class="workspace-text-input" data-schema-name data-original-name="" placeholder="Field name">
                             </div>
                             <div class="workspace-field">
                                 <label>Type</label>
@@ -3977,16 +4023,54 @@
                                 <label>Options</label>
                                 <input class="workspace-text-input" data-schema-options placeholder="Open, In Progress, Closed" disabled>
                             </div>
+                            <div class="workspace-field">
+                                <label>Default</label>
+                                <input class="workspace-text-input" data-schema-default placeholder="Optional default value">
+                            </div>
+                            <button type="button" class="mini-btn schema-editor-move" data-schema-move="up" aria-label="Move field up">↑</button>
+                            <button type="button" class="mini-btn schema-editor-move" data-schema-move="down" aria-label="Move field down">↓</button>
                             <button type="button" class="mini-btn danger" data-schema-remove>Remove</button>
                         `;
                         list.appendChild(row);
                         row.querySelector("[data-schema-name]")?.focus();
                         syncSchemaOptionVisibility(row);
                     });
+                    document.getElementById("schemaEditorList")?.addEventListener("dragstart", (event) => {
+                        const row = event.target.closest("[data-schema-row]");
+                        if (!row) return;
+                        row.classList.add("dragging");
+                        event.dataTransfer.effectAllowed = "move";
+                        event.dataTransfer.setData("text/plain", row.dataset.schemaRow || "");
+                    });
+                    document.getElementById("schemaEditorList")?.addEventListener("dragend", (event) => {
+                        event.target.closest("[data-schema-row]")?.classList.remove("dragging");
+                    });
+                    document.getElementById("schemaEditorList")?.addEventListener("dragover", (event) => {
+                        const list = document.getElementById("schemaEditorList");
+                        const dragging = list?.querySelector(".schema-editor-row.dragging");
+                        const target = event.target.closest("[data-schema-row]");
+                        if (!dragging || !target || dragging === target) return;
+                        event.preventDefault();
+                        const midpoint = target.getBoundingClientRect().top + target.offsetHeight / 2;
+                        if (event.clientY < midpoint) target.before(dragging);
+                        else target.after(dragging);
+                    });
                     document.getElementById("schemaEditorList")?.addEventListener("click", (event) => {
                         const removeButton = event.target.closest("[data-schema-remove]");
-                        if (!removeButton || removeButton.disabled) return;
-                        removeButton.closest("[data-schema-row]")?.remove();
+                        if (removeButton && !removeButton.disabled) {
+                            removeButton.closest("[data-schema-row]")?.remove();
+                            return;
+                        }
+                        const moveButton = event.target.closest("[data-schema-move]");
+                        if (!moveButton) return;
+                        const row = moveButton.closest("[data-schema-row]");
+                        if (!row) return;
+                        if (moveButton.dataset.schemaMove === "up" && row.previousElementSibling) {
+                            row.parentElement.insertBefore(row, row.previousElementSibling);
+                        }
+                        if (moveButton.dataset.schemaMove === "down" && row.nextElementSibling) {
+                            row.parentElement.insertBefore(row.nextElementSibling, row);
+                        }
                     });
                     document.getElementById("schemaEditorList")?.addEventListener("change", (event) => {
                         const rowEl = event.target.closest("[data-schema-row]");
@@ -4005,6 +4089,11 @@
                 ...getDefaultLayerStyleDefaults(),
                 ...(layer.styleDefaults || {})
             };
+            const styleExceptions = (layer.features || []).filter((feature) => {
+                const attrs = feature.attributes || {};
+                return (attrs.symbol_color && attrs.symbol_color !== currentDefaults.symbol_color)
+                    || (attrs.symbol_shape && attrs.symbol_shape !== currentDefaults.symbol_shape);
+            }).length;
             const colorField = (layer.schema || []).find((field) => field.name === "symbol_color");
             const shapeField = (layer.schema || []).find((field) => field.name === "symbol_shape");
             openLayerActionModal({
@@ -4030,6 +4119,7 @@
                                 ${(colorField?.options || []).map((option) => `<button type="button" class="style-swatch" data-style-swatch="${escapeHtml(option)}"><span class="style-swatch-dot" style="background:${getSymbolColorValue(option)}"></span>${escapeHtml(option)}</button>`).join("")}
                             </div>
                         </div>
+                        <div class="workspace-panel-muted full">${styleExceptions ? `${styleExceptions} existing feature${styleExceptions === 1 ? "" : "s"} currently use a different style.` : "Existing features already match these defaults."}</div>
                     </div>
                 `,
                 actions: [
@@ -4068,6 +4158,17 @@
 
         function switchToLayer(layerId, { revealTable = true } = {}) {
             if (!activeProjectRecord) return;
+            if (layerId === activeLayerId && revealTable && surveyTablePanel && !surveyTablePanel.hidden && surveyTablePanel.classList.contains("open")) {
+                setSurveyTableVisibility(true);
+                surveyTablePanel.classList.remove("open");
+                surveyTableWrapper.hidden = true;
+                surveyTableToggleIcon.textContent = "▲";
+                surveyTableToggleLabel.textContent = "Open table";
+                updateFloatingButtonLayer(false);
+                renderWorkspaceCollections();
+                renderActiveProjectSidebar();
+                return;
+            }
             activeProjectRecord.activeLayerId = layerId;
             activeLayerId = layerId;
             markActiveProjectUpdated();
@@ -4077,7 +4178,7 @@
                 surveyTablePanel.classList.add("open");
                 surveyTableWrapper.hidden = false;
                 surveyTableToggleIcon.textContent = "▼";
-                surveyTableToggleLabel.textContent = "Hide attributes table";
+                surveyTableToggleLabel.textContent = "Close table";
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
             }
@@ -4712,10 +4813,12 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.add("open");
                 surveyTableWrapper.hidden = false;
-                if (floatingButtonIcon) floatingButtonIcon.textContent = "▼";
-                if (showSurveyTableBtnLabel) showSurveyTableBtnLabel.textContent = "Hide attributes table";
+                surveyTableToggleIcon.textContent = "▼";
+                surveyTableToggleLabel.textContent = "Close table";
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
+                renderWorkspaceCollections();
+                renderActiveProjectSidebar();
                 setProjectStatus("Attributes table opened.", "success");
                 return;
             }
@@ -4825,12 +4928,8 @@
             toggleAddSurveyPointMode();
         });
         featureDrawerClose?.addEventListener("click", () => hideSurveyCallout());
-        featureDrawerToggle?.addEventListener("click", () => setFeatureDrawerMinimized(!isFeatureDrawerMinimized));
+        featureDrawerToggle?.addEventListener("click", () => hideSurveyCallout());
         document.querySelector(".feature-drawer-header")?.addEventListener("pointerdown", startFeatureDrawerDrag);
-        document.querySelector(".feature-drawer-header")?.addEventListener("dblclick", (event) => {
-            if (event.target.closest("button")) return;
-            setFeatureDrawerMinimized(!isFeatureDrawerMinimized);
-        });
         document.addEventListener("pointermove", dragFeatureDrawer);
         document.addEventListener("pointerup", stopFeatureDrawerDrag);
         mapElement?.addEventListener("mousemove", (event) => {
@@ -4860,11 +4959,13 @@
             const isOpen = surveyTablePanel.classList.toggle("open");
             surveyTableWrapper.hidden = !isOpen;
             surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
-            surveyTableToggleLabel.textContent = isOpen ? "Hide attributes table" : "Show attributes table";
+            surveyTableToggleLabel.textContent = isOpen ? "Close table" : "Open table";
             if (isOpen) {
                 updateSurveyTable();
             }
             updateFloatingButtonLayer(isOpen);
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
         });
 
         surveyFieldsBtn.addEventListener("click", (event) => {
@@ -5369,6 +5470,11 @@
                 ...getDefaultLayerStyleDefaults(),
                 ...(layer?.styleDefaults || {})
             };
+            (layer?.schema || getDefaultLayerSchema()).forEach((field) => {
+                if (field.name in newRecord && !newRecord[field.name] && field.defaultValue !== undefined && field.defaultValue !== "") {
+                    newRecord[field.name] = field.defaultValue;
+                }
+            });
             if ("symbol_color" in newRecord && !newRecord.symbol_color) {
                 newRecord.symbol_color = layerDefaults.symbol_color;
             }
@@ -7601,7 +7707,7 @@
             surveyTablePanel.classList.remove("open");
             surveyTableWrapper.hidden = true;
             surveyTableToggleIcon.textContent = "▲";
-            surveyTableToggleLabel.textContent = "Show attributes table";
+            surveyTableToggleLabel.textContent = "Open table";
             surveyFieldsBtn.hidden = true;
             archiveToggleBtn.hidden = true;
             surveyFieldControls.hidden = true;
@@ -7932,6 +8038,8 @@ function setImportPanelVisibility(show) {
         function updateHistoryButtons() {
             if (undoBtn) undoBtn.disabled = !undoStack.length;
             if (redoBtn) redoBtn.disabled = !redoStack.length;
+            if (undoBtn) undoBtn.title = undoStack.length ? "Undo the most recent local change." : "Undo becomes available after you add, move, delete, or edit a feature.";
+            if (redoBtn) redoBtn.title = redoStack.length ? "Redo the last undone local change." : "Redo becomes available after you undo a local change.";
             if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
             updateWorkspaceContext();
         }
