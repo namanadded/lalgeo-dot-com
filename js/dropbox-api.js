@@ -40,8 +40,24 @@ export class LalGeoDropboxClient {
 
   clearAccessToken() {
     this.accessToken = "";
+    this.profile = null;
     localStorage.removeItem(TOKEN_STORAGE_KEY);
     sessionStorage.removeItem(TOKEN_STORAGE_SESSION_KEY);
+    localStorage.removeItem("dropboxAccessToken");
+    sessionStorage.removeItem("dropboxAccessToken");
+    localStorage.removeItem(SURVEY_DROPBOX_CONNECTED_KEY);
+  }
+
+  async logout() {
+    this.clearAccessToken();
+    try {
+      await fetch(`${WORKER_BASE}/api/logout`, {
+        method: "POST",
+        credentials: "include",
+      });
+    } catch {
+      // Clearing local auth state is still useful even if the worker is unavailable.
+    }
   }
 
   get isReady() {

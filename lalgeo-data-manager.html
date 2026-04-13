@@ -152,6 +152,7 @@
       </div>
       <div class="sidebar-actions">
         <button id="connectDropboxBtn" type="button" class="primary">Connect Dropbox</button>
+        <button id="disconnectDropboxBtn" type="button" class="ghost" aria-label="Disconnect Dropbox from LalGeo Data Manager" disabled>Log Out</button>
         <button id="refreshLayersBtn" type="button">Refresh List</button>
       </div>
       <div class="sidebar-section">
@@ -360,6 +361,7 @@
       dropboxStatusDot: document.getElementById("dropboxStatusDot"),
       dropboxStatusLabel: document.getElementById("dropboxStatusLabel"),
       connectDropboxBtn: document.getElementById("connectDropboxBtn"),
+      disconnectDropboxBtn: document.getElementById("disconnectDropboxBtn"),
       refreshLayersBtn: document.getElementById("refreshLayersBtn"),
       importLayerBtn: document.getElementById("importLayerBtn"),
       createLayerBtn: document.getElementById("createLayerBtn"),
@@ -431,6 +433,7 @@
         const surveyConnected = localStorage.getItem("lalgeo_survey_dropbox_connected") === "1";
         state.client.startOauth(window.location.href, { bridgeAttempted: surveyConnected });
       });
+      els.disconnectDropboxBtn.addEventListener("click", disconnectDropbox);
       els.refreshLayersBtn.addEventListener("click", refreshLayers);
       els.importLayerBtn.addEventListener("click", openImportModal);
       els.emptyImportLayerBtn.addEventListener("click", openImportModal);
@@ -547,6 +550,33 @@
       } catch (error) {
         console.error(error);
         setStatus(error.message || "Unable to refresh Dropbox layers.", "error");
+      }
+    }
+
+    async function disconnectDropbox() {
+      const previousLabel = els.disconnectDropboxBtn.textContent;
+      els.disconnectDropboxBtn.disabled = true;
+      els.disconnectDropboxBtn.textContent = "Logging out…";
+      try {
+        await state.client.logout();
+        state.layers = [];
+        state.filteredLayers = [];
+        state.selectedLayer = null;
+        state.selectedFile = null;
+        state.draftLayer = null;
+        state.dirty = false;
+        state.sort = { field: null, direction: "asc" };
+        state.activeTab = "metadata";
+        state.bridgeAttempted = false;
+        setDropboxStatus(false);
+        render();
+        setStatus("Dropbox disconnected.", "success");
+      } catch (error) {
+        console.error(error);
+        setStatus(error.message || "Unable to disconnect Dropbox.", "error");
+      } finally {
+        els.disconnectDropboxBtn.textContent = previousLabel;
+        updateActionButtons();
       }
     }
 
@@ -771,6 +801,7 @@
 
     function updateActionButtons() {
       const hasLayer = Boolean(state.draftLayer && state.selectedFile);
+      const connected = state.client.isReady;
       els.saveLayerBtn.disabled = !hasLayer || !state.dirty;
       els.exportGeoJsonBtn.disabled = !hasLayer;
       els.downloadLalBtn.disabled = !hasLayer;
@@ -779,6 +810,7 @@
       els.deleteLayerBtn.disabled = !hasLayer;
       els.editSchemaBtn.disabled = !hasLayer;
       els.saveStyleBtn.disabled = !hasLayer;
+      els.disconnectDropboxBtn.disabled = !connected;
     }
 
     function openModal(config) {
@@ -1605,6 +1637,7 @@
         : surveyConnected
           ? "Reuse Survey Dropbox"
           : "Connect Dropbox";
+      els.disconnectDropboxBtn.disabled = !connected;
     }
 
     async function hydrateLayerSummaries() {
