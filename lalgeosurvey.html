@@ -1106,32 +1106,52 @@
     #toolbarMenuTray[hidden] {
         display: none;
     }
-    #editDock {
+    #settingsPanel {
         position: absolute;
-        top: 96px;
-        left: 16px;
-        z-index: 1185;
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-        padding: 10px;
-        border-radius: 18px;
-        background: rgba(8, 18, 30, 0.86);
+        top: 44px;
+        right: 48px;
+        z-index: 1196;
+        min-width: 240px;
+        padding: 12px;
+        border-radius: 14px;
+        background: rgba(8, 18, 30, 0.94);
         border: 1px solid rgba(255,255,255,0.08);
-        box-shadow: 0 18px 42px rgba(0,0,0,0.26);
-        backdrop-filter: blur(18px);
-        opacity: 0;
-        pointer-events: none;
-        transform: translateX(-8px);
-        transition: opacity 0.18s ease, transform 0.18s ease;
+        box-shadow: 0 18px 42px rgba(0,0,0,0.34);
+        backdrop-filter: blur(20px);
     }
-    #editDock.active {
-        opacity: 1;
-        pointer-events: auto;
-        transform: translateX(0);
+    #settingsPanel[hidden] {
+        display: none;
+    }
+    .settings-panel-title {
+        margin: 0 0 10px;
+        font-size: 12px;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #7dd3c8;
+        font-weight: 700;
+    }
+    .settings-option {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        color: #eef6fb;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .settings-option input {
+        margin-top: 3px;
+    }
+    .settings-note {
+        margin: 10px 0 0;
+        font-size: 11px;
+        color: #9fb1c2;
+        line-height: 1.45;
+    }
+    #editDock {
+        display: none !important;
     }
     .dock-btn {
-        min-width: 132px;
+        min-width: 0;
         justify-content: center;
     }
     .toolbar-group {
@@ -1316,8 +1336,8 @@
         backdrop-filter: blur(20px);
     }
     .toolbar-left .brand-logo {
-        margin-right: 8px;
-        height: 12px;
+        margin-right: 12px;
+        height: 36px;
     }
     .menu-bar-actions {
         display: inline-flex;
@@ -1337,6 +1357,7 @@
         letter-spacing: -0.01em;
         cursor: pointer;
         line-height: 1.1;
+        white-space: nowrap;
     }
     .menu-bar-btn:hover,
     .menu-bar-btn.active {
@@ -1383,6 +1404,25 @@
         justify-content: flex-end;
         margin-left: auto;
     }
+    .toolbar-quick-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        margin-left: 8px;
+    }
+    .menu-bar-btn.quick-action {
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+    }
+    .menu-bar-btn.quick-action[disabled] {
+        opacity: 0.5;
+        cursor: default;
+    }
+    .menu-bar-btn.quick-action.active {
+        background: rgba(92, 200, 192, 0.18);
+        border-color: rgba(92, 200, 192, 0.3);
+        color: #8ff0dc;
+    }
     .search-pill {
         width: 28px;
         min-width: 28px;
@@ -1424,7 +1464,6 @@
         transform: none;
     }
     body.sidebar-persistent .sidebar-backdrop,
-    body.sidebar-persistent .sidebar-close-btn,
     body.sidebar-persistent .sidebar-subheading {
         display: none !important;
     }
@@ -1826,6 +1865,27 @@
         box-shadow: 0 28px 80px rgba(0,0,0,0.36);
         backdrop-filter: blur(20px);
         pointer-events: auto;
+        position: relative;
+    }
+    .workspace-empty-close {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        min-width: 40px;
+        min-height: 40px;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.06);
+        color: #eef6fb;
+        cursor: pointer;
+        font-size: 22px;
+        line-height: 1;
+    }
+    .workspace-empty-close:hover,
+    .workspace-empty-close:focus-visible {
+        outline: none;
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(143,240,220,0.28);
     }
     .workspace-empty-card h2 {
         margin: 0 0 10px;
@@ -1868,6 +1928,18 @@
         border: 1px solid rgba(255,255,255,0.06);
         color: #d7e6f3;
         font-size: 13px;
+    }
+    .workspace-empty-footer {
+        margin-top: 18px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        color: #d7e6f3;
+        font-size: 14px;
+    }
+    .workspace-empty-footer input {
+        width: 16px;
+        height: 16px;
     }
     .workspace-modal-backdrop {
         position: fixed;
@@ -2469,9 +2541,16 @@
         <div class="toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
             <div class="menu-bar-actions">
-                <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="importPanel" aria-expanded="false">Workspace</button>
+                <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="sidebar" aria-expanded="true">Workspace</button>
                 <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="dataCatalogPane" aria-expanded="true">Data Manager</button>
                 <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false">Menu</button>
+                <button id="settingsBtn" type="button" class="menu-bar-btn" aria-controls="settingsPanel" aria-expanded="false">Settings</button>
+                <div class="toolbar-quick-actions">
+                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" style="display:none;" aria-label="Add a new point to the active layer (shortcut A)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add New</button>
+                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled>Undo</button>
+                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled>Redo</button>
+                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location">My Location</button>
+                </div>
             </div>
         </div>
         <div class="toolbar-center">
@@ -2488,6 +2567,14 @@
                 <span id="clearSearch" style="display:none;">×</span>
             </div>
         </div>
+    </div>
+    <div id="settingsPanel" hidden>
+        <p class="settings-panel-title">Workspace settings</p>
+        <label class="settings-option">
+            <input id="rememberSessionToggle" type="checkbox" checked>
+            <span>Remember last session layout and reopen the workspace the way you left it.</span>
+        </label>
+        <p class="settings-note">This remembers the Layers pane, Data Manager pane, and hidden welcome card.</p>
     </div>
     <div id="toolbarMenuTray" hidden>
         <div class="workspace-context" id="workspaceContext">
@@ -2515,15 +2602,11 @@
             <button id="exportProjectBtn" type="button" class="control-btn">Export</button>
         </div>
     </div>
-    <div id="editDock" aria-label="Editing controls">
-        <button id="addSurveyPointBtn" type="button" class="control-btn dock-btn" style="display:none;" aria-label="Add a new point to the active layer (shortcut A)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add New</button>
-        <button id="undoBtn" type="button" class="control-btn dock-btn" disabled>Undo</button>
-        <button id="redoBtn" type="button" class="control-btn dock-btn" disabled>Redo</button>
-        <button id="myLocationBtn" type="button" class="control-btn dock-btn" aria-label="My location">My Location</button>
-    </div>
+    <div id="editDock" aria-label="Editing controls"></div>
     <div class="map-controls"></div>
     <div id="workspaceEmptyState" class="workspace-empty-state">
         <div class="workspace-empty-card">
+            <button id="workspaceEmptyCloseBtn" type="button" class="workspace-empty-close" aria-label="Close welcome panel">×</button>
             <h2>Create a project to start editing</h2>
             <p>Start a new LalGeo project in the browser or import an existing one.</p>
             <div class="workspace-empty-actions">
@@ -2536,6 +2619,10 @@
                 <div class="workspace-chip">Import shapefiles, FGDB, GeoJSON, CSV</div>
                 <div class="workspace-chip">Survey web + mobile tools already live</div>
             </div>
+            <label class="workspace-empty-footer">
+                <input id="hideWorkspaceEmptyStateToggle" type="checkbox">
+                <span>Do not show this panel again.</span>
+            </label>
         </div>
     </div>
     <div id="importPanel" hidden>
@@ -2869,6 +2956,9 @@
         const toolbarMenuBtn = document.getElementById("toolbarMenuBtn");
         const toolbarMenuTray = document.getElementById("toolbarMenuTray");
         const openDataManagerBtn = document.getElementById("openDataManagerBtn");
+        const settingsBtn = document.getElementById("settingsBtn");
+        const settingsPanel = document.getElementById("settingsPanel");
+        const rememberSessionToggle = document.getElementById("rememberSessionToggle");
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
         const toolbarSearchShell = document.getElementById("toolbarSearchShell");
@@ -2877,6 +2967,8 @@
         const openProjectBtn = document.getElementById("openProjectBtn");
         const exportProjectBtn = document.getElementById("exportProjectBtn");
         const workspaceEmptyState = document.getElementById("workspaceEmptyState");
+        const workspaceEmptyCloseBtn = document.getElementById("workspaceEmptyCloseBtn");
+        const hideWorkspaceEmptyStateToggle = document.getElementById("hideWorkspaceEmptyStateToggle");
         const emptyCreateProjectBtn = document.getElementById("emptyCreateProjectBtn");
         const emptyImportProjectBtn = document.getElementById("emptyImportProjectBtn");
         const emptyConnectDropboxBtn = document.getElementById("emptyConnectDropboxBtn");
@@ -3104,9 +3196,13 @@
         const WORKSPACE_STORAGE_KEY = "lalgeoWorkspaceProjectsV1";
         const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
+        const WORKSPACE_UI_PREFS_KEY = "lalgeoWorkspaceUiPrefsV1";
         let workspaceProjects = [];
         let sidebarVisible = true;
         let dataPaneVisible = true;
+        let rememberLastSession = true;
+        let hideWorkspaceEmptyStateForever = false;
+        let emptyStateDismissed = false;
         let suppressMapTapUntil = 0;
         updateHistoryButtons();
 
@@ -3405,6 +3501,51 @@
             }
         }
 
+        function loadWorkspaceUiPrefs() {
+            try {
+                const raw = localStorage.getItem(WORKSPACE_UI_PREFS_KEY);
+                const prefs = raw ? JSON.parse(raw) : {};
+                rememberLastSession = prefs.rememberLastSession !== false;
+                hideWorkspaceEmptyStateForever = prefs.hideWorkspaceEmptyStateForever === true;
+                if (rememberLastSession) {
+                    sidebarVisible = prefs.sidebarVisible !== false;
+                    dataPaneVisible = prefs.dataPaneVisible !== false;
+                    emptyStateDismissed = prefs.emptyStateDismissed === true;
+                } else {
+                    sidebarVisible = true;
+                    dataPaneVisible = true;
+                    emptyStateDismissed = false;
+                }
+            } catch (error) {
+                console.warn("Unable to load workspace UI prefs", error);
+                rememberLastSession = true;
+                sidebarVisible = true;
+                dataPaneVisible = true;
+                hideWorkspaceEmptyStateForever = false;
+                emptyStateDismissed = false;
+            }
+            if (rememberSessionToggle) {
+                rememberSessionToggle.checked = rememberLastSession;
+            }
+            if (hideWorkspaceEmptyStateToggle) {
+                hideWorkspaceEmptyStateToggle.checked = hideWorkspaceEmptyStateForever;
+            }
+        }
+
+        function saveWorkspaceUiPrefs() {
+            try {
+                localStorage.setItem(WORKSPACE_UI_PREFS_KEY, JSON.stringify({
+                    rememberLastSession,
+                    sidebarVisible,
+                    dataPaneVisible,
+                    hideWorkspaceEmptyStateForever,
+                    emptyStateDismissed: rememberLastSession ? emptyStateDismissed : false
+                }));
+            } catch (error) {
+                console.warn("Unable to persist workspace UI prefs", error);
+            }
+        }
+
         function loadWorkspaceProjects() {
             try {
                 const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
@@ -3557,7 +3698,7 @@
                     surveyTableContext.innerHTML = `<span class="workspace-badge">${escapeHtml(storage)}</span>${escapeHtml(activeProjectRecord.name)} · ${escapeHtml(layer ? layer.name : "No active layer")}`;
                 }
             }
-            if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
+            if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject || hideWorkspaceEmptyStateForever || emptyStateDismissed;
             if (!hasProject) setSidebarVisibility(false);
             if (hasProject) {
                 renderActiveProjectSidebar();
@@ -3838,18 +3979,19 @@
 
         function setSidebarVisibility(show) {
             const persistent = window.innerWidth > 980;
-            sidebarVisible = persistent ? true : Boolean(show);
+            sidebarVisible = Boolean(show);
             sidebar?.classList.toggle("visible", sidebarVisible);
             sidebar?.setAttribute("aria-hidden", sidebarVisible ? "false" : "true");
-            document.body.classList.toggle("sidebar-persistent", persistent);
+            document.body.classList.toggle("sidebar-persistent", persistent && sidebarVisible);
             if (sidebarBackdrop) {
                 sidebarBackdrop.hidden = persistent || !sidebarVisible;
                 sidebarBackdrop.classList.toggle("visible", !persistent && sidebarVisible);
             }
             if (sidebarToggleBtn) {
-                sidebarToggleBtn.classList.toggle("active", isImportPanelVisible);
-                sidebarToggleBtn.setAttribute("aria-expanded", isImportPanelVisible ? "true" : "false");
+                sidebarToggleBtn.classList.toggle("active", sidebarVisible);
+                sidebarToggleBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
+            if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
         function setDataPaneVisibility(show) {
@@ -3861,6 +4003,7 @@
                 featureDrawer.style.right = dataPaneVisible ? "388px" : "16px";
             }
             if (!dataPaneVisible) hideDropboxProjectContextMenu();
+            if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
         function updateToolbarDockState() {
@@ -5113,6 +5256,7 @@
         checkDropboxConnectionStatus();
         refreshDropboxSurveyList();
         loadWorkspaceProjects();
+        loadWorkspaceUiPrefs();
         updateCreateProjectFormState();
         const storedActiveProjectId = localStorage.getItem(WORKSPACE_ACTIVE_KEY);
         if (storedActiveProjectId) {
@@ -5126,23 +5270,31 @@
         renderWorkspaceCollections();
         updateWorkspaceContext();
         setToolbarMenuVisibility(false);
-        setSidebarVisibility(true);
-        setDataPaneVisibility(true);
+        setSettingsPanelVisibility(false);
+        setSidebarVisibility(sidebarVisible);
+        setDataPaneVisibility(dataPaneVisible);
         renderDropboxCatalogPane();
 
         workspacePanelBtn?.addEventListener("click", () => {
             setImportPanelVisibility(!isImportPanelVisible);
         });
         sidebarToggleBtn?.addEventListener("click", () => {
-            setImportPanelVisibility(!isImportPanelVisible);
+            setSidebarVisibility(!sidebarVisible);
         });
         toolbarMenuBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(!toolbarMenuVisible);
+        });
+        settingsBtn?.addEventListener("click", () => {
+            setSettingsPanelVisibility(settingsPanel?.hidden);
         });
         openDataManagerBtn?.addEventListener("click", () => {
             setDataPaneVisibility(!dataPaneVisible);
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
+        rememberSessionToggle?.addEventListener("change", () => {
+            rememberLastSession = Boolean(rememberSessionToggle.checked);
+            saveWorkspaceUiPrefs();
+        });
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         emptyCreateProjectBtn?.addEventListener("click", () => openCreateProjectModal());
@@ -5153,12 +5305,27 @@
             setImportPanelVisibility(true);
             connectDropboxBtn?.click();
         });
+        workspaceEmptyCloseBtn?.addEventListener("click", () => {
+            hideWorkspaceEmptyStateForever = Boolean(hideWorkspaceEmptyStateToggle?.checked);
+            emptyStateDismissed = true;
+            if (workspaceEmptyState) workspaceEmptyState.hidden = true;
+            saveWorkspaceUiPrefs();
+        });
+        hideWorkspaceEmptyStateToggle?.addEventListener("change", () => {
+            hideWorkspaceEmptyStateForever = Boolean(hideWorkspaceEmptyStateToggle.checked);
+            saveWorkspaceUiPrefs();
+        });
         drawerImportProjectBtn?.addEventListener("click", () => projectPickerBtn?.click());
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = toolbarMenuBtn?.contains(event.target);
+            const insideSettingsPanel = settingsPanel?.contains(event.target);
+            const onSettingsButton = settingsBtn?.contains(event.target);
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
+            }
+            if (!settingsPanel?.hidden && !insideSettingsPanel && !onSettingsButton) {
+                setSettingsPanelVisibility(false);
             }
             if (dropboxProjectContextMenu && !dropboxProjectContextMenu.contains(event.target)) {
                 hideDropboxProjectContextMenu();
@@ -5330,6 +5497,10 @@
                 }
                 if (dropboxProjectContextMenu && !dropboxProjectContextMenu.hidden) {
                     hideDropboxProjectContextMenu();
+                    return;
+                }
+                if (settingsPanel && !settingsPanel.hidden) {
+                    setSettingsPanelVisibility(false);
                     return;
                 }
                 if (sidebarVisible) {
@@ -8317,6 +8488,13 @@ function setToolbarMenuVisibility(show) {
             }
         }
 
+        function setSettingsPanelVisibility(show) {
+            if (!settingsPanel) return;
+            settingsPanel.hidden = !show;
+            settingsBtn?.classList.toggle("active", Boolean(show));
+            settingsBtn?.setAttribute("aria-expanded", show ? "true" : "false");
+        }
+
         function setSearchExpanded(show) {
             toolbarSearchExpanded = Boolean(show);
             toolbarSearchShell?.classList.toggle("collapsed", !toolbarSearchExpanded);
@@ -8339,7 +8517,6 @@ function setImportPanelVisibility(show) {
         function setAddButtonVisibility(show) {
             if (!addSurveyPointBtn) return;
             addSurveyPointBtn.style.display = show ? "inline-flex" : "none";
-            document.getElementById("editDock")?.classList.toggle("active", show);
         }
 
         function recordAction(action) {
