@@ -275,16 +275,6 @@
               <span class="toolbar-note">Click a row to inspect it. Right-click a row for Open, Rename, Duplicate, and Delete.</span>
             </div>
           </div>
-          <div id="layerEmptyState" class="empty-state compact">
-            <div>
-              <h2>Browse your Dropbox projects</h2>
-              <p id="emptyStateCopy">Connect Dropbox, then click any <code>.lal</code> or <code>.zip</code> project card to inspect it in a catalog-style popup.</p>
-              <div id="emptyStateActions" class="toolbar-actions empty-actions" style="justify-content:center; margin-top:16px;">
-                <button id="emptyCreateLayerBtn" type="button" class="primary">Create New Layer</button>
-                <button id="emptyImportLayerBtn" type="button">Import Layer</button>
-              </div>
-            </div>
-          </div>
           <div class="catalog-table-shell">
             <table class="catalog-table" aria-label="Dropbox project list">
               <thead>
@@ -482,10 +472,6 @@
       refreshLayersBtn: document.getElementById("refreshLayersBtn"),
       importLayerBtn: document.getElementById("importLayerBtn"),
       createLayerBtn: document.getElementById("createLayerBtn"),
-      emptyCreateLayerBtn: document.getElementById("emptyCreateLayerBtn"),
-      emptyImportLayerBtn: document.getElementById("emptyImportLayerBtn"),
-      emptyStateCopy: document.getElementById("emptyStateCopy"),
-      emptyStateActions: document.getElementById("emptyStateActions"),
       layerSearchInput: document.getElementById("layerSearchInput"),
       layerList: document.getElementById("layerList"),
       headerTitle: document.getElementById("headerTitle"),
@@ -561,9 +547,7 @@
       els.disconnectDropboxBtn.addEventListener("click", disconnectDropbox);
       els.refreshLayersBtn.addEventListener("click", refreshLayers);
       els.importLayerBtn.addEventListener("click", openImportModal);
-      els.emptyImportLayerBtn.addEventListener("click", openImportModal);
       els.createLayerBtn.addEventListener("click", openCreateLayerModal);
-      els.emptyCreateLayerBtn.addEventListener("click", openCreateLayerModal);
       els.layerSearchInput.addEventListener("input", renderLayerList);
       els.layerSortHeaders.forEach((header) => {
         header.addEventListener("click", () => toggleLayerSort(header.dataset.layerSort));
@@ -844,25 +828,13 @@
       const layer = state.draftLayer;
       const file = state.selectedFile;
       const hasLayer = Boolean(layer && file);
-      els.layerEmptyState.hidden = state.layers.length > 0 || state.client.isReady;
       if (!hasLayer) {
-        const connected = state.client.isReady;
-        const hasLayers = state.layers.length > 0;
-        els.layerEmptyState.hidden = connected && hasLayers;
-        els.layerEmptyState.classList.toggle("compact", connected);
-        els.emptyStateActions.hidden = connected;
         els.headerTitle.textContent = "Select a layer";
         els.headerSubtitle.textContent = "Browse Dropbox-backed `.lal` and `.zip` project files, manage schema, edit attributes, and convert incoming files.";
-        els.emptyStateCopy.textContent = connected
-          ? (hasLayers
-            ? "Choose a Dropbox project from the center catalog to inspect metadata, schema, attributes, and style."
-            : "Dropbox is connected. Create a new layer or import data from the sidebar to populate LalGeoDB.")
-          : "Connect Dropbox, pick a `.lal` or `.zip` project file, or import a new dataset and convert it to LalGeo format.";
         els.inspectorPanel.classList.remove("open");
         return;
       }
 
-      els.emptyStateActions.hidden = true;
       els.headerTitle.textContent = layer.metadata.name;
       els.headerSubtitle.textContent = `${layer.metadata.geometryType} layer • ${layer.features.length} features • ${formatDate(file.serverModified || layer.metadata.updatedAt)}${file.fileType === "zip" ? " • opened from Dropbox archive" : ""}`;
       els.inspectorTitle.textContent = layer.metadata.name;
