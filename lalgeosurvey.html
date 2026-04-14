@@ -2773,8 +2773,8 @@
                         <label for="createGeometryType">Geometry type</label>
                         <select id="createGeometryType" class="workspace-text-input" aria-label="Geometry type">
                             <option value="point">Point</option>
-                            <option value="line" disabled>Line (coming later)</option>
-                            <option value="polygon" disabled>Polygon (coming later)</option>
+                            <option value="line">Line</option>
+                            <option value="polygon">Polygon</option>
                         </select>
                     </div>
                     <div class="workspace-field full">
@@ -3160,6 +3160,7 @@
             }
         });
         let surveyAnnotations = [];
+        let surveyOverlays = [];
         let activeSurveyAnnotation = null;
         let activeProjectName = "";
         let activeProjectRecord = null;
@@ -3193,6 +3194,8 @@
         let archiveRowAnnotationMap = new Map();
         let draggedFieldName = null;
         let isAddingSurveyPoint = false;
+        let drawingVertices = [];
+        let drawingPreviewOverlay = null;
         let isReorderingFields = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
@@ -3229,20 +3232,37 @@
             return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
         }
 
-        function getDefaultLayerSchema() {
+        function normalizeLayerGeometryType(value = "point") {
+            const normalized = String(value || "point").trim().toLowerCase();
+            if (normalized === "linestring" || normalized === "line") return "line";
+            if (normalized === "polygon") return "polygon";
+            return "point";
+        }
+
+        function getDefaultLayerSchema(geometryType = "point") {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            const systemFields = [
+                { name: "ID", type: "text", locked: true },
+                { name: "Date", type: "text", locked: true }
+            ];
+            if (normalizedGeometry === "point") {
+                systemFields.push(
+                    { name: "Latitude", type: "number", locked: true },
+                    { name: "Longitude", type: "number", locked: true }
+                );
+            }
             return [
-                { name: "name", type: "text" },
-                { name: "description", type: "text" },
-                { name: "created_at", type: "text" },
+                ...systemFields,
                 { name: "symbol_color", type: "dropdown", options: ["Red", "Blue", "Green", "Orange", "Purple"] },
                 { name: "symbol_shape", type: "dropdown", options: ["Circle", "Dot", "Pin", "Plus"] }
             ];
         }
 
-        function getDefaultLayerStyleDefaults() {
+        function getDefaultLayerStyleDefaults(geometryType = "point") {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             return {
                 symbol_color: "Red",
-                symbol_shape: "Dot"
+                symbol_shape: normalizedGeometry === "point" ? "Dot" : (normalizedGeometry === "line" ? "Plus" : "Circle")
             };
         }
 
@@ -3251,7 +3271,8 @@
                 name: field.name,
                 type: field.type || "text",
                 options: Array.isArray(field.options) ? [...field.options] : [],
-                defaultValue: field.defaultValue ?? ""
+                defaultValue: field.defaultValue ?? "",
+                locked: field.locked === true
             }));
         }
 
@@ -3262,11 +3283,10 @@
                     type: field.type || "text",
                     normalizedType: field.type || "text",
                     choices: Array.isArray(field.options) ? [...field.options] : [],
-                    defaultValue: field.defaultValue ?? ""
+                    defaultValue: field.defaultValue ?? "",
+                    locked: field.locked === true
                 };
             });
-            meta.Latitude = { type: "number", normalizedType: "number", choices: [] };
-            meta.Longitude = { type: "number", normalizedType: "number", choices: [] };
             return meta;
         }
 
@@ -3290,35 +3310,111 @@
             return "●";
         }
 
-        function createSchemaFromParsed(parsed) {
+        function createPointGeometry(lat, lng) {
+            return { type: "Point", lat, lng };
+        }
+
+        function createLineGeometry(vertices = []) {
+            return { type: "LineString", coordinates: vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })) };
+        }
+
+        function createPolygonGeometry(vertices = []) {
+            return { type: "Polygon", rings: [vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng }))] };
+        }
+
+        function getFeatureRepresentativeCoordinate(feature) {
+            const geometry = feature?.geometry;
+            if (!geometry) return null;
+            if (geometry.type === "Point" && Number.isFinite(geometry.lat) && Number.isFinite(geometry.lng)) {
+                return new mapkit.Coordinate(geometry.lat, geometry.lng);
+            }
+            const coords = geometry.type === "Polygon"
+                ? (geometry.rings?.[0] || [])
+                : (geometry.coordinates || []);
+            if (!coords.length) return null;
+            const index = Math.max(0, Math.floor(coords.length / 2) - (geometry.type === "Polygon" ? 1 : 0));
+            const candidate = coords[index] || coords[0];
+            if (!candidate) return null;
+            return new mapkit.Coordinate(candidate.lat, candidate.lng);
+        }
+
+        function getGeometryCoordinates(feature) {
+            const geometry = feature?.geometry;
+            if (!geometry) return [];
+            if (geometry.type === "Point") {
+                return Number.isFinite(geometry.lat) && Number.isFinite(geometry.lng)
+                    ? [new mapkit.Coordinate(geometry.lat, geometry.lng)]
+                    : [];
+            }
+            const raw = geometry.type === "Polygon" ? (geometry.rings?.[0] || []) : (geometry.coordinates || []);
+            return raw
+                .filter((item) => Number.isFinite(item?.lat) && Number.isFinite(item?.lng))
+                .map((item) => new mapkit.Coordinate(item.lat, item.lng));
+        }
+
+        function hasEnoughVerticesForGeometry(geometryType, vertices = []) {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            if (normalizedGeometry === "line") return vertices.length >= 2;
+            if (normalizedGeometry === "polygon") return vertices.length >= 3;
+            return vertices.length >= 1;
+        }
+
+        function buildGeometryFromVertices(geometryType, vertices = []) {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            if (normalizedGeometry === "line") return createLineGeometry(vertices);
+            if (normalizedGeometry === "polygon") return createPolygonGeometry(vertices);
+            const first = vertices[0];
+            return first ? createPointGeometry(first.lat, first.lng) : null;
+        }
+
+        function createSchemaFromParsed(parsed, geometryType = parsed?.geometryType || "point") {
             const headers = (parsed?.headers || []).filter((header) => header && header !== parsed?.latKey && header !== parsed?.lonKey);
-            if (!headers.length) return cloneLayerSchema();
+            if (!headers.length) return cloneLayerSchema(getDefaultLayerSchema(geometryType));
             return headers.map((header) => {
                 const meta = parsed?.questionMeta?.[header] || {};
                 return {
                     name: header,
                     type: meta.normalizedType || meta.type || "text",
                     options: Array.isArray(meta.choices) ? [...meta.choices] : [],
-                    defaultValue: meta.defaultValue ?? ""
+                    defaultValue: meta.defaultValue ?? "",
+                    locked: meta.locked === true || isAutoManagedField(header) || header === "Latitude" || header === "Longitude"
                 };
             });
         }
 
-        function buildLayerFeaturesFromParsed(parsed, schema = createSchemaFromParsed(parsed)) {
+        function cloneFeatureGeometry(geometry) {
+            return geometry ? JSON.parse(JSON.stringify(geometry)) : null;
+        }
+
+        function geometryToLatLng(geometry) {
+            if (!geometry) return null;
+            if (geometry.type === "Point" && Number.isFinite(geometry.lat) && Number.isFinite(geometry.lng)) {
+                return { lat: geometry.lat, lng: geometry.lng };
+            }
+            return null;
+        }
+
+        function buildLayerFeaturesFromParsed(parsed, schema = createSchemaFromParsed(parsed, parsed?.geometryType || "point"), geometryType = parsed?.geometryType || "point") {
             if (!parsed?.records) return [];
             const effectiveSchema = cloneLayerSchema(schema);
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             return parsed.records.map((record, index) => {
                 const attrs = {};
                 effectiveSchema.forEach((field) => {
                     attrs[field.name] = record?.[field.name] ?? "";
                 });
                 const meta = parsed.pointMeta?.[index] || {};
-                return {
-                    id: meta.id || generateWorkspaceId("feature"),
-                    geometry: {
+                let geometry = cloneFeatureGeometry(meta.geometry);
+                if (normalizedGeometry === "point") {
+                    geometry = {
+                        type: "Point",
                         lat: parseFloat(record?.[parsed.latKey]),
                         lng: parseFloat(record?.[parsed.lonKey])
-                    },
+                    };
+                }
+                return {
+                    id: meta.id || generateWorkspaceId("feature"),
+                    geometry,
                     attributes: attrs,
                     version: meta.version ?? 1
                 };
@@ -3326,24 +3422,32 @@
         }
 
         function buildParsedFromLayer(layer) {
-            const schema = cloneLayerSchema(layer?.schema || getDefaultLayerSchema());
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
+            const schema = cloneLayerSchema(layer?.schema || getDefaultLayerSchema(geometryType));
             const features = Array.isArray(layer?.features) ? layer.features : [];
+            const pointLayer = geometryType === "point";
             return {
-                headers: [...schema.map((field) => field.name), "Latitude", "Longitude"],
-                records: features.map((feature) => ({
-                    ...Object.fromEntries(schema.map((field) => [field.name, feature.attributes?.[field.name] ?? ""])),
-                    Latitude: feature.geometry?.lat ?? "",
-                    Longitude: feature.geometry?.lng ?? ""
-                })),
-                latKey: "Latitude",
-                lonKey: "Longitude",
+                geometryType,
+                createdAt: layer?.parsed?.createdAt || layer?.metadata?.createdAt || new Date().toISOString(),
+                headers: schema.map((field) => field.name),
+                records: features.map((feature) => {
+                    const row = Object.fromEntries(schema.map((field) => [field.name, feature.attributes?.[field.name] ?? ""]));
+                    if (pointLayer) {
+                        row.Latitude = feature.geometry?.lat ?? "";
+                        row.Longitude = feature.geometry?.lng ?? "";
+                    }
+                    return row;
+                }),
+                latKey: pointLayer ? "Latitude" : null,
+                lonKey: pointLayer ? "Longitude" : null,
                 questionMeta: buildQuestionMetaFromSchema(schema),
                 pointMeta: features.map((feature) => ({
                     id: feature.id,
-                    version: feature.version ?? 1
+                    version: feature.version ?? 1,
+                    geometry: cloneFeatureGeometry(feature.geometry)
                 })),
                 archiveRecords: [],
-                archiveHeaders: [...schema.map((field) => field.name), "Latitude", "Longitude"],
+                archiveHeaders: schema.map((field) => field.name),
                 archivePointMeta: [],
                 layerName: layer?.name || "Layer"
             };
@@ -3351,35 +3455,43 @@
 
         function ensureLayerStructure(layer) {
             if (!layer) return layer;
+            layer.geometryType = normalizeLayerGeometryType(layer.geometryType || layer?.parsed?.geometryType || "point");
             if (!Array.isArray(layer.schema) || !layer.schema.length) {
-                layer.schema = createSchemaFromParsed(layer.parsed);
+                layer.schema = createSchemaFromParsed(layer.parsed, layer.geometryType);
             }
             layer.schema = cloneLayerSchema(layer.schema);
-            const defaultSchema = getDefaultLayerSchema();
+            const defaultSchema = getDefaultLayerSchema(layer.geometryType);
             defaultSchema.forEach((defaultField) => {
                 if (!layer.schema.some((field) => field.name === defaultField.name)) {
                     layer.schema.push({
                         name: defaultField.name,
                         type: defaultField.type || "text",
-                        options: Array.isArray(defaultField.options) ? [...defaultField.options] : []
+                        options: Array.isArray(defaultField.options) ? [...defaultField.options] : [],
+                        locked: defaultField.locked === true
                     });
                 }
             });
             layer.styleDefaults = {
-                ...getDefaultLayerStyleDefaults(),
+                ...getDefaultLayerStyleDefaults(layer.geometryType),
                 ...(layer.styleDefaults || {})
             };
             const featuresLookLegacy = Array.isArray(layer.features) && layer.features.length
                 && (!("geometry" in layer.features[0]) || !("attributes" in layer.features[0]));
             if (!Array.isArray(layer.features) || !layer.features.length || featuresLookLegacy) {
-                layer.features = buildLayerFeaturesFromParsed(layer.parsed || createEmptyParsedLayer(layer.name), layer.schema);
+                layer.features = buildLayerFeaturesFromParsed(layer.parsed || createEmptyParsedLayer(layer.name, layer.geometryType), layer.schema, layer.geometryType);
             }
             (layer.features || []).forEach((feature) => {
                 feature.attributes = feature.attributes || {};
                 defaultSchema.forEach((field) => {
                     if (!(field.name in feature.attributes)) {
-                        if (field.name === "created_at") {
+                        if (field.name === "ID") {
+                            feature.attributes[field.name] = generateSurveyPointId();
+                        } else if (field.name === "Date") {
                             feature.attributes[field.name] = new Date().toISOString();
+                        } else if (field.name === "Latitude") {
+                            feature.attributes[field.name] = feature.geometry?.lat ?? "";
+                        } else if (field.name === "Longitude") {
+                            feature.attributes[field.name] = feature.geometry?.lng ?? "";
                         } else if (field.name === "symbol_color") {
                             feature.attributes[field.name] = layer.styleDefaults.symbol_color;
                         } else if (field.name === "symbol_shape") {
@@ -3395,27 +3507,32 @@
             return layer;
         }
 
-        function createEmptyParsedLayer(layerName = "Field Points") {
+        function createEmptyParsedLayer(layerName = "Field Points", geometryType = "point") {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            const schema = getDefaultLayerSchema(normalizedGeometry);
+            const headers = schema.map((field) => field.name);
+            const createdAt = new Date().toISOString();
             return {
-                headers: ["name", "description", "created_at", "symbol_color", "symbol_shape", "Latitude", "Longitude"],
+                geometryType: normalizedGeometry,
+                createdAt,
+                headers,
                 records: [],
-                latKey: "Latitude",
-                lonKey: "Longitude",
-                questionMeta: buildQuestionMetaFromSchema(getDefaultLayerSchema()),
+                latKey: normalizedGeometry === "point" ? "Latitude" : null,
+                lonKey: normalizedGeometry === "point" ? "Longitude" : null,
+                questionMeta: buildQuestionMetaFromSchema(schema),
                 pointMeta: [],
                 archiveRecords: [],
-                archiveHeaders: ["name", "description", "created_at", "symbol_color", "symbol_shape", "Latitude", "Longitude"],
+                archiveHeaders: [...headers],
                 archivePointMeta: [],
                 layerName
             };
         }
 
         function createDemoParsedLayer(name = "Field Points", points = []) {
-            const parsed = createEmptyParsedLayer(name);
+            const parsed = createEmptyParsedLayer(name, "point");
             parsed.records = points.map((point) => ({
-                name: point.name,
-                description: point.description || "",
-                created_at: point.date || new Date().toISOString(),
+                ID: point.id || generateSurveyPointId(),
+                Date: point.date || new Date().toISOString(),
                 symbol_color: point.symbol_color || "Red",
                 symbol_shape: point.symbol_shape || "Dot",
                 Latitude: point.lat,
@@ -3423,23 +3540,26 @@
             }));
             parsed.pointMeta = points.map(() => ({
                 id: generateSurveyPointId(),
-                version: 1
+                version: 1,
+                geometry: null
             }));
             return parsed;
         }
 
         function createLayerRecord({ name = "Field Points", geometryType = "point", parsed = null } = {}) {
-            const sourceParsed = parsed || createEmptyParsedLayer(name);
-            const schema = createSchemaFromParsed(sourceParsed);
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            const sourceParsed = parsed || createEmptyParsedLayer(name, normalizedGeometry);
+            sourceParsed.geometryType = normalizedGeometry;
+            const schema = createSchemaFromParsed(sourceParsed, normalizedGeometry);
             return {
                 id: generateWorkspaceId("layer"),
                 name,
-                geometryType,
+                geometryType: normalizedGeometry,
                 visible: true,
-                styleDefaults: getDefaultLayerStyleDefaults(),
+                styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry),
                 schema,
                 fields: schema.map((field) => field.name),
-                features: buildLayerFeaturesFromParsed(sourceParsed, schema),
+                features: buildLayerFeaturesFromParsed(sourceParsed, schema, normalizedGeometry),
                 parsed: sourceParsed
             };
         }
@@ -3614,12 +3734,12 @@
                 feature: layer?.features?.[index]
                     ? {
                         ...layer.features[index],
-                        geometry: { ...(layer.features[index].geometry || {}) },
+                        geometry: cloneFeatureGeometry(layer.features[index].geometry),
                         attributes: { ...(layer.features[index].attributes || {}) }
                     }
                     : null,
                 pointMeta: currentSurveyData.pointMeta?.[index]
-                    ? { ...currentSurveyData.pointMeta[index] }
+                    ? { ...currentSurveyData.pointMeta[index], geometry: cloneFeatureGeometry(currentSurveyData.pointMeta[index].geometry) }
                     : null
             };
         }
@@ -4065,24 +4185,19 @@
             };
             analyzeSurveySchema(currentSurveyData);
             rebuildPointIndexes(currentSurveyData);
-            if (layer && layer.visible === false) {
-                clearSurveyLayers();
-                setSurveyTableVisibility(true);
-                surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">This layer is hidden. Turn it back on in the workspace panel.</div>`;
-                renderSelectedFeatureInspector();
-                updateWorkspaceContext();
-                renderWorkspaceCollections();
-                updateToolbarDockState();
-                return;
-            }
             if (render && mapReady && map) {
                 renderSurveyProject({
                     parsed: ensureParsedCoordinates(currentSurveyData),
                     projectName: project.name,
                     preserveRegion
                 });
-                setSurveyTableVisibility(true);
-                updateSurveyTable();
+                if (layer && layer.visible === false) {
+                    setSurveyTableVisibility(true);
+                    surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">This layer is hidden. Turn it back on in the workspace panel.</div>`;
+                } else {
+                    setSurveyTableVisibility(true);
+                    updateSurveyTable();
+                }
                 setAddButtonVisibility(true);
             }
             renderSelectedFeatureInspector();
@@ -4109,8 +4224,9 @@
                 updateCreateProjectFormState();
                 return null;
             }
-            const parsed = createEmptyParsedLayer(layerName);
-            const layer = createLayerRecord({ name: layerName, geometryType: createGeometryTypeInput.value || "point", parsed });
+            const geometryType = createGeometryTypeInput.value || "point";
+            const parsed = createEmptyParsedLayer(layerName, geometryType);
+            const layer = createLayerRecord({ name: layerName, geometryType, parsed });
             const storageSource = createStorageDestinationInput.value === "dropbox" && dropboxConnected ? "Dropbox synced" : "Web workspace";
             return createProjectRecord({
                 name: projectName,
@@ -4226,11 +4342,13 @@
             const fields = headers.map((header) => {
                 const options = dropdownFieldOptions[header];
                 const value = record?.[header] ?? "";
+                const schemaField = (layer?.schema || []).find((field) => field.name === header);
+                const isLocked = schemaField?.locked === true || isCoordinateField(header, currentSurveyData) || isAutoManagedField(header);
                 if (options?.length) {
                     return `
                         <div class="feature-inspector-field">
                             <label>${escapeHtml(header)}</label>
-                            <select data-inspector-field="${escapeHtml(header)}">
+                            <select data-inspector-field="${escapeHtml(header)}" ${isLocked ? "disabled" : ""}>
                                 ${options.map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
                         </div>
@@ -4239,7 +4357,7 @@
                 return `
                     <div class="feature-inspector-field">
                         <label>${escapeHtml(header)}</label>
-                        <input type="text" data-inspector-field="${escapeHtml(header)}" value="${escapeHtml(String(value))}">
+                        <input type="text" data-inspector-field="${escapeHtml(header)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                     </div>
                 `;
             }).join("");
@@ -4312,12 +4430,23 @@
             const schema = layer.schema || getDefaultLayerSchema();
             schema.forEach((field) => {
                 const nextValue = normalizeFeatureFieldValue(field, nextAttributes[field.name]);
+                if (field.locked === true) return;
                 feature.attributes[field.name] = nextValue;
                 record[field.name] = nextValue;
             });
-            if (!feature.attributes.created_at) {
-                feature.attributes.created_at = new Date().toISOString();
-                record.created_at = feature.attributes.created_at;
+            if (!feature.attributes.ID) {
+                feature.attributes.ID = generateSurveyPointId();
+                record.ID = feature.attributes.ID;
+            }
+            if (!feature.attributes.Date) {
+                feature.attributes.Date = new Date().toISOString();
+                record.Date = feature.attributes.Date;
+            }
+            if (normalizeLayerGeometryType(layer.geometryType) === "point") {
+                feature.attributes.Latitude = feature.geometry?.lat ?? "";
+                feature.attributes.Longitude = feature.geometry?.lng ?? "";
+                record.Latitude = feature.attributes.Latitude;
+                record.Longitude = feature.attributes.Longitude;
             }
             activeSurveyAnnotation.surveyPoint.attributes = { ...feature.attributes };
             activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName);
@@ -4343,12 +4472,11 @@
             if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
             const schemaField = (layer.schema || []).find((field) => field.name === fieldName);
-            if (!schemaField) return;
+            if (!schemaField || schemaField.locked) return;
             const before = { ...(feature.attributes || {}) };
             const nextValue = normalizeFeatureFieldValue(schemaField, rawValue);
             if ((before[fieldName] ?? "") === nextValue) return;
             const after = { ...before, [fieldName]: nextValue };
-            if (!after.created_at) after.created_at = new Date().toISOString();
             if (applyFeatureAttributesToRow(rowIndex, after)) {
                 recordAction({
                     type: "edit-attributes",
@@ -4371,6 +4499,7 @@
             const record = currentSurveyData.records[rowIndex];
             if (!layer || !feature || !record) return;
             const schemaField = (layer.schema || []).find((item) => item.name === field);
+            if (schemaField?.locked) return;
             const before = { ...(feature.attributes || {}) };
             const nextValue = normalizeFeatureFieldValue(schemaField, input.value);
             if ((before[field] ?? "") === nextValue) return;
@@ -4423,11 +4552,12 @@
             const styleFields = (layer.schema || getDefaultLayerSchema()).filter((field) => styleFieldNames.has(field.name));
             const fields = attributeFields.map((field) => {
                 const value = feature.attributes?.[field.name] ?? "";
+                const isLocked = field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
                 if (field.type === "dropdown") {
                     return `
                         <div class="feature-drawer-field">
                             <label>${escapeHtml(field.name)}</label>
-                            <select data-feature-field="${escapeHtml(field.name)}">
+                            <select data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
                                 <option value="">Select…</option>
                                 ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
@@ -4438,14 +4568,14 @@
                     return `
                         <div class="feature-drawer-field">
                             <label>${escapeHtml(field.name)}</label>
-                            <textarea data-feature-field="${escapeHtml(field.name)}">${escapeHtml(String(value))}</textarea>
+                            <textarea data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
                         </div>
                     `;
                 }
                 return `
                     <div class="feature-drawer-field">
                         <label>${escapeHtml(field.name)}</label>
-                        <input type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${field.name === "created_at" ? "readonly" : ""}>
+                        <input type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                     </div>
                 `;
             }).join("");
@@ -4525,8 +4655,8 @@
                             <label for="layerModalGeometry">Geometry type</label>
                             <select id="layerModalGeometry" class="workspace-text-input">
                                 <option value="point">Point</option>
-                                <option value="line" disabled>Line (coming later)</option>
-                                <option value="polygon" disabled>Polygon (coming later)</option>
+                                <option value="line">Line</option>
+                                <option value="polygon">Polygon</option>
                             </select>
                         </div>
                         <div id="layerModalValidation" class="workspace-validation full" hidden>Enter a layer name to continue.</div>
@@ -4549,7 +4679,7 @@
                             const layer = createLayerRecord({
                                 name,
                                 geometryType: geometryInput?.value || "point",
-                                parsed: createEmptyParsedLayer(name)
+                                parsed: createEmptyParsedLayer(name, geometryInput?.value || "point")
                             });
                             activeProjectRecord.layers.push(layer);
                             activeProjectRecord.activeLayerId = layer.id;
@@ -4558,6 +4688,7 @@
                             scheduleLocalAutosave();
                             setActiveProject(activeProjectRecord);
                             setProjectStatus(`Created layer ${name}.`, "success");
+                            requestAnimationFrame(() => editLayerSchema(layer.id));
                             return true;
                         }
                     }
@@ -4581,9 +4712,8 @@
             const layer = getLayerById(layerId);
             if (!layer) return;
             ensureLayerStructure(layer);
-            const lockedFields = new Set(["created_at", "symbol_color", "symbol_shape"]);
             const rows = (layer.schema || []).map((field, index) => {
-                const isLocked = lockedFields.has(field.name);
+                const isLocked = field.locked === true;
                 return `
                     <div class="schema-editor-row ${isLocked ? "locked" : ""}" data-schema-row="${index}" ${isLocked ? "" : 'draggable="true"'}>
                         <div class="workspace-field">
@@ -4614,7 +4744,7 @@
             }).join("");
             openLayerActionModal({
                 title: `Schema Editor`,
-                description: `Update the fields for ${layer.name}. System style fields stay locked.`,
+                description: `Update the fields for ${layer.name}. System fields stay locked.`,
                 bodyHtml: `
                     <div id="schemaEditorList" class="schema-editor-list">${rows}</div>
                     <div class="workspace-panel-muted">Drag fields to reorder them. Default values apply to new records only.</div>
@@ -4663,7 +4793,8 @@
                                 name: field.name,
                                 type: field.type,
                                 defaultValue: field.defaultValue ?? "",
-                                options: field.options
+                                options: field.options,
+                                locked: (layer.schema || []).find((existing) => existing.name === (field.originalName || field.name))?.locked === true || isAutoManagedField(field.name)
                             }));
                             (layer.features || []).forEach((feature) => {
                                 const previous = { ...(feature.attributes || {}) };
@@ -4671,7 +4802,10 @@
                                 nextSchema.forEach((field) => {
                                     const sourceName = field.originalName || field.name;
                                     if (sourceName in previous) nextAttributes[field.name] = previous[sourceName];
-                                    else if (field.name === "created_at") nextAttributes[field.name] = new Date().toISOString();
+                                    else if (field.name === "ID") nextAttributes[field.name] = generateSurveyPointId();
+                                    else if (field.name === "Date") nextAttributes[field.name] = new Date().toISOString();
+                                    else if (field.name === "Latitude") nextAttributes[field.name] = feature.geometry?.lat ?? "";
+                                    else if (field.name === "Longitude") nextAttributes[field.name] = feature.geometry?.lng ?? "";
                                     else if (field.name === "symbol_color") nextAttributes[field.name] = layer.styleDefaults?.symbol_color || "Red";
                                     else if (field.name === "symbol_shape") nextAttributes[field.name] = layer.styleDefaults?.symbol_shape || "Dot";
                                     else nextAttributes[field.name] = "";
@@ -5049,6 +5183,10 @@
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
             setWorkspaceDirty(false);
+            const initialLayer = getActiveLayerRecord();
+            if (initialLayer) {
+                requestAnimationFrame(() => editLayerSchema(initialLayer.id));
+            }
             if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 showWorkspaceHint("Click on the map to place your first feature.");
@@ -5433,6 +5571,10 @@
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
             setWorkspaceDirty(false);
+            const initialLayer = getActiveLayerRecord();
+            if (initialLayer) {
+                requestAnimationFrame(() => editLayerSchema(initialLayer.id));
+            }
             if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 showWorkspaceHint("Click on the map to place your first feature.");
@@ -5774,6 +5916,11 @@
         window.__lalgeoPrimaryBindingsReady = true;
 
         function toggleAddSurveyPointMode() {
+            const geometryType = getActiveLayerGeometryType();
+            if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
+                finalizeGeometryFeaturePlacement();
+                return;
+            }
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
@@ -5781,18 +5928,57 @@
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) mapAddHint.hidden = !isAddingSurveyPoint;
             if (isAddingSurveyPoint) {
-                showWorkspaceHint("Click 'Add New' then click anywhere on the map to start collecting data.");
-                setProjectStatus("Point placement active. Click on the map to add a feature.", "success");
+                showWorkspaceHint(geometryType === "point"
+                    ? "Click 'Add New' then click anywhere on the map to start collecting data."
+                    : `Click on the map to add ${geometryType === "line" ? "line" : "polygon"} vertices. Press Add New again or double-click to finish.`);
+                setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} drawing`} active.`, "success");
             }
             if (!isAddingSurveyPoint) {
                 pendingNewAnnotation = null;
                 hideWorkspaceHint();
-                setProjectStatus("Point placement cancelled.", "success");
+                drawingVertices = [];
+                if (drawingPreviewOverlay) {
+                    map.removeOverlay(drawingPreviewOverlay);
+                    drawingPreviewOverlay = null;
+                }
+                setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} drawing`} cancelled.`, "success");
             }
         }
 
         function convertSurveyDocumentToParsed(doc) {
             if (!doc) throw new Error("Missing survey document.");
+            const normalizedGeometry = normalizeLayerGeometryType(doc.geometryType || "point");
+            if (normalizedGeometry !== "point" && Array.isArray(doc.features)) {
+                const headers = Array.isArray(doc.fields) ? [...doc.fields] : getDefaultLayerSchema(normalizedGeometry).map((field) => field.name);
+                const featureMeta = (doc.features || []).map((feature) => ({
+                    id: feature.id || generateSurveyPointId(),
+                    version: feature.version ?? 1,
+                    updatedAt: feature.updatedAt,
+                    updatedBy: feature.updatedBy,
+                    geometry: cloneFeatureGeometry(feature.geometry)
+                }));
+                const archivedFeatures = Array.isArray(doc.archivedFeatures) ? doc.archivedFeatures : [];
+                return {
+                    geometryType: normalizedGeometry,
+                    createdAt: doc.createdAt || doc.updatedAt || new Date().toISOString(),
+                    headers,
+                    records: (doc.features || []).map((feature) => ({ ...(feature.attributes || {}) })),
+                    latKey: null,
+                    lonKey: null,
+                    questionMeta: { ...(doc.questionMeta || {}) },
+                    pointMeta: featureMeta,
+                    version: doc.version ?? 1,
+                    archiveRecords: archivedFeatures.map((feature) => ({ ...(feature.attributes || {}) })),
+                    archivePointMeta: archivedFeatures.map((feature) => ({
+                        id: feature.id || generateSurveyPointId(),
+                        version: feature.version ?? 1,
+                        updatedAt: feature.updatedAt,
+                        updatedBy: feature.updatedBy,
+                        geometry: cloneFeatureGeometry(feature.geometry)
+                    })),
+                    archiveHeaders: [...headers]
+                };
+            }
             const metaFields = new Set(["question", "type", "choices"]);
             const rawFields = Array.isArray(doc.fields) ? [...doc.fields] : [];
             let latKey = doc.latField || rawFields.find(header => /lat/i.test(header)) || "Latitude";
@@ -5848,6 +6034,8 @@
                         version: 1
                     }));
                     return {
+                        geometryType: "point",
+                        createdAt: doc.createdAt || doc.updatedAt || new Date().toISOString(),
                         headers,
                         records,
                         latKey,
@@ -5910,6 +6098,7 @@
                     version: 1
                 }));
                 return {
+                    geometryType: "point",
                     headers: headers,
                     records,
                     latKey,
@@ -6030,6 +6219,8 @@
             });
 
             return {
+                geometryType: "point",
+                createdAt: doc.createdAt || doc.updatedAt || new Date().toISOString(),
                 headers,
                 records,
                 latKey,
@@ -6045,9 +6236,38 @@
         function buildSurveyDocumentFromParsed(parsed) {
             if (!parsed) return null;
             const now = new Date().toISOString();
+            const createdAt = parsed.createdAt || now;
             const fields = Array.isArray(parsed.headers) ? [...parsed.headers] : [];
             const latKey = parsed.latKey;
             const lonKey = parsed.lonKey;
+            const geometryType = normalizeLayerGeometryType(parsed.geometryType || "point");
+            if (geometryType !== "point") {
+                return {
+                    version: parsed.version ?? 1,
+                    createdAt,
+                    updatedAt: now,
+                    updatedBy: null,
+                    geometryType,
+                    fields,
+                    features: (parsed.records || []).map((record, index) => ({
+                        id: parsed.pointMeta?.[index]?.id || generateSurveyPointId(),
+                        geometry: cloneFeatureGeometry(parsed.pointMeta?.[index]?.geometry),
+                        attributes: { ...record },
+                        version: parsed.pointMeta?.[index]?.version ?? 1,
+                        updatedAt: now,
+                        updatedBy: null
+                    })),
+                    archivedFeatures: (parsed.archiveRecords || []).map((record, index) => ({
+                        id: parsed.archivePointMeta?.[index]?.id || generateSurveyPointId(),
+                        geometry: cloneFeatureGeometry(parsed.archivePointMeta?.[index]?.geometry),
+                        attributes: { ...record },
+                        version: parsed.archivePointMeta?.[index]?.version ?? 1,
+                        updatedAt: now,
+                        updatedBy: null
+                    })),
+                    questionMeta: parsed.questionMeta || {}
+                };
+            }
             const points = (parsed.records || []).map((record, index) => {
                 const attributes = { ...record };
                 const latValue = latKey ? parseFloat(attributes[latKey]) : NaN;
@@ -6078,8 +6298,10 @@
             });
             return {
                 version: parsed.version ?? 1,
+                createdAt,
                 updatedAt: now,
                 updatedBy: null,
+                geometryType: "point",
                 fields,
                 latField: latKey,
                 lonField: lonKey,
@@ -6209,6 +6431,106 @@
             return null;
         }
 
+        function getActiveLayerGeometryType() {
+            return normalizeLayerGeometryType(getActiveLayerRecord()?.geometryType || currentSurveyData?.geometryType || "point");
+        }
+
+        function updateDrawingPreviewOverlay() {
+            if (!map || !drawingVertices.length) return;
+            if (drawingPreviewOverlay) {
+                map.removeOverlay(drawingPreviewOverlay);
+                drawingPreviewOverlay = null;
+            }
+            const geometryType = getActiveLayerGeometryType();
+            const coords = drawingVertices.map((vertex) => new mapkit.Coordinate(vertex.lat, vertex.lng));
+            if (geometryType === "line" && coords.length >= 2) {
+                drawingPreviewOverlay = new mapkit.PolylineOverlay(coords, {
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: "#5cc8c0", lineCap: "round", lineJoin: "round" })
+                });
+            } else if (geometryType === "polygon" && coords.length >= 3) {
+                drawingPreviewOverlay = new mapkit.PolygonOverlay([coords], {
+                    style: new mapkit.Style({ lineWidth: 3, strokeColor: "#5cc8c0", fillColor: "#5cc8c044" })
+                });
+            }
+            if (drawingPreviewOverlay) {
+                map.addOverlay(drawingPreviewOverlay);
+            }
+        }
+
+        function buildNewFeaturePayload(layer, geometry, coordinate = null) {
+            const newRecord = {};
+            (currentSurveyData?.headers || []).forEach((header) => {
+                newRecord[header] = "";
+            });
+            (layer?.schema || getDefaultLayerSchema(layer?.geometryType || "point")).forEach((field) => {
+                const autoValue = getAutoFieldValue(field.name);
+                if (autoValue !== undefined) {
+                    newRecord[field.name] = autoValue;
+                } else if (field.defaultValue !== undefined && field.defaultValue !== "") {
+                    newRecord[field.name] = field.defaultValue;
+                }
+            });
+            const layerDefaults = {
+                ...getDefaultLayerStyleDefaults(layer?.geometryType || "point"),
+                ...(layer?.styleDefaults || {})
+            };
+            if ("symbol_color" in newRecord && !newRecord.symbol_color) {
+                newRecord.symbol_color = layerDefaults.symbol_color;
+            }
+            if ("symbol_shape" in newRecord && !newRecord.symbol_shape) {
+                newRecord.symbol_shape = layerDefaults.symbol_shape;
+            }
+            if (normalizeLayerGeometryType(layer?.geometryType || "point") === "point" && coordinate) {
+                newRecord.Latitude = coordinate.latitude;
+                newRecord.Longitude = coordinate.longitude;
+            }
+            const featureId = newRecord.ID || generateSurveyPointId();
+            newRecord.ID = featureId;
+            newRecord.Date = newRecord.Date || new Date().toISOString();
+            const feature = {
+                id: featureId,
+                geometry,
+                attributes: Object.fromEntries((layer?.schema || getDefaultLayerSchema(layer?.geometryType || "point")).map((field) => [field.name, newRecord[field.name] ?? ""])),
+                version: 1
+            };
+            return { newRecord, feature };
+        }
+
+        function finalizeGeometryFeaturePlacement() {
+            const layer = getActiveLayerRecord();
+            const geometryType = getActiveLayerGeometryType();
+            if (!layer || geometryType === "point" || !hasEnoughVerticesForGeometry(geometryType, drawingVertices)) return;
+            const geometry = buildGeometryFromVertices(geometryType, drawingVertices);
+            if (!geometry) return;
+            const { newRecord, feature } = buildNewFeaturePayload(layer, geometry);
+            const rowIndex = currentSurveyData.records.length;
+            currentSurveyData.records.push(newRecord);
+            currentSurveyData.pointMeta = currentSurveyData.pointMeta || [];
+            currentSurveyData.pointMeta.push({
+                id: feature.id,
+                version: feature.version,
+                geometry: cloneFeatureGeometry(feature.geometry)
+            });
+            layer.features = layer.features || [];
+            layer.features.push(feature);
+            pendingNewAnnotation = null;
+            recordAction({
+                type: "add",
+                rowIndex,
+                featureId: feature.id,
+                entry: cloneLocalRowEntry(rowIndex)
+            });
+            exitAddSurveyPointMode();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation) {
+                activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+                showSurveyCallout(annotation, { forceEdit: true });
+                renderFeatureDrawer();
+            }
+            setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} added.`, "success");
+        }
+
         function exitAddSurveyPointMode() {
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
@@ -6217,65 +6539,46 @@
             addSurveyPointBtn.textContent = "Add New";
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
+            drawingVertices = [];
+            if (drawingPreviewOverlay) {
+                map.removeOverlay(drawingPreviewOverlay);
+                drawingPreviewOverlay = null;
+            }
             if (mapAddHint) mapAddHint.hidden = true;
         }
 
         async function handleNewSurveyPointPlacement(coordinate) {
             if (!currentSurveyData || !coordinate) return;
+            const activeLayer = getActiveLayerRecord();
+            const geometryType = getActiveLayerGeometryType();
+            if (geometryType !== "point") {
+                drawingVertices.push({ lat: coordinate.latitude, lng: coordinate.longitude });
+                updateDrawingPreviewOverlay();
+                showWorkspaceHint(`Click to add ${geometryType === "line" ? "line" : "polygon"} vertices. Double-click or press Add New again to finish.`);
+                setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} drawing active. Add more vertices to finish.`, "success");
+                return;
+            }
             exitAddSurveyPointMode();
             if (!Array.isArray(currentSurveyData.headers) || !currentSurveyData.headers.length) {
                 alert("Unable to determine survey schema.");
                 return;
             }
             const dropboxMode = isDropboxSurvey();
-            const newRecord = {};
-            currentSurveyData.headers.forEach(header => {
-                newRecord[header] = "";
-            });
-            if (currentSurveyData.latKey) {
-                newRecord[currentSurveyData.latKey] = coordinate.latitude;
-            }
-            if (currentSurveyData.lonKey) {
-                newRecord[currentSurveyData.lonKey] = coordinate.longitude;
-            }
-            currentSurveyData.headers.forEach(header => {
-                const autoValue = getAutoFieldValue(header);
-                if (autoValue !== undefined) {
-                    newRecord[header] = autoValue;
-                }
-            });
-            const layer = getActiveLayerRecord();
-            const layerDefaults = {
-                ...getDefaultLayerStyleDefaults(),
-                ...(layer?.styleDefaults || {})
-            };
-            (layer?.schema || getDefaultLayerSchema()).forEach((field) => {
-                if (field.name in newRecord && !newRecord[field.name] && field.defaultValue !== undefined && field.defaultValue !== "") {
-                    newRecord[field.name] = field.defaultValue;
-                }
-            });
-            if ("symbol_color" in newRecord && !newRecord.symbol_color) {
-                newRecord.symbol_color = layerDefaults.symbol_color;
-            }
-            if ("symbol_shape" in newRecord && !newRecord.symbol_shape) {
-                newRecord.symbol_shape = layerDefaults.symbol_shape;
-            }
+            const layer = activeLayer;
+            const geometry = createPointGeometry(coordinate.latitude, coordinate.longitude);
+            const { newRecord, feature: featurePayload } = buildNewFeaturePayload(layer, geometry, coordinate);
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
             if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
             const placeholderMeta = {
-                id: generateSurveyPointId(),
-                version: 1
+                id: featurePayload.id,
+                version: 1,
+                geometry: cloneFeatureGeometry(featurePayload.geometry)
             };
             currentSurveyData.pointMeta.push(placeholderMeta);
             if (layer) {
                 layer.features = layer.features || [];
-                layer.features.push({
-                    id: placeholderMeta.id,
-                    geometry: { lat: coordinate.latitude, lng: coordinate.longitude },
-                    attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, newRecord[field.name] ?? ""])),
-                    version: placeholderMeta.version
-                });
+                layer.features.push(featurePayload);
             }
             if (!dropboxMode && currentSurveyDocument) {
                 const now = new Date().toISOString();
@@ -7234,7 +7537,7 @@
 
         function isAutoManagedField(header) {
             const normalized = normalizeHeaderName(header);
-            return normalized === "id" || normalized === "date" || normalized === "created_at";
+            return normalized === "id" || normalized === "date" || normalized === "created_at" || normalized === "latitude" || normalized === "longitude";
         }
 
         function normalizeMetaType(meta) {
@@ -7263,9 +7566,6 @@
                 return `id-${Date.now()}-${Math.random().toString(16).slice(2)}`;
             }
             if (normalized === "date") {
-                return new Date().toISOString();
-            }
-            if (normalized === "created_at") {
                 return new Date().toISOString();
             }
             return undefined;
@@ -7595,45 +7895,35 @@
             });
         }
 
-        function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
-            clearSurveyLayers();
-            rowAnnotationMap = new Map();
-            const coords = [];
-            if (identifierField !== "__custom__") {
-                identifierField = parsed.headers.find(h => h !== parsed.latKey && h !== parsed.lonKey) || parsed.latKey;
-            }
-            populateIdentifierOptions(parsed.headers, parsed.latKey, parsed.lonKey);
-            const pointMeta = parsed.pointMeta || [];
-            parsed.records.forEach((record, index) => {
-                const lat = parseFloat(record[parsed.latKey]);
-                const lon = parseFloat(record[parsed.lonKey]);
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-                const coord = new mapkit.Coordinate(lat, lon);
-                coords.push(coord);
-                const attributes = { ...record };
-                let imageSrc = null;
-                for (const value of Object.values(record)) {
-                    const match = findImageSrc(value);
-                    if (match) {
-                        imageSrc = match;
-                        break;
-                    }
+        function renderFeatureGeometryOnMap(feature, layer, { interactive = false, rowIndex = null, projectName = activeProjectName } = {}) {
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
+            const attributes = { ...(feature?.attributes || {}) };
+            let imageSrc = null;
+            for (const value of Object.values(attributes)) {
+                const match = findImageSrc(value);
+                if (match) {
+                    imageSrc = match;
+                    break;
                 }
+            }
+            if (geometryType === "point") {
+                const coord = getFeatureRepresentativeCoordinate(feature);
+                if (!coord) return [];
                 const markerTitle = computeLabelFromAttributes(attributes, projectName);
                 const marker = new mapkit.MarkerAnnotation(coord, {
-                    color: "#EA4335",
-                    glyphText: "●",
+                    color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
+                    glyphText: getSymbolGlyphValue(attributes.symbol_shape || layer?.styleDefaults?.symbol_shape),
                     title: markerTitle
                 });
-                const meta = pointMeta[index] || {};
                 marker.surveyPoint = {
                     coordinate: coord,
                     attributes,
                     imageSrc,
                     title: markerTitle,
-                    rowIndex: index,
-                    pointId: meta.id || null,
-                    pointVersion: meta.version ?? 1
+                    rowIndex,
+                    pointId: feature.id || null,
+                    pointVersion: feature.version ?? 1,
+                    geometryType
                 };
                 marker.addEventListener?.("mouseenter", () => {
                     hoveredFeatureId = marker.surveyPoint.pointId || marker.surveyPoint.rowIndex;
@@ -7644,12 +7934,88 @@
                     updateAnnotationVisualState(marker);
                 });
                 surveyAnnotations.push(marker);
-                rowAnnotationMap.set(index, marker);
+                if (interactive && Number.isInteger(rowIndex)) {
+                    rowAnnotationMap.set(rowIndex, marker);
+                    setAnnotationDraggable(marker);
+                }
                 map.addAnnotation(marker);
-                setAnnotationDraggable(marker);
                 updateAnnotationVisualState(marker);
-            });
+                return [coord];
+            }
+            const coords = getGeometryCoordinates(feature);
+            if (!coords.length) return [];
+            let overlay = null;
+            const overlayColor = getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color);
+            if (geometryType === "line") {
+                overlay = new mapkit.PolylineOverlay(coords, {
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
+                });
+            } else if (geometryType === "polygon") {
+                overlay = new mapkit.PolygonOverlay([coords], {
+                    style: new mapkit.Style({ lineWidth: 3, strokeColor: overlayColor, fillColor: `${overlayColor}44` })
+                });
+            }
+            if (overlay) {
+                surveyOverlays.push(overlay);
+                map.addOverlay(overlay);
+            }
+            const repCoord = getFeatureRepresentativeCoordinate(feature);
+            if (repCoord) {
+                const markerTitle = computeLabelFromAttributes(attributes, projectName);
+                const marker = new mapkit.MarkerAnnotation(repCoord, {
+                    color: overlayColor,
+                    glyphText: geometryType === "line" ? "━" : "▣",
+                    title: markerTitle
+                });
+                marker.surveyPoint = {
+                    coordinate: repCoord,
+                    attributes,
+                    imageSrc,
+                    title: markerTitle,
+                    rowIndex,
+                    pointId: feature.id || null,
+                    pointVersion: feature.version ?? 1,
+                    geometryType
+                };
+                surveyAnnotations.push(marker);
+                map.addAnnotation(marker);
+                if (interactive && Number.isInteger(rowIndex)) {
+                    rowAnnotationMap.set(rowIndex, marker);
+                }
+                updateAnnotationVisualState(marker);
+            }
+            return coords;
+        }
+
+        function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
+            clearSurveyLayers();
+            rowAnnotationMap = new Map();
+            const coords = [];
+            const visibleLayers = activeProjectRecord?.layers?.filter((layer) => layer.visible !== false) || [];
             activeProjectName = projectName;
+            const layersToRender = visibleLayers.length
+                ? visibleLayers
+                : [{
+                    id: activeLayerId || "temporary-layer",
+                    name: parsed?.layerName || "Layer",
+                    geometryType: parsed?.geometryType || "point",
+                    styleDefaults: getDefaultLayerStyleDefaults(parsed?.geometryType || "point"),
+                    features: buildLayerFeaturesFromParsed(parsed, createSchemaFromParsed(parsed, parsed?.geometryType || "point"), parsed?.geometryType || "point")
+                }];
+            if (identifierField !== "__custom__") {
+                identifierField = (parsed?.headers || []).find((h) => h !== parsed?.latKey && h !== parsed?.lonKey) || parsed?.latKey || identifierField;
+            }
+            populateIdentifierOptions(parsed?.headers || [], parsed?.latKey, parsed?.lonKey);
+            layersToRender.forEach((layer) => {
+                const interactive = layer.id === activeLayerId;
+                (layer.features || []).forEach((feature, index) => {
+                    coords.push(...renderFeatureGeometryOnMap(feature, layer, {
+                        interactive,
+                        rowIndex: interactive ? index : null,
+                        projectName
+                    }));
+                });
+            });
             if (!coords.length) {
                 updateSurveyTable();
                 return true;
@@ -7669,8 +8035,14 @@
         function clearSurveyLayers() {
             hideSurveyCallout();
             surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
+            surveyOverlays.forEach((overlay) => map.removeOverlay(overlay));
+            if (drawingPreviewOverlay) {
+                map.removeOverlay(drawingPreviewOverlay);
+                drawingPreviewOverlay = null;
+            }
             archiveAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyAnnotations = [];
+            surveyOverlays = [];
             archiveAnnotations = [];
             rowAnnotationMap = new Map();
             archiveRowAnnotationMap = new Map();
@@ -8053,12 +8425,16 @@
                 });
                 if (layer) {
                     layer.features = layer.features || [];
+                    const geometryType = normalizeLayerGeometryType(layer.geometryType || "point");
                     layer.features.push(options.archivedEntry?.feature || archiveMeta.feature || {
                         id: point.id,
-                        geometry: {
-                            lat: Number.isFinite(parseFloat(attrs[currentSurveyData.latKey])) ? parseFloat(attrs[currentSurveyData.latKey]) : null,
-                            lng: Number.isFinite(parseFloat(attrs[currentSurveyData.lonKey])) ? parseFloat(attrs[currentSurveyData.lonKey]) : null
-                        },
+                        geometry: geometryType === "point"
+                            ? {
+                                type: "Point",
+                                lat: Number.isFinite(parseFloat(attrs[currentSurveyData.latKey])) ? parseFloat(attrs[currentSurveyData.latKey]) : null,
+                                lng: Number.isFinite(parseFloat(attrs[currentSurveyData.lonKey])) ? parseFloat(attrs[currentSurveyData.lonKey]) : null
+                            }
+                            : cloneFeatureGeometry(archiveMeta.geometry || options.archivedEntry?.pointMeta?.geometry),
                         attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, attrs[field.name] ?? ""])),
                         version: point.version ?? 1
                     });
@@ -8637,7 +9013,9 @@ function setImportPanelVisibility(show) {
             currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.lon;
             const layer = getActiveLayerRecord();
             if (layer?.features?.[rowIndex]) {
-                layer.features[rowIndex].geometry = { lat: coord.lat, lng: coord.lon };
+                layer.features[rowIndex].geometry = { type: "Point", lat: coord.lat, lng: coord.lon };
+                layer.features[rowIndex].attributes.Latitude = coord.lat;
+                layer.features[rowIndex].attributes.Longitude = coord.lon;
             }
             const annotation = rowAnnotationMap.get(rowIndex);
             if (annotation) {
@@ -8652,6 +9030,7 @@ function setImportPanelVisibility(show) {
             if (!currentSurveyData?.records || index < 0 || index >= currentSurveyData.records.length) return null;
             const record = currentSurveyData.records.splice(index, 1)[0];
             const layer = getActiveLayerRecord();
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             const feature = layer?.features?.[index] ? { ...layer.features[index], attributes: { ...(layer.features[index].attributes || {}) } } : null;
             if (layer?.features) {
                 layer.features.splice(index, 1);
@@ -8660,23 +9039,27 @@ function setImportPanelVisibility(show) {
             if (Array.isArray(currentSurveyData.pointMeta)) {
                 pointMetaEntry = currentSurveyData.pointMeta.splice(index, 1)[0] || null;
             }
-            const annotation = rowAnnotationMap.get(index);
-            if (annotation) {
-                map.removeAnnotation(annotation);
-                surveyAnnotations = surveyAnnotations.filter(a => a !== annotation);
-                rowAnnotationMap.delete(index);
+            if (geometryType === "point") {
+                const annotation = rowAnnotationMap.get(index);
+                if (annotation) {
+                    map.removeAnnotation(annotation);
+                    surveyAnnotations = surveyAnnotations.filter(a => a !== annotation);
+                    rowAnnotationMap.delete(index);
+                }
+                surveyAnnotations.forEach(annotation => {
+                    if (Number.isInteger(annotation?.surveyPoint?.rowIndex) && annotation.surveyPoint.rowIndex > index) {
+                        annotation.surveyPoint.rowIndex -= 1;
+                    }
+                });
+                rowAnnotationMap = new Map();
+                surveyAnnotations.forEach(annotation => {
+                    if (Number.isInteger(annotation?.surveyPoint?.rowIndex)) {
+                        rowAnnotationMap.set(annotation.surveyPoint.rowIndex, annotation);
+                    }
+                });
+            } else if (activeProjectRecord) {
+                setActiveProject(activeProjectRecord, { preserveRegion: true });
             }
-            surveyAnnotations.forEach(annotation => {
-                if (Number.isInteger(annotation?.surveyPoint?.rowIndex) && annotation.surveyPoint.rowIndex > index) {
-                    annotation.surveyPoint.rowIndex -= 1;
-                }
-            });
-            rowAnnotationMap = new Map();
-            surveyAnnotations.forEach(annotation => {
-                if (Number.isInteger(annotation?.surveyPoint?.rowIndex)) {
-                    rowAnnotationMap.set(annotation.surveyPoint.rowIndex, annotation);
-                }
-            });
             updateSurveyTable();
             return {
                 record,
@@ -8719,6 +9102,7 @@ function setImportPanelVisibility(show) {
             const record = entry?.record ? { ...entry.record } : { ...(entry || {}) };
             currentSurveyData.records.splice(rowIndex, 0, record);
             const layer = getActiveLayerRecord();
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             if (layer) {
                 layer.features = layer.features || [];
                 const feature = entry?.feature
@@ -8729,10 +9113,13 @@ function setImportPanelVisibility(show) {
                     }
                     : {
                         id: generateSurveyPointId(),
-                        geometry: {
-                            lat: parseFloat(record[currentSurveyData.latKey]),
-                            lng: parseFloat(record[currentSurveyData.lonKey])
-                        },
+                        geometry: geometryType === "point"
+                            ? {
+                                type: "Point",
+                                lat: parseFloat(record[currentSurveyData.latKey]),
+                                lng: parseFloat(record[currentSurveyData.lonKey])
+                            }
+                            : cloneFeatureGeometry(entry?.pointMeta?.geometry),
                         attributes: Object.fromEntries((layer.schema || getDefaultLayerSchema()).map((field) => [field.name, record[field.name] ?? ""])),
                         version: 1
                     };
@@ -8741,10 +9128,15 @@ function setImportPanelVisibility(show) {
             if (Array.isArray(currentSurveyData.pointMeta)) {
                 currentSurveyData.pointMeta.splice(rowIndex, 0, entry?.pointMeta ? { ...entry.pointMeta } : {
                     id: generateSurveyPointId(),
-                    version: 1
+                    version: 1,
+                    geometry: cloneFeatureGeometry(entry?.feature?.geometry)
                 });
             }
-            adjustAnnotationsForInsert(rowIndex, record);
+            if (geometryType === "point") {
+                adjustAnnotationsForInsert(rowIndex, record);
+            } else if (activeProjectRecord) {
+                setActiveProject(activeProjectRecord, { preserveRegion: true });
+            }
             updateSurveyTable();
         }
 
@@ -8789,6 +9181,7 @@ function setImportPanelVisibility(show) {
 
         function setAnnotationDraggable(annotation) {
             if (!annotation || annotation._dragConfigured) return;
+            if (normalizeLayerGeometryType(getActiveLayerRecord()?.geometryType || "point") !== "point") return;
             annotation._dragConfigured = true;
             try {
                 annotation.draggable = true;
@@ -9394,6 +9787,15 @@ function setImportPanelVisibility(show) {
             if (coordinate) {
                 handleNewSurveyPointPlacement(coordinate);
             }
+        });
+
+        mapElement.addEventListener("dblclick", (event) => {
+            if (shouldSuppressMapTap()) return;
+            if (!isAddingSurveyPoint) return;
+            if (getActiveLayerGeometryType() === "point") return;
+            event.preventDefault();
+            event.stopPropagation();
+            finalizeGeometryFeaturePlacement();
         });
 
         let hasCenteredOnce = false;

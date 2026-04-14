@@ -295,7 +295,7 @@
                   <th class="catalog-sortable" data-layer-sort="geometry">Geometry<span class="catalog-sort-indicator"></span></th>
                   <th class="catalog-sortable" data-layer-sort="features">Features<span class="catalog-sort-indicator"></span></th>
                   <th class="catalog-sortable" data-layer-sort="modified">Modified<span class="catalog-sort-indicator"></span></th>
-                  <th class="catalog-sortable" data-layer-sort="rev">Dropbox Rev<span class="catalog-sort-indicator"></span></th>
+                  <th class="catalog-sortable" data-layer-sort="created">Created<span class="catalog-sort-indicator"></span></th>
                 </tr>
               </thead>
               <tbody id="layerList" aria-live="polite"></tbody>
@@ -841,7 +841,7 @@
           <td>${escapeHtml(layer.fileType === "zip" ? "Project archive" : (state.layerSummaryCache[layer.pathLower]?.geometryType || "Unknown"))}</td>
           <td>${escapeHtml(layer.fileType === "zip" ? "Ready to import" : formatFeatureCount(state.layerSummaryCache[layer.pathLower]?.featureCount))}</td>
           <td>${escapeHtml(formatDate(layer.serverModified || layer.clientModified))}</td>
-          <td class="catalog-muted">${escapeHtml(layer.rev || "rev ?")}</td>
+          <td class="catalog-muted">${escapeHtml(formatDate(state.layerSummaryCache[layer.pathLower]?.createdAt))}</td>
         </tr>
       `).join("");
       els.layerList.querySelectorAll("[data-layer-row]").forEach((card) => {
@@ -2022,6 +2022,7 @@
         documentType: layer.metadata?.documentType || "layer",
         geometryType: layer.metadata?.geometryType || layer.features?.[0]?.geometry?.type || "Unknown",
         featureCount: Array.isArray(layer.features) ? layer.features.length : 0,
+        createdAt: layer.metadata?.createdAt || null,
         updatedAt: layer.metadata?.updatedAt || null,
       };
       localStorage.setItem("lalgeo_data_manager_layer_summaries", JSON.stringify(state.layerSummaryCache));
@@ -2059,14 +2060,14 @@
         field === "type" ? getFileType(left.name) :
         field === "geometry" ? (left.fileType === "zip" ? "Project archive" : (leftSummary.geometryType || "Unknown")) :
         field === "features" ? (left.fileType === "zip" ? -1 : (leftSummary.featureCount ?? -1)) :
-        field === "rev" ? (left.rev || "") :
+        field === "created" ? new Date(leftSummary.createdAt || 0).getTime() :
         new Date(left.serverModified || left.clientModified || 0).getTime();
       const rightValue =
         field === "name" ? right.name :
         field === "type" ? getFileType(right.name) :
         field === "geometry" ? (right.fileType === "zip" ? "Project archive" : (rightSummary.geometryType || "Unknown")) :
         field === "features" ? (right.fileType === "zip" ? -1 : (rightSummary.featureCount ?? -1)) :
-        field === "rev" ? (right.rev || "") :
+        field === "created" ? new Date(rightSummary.createdAt || 0).getTime() :
         new Date(right.serverModified || right.clientModified || 0).getTime();
       return compareValues(leftValue, rightValue, direction === 1 ? "asc" : "desc");
     }
@@ -2077,7 +2078,7 @@
       } else {
         state.layerSort = {
           field,
-          direction: field === "name" || field === "geometry" || field === "type" || field === "rev" ? "asc" : "desc",
+          direction: field === "name" || field === "geometry" || field === "type" ? "asc" : "desc",
         };
       }
       renderLayerList();

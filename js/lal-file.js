@@ -3,10 +3,19 @@ const DEFAULT_STYLE = {
   symbolShape: "Dot",
 };
 
-const DEFAULT_SCHEMA = [
-  { name: "name", type: "text", nullable: true, description: "Feature name", options: [] },
-  { name: "description", type: "text", nullable: true, description: "Feature description", options: [] },
-];
+function getDefaultSchema(geometryType = "Point") {
+  const baseFields = [
+    { name: "ID", type: "text", nullable: false, description: "System feature identifier", options: [], locked: true },
+    { name: "Date", type: "text", nullable: false, description: "System feature timestamp", options: [], locked: true },
+  ];
+  if (String(geometryType).toLowerCase() === "point") {
+    baseFields.push(
+      { name: "Latitude", type: "number", nullable: false, description: "System latitude", options: [], locked: true },
+      { name: "Longitude", type: "number", nullable: false, description: "System longitude", options: [], locked: true },
+    );
+  }
+  return baseFields;
+}
 
 export function generateId(prefix = "lal") {
   if (globalThis.crypto?.randomUUID) return `${prefix}-${globalThis.crypto.randomUUID()}`;
@@ -15,6 +24,7 @@ export function generateId(prefix = "lal") {
 
 export function createEmptyLalLayer({ name = "New Layer", geometryType = "Point", documentType = "layer" } = {}) {
   const now = new Date().toISOString();
+  const schema = cloneSchema(getDefaultSchema(geometryType));
   return {
     kind: "lal-layer",
     version: 2,
@@ -32,7 +42,7 @@ export function createEmptyLalLayer({ name = "New Layer", geometryType = "Point"
       sourceFormat: "lal",
       projectStorageMode: documentType === "layer" ? "reference" : "embedded",
     },
-    schema: cloneSchema(DEFAULT_SCHEMA),
+    schema,
     style: { ...DEFAULT_STYLE },
     features: [],
     revision: {
@@ -47,13 +57,14 @@ export function cloneLayer(layer) {
   return JSON.parse(JSON.stringify(layer));
 }
 
-export function cloneSchema(schema = DEFAULT_SCHEMA) {
+export function cloneSchema(schema = getDefaultSchema()) {
   return schema.map((field) => ({
     name: field.name,
     type: field.type || "text",
     nullable: field.nullable !== false,
     description: field.description || "",
     options: Array.isArray(field.options) ? [...field.options] : [],
+    locked: field.locked === true,
   }));
 }
 
@@ -145,7 +156,8 @@ export function normalizeGeometry(geometry) {
 
 export function inferSchemaFromFeatures(features = []) {
   const sample = features.map((feature) => feature.properties || {});
-  const names = new Set(DEFAULT_SCHEMA.map((field) => field.name));
+  const inferredGeometryType = features.find((feature) => feature?.geometry?.type)?.geometry?.type || "Point";
+  const names = new Set(getDefaultSchema(inferredGeometryType).map((field) => field.name));
   sample.forEach((row) => Object.keys(row || {}).forEach((key) => names.add(key)));
   return [...names].map((name) => {
     const values = sample.map((row) => row?.[name]).filter((value) => value !== null && value !== undefined && value !== "");
