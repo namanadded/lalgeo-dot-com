@@ -3210,6 +3210,7 @@
         const WORKSPACE_ACTIVE_KEY = "lalgeoWorkspaceActiveProjectIdV1";
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
         const WORKSPACE_UI_PREFS_KEY = "lalgeoWorkspaceUiPrefsV1";
+        const WORKSPACE_REMEMBER_KEY = "lalgeoWorkspaceRememberSessionV1";
         let workspaceProjects = [];
         let sidebarVisible = true;
         let dataPaneVisible = true;
@@ -3635,7 +3636,8 @@
             try {
                 const raw = localStorage.getItem(WORKSPACE_UI_PREFS_KEY);
                 const prefs = raw ? JSON.parse(raw) : {};
-                rememberLastSession = prefs.rememberLastSession !== false;
+                const rememberRaw = localStorage.getItem(WORKSPACE_REMEMBER_KEY);
+                rememberLastSession = rememberRaw === null ? prefs.rememberLastSession !== false : rememberRaw === "true";
                 hideWorkspaceEmptyStateForever = prefs.hideWorkspaceEmptyStateForever === true;
                 if (rememberLastSession) {
                     sidebarVisible = prefs.sidebarVisible !== false;
@@ -3664,6 +3666,7 @@
 
         function saveWorkspaceUiPrefs() {
             try {
+                localStorage.setItem(WORKSPACE_REMEMBER_KEY, rememberLastSession ? "true" : "false");
                 localStorage.setItem(WORKSPACE_UI_PREFS_KEY, JSON.stringify({
                     rememberLastSession,
                     sidebarVisible,
@@ -3682,6 +3685,7 @@
             emptyStateDismissed = false;
             hideWorkspaceEmptyStateForever = false;
             try {
+                localStorage.setItem(WORKSPACE_REMEMBER_KEY, "false");
                 localStorage.setItem(WORKSPACE_UI_PREFS_KEY, JSON.stringify({
                     rememberLastSession: false,
                     sidebarVisible: true,
@@ -5491,6 +5495,7 @@
                 saveWorkspaceUiPrefs();
             } else {
                 clearWorkspaceSessionPrefs();
+                setActiveProject(null, { render: true, preserveRegion: true });
                 setSidebarVisibility(true);
                 setDataPaneVisibility(true);
                 if (workspaceEmptyState) workspaceEmptyState.hidden = false;
