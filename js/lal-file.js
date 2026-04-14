@@ -13,7 +13,7 @@ export function generateId(prefix = "lal") {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 }
 
-export function createEmptyLalLayer({ name = "New Layer", geometryType = "Point" } = {}) {
+export function createEmptyLalLayer({ name = "New Layer", geometryType = "Point", documentType = "layer" } = {}) {
   const now = new Date().toISOString();
   return {
     kind: "lal-layer",
@@ -22,6 +22,7 @@ export function createEmptyLalLayer({ name = "New Layer", geometryType = "Point"
       id: generateId("layer"),
       name,
       description: "",
+      documentType,
       geometryType,
       createdAt: now,
       updatedAt: now,
@@ -29,6 +30,7 @@ export function createEmptyLalLayer({ name = "New Layer", geometryType = "Point"
       lastModifiedBy: "LalGeo Data Manager",
       featureCount: 0,
       sourceFormat: "lal",
+      projectStorageMode: documentType === "layer" ? "reference" : "embedded",
     },
     schema: cloneSchema(DEFAULT_SCHEMA),
     style: { ...DEFAULT_STYLE },
@@ -97,7 +99,7 @@ export function normalizeLalDocument(input, filename = "layer.lal") {
     layer.schema = cloneSchema(layer.schema?.length ? layer.schema : inferSchemaFromFeatures(layer.features));
     layer.style = { ...DEFAULT_STYLE, ...(layer.style || {}) };
     layer.metadata = {
-      ...createEmptyLalLayer({ name: filename.replace(/\.lal$/i, "") }).metadata,
+      ...createEmptyLalLayer({ name: filename.replace(/\.lal$/i, ""), documentType: input?.metadata?.documentType || "layer" }).metadata,
       ...(layer.metadata || {}),
       featureCount: Array.isArray(layer.features) ? layer.features.length : 0,
     };
@@ -175,7 +177,7 @@ export function fromGeoJSON(geojson, options = {}) {
   const features = Array.isArray(geojson.features) ? geojson.features : [];
   const layerName = options.layerName || geojson.name || "Imported Layer";
   const geometryType = deriveGeometryType(features[0]?.geometry?.type || options.geometryType || "Point");
-  const layer = createEmptyLalLayer({ name: layerName, geometryType });
+  const layer = createEmptyLalLayer({ name: layerName, geometryType, documentType: options.documentType || "layer" });
   layer.features = features.map((feature) => ({
     id: feature.id || generateId("feature"),
     geometry: normalizeGeometry(feature.geometry),
@@ -204,7 +206,11 @@ export function toGeoJSON(layer) {
 export function convertSurveyPackageToLal(surveyJson, metadataJson = {}, filename = "layer.lal") {
   const layerName = metadataJson.name || filename.replace(/\.lal$/i, "");
   const geometryType = deriveGeometryType(metadataJson.geometryType || "Point");
-  const layer = createEmptyLalLayer({ name: layerName, geometryType });
+  const layer = createEmptyLalLayer({
+    name: layerName,
+    geometryType,
+    documentType: metadataJson.documentType || "project",
+  });
   const points = Array.isArray(surveyJson.points) ? surveyJson.points : [];
   layer.features = points.map((point) => ({
     id: point.id || generateId("feature"),
@@ -234,6 +240,7 @@ export function convertSurveyPackageToLal(surveyJson, metadataJson = {}, filenam
   layer.metadata = {
     ...layer.metadata,
     description: metadataJson.description || "",
+    documentType: metadataJson.documentType || "project",
     createdAt: metadataJson.createdAt || surveyJson.updatedAt || layer.metadata.createdAt,
     updatedAt: surveyJson.updatedAt || metadataJson.updatedAt || layer.metadata.updatedAt,
     createdBy: metadataJson.createdBy || layer.metadata.createdBy,
@@ -273,4 +280,3 @@ export function deriveGeometryType(type) {
   if (value.includes("line")) return "LineString";
   return "Point";
 }
-
