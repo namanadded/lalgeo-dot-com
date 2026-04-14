@@ -3716,8 +3716,10 @@
         function saveWorkspaceProjects() {
             try {
                 localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspaceProjects));
-                if (activeProjectRecord?.id) {
+                if (rememberLastSession && activeProjectRecord?.id) {
                     localStorage.setItem(WORKSPACE_ACTIVE_KEY, activeProjectRecord.id);
+                } else {
+                    localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
                 }
             } catch (error) {
                 console.warn("Unable to persist workspace projects", error);
@@ -4174,8 +4176,10 @@
             }
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
-            if (project?.id) {
+            if (rememberLastSession && project?.id) {
                 localStorage.setItem(WORKSPACE_ACTIVE_KEY, project.id);
+            } else {
+                localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
             }
             if (!project) {
                 activeProjectName = "";
