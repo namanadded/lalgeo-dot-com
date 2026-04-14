@@ -7331,7 +7331,7 @@
                 method: "POST",
                 credentials: "include",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ path })
+                body: JSON.stringify({ path, survey: buildSurveyDocumentFromParsed(currentSurveyData) })
             });
             if (!response.ok) {
                 const data = await response.json().catch(() => null);
@@ -8328,7 +8328,7 @@
             isCalloutEditing = false;
             updateAnnotationLabels();
             renderSurveyCalloutContent();
-            if (isDropboxSurvey()) {
+            if (isDropboxSurvey() && getActiveLayerGeometryType() === "point") {
                 try {
                     const meta = getPointMeta(rowIndex);
                     if (!meta?.id) {
@@ -8353,6 +8353,10 @@
                     }
                     setProjectStatus(error.message || "Unable to update Dropbox point.", "error");
                 }
+            } else if (isDropboxSurvey()) {
+                markSurveyDirty();
+                await persistSurveyEditsIfNeeded(true);
+                setProjectStatus("Feature updated on Dropbox.", "success");
             } else if (wasNewPoint) {
                 activeSurveyAnnotation.surveyPoint.isNew = false;
                 pendingNewAnnotation = null;
@@ -8370,7 +8374,7 @@
             if (!activeSurveyAnnotation) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
             const meta = getPointMeta(rowIndex);
-            if (isDropboxSurvey()) {
+            if (isDropboxSurvey() && getActiveLayerGeometryType() === "point") {
                 try {
                     if (!meta?.id) throw new Error("Missing Dropbox point metadata.");
                     setProjectStatus("Archiving point…");
@@ -8392,7 +8396,13 @@
                         archivedEntry: archived.entry,
                         featureId: archived.entry.feature?.id || archived.entry.pointMeta?.id || null
                     });
-                    setProjectStatus("Feature moved to archive.", "success");
+                    if (isDropboxSurvey()) {
+                        markSurveyDirty();
+                        void persistSurveyEditsIfNeeded(true);
+                        setProjectStatus("Feature archived on Dropbox.", "success");
+                    } else {
+                        setProjectStatus("Feature moved to archive.", "success");
+                    }
                 }
             }
             hideSurveyCallout();
@@ -8471,7 +8481,7 @@
                 removedMeta = archiveData.pointMeta.splice(archiveIndex, 1)[0] || archiveMeta;
             }
 
-            if (isDropboxSurvey()) {
+            if (isDropboxSurvey() && getActiveLayerGeometryType() === "point") {
                 try {
                     setProjectStatus("Restoring point…");
                     const restoreResp = await restoreDropboxPointRequest(archiveMeta.id, { version: archiveMeta.version });
@@ -8505,8 +8515,14 @@
                     isArchiveView = false;
                     archiveToggleBtn.textContent = "Show archive";
                 }
-                scheduleLocalAutosave();
-                updateHistoryButtons();
+                if (isDropboxSurvey()) {
+                    markSurveyDirty();
+                    void persistSurveyEditsIfNeeded(true);
+                    setProjectStatus("Feature restored on Dropbox.", "success");
+                } else {
+                    scheduleLocalAutosave();
+                    updateHistoryButtons();
+                }
             }
         }
 
