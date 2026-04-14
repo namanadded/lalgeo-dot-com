@@ -2328,6 +2328,30 @@
         min-height: 90px;
         resize: vertical;
     }
+    .feature-drawer-photo-btn {
+        display: grid;
+        gap: 8px;
+        justify-items: start;
+        padding: 0;
+        border: none;
+        background: transparent;
+        color: #d8e7f3;
+        cursor: pointer;
+        text-align: left;
+    }
+    .feature-drawer-photo-btn img {
+        width: 100%;
+        max-height: 180px;
+        object-fit: cover;
+        border-radius: 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.24);
+    }
+    .feature-drawer-photo-btn span {
+        font-size: 12px;
+        font-weight: 600;
+        color: #8ff0dc;
+    }
     .feature-drawer-actions {
         display: flex;
         justify-content: space-between;
@@ -4404,6 +4428,8 @@
                 return;
             }
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const featureImageSrc = activeSurveyAnnotation.surveyPoint.imageSrc || null;
+            const featureImageTitle = activeSurveyAnnotation.surveyPoint.title || feature.attributes?.name || `Feature ${rowIndex + 1}`;
             featureDrawerMeta.innerHTML = `
                 <span class="workspace-badge">${escapeHtml(layer.name)}</span>
                 <span>Feature ID: ${escapeHtml(feature.id || `feature-${rowIndex + 1}`)}</span>
@@ -4456,8 +4482,18 @@
                     }).join("")}
                 </div>
             ` : "";
+            const imageSection = featureImageSrc ? `
+                <div class="feature-drawer-section">
+                    <div class="feature-drawer-section-label">Photo</div>
+                    <button id="featureDrawerPhotoBtn" type="button" class="feature-drawer-photo-btn" aria-label="Open feature photo">
+                        <img src="${escapeHtml(featureImageSrc)}" alt="${escapeHtml(featureImageTitle)}">
+                        <span>View full image</span>
+                    </button>
+                </div>
+            ` : "";
             featureDrawerBody.innerHTML = `
                 <div class="feature-drawer-form">
+                    ${imageSection}
                     ${fields}
                     ${styleSection}
                     <div class="feature-drawer-actions">
@@ -4477,6 +4513,9 @@
                 }
             });
             featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => deleteActivePoint());
+            featureDrawerBody.querySelector("#featureDrawerPhotoBtn")?.addEventListener("click", () => {
+                openImageModal(featureImageSrc, featureImageTitle);
+            });
             featureDrawerBody.querySelector("#featureDrawerDone")?.addEventListener("click", () => {
                 hideSurveyCallout();
                 setProjectStatus("Feature details saved and closed.", "success");
