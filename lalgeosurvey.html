@@ -3676,6 +3676,27 @@
             }
         }
 
+        function clearWorkspaceSessionPrefs() {
+            sidebarVisible = true;
+            dataPaneVisible = true;
+            emptyStateDismissed = false;
+            hideWorkspaceEmptyStateForever = false;
+            try {
+                localStorage.setItem(WORKSPACE_UI_PREFS_KEY, JSON.stringify({
+                    rememberLastSession: false,
+                    sidebarVisible: true,
+                    dataPaneVisible: true,
+                    hideWorkspaceEmptyStateForever: false,
+                    emptyStateDismissed: false
+                }));
+                localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
+            } catch (error) {
+                console.warn("Unable to clear workspace UI prefs", error);
+            }
+            if (rememberSessionToggle) rememberSessionToggle.checked = false;
+            if (hideWorkspaceEmptyStateToggle) hideWorkspaceEmptyStateToggle.checked = false;
+        }
+
         function loadWorkspaceProjects() {
             try {
                 const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
@@ -5425,14 +5446,16 @@
         loadWorkspaceProjects();
         loadWorkspaceUiPrefs();
         updateCreateProjectFormState();
-        const storedActiveProjectId = localStorage.getItem(WORKSPACE_ACTIVE_KEY);
-        if (storedActiveProjectId) {
+        const storedActiveProjectId = rememberLastSession ? localStorage.getItem(WORKSPACE_ACTIVE_KEY) : null;
+        if (rememberLastSession && storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
                 setActiveProject(storedProject, { render: false });
             }
-        } else if (workspaceProjects[0]) {
+        } else if (rememberLastSession && workspaceProjects[0]) {
             setActiveProject(workspaceProjects[0], { render: false });
+        } else {
+            setActiveProject(null, { render: false });
         }
         renderWorkspaceCollections();
         updateWorkspaceContext();
@@ -5460,7 +5483,15 @@
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         rememberSessionToggle?.addEventListener("change", () => {
             rememberLastSession = Boolean(rememberSessionToggle.checked);
-            saveWorkspaceUiPrefs();
+            if (rememberLastSession) {
+                saveWorkspaceUiPrefs();
+            } else {
+                clearWorkspaceSessionPrefs();
+                setSidebarVisibility(true);
+                setDataPaneVisibility(true);
+                if (workspaceEmptyState) workspaceEmptyState.hidden = false;
+                setProjectStatus("Session layout memory turned off.", "success");
+            }
         });
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
