@@ -160,6 +160,9 @@
         transform: translateX(-24px);
         transition: opacity 0.2s ease, transform 0.2s ease;
     }
+    #sidebar[hidden] {
+        display: none !important;
+    }
     #sidebar.visible {
         opacity: 1;
         pointer-events: auto;
@@ -3980,6 +3983,9 @@
         function setSidebarVisibility(show) {
             const persistent = window.innerWidth > 980;
             sidebarVisible = Boolean(show);
+            if (sidebar) {
+                sidebar.hidden = !sidebarVisible;
+            }
             sidebar?.classList.toggle("visible", sidebarVisible);
             sidebar?.setAttribute("aria-hidden", sidebarVisible ? "false" : "true");
             document.body.classList.toggle("sidebar-persistent", persistent && sidebarVisible);
@@ -5447,7 +5453,11 @@
             }
         });
         addLayerBtn?.addEventListener("click", addLayerToActiveProject);
-        closeSidebar?.addEventListener("click", () => setSidebarVisibility(false));
+        closeSidebar?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setSidebarVisibility(false);
+        });
         sidebarBackdrop?.addEventListener("click", () => setSidebarVisibility(false));
         sidebarContent?.addEventListener("click", (event) => {
             if (event.target.closest("[data-sidebar-open-projects]")) {
@@ -9042,7 +9052,9 @@ function setImportPanelVisibility(show) {
         }
 
         document.addEventListener("DOMContentLoaded", () => {
-            document.getElementById("closeSidebar").addEventListener("click", () => {
+            document.getElementById("closeSidebar").addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
                 setSidebarVisibility(false);
             });
         });
