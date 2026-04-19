@@ -2582,7 +2582,7 @@
     <div id="settingsPanel" hidden>
         <p class="settings-panel-title">Workspace settings</p>
         <label class="settings-option">
-            <input id="rememberSessionToggle" type="checkbox" checked>
+            <input id="rememberSessionToggle" type="checkbox">
             <span>Remember last session layout and reopen the workspace the way you left it.</span>
         </label>
         <p class="settings-note">This remembers the Layers pane, Data Manager pane, and hidden welcome card.</p>
@@ -3142,6 +3142,12 @@
             const replacement = `${window.location.pathname}${newQuery ? `?${newQuery}` : ""}${window.location.hash}`;
             window.history.replaceState({}, "", replacement);
         }
+        if (dropboxLinkParam && shareParam !== "1") {
+            urlParams.delete("dropboxLink");
+            const newQuery = urlParams.toString();
+            const replacement = `${window.location.pathname}${newQuery ? `?${newQuery}` : ""}${window.location.hash}`;
+            window.history.replaceState({}, "", replacement);
+        }
         if (shareParam === "1") {
             autoOpenSharePanel = true;
         }
@@ -3633,11 +3639,12 @@
         }
 
         function loadWorkspaceUiPrefs() {
+            const rememberRaw = localStorage.getItem(WORKSPACE_REMEMBER_KEY);
+            const rememberedValue = rememberRaw === null ? null : rememberRaw === "true";
             try {
                 const raw = localStorage.getItem(WORKSPACE_UI_PREFS_KEY);
                 const prefs = raw ? JSON.parse(raw) : {};
-                const rememberRaw = localStorage.getItem(WORKSPACE_REMEMBER_KEY);
-                rememberLastSession = rememberRaw === null ? prefs.rememberLastSession !== false : rememberRaw === "true";
+                rememberLastSession = rememberedValue === null ? prefs.rememberLastSession !== false : rememberedValue;
                 hideWorkspaceEmptyStateForever = prefs.hideWorkspaceEmptyStateForever === true;
                 if (rememberLastSession) {
                     sidebarVisible = prefs.sidebarVisible !== false;
@@ -3650,7 +3657,7 @@
                 }
             } catch (error) {
                 console.warn("Unable to load workspace UI prefs", error);
-                rememberLastSession = true;
+                rememberLastSession = rememberedValue === null ? true : rememberedValue;
                 sidebarVisible = true;
                 dataPaneVisible = true;
                 hideWorkspaceEmptyStateForever = false;
@@ -5390,7 +5397,7 @@
             await handleSurveyFiles(Array.from(event.target.files));
             event.target.value = "";
         });
-        if (dropboxLinkParam) {
+        if (dropboxLinkParam && shareParam === "1") {
             dropboxUrlInput.value = dropboxLinkParam;
             (async () => {
                 try {
@@ -5443,14 +5450,12 @@
         });
 
         window.addEventListener("focus", () => {
-            checkDropboxConnectionStatus();
-            refreshDropboxSurveyList(true);
+            checkDropboxConnectionStatus({ refreshList: true });
         });
         window.addEventListener("resize", () => {
             setSidebarVisibility(sidebarVisible);
         });
-        checkDropboxConnectionStatus();
-        refreshDropboxSurveyList();
+        checkDropboxConnectionStatus({ refreshList: true });
         loadWorkspaceProjects();
         loadWorkspaceUiPrefs();
         updateCreateProjectFormState();
@@ -7080,7 +7085,7 @@
             }
         }
 
-        async function checkDropboxConnectionStatus() {
+        async function checkDropboxConnectionStatus({ refreshList = false } = {}) {
             if (!dropboxConnectStatus) return;
             try {
                 const response = await fetch(`${WORKER_BASE}/api/profile`, { credentials: "include" });
@@ -7090,16 +7095,31 @@
                     dropboxProfile = data.profile || null;
                     showDropboxConnectedState(data.profile || {});
                     dropboxConnectStatus.textContent = "Dropbox connected.";
+                    if (refreshList) {
+                        await refreshDropboxSurveyList(true);
+                    }
                     return;
                 }
                 dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = "Dropbox not connected.";
+                currentDropboxProjects = [];
+                selectedDropboxProjectPath = null;
+                if (dropboxSurveySelect) {
+                    dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
+                }
+                renderDropboxCatalogPane();
             } catch (error) {
                 console.error(error);
                 dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = error.message || "Unable to reach Dropbox worker.";
+                currentDropboxProjects = [];
+                selectedDropboxProjectPath = null;
+                if (dropboxSurveySelect) {
+                    dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
+                }
+                renderDropboxCatalogPane();
             }
         }
 
