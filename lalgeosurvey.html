@@ -3686,6 +3686,23 @@
             }
         }
 
+        function persistRememberSessionPreference(value) {
+            rememberLastSession = Boolean(value);
+            if (rememberSessionToggle) {
+                rememberSessionToggle.checked = rememberLastSession;
+            }
+            if (rememberLastSession) {
+                saveWorkspaceUiPrefs();
+            } else {
+                clearWorkspaceSessionPrefs();
+                setActiveProject(null, { render: true, preserveRegion: true });
+                setSidebarVisibility(true);
+                setDataPaneVisibility(true);
+                if (workspaceEmptyState) workspaceEmptyState.hidden = false;
+                setProjectStatus("Session layout memory turned off.", "success");
+            }
+        }
+
         function clearWorkspaceSessionPrefs() {
             sidebarVisible = true;
             dataPaneVisible = true;
@@ -5494,18 +5511,13 @@
             setDataPaneVisibility(!dataPaneVisible);
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
-        rememberSessionToggle?.addEventListener("change", () => {
-            rememberLastSession = Boolean(rememberSessionToggle.checked);
-            if (rememberLastSession) {
-                saveWorkspaceUiPrefs();
-            } else {
-                clearWorkspaceSessionPrefs();
-                setActiveProject(null, { render: true, preserveRegion: true });
-                setSidebarVisibility(true);
-                setDataPaneVisibility(true);
-                if (workspaceEmptyState) workspaceEmptyState.hidden = false;
-                setProjectStatus("Session layout memory turned off.", "success");
-            }
+        const handleRememberSessionToggle = () => {
+            persistRememberSessionPreference(Boolean(rememberSessionToggle?.checked));
+        };
+        rememberSessionToggle?.addEventListener("change", handleRememberSessionToggle);
+        rememberSessionToggle?.addEventListener("input", handleRememberSessionToggle);
+        rememberSessionToggle?.addEventListener("click", () => {
+            queueMicrotask(handleRememberSessionToggle);
         });
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
@@ -8975,6 +8987,12 @@ function setToolbarMenuVisibility(show) {
 
         function setSettingsPanelVisibility(show) {
             if (!settingsPanel) return;
+            if (!show && rememberSessionToggle) {
+                const desiredRememberState = Boolean(rememberSessionToggle.checked);
+                if (desiredRememberState !== rememberLastSession) {
+                    persistRememberSessionPreference(desiredRememberState);
+                }
+            }
             settingsPanel.hidden = !show;
             settingsBtn?.classList.toggle("active", Boolean(show));
             settingsBtn?.setAttribute("aria-expanded", show ? "true" : "false");
