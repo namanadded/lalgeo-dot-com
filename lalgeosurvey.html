@@ -3226,6 +3226,23 @@
         let suppressMapTapUntil = 0;
         updateHistoryButtons();
 
+        function logWorkspaceDebug(event, details = {}) {
+            try {
+                console.info("[LalGeo Survey]", event, details);
+                window.__lalgeoSurveyDebug = window.__lalgeoSurveyDebug || [];
+                window.__lalgeoSurveyDebug.push({
+                    time: new Date().toISOString(),
+                    event,
+                    details
+                });
+                if (window.__lalgeoSurveyDebug.length > 200) {
+                    window.__lalgeoSurveyDebug.shift();
+                }
+            } catch {
+                // ignore logging failures
+            }
+        }
+
         function suppressMapTapFor(ms = 350) {
             suppressMapTapUntil = Date.now() + ms;
         }
@@ -3663,6 +3680,15 @@
                 hideWorkspaceEmptyStateForever = false;
                 emptyStateDismissed = false;
             }
+            logWorkspaceDebug("loadWorkspaceUiPrefs", {
+                rememberRaw,
+                rememberedValue,
+                rememberLastSession,
+                sidebarVisible,
+                dataPaneVisible,
+                emptyStateDismissed,
+                hideWorkspaceEmptyStateForever
+            });
             if (rememberSessionToggle) {
                 rememberSessionToggle.checked = rememberLastSession;
             }
@@ -3681,6 +3707,13 @@
                     hideWorkspaceEmptyStateForever,
                     emptyStateDismissed: rememberLastSession ? emptyStateDismissed : false
                 }));
+                logWorkspaceDebug("saveWorkspaceUiPrefs", {
+                    rememberLastSession,
+                    sidebarVisible,
+                    dataPaneVisible,
+                    emptyStateDismissed,
+                    hideWorkspaceEmptyStateForever
+                });
             } catch (error) {
                 console.warn("Unable to persist workspace UI prefs", error);
             }
@@ -3691,6 +3724,9 @@
             if (rememberSessionToggle) {
                 rememberSessionToggle.checked = rememberLastSession;
             }
+            logWorkspaceDebug("persistRememberSessionPreference", {
+                rememberLastSession
+            });
             if (rememberLastSession) {
                 saveWorkspaceUiPrefs();
             } else {
@@ -3718,6 +3754,10 @@
                     emptyStateDismissed: false
                 }));
                 localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
+                logWorkspaceDebug("clearWorkspaceSessionPrefs", {
+                    rememberLastSession: false,
+                    removedActiveProjectKey: true
+                });
             } catch (error) {
                 console.warn("Unable to clear workspace UI prefs", error);
             }
@@ -4204,6 +4244,14 @@
             }
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            logWorkspaceDebug("setActiveProject", {
+                projectId: project?.id || null,
+                projectName: project?.name || null,
+                sourceType: project?.source?.type || null,
+                rememberLastSession,
+                render,
+                preserveRegion
+            });
             if (rememberLastSession && project?.id) {
                 localStorage.setItem(WORKSPACE_ACTIVE_KEY, project.id);
             } else {
@@ -4339,6 +4387,12 @@
         }
 
         async function openImportedProject(payload, { preserveRegion = false } = {}) {
+            logWorkspaceDebug("openImportedProject", {
+                hasProjectBundle: Boolean(payload?.project?.layers?.length),
+                projectName: payload?.project?.name || payload?.projectName || null,
+                sourceType: payload?.source?.type || null,
+                preserveRegion
+            });
             if (payload?.project?.layers?.length) {
                 const importedProject = payload.project;
                 importedProject.id = generateWorkspaceId("project");
@@ -5477,14 +5531,25 @@
         loadWorkspaceUiPrefs();
         updateCreateProjectFormState();
         const storedActiveProjectId = rememberLastSession ? localStorage.getItem(WORKSPACE_ACTIVE_KEY) : null;
+        logWorkspaceDebug("startupRestoreCheck", {
+            rememberLastSession,
+            storedActiveProjectId,
+            workspaceProjectCount: workspaceProjects.length,
+            workspaceProjectNames: workspaceProjects.map((item) => item.name),
+            dropboxLinkParam,
+            shareParam
+        });
         if (rememberLastSession && storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
+                logWorkspaceDebug("startupRestoreAction", { mode: "stored-active-project", projectId: storedProject.id, projectName: storedProject.name });
                 setActiveProject(storedProject, { render: false });
             }
         } else if (rememberLastSession && workspaceProjects[0]) {
+            logWorkspaceDebug("startupRestoreAction", { mode: "first-workspace-project", projectId: workspaceProjects[0].id, projectName: workspaceProjects[0].name });
             setActiveProject(workspaceProjects[0], { render: false });
         } else {
+            logWorkspaceDebug("startupRestoreAction", { mode: "clear-active-project" });
             setActiveProject(null, { render: false });
         }
         renderWorkspaceCollections();
@@ -7107,6 +7172,7 @@
                     dropboxProfile = data.profile || null;
                     showDropboxConnectedState(data.profile || {});
                     dropboxConnectStatus.textContent = "Dropbox connected.";
+                    logWorkspaceDebug("dropboxStatus", { connected: true, refreshList });
                     if (refreshList) {
                         await refreshDropboxSurveyList(true);
                     }
@@ -7115,6 +7181,7 @@
                 dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = "Dropbox not connected.";
+                logWorkspaceDebug("dropboxStatus", { connected: false, refreshList, reason: "profile-disconnected" });
                 currentDropboxProjects = [];
                 selectedDropboxProjectPath = null;
                 if (dropboxSurveySelect) {
@@ -7126,6 +7193,11 @@
                 dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = error.message || "Unable to reach Dropbox worker.";
+                logWorkspaceDebug("dropboxStatus", {
+                    connected: false,
+                    refreshList,
+                    reason: error.message || "worker-unreachable"
+                });
                 currentDropboxProjects = [];
                 selectedDropboxProjectPath = null;
                 if (dropboxSurveySelect) {
