@@ -3223,6 +3223,7 @@
         let rememberLastSession = true;
         let hideWorkspaceEmptyStateForever = false;
         let emptyStateDismissed = false;
+        let pendingStartupDropboxProjectId = null;
         let suppressMapTapUntil = 0;
         updateHistoryButtons();
 
@@ -3739,11 +3740,31 @@
             }
         }
 
+        function flushRememberSessionToggleState(reason = "unknown") {
+            if (!rememberSessionToggle) return;
+            const desiredRememberState = Boolean(rememberSessionToggle.checked);
+            logWorkspaceDebug("flushRememberSessionToggleState", {
+                reason,
+                desiredRememberState,
+                currentRememberLastSession: rememberLastSession
+            });
+            if (desiredRememberState !== rememberLastSession) {
+                persistRememberSessionPreference(desiredRememberState);
+                return;
+            }
+            if (rememberLastSession) {
+                saveWorkspaceUiPrefs();
+            } else {
+                clearWorkspaceSessionPrefs();
+            }
+        }
+
         function clearWorkspaceSessionPrefs() {
             sidebarVisible = true;
             dataPaneVisible = true;
             emptyStateDismissed = false;
             hideWorkspaceEmptyStateForever = false;
+            pendingStartupDropboxProjectId = null;
             try {
                 localStorage.setItem(WORKSPACE_REMEMBER_KEY, "false");
                 localStorage.setItem(WORKSPACE_UI_PREFS_KEY, JSON.stringify({
@@ -5542,12 +5563,32 @@
         if (rememberLastSession && storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
-                logWorkspaceDebug("startupRestoreAction", { mode: "stored-active-project", projectId: storedProject.id, projectName: storedProject.name });
-                setActiveProject(storedProject, { render: false });
+                if (storedProject.source?.type === "dropbox") {
+                    pendingStartupDropboxProjectId = storedProject.id;
+                    logWorkspaceDebug("startupRestoreAction", {
+                        mode: "pending-dropbox-project",
+                        projectId: storedProject.id,
+                        projectName: storedProject.name
+                    });
+                    setActiveProject(null, { render: false });
+                } else {
+                    logWorkspaceDebug("startupRestoreAction", { mode: "stored-active-project", projectId: storedProject.id, projectName: storedProject.name });
+                    setActiveProject(storedProject, { render: false });
+                }
             }
         } else if (rememberLastSession && workspaceProjects[0]) {
-            logWorkspaceDebug("startupRestoreAction", { mode: "first-workspace-project", projectId: workspaceProjects[0].id, projectName: workspaceProjects[0].name });
-            setActiveProject(workspaceProjects[0], { render: false });
+            if (workspaceProjects[0].source?.type === "dropbox") {
+                pendingStartupDropboxProjectId = workspaceProjects[0].id;
+                logWorkspaceDebug("startupRestoreAction", {
+                    mode: "pending-first-dropbox-project",
+                    projectId: workspaceProjects[0].id,
+                    projectName: workspaceProjects[0].name
+                });
+                setActiveProject(null, { render: false });
+            } else {
+                logWorkspaceDebug("startupRestoreAction", { mode: "first-workspace-project", projectId: workspaceProjects[0].id, projectName: workspaceProjects[0].name });
+                setActiveProject(workspaceProjects[0], { render: false });
+            }
         } else {
             logWorkspaceDebug("startupRestoreAction", { mode: "clear-active-project" });
             setActiveProject(null, { render: false });
@@ -5583,6 +5624,17 @@
         rememberSessionToggle?.addEventListener("input", handleRememberSessionToggle);
         rememberSessionToggle?.addEventListener("click", () => {
             queueMicrotask(handleRememberSessionToggle);
+        });
+        window.addEventListener("beforeunload", () => {
+            flushRememberSessionToggleState("beforeunload");
+        });
+        window.addEventListener("pagehide", () => {
+            flushRememberSessionToggleState("pagehide");
+        });
+        document.addEventListener("visibilitychange", () => {
+            if (document.visibilityState === "hidden") {
+                flushRememberSessionToggleState("visibilitychange-hidden");
+            }
         });
         newProjectBtn?.addEventListener("click", () => openCreateProjectModal());
         drawerNewProjectBtn?.addEventListener("click", () => openCreateProjectModal());
@@ -7176,12 +7228,25 @@
                     if (refreshList) {
                         await refreshDropboxSurveyList(true);
                     }
+                    if (pendingStartupDropboxProjectId && rememberLastSession) {
+                        const pendingProject = workspaceProjects.find((item) => item.id === pendingStartupDropboxProjectId);
+                        if (pendingProject?.source?.type === "dropbox") {
+                            logWorkspaceDebug("startupRestoreAction", {
+                                mode: "restore-pending-dropbox-project",
+                                projectId: pendingProject.id,
+                                projectName: pendingProject.name
+                            });
+                            pendingStartupDropboxProjectId = null;
+                            setActiveProject(pendingProject, { render: true, preserveRegion: false });
+                        }
+                    }
                     return;
                 }
                 dropboxProfile = null;
                 showDropboxDisconnectedState();
                 dropboxConnectStatus.textContent = "Dropbox not connected.";
                 logWorkspaceDebug("dropboxStatus", { connected: false, refreshList, reason: "profile-disconnected" });
+                pendingStartupDropboxProjectId = null;
                 currentDropboxProjects = [];
                 selectedDropboxProjectPath = null;
                 if (dropboxSurveySelect) {
@@ -7198,6 +7263,7 @@
                     refreshList,
                     reason: error.message || "worker-unreachable"
                 });
+                pendingStartupDropboxProjectId = null;
                 currentDropboxProjects = [];
                 selectedDropboxProjectPath = null;
                 if (dropboxSurveySelect) {
@@ -9060,10 +9126,7 @@ function setToolbarMenuVisibility(show) {
         function setSettingsPanelVisibility(show) {
             if (!settingsPanel) return;
             if (!show && rememberSessionToggle) {
-                const desiredRememberState = Boolean(rememberSessionToggle.checked);
-                if (desiredRememberState !== rememberLastSession) {
-                    persistRememberSessionPreference(desiredRememberState);
-                }
+                flushRememberSessionToggleState("settings-close");
             }
             settingsPanel.hidden = !show;
             settingsBtn?.classList.toggle("active", Boolean(show));
