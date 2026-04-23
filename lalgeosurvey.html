@@ -1153,6 +1153,216 @@
     #editDock {
         display: none !important;
     }
+    #toolbar {
+        top: 8px;
+        left: 10px;
+        right: 10px;
+        transform: none;
+        max-width: none;
+        min-height: 34px;
+        padding: 4px 10px;
+        display: grid;
+        grid-template-columns: auto 1fr auto;
+        grid-template-areas: "toolbar-left toolbar-center toolbar-right";
+        gap: 10px;
+        border-radius: 12px;
+        background: linear-gradient(180deg, rgba(44, 50, 49, 0.66), rgba(34, 39, 38, 0.52));
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 8px 24px rgba(0,0,0,0.16);
+        backdrop-filter: blur(26px) saturate(140%);
+        -webkit-backdrop-filter: blur(26px) saturate(140%);
+    }
+    .toolbar-left {
+        gap: 10px;
+        overflow: visible;
+    }
+    .toolbar-left .brand-logo {
+        height: 42px;
+        width: auto;
+        margin-right: 4px;
+    }
+    .app-menubar {
+        display: inline-flex;
+        align-items: center;
+        gap: 2px;
+    }
+    .menu-bar-btn {
+        border-radius: 7px;
+        padding: 5px 8px;
+        font-size: 12px;
+        font-weight: 600;
+        color: rgba(244, 248, 251, 0.95);
+    }
+    .menu-bar-btn:hover,
+    .menu-bar-btn.active,
+    .menu-bar-btn.menu-open {
+        background: rgba(255,255,255,0.12);
+        color: #fff;
+    }
+    .menu-bar-btn[disabled],
+    .menu-bar-btn.is-disabled {
+        opacity: 0.4;
+        pointer-events: none;
+    }
+    .toolbar-center {
+        justify-content: center;
+        min-width: 0;
+    }
+    .toolbar-project-mini strong {
+        font-size: 12px;
+        max-width: 320px;
+    }
+    .toolbar-project-mini span {
+        font-size: 10px;
+        max-width: 360px;
+    }
+    .toolbar-right {
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+    }
+    .toolbar-quick-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
+    .menu-bar-btn.quick-action {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        padding: 5px 8px;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.05);
+    }
+    .quick-action-icon {
+        font-size: 12px;
+        line-height: 1;
+    }
+    .quick-action-label {
+        font-size: 11px;
+        line-height: 1;
+    }
+    .search-pill {
+        width: 30px;
+        min-width: 30px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.1);
+    }
+    .search-pill.collapsed {
+        width: 30px;
+        min-width: 30px;
+    }
+    .search-pill .search-toggle-btn {
+        width: 30px;
+        height: 30px;
+        font-size: 13px;
+        color: #eef6fb;
+    }
+    .search-pill:not(.collapsed) {
+        width: min(340px, 100%);
+        padding: 0 8px 0 3px;
+    }
+    #toolbarSearchShell input {
+        min-width: 220px;
+        font-size: 12px;
+        color: #eef6fb;
+    }
+    #toolbarSearchShell input::placeholder {
+        color: rgba(216, 227, 235, 0.72);
+    }
+    #toolbarMenuTray {
+        top: 48px;
+        left: 110px;
+        min-width: 300px;
+        max-width: 360px;
+        padding: 10px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(28, 34, 36, 0.86), rgba(17, 22, 26, 0.84));
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 22px 44px rgba(0,0,0,0.28);
+        backdrop-filter: blur(26px) saturate(140%);
+        -webkit-backdrop-filter: blur(26px) saturate(140%);
+        display: grid;
+        gap: 10px;
+    }
+    .menubar-command-panel {
+        display: grid;
+        gap: 4px;
+    }
+    .menu-dropdown-section {
+        display: grid;
+        gap: 3px;
+        padding-top: 6px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .menu-dropdown-section:first-of-type {
+        border-top: none;
+        padding-top: 0;
+    }
+    .menu-dropdown-title {
+        margin: 0 0 3px;
+        padding: 0 6px;
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
+        color: #8ddfd4;
+    }
+    .menu-command {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 14px;
+        width: 100%;
+        border: none;
+        background: transparent;
+        color: #eef6fb;
+        border-radius: 8px;
+        padding: 7px 8px;
+        font-size: 13px;
+        font-weight: 500;
+        text-align: left;
+        cursor: pointer;
+    }
+    .menu-command:hover:not(:disabled) {
+        background: rgba(255,255,255,0.08);
+    }
+    .menu-command:disabled,
+    .menu-command.is-disabled {
+        color: rgba(238, 246, 251, 0.38);
+        cursor: default;
+    }
+    .menu-shortcut {
+        font-size: 11px;
+        color: rgba(200, 214, 227, 0.72);
+        white-space: nowrap;
+    }
+    .menu-command:disabled .menu-shortcut,
+    .menu-command.is-disabled .menu-shortcut {
+        color: rgba(200, 214, 227, 0.35);
+    }
+    #settingsPanel {
+        top: 48px;
+        right: 78px;
+        width: 320px;
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: linear-gradient(180deg, rgba(17, 22, 26, 0.88), rgba(12, 17, 20, 0.86));
+        border: 1px solid rgba(255,255,255,0.12);
+        box-shadow: 0 20px 40px rgba(0,0,0,0.24);
+        backdrop-filter: blur(24px);
+        -webkit-backdrop-filter: blur(24px);
+    }
+    .settings-divider {
+        height: 1px;
+        margin: 10px 0 12px;
+        background: rgba(255,255,255,0.08);
+    }
+    .quick-action-prefs {
+        display: grid;
+        gap: 8px;
+    }
     .dock-btn {
         min-width: 0;
         justify-content: center;
@@ -2551,16 +2761,10 @@
     <div id="toolbar">
         <div class="toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
-            <div class="menu-bar-actions">
+            <div class="menu-bar-actions app-menubar">
                 <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="sidebar" aria-expanded="true">Workspace</button>
                 <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="dataCatalogPane" aria-expanded="true">Data Manager</button>
                 <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false">Menu</button>
-                <div class="toolbar-quick-actions">
-                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new point to the active layer (shortcut A)" aria-describedby="mapInteractionHelp" aria-pressed="false">Add New</button>
-                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled>Undo</button>
-                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled>Redo</button>
-                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location">My Location</button>
-                </div>
                 <button id="settingsBtn" type="button" class="menu-bar-btn" aria-controls="settingsPanel" aria-expanded="false">Settings</button>
             </div>
         </div>
@@ -2571,6 +2775,24 @@
             </div>
         </div>
         <div class="toolbar-right">
+            <div id="quickActionBar" class="toolbar-quick-actions">
+                <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add New">
+                    <span class="quick-action-icon">✚</span>
+                    <span class="quick-action-label">Add New</span>
+                </button>
+                <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
+                    <span class="quick-action-icon">↶</span>
+                    <span class="quick-action-label">Undo</span>
+                </button>
+                <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
+                    <span class="quick-action-icon">↷</span>
+                    <span class="quick-action-label">Redo</span>
+                </button>
+                <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
+                    <span class="quick-action-icon">◎</span>
+                    <span class="quick-action-label">My Location</span>
+                </button>
+            </div>
             <div class="search-pill collapsed" id="toolbarSearchShell">
                 <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
@@ -2586,9 +2808,30 @@
             <span>Remember last session layout and reopen the workspace the way you left it.</span>
         </label>
         <p class="settings-note">This remembers the Layers pane, Data Manager pane, and hidden welcome card.</p>
+        <div class="settings-divider"></div>
+        <p class="settings-panel-title">Quick actions</p>
+        <p class="settings-note">Choose which frequently used actions appear on the right side of the menu bar.</p>
+        <div class="quick-action-prefs">
+            <label class="settings-option">
+                <input type="checkbox" class="quick-action-toggle" data-action="addNew">
+                <span>Add New</span>
+            </label>
+            <label class="settings-option">
+                <input type="checkbox" class="quick-action-toggle" data-action="undo">
+                <span>Undo</span>
+            </label>
+            <label class="settings-option">
+                <input type="checkbox" class="quick-action-toggle" data-action="redo">
+                <span>Redo</span>
+            </label>
+            <label class="settings-option">
+                <input type="checkbox" class="quick-action-toggle" data-action="myLocation">
+                <span>My Location</span>
+            </label>
+        </div>
     </div>
     <div id="toolbarMenuTray" hidden>
-        <div class="workspace-context" id="workspaceContext">
+        <div class="workspace-context menubar-command-panel" id="workspaceContext">
             <div class="workspace-context-top">
                 <span class="workspace-pill">Workspace</span>
                 <strong id="workspaceProjectName">Create or open a project</strong>
@@ -2599,18 +2842,32 @@
                 <span id="workspaceSaveStatus">Status: Waiting for project</span>
             </div>
         </div>
-        <div class="toolbar-group">
-            <span class="toolbar-group-label">Projects</span>
-            <button id="workspacePanelBtn" type="button" class="control-btn">Projects</button>
-            <button id="newProjectBtn" type="button" class="control-btn" aria-label="Create a new project (shortcut N)">New</button>
-            <button id="openProjectBtn" type="button" class="control-btn">Open</button>
-            <button id="toggleImportBtn" type="button" class="control-btn">Import</button>
+        <div class="menu-dropdown-section">
+            <p class="menu-dropdown-title">File</p>
+            <button id="workspacePanelBtn" type="button" class="menu-command"><span>Projects</span><span class="menu-shortcut" data-shortcut="projects"></span></button>
+            <button id="newProjectBtn" type="button" class="menu-command" aria-label="Create a new project"><span>New Project</span><span class="menu-shortcut" data-shortcut="newProject"></span></button>
+            <button id="openProjectBtn" type="button" class="menu-command"><span>Open Project</span><span class="menu-shortcut" data-shortcut="openProject"></span></button>
+            <button id="toggleImportBtn" type="button" class="menu-command"><span>Import Project</span><span class="menu-shortcut" data-shortcut="importProject"></span></button>
+            <button id="shareMapBtn" type="button" class="menu-command"><span>Share Map</span><span class="menu-shortcut" data-shortcut="share"></span></button>
+            <button id="printButton" type="button" class="menu-command"><span>Print Map</span><span class="menu-shortcut" data-shortcut="print"></span></button>
         </div>
-        <div class="toolbar-group">
-            <span class="toolbar-group-label">Share</span>
-            <button id="shareMapBtn" type="button" class="control-btn">Share</button>
-            <button id="printButton" type="button" class="control-btn">Print</button>
-            <button id="exportProjectBtn" type="button" class="control-btn">Export</button>
+        <div class="menu-dropdown-section">
+            <p class="menu-dropdown-title">Edit</p>
+            <button id="menuAddNewBtn" type="button" class="menu-command"><span>Add New</span><span class="menu-shortcut" data-shortcut="addNew"></span></button>
+            <button id="menuUndoBtn" type="button" class="menu-command"><span>Undo</span><span class="menu-shortcut" data-shortcut="undo"></span></button>
+            <button id="menuRedoBtn" type="button" class="menu-command"><span>Redo</span><span class="menu-shortcut" data-shortcut="redo"></span></button>
+        </div>
+        <div class="menu-dropdown-section">
+            <p class="menu-dropdown-title">View</p>
+            <button id="menuToggleLayersBtn" type="button" class="menu-command"><span>Layer List</span><span class="menu-shortcut" data-shortcut="toggleLayers"></span></button>
+            <button id="menuToggleDataPaneBtn" type="button" class="menu-command"><span>Data Manager</span><span class="menu-shortcut" data-shortcut="toggleData"></span></button>
+            <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
+            <button id="menuSearchBtn" type="button" class="menu-command"><span>Open Location…</span><span class="menu-shortcut" data-shortcut="search"></span></button>
+        </div>
+        <div class="menu-dropdown-section">
+            <p class="menu-dropdown-title">Help</p>
+            <button id="menuSettingsBtn" type="button" class="menu-command"><span>Settings</span><span class="menu-shortcut" data-shortcut="settings"></span></button>
+            <button id="exportProjectBtn" type="button" class="menu-command"><span>Export Project</span><span class="menu-shortcut" data-shortcut="export"></span></button>
         </div>
     </div>
     <div class="map-controls"></div>
@@ -2969,6 +3226,7 @@
         const settingsBtn = document.getElementById("settingsBtn");
         const settingsPanel = document.getElementById("settingsPanel");
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
+        const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
         const toolbarSearchShell = document.getElementById("toolbarSearchShell");
@@ -3039,6 +3297,14 @@
         const dropZone = document.getElementById("dropZone");
         const shareButton = document.getElementById("shareMapBtn");
         const logoBadge = document.getElementById("logoBadge");
+        const menuAddNewBtn = document.getElementById("menuAddNewBtn");
+        const menuUndoBtn = document.getElementById("menuUndoBtn");
+        const menuRedoBtn = document.getElementById("menuRedoBtn");
+        const menuToggleLayersBtn = document.getElementById("menuToggleLayersBtn");
+        const menuToggleDataPaneBtn = document.getElementById("menuToggleDataPaneBtn");
+        const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
+        const menuSearchBtn = document.getElementById("menuSearchBtn");
+        const menuSettingsBtn = document.getElementById("menuSettingsBtn");
         const dropboxUrlInput = document.getElementById("dropboxUrlInput");
         const dropboxLoadBtn = document.getElementById("dropboxLoadBtn");
         const connectDropboxBtn = document.getElementById("connectDropboxBtn");
@@ -3217,12 +3483,22 @@
         const WORKSPACE_SEEDED_KEY = "lalgeoWorkspaceSeededV1";
         const WORKSPACE_UI_PREFS_KEY = "lalgeoWorkspaceUiPrefsV1";
         const WORKSPACE_REMEMBER_KEY = "lalgeoWorkspaceRememberSessionV1";
+        const WORKSPACE_QUICK_ACTIONS_KEY = "lalgeoWorkspaceQuickActionsV1";
+        const isMacPlatform = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || navigator.userAgent || "");
+        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation"];
+        const QUICK_ACTION_BUTTONS = {
+            addNew: addSurveyPointBtn,
+            undo: undoBtn,
+            redo: redoBtn,
+            myLocation: myLocationBtn
+        };
         let workspaceProjects = [];
         let sidebarVisible = true;
         let dataPaneVisible = true;
         let rememberLastSession = true;
         let hideWorkspaceEmptyStateForever = false;
         let emptyStateDismissed = false;
+        let quickActions = [...DEFAULT_QUICK_ACTIONS];
         let pendingStartupDropboxProjectId = null;
         let suppressMapTapUntil = 0;
         updateHistoryButtons();
@@ -3656,7 +3932,117 @@
             }
         }
 
+        function getShortcutLabel(action) {
+            const cmd = isMacPlatform ? "⌘" : "Ctrl+";
+            const alt = isMacPlatform ? "⌥" : "Alt+";
+            switch (action) {
+                case "newProject": return `${cmd}N`;
+                case "openProject": return `${cmd}O`;
+                case "importProject": return `${alt}I`;
+                case "share": return `${cmd}${isMacPlatform ? "⇧" : "Shift+"}S`;
+                case "print": return `${cmd}P`;
+                case "addNew": return "A";
+                case "undo": return `${cmd}Z`;
+                case "redo": return isMacPlatform ? `${cmd}⇧Z` : "Ctrl+Y";
+                case "toggleLayers": return `${alt}L`;
+                case "toggleData": return `${alt}D`;
+                case "myLocation": return "M";
+                case "search": return isMacPlatform ? "⌘L" : "Ctrl+L";
+                case "settings": return `${cmd},`;
+                case "export": return `${cmd}${isMacPlatform ? "⇧" : "Shift+"}E`;
+                case "projects": return `${alt}P`;
+                default: return "";
+            }
+        }
+
+        function renderMenuShortcutLabels() {
+            document.querySelectorAll(".menu-shortcut").forEach((node) => {
+                const action = node.dataset.shortcut;
+                node.textContent = getShortcutLabel(action);
+            });
+        }
+
+        function loadQuickActionPrefs() {
+            try {
+                const raw = localStorage.getItem(WORKSPACE_QUICK_ACTIONS_KEY);
+                if (!raw) {
+                    quickActions = [...DEFAULT_QUICK_ACTIONS];
+                    return;
+                }
+                const parsed = JSON.parse(raw);
+                if (Array.isArray(parsed) && parsed.length) {
+                    quickActions = parsed.filter((item) => Object.prototype.hasOwnProperty.call(QUICK_ACTION_BUTTONS, item));
+                } else {
+                    quickActions = [...DEFAULT_QUICK_ACTIONS];
+                }
+            } catch {
+                quickActions = [...DEFAULT_QUICK_ACTIONS];
+            }
+        }
+
+        function saveQuickActionPrefs() {
+            try {
+                localStorage.setItem(WORKSPACE_QUICK_ACTIONS_KEY, JSON.stringify(quickActions));
+            } catch (error) {
+                console.warn("Unable to persist quick action prefs", error);
+            }
+        }
+
+        function syncQuickActionToggleState() {
+            quickActionToggles.forEach((toggle) => {
+                toggle.checked = quickActions.includes(toggle.dataset.action);
+            });
+        }
+
+        function setAddNewButtonLabel(label) {
+            const labelEl = addSurveyPointBtn?.querySelector(".quick-action-label");
+            if (labelEl) {
+                labelEl.textContent = label;
+            } else if (addSurveyPointBtn) {
+                addSurveyPointBtn.textContent = label;
+            }
+        }
+
+        function renderQuickActionButtons() {
+            const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
+            Object.entries(QUICK_ACTION_BUTTONS).forEach(([key, button]) => {
+                if (!button) return;
+                const selected = quickActions.includes(key);
+                const available = key === "addNew" ? hasEditingSession : true;
+                button.hidden = !selected;
+                button.disabled = !available || button.disabled;
+                button.classList.toggle("is-disabled", !available || button.disabled);
+            });
+        }
+
+        function updateCommandAvailability() {
+            const hasProject = Boolean(activeProjectRecord);
+            const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
+            const commandState = [
+                [menuAddNewBtn, hasEditingSession],
+                [menuUndoBtn, undoStack.length > 0],
+                [menuRedoBtn, redoStack.length > 0],
+                [menuToggleLayersBtn, true],
+                [menuToggleDataPaneBtn, true],
+                [menuMyLocationBtn, true],
+                [menuSearchBtn, true],
+                [menuSettingsBtn, true],
+                [newProjectBtn, true],
+                [openProjectBtn, true],
+                [toggleImportBtn, true],
+                [shareButton, hasProject],
+                [exportProjectBtn, hasProject]
+            ];
+            commandState.forEach(([button, enabled]) => {
+                if (!button) return;
+                button.disabled = !enabled;
+                button.classList.toggle("is-disabled", !enabled);
+            });
+            renderQuickActionButtons();
+        }
+
         function loadWorkspaceUiPrefs() {
+            loadQuickActionPrefs();
             const rememberRaw = localStorage.getItem(WORKSPACE_REMEMBER_KEY);
             const rememberedValue = rememberRaw === null ? null : rememberRaw === "true";
             try {
@@ -3696,6 +4082,8 @@
             if (hideWorkspaceEmptyStateToggle) {
                 hideWorkspaceEmptyStateToggle.checked = hideWorkspaceEmptyStateForever;
             }
+            syncQuickActionToggleState();
+            renderQuickActionButtons();
         }
 
         function saveWorkspaceUiPrefs() {
@@ -3718,6 +4106,7 @@
             } catch (error) {
                 console.warn("Unable to persist workspace UI prefs", error);
             }
+            saveQuickActionPrefs();
         }
 
         function persistRememberSessionPreference(value) {
@@ -4237,6 +4626,7 @@
                 sidebarToggleBtn.classList.toggle("active", sidebarVisible);
                 sidebarToggleBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
+            updateCommandAvailability();
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
@@ -4249,13 +4639,14 @@
                 featureDrawer.style.right = dataPaneVisible ? "388px" : "16px";
             }
             if (!dataPaneVisible) hideDropboxProjectContextMenu();
+            updateCommandAvailability();
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
         function updateToolbarDockState() {
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
             toolbar?.classList.toggle("has-edit-session", hasEditingSession);
-            addSurveyPointBtn?.toggleAttribute("hidden", !hasEditingSession);
+            renderQuickActionButtons();
         }
 
         function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
@@ -5600,6 +5991,8 @@
         setSidebarVisibility(sidebarVisible);
         setDataPaneVisibility(dataPaneVisible);
         renderDropboxCatalogPane();
+        renderMenuShortcutLabels();
+        updateCommandAvailability();
 
         workspacePanelBtn?.addEventListener("click", () => {
             setImportPanelVisibility(!isImportPanelVisible);
@@ -5617,6 +6010,22 @@
             setDataPaneVisibility(!dataPaneVisible);
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
+        menuAddNewBtn?.addEventListener("click", () => addSurveyPointBtn?.click());
+        menuUndoBtn?.addEventListener("click", () => undoBtn?.click());
+        menuRedoBtn?.addEventListener("click", () => redoBtn?.click());
+        menuToggleLayersBtn?.addEventListener("click", () => setSidebarVisibility(!sidebarVisible));
+        menuToggleDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(!dataPaneVisible));
+        menuMyLocationBtn?.addEventListener("click", () => myLocationBtn?.click());
+        menuSearchBtn?.addEventListener("click", () => {
+            setSearchExpanded(true);
+            document.getElementById("searchInput")?.focus();
+        });
+        menuSettingsBtn?.addEventListener("click", () => setSettingsPanelVisibility(settingsPanel?.hidden));
+        toolbarMenuTray?.addEventListener("click", (event) => {
+            if (event.target.closest(".menu-command")) {
+                setToolbarMenuVisibility(false);
+            }
+        });
         const handleRememberSessionToggle = () => {
             persistRememberSessionPreference(Boolean(rememberSessionToggle?.checked));
         };
@@ -5624,6 +6033,21 @@
         rememberSessionToggle?.addEventListener("input", handleRememberSessionToggle);
         rememberSessionToggle?.addEventListener("click", () => {
             queueMicrotask(handleRememberSessionToggle);
+        });
+        quickActionToggles.forEach((toggle) => {
+            toggle.addEventListener("change", () => {
+                quickActions = quickActionToggles
+                    .filter((item) => item.checked)
+                    .map((item) => item.dataset.action)
+                    .filter(Boolean);
+                if (!quickActions.length) {
+                    quickActions = ["addNew"];
+                    toggle.checked = toggle.dataset.action === "addNew";
+                }
+                syncQuickActionToggleState();
+                saveQuickActionPrefs();
+                renderQuickActionButtons();
+            });
         });
         window.addEventListener("beforeunload", () => {
             flushRememberSessionToggleState("beforeunload");
@@ -5839,6 +6263,8 @@
                 .catch(() => setProjectStatus("Unable to copy share link.", "error"));
         });
         document.addEventListener("keydown", (event) => {
+            const key = event.key.toLowerCase();
+            const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
                 if (!layerActionModalBackdrop.hidden) {
                     closeLayerActionModal();
@@ -5882,9 +6308,50 @@
                 }
                 return;
             }
+            if (!event.defaultPrevented && primaryModifier && key === "n") {
+                event.preventDefault();
+                newProjectBtn?.click();
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && key === "o") {
+                event.preventDefault();
+                openProjectBtn?.click();
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && key === "l") {
+                event.preventDefault();
+                setSearchExpanded(true);
+                document.getElementById("searchInput")?.focus();
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && key === "z" && !event.shiftKey) {
+                event.preventDefault();
+                if (!undoBtn?.disabled) undoBtn?.click();
+                return;
+            }
+            if (!event.defaultPrevented && ((isMacPlatform && primaryModifier && event.shiftKey && key === "z") || (!isMacPlatform && primaryModifier && key === "y"))) {
+                event.preventDefault();
+                if (!redoBtn?.disabled) redoBtn?.click();
+                return;
+            }
+            if (!event.defaultPrevented && event.altKey && key === "l") {
+                event.preventDefault();
+                setSidebarVisibility(!sidebarVisible);
+                return;
+            }
+            if (!event.defaultPrevented && event.altKey && key === "d") {
+                event.preventDefault();
+                setDataPaneVisibility(!dataPaneVisible);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && key === ",") {
+                event.preventDefault();
+                setSettingsPanelVisibility(settingsPanel?.hidden);
+                return;
+            }
             if (event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
             if (isInteractiveField(event.target)) return;
-            if (event.key.toLowerCase() === "n") {
+            if (key === "n") {
                 event.preventDefault();
                 if (activeProjectRecord) {
                     addLayerToActiveProject();
@@ -5893,7 +6360,7 @@
                 }
                 return;
             }
-            if (event.key.toLowerCase() === "o") {
+            if (key === "o") {
                 event.preventDefault();
                 if (!activeProjectRecord) {
                     setProjectStatus("Create or open a project first.", "error");
@@ -5917,7 +6384,7 @@
                 document.getElementById("searchInput")?.focus();
                 return;
             }
-            if (event.key.toLowerCase() === "a") {
+            if (key === "a") {
                 event.preventDefault();
                 if (!currentSurveyData) {
                     setProjectStatus("Open a project before adding points.", "error");
@@ -6098,7 +6565,7 @@
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            addSurveyPointBtn.textContent = isAddingSurveyPoint ? "Adding New" : "Add New";
+            setAddNewButtonLabel(isAddingSurveyPoint ? "Adding New" : "Add New");
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) mapAddHint.hidden = !isAddingSurveyPoint;
             if (isAddingSurveyPoint) {
@@ -6710,7 +7177,7 @@
             isAddingSurveyPoint = false;
             addSurveyPointBtn.classList.remove("active");
             addSurveyPointBtn.setAttribute("aria-pressed", "false");
-            addSurveyPointBtn.textContent = "Add New";
+            setAddNewButtonLabel("Add New");
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             drawingVertices = [];
@@ -9153,8 +9620,7 @@ function setImportPanelVisibility(show) {
         }
 
         function setAddButtonVisibility(show) {
-            if (!addSurveyPointBtn) return;
-            addSurveyPointBtn.hidden = !show;
+            renderQuickActionButtons();
         }
 
         function recordAction(action) {
@@ -9480,6 +9946,7 @@ function setImportPanelVisibility(show) {
             if (redoBtn) redoBtn.title = redoStack.length ? "Redo the last undone local change." : "Redo becomes available after you undo a local change.";
             if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
             updateWorkspaceContext();
+            updateCommandAvailability();
         }
 
         function renderSurveyFieldControls() {
