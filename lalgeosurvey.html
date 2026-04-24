@@ -4351,15 +4351,24 @@
         }
 
         function clearDisconnectedDropboxWorkspace(reason = "dropbox-disconnected") {
-            const isDropboxProject = isDropboxBackedProject(activeProjectRecord);
-            if (!isDropboxProject) return;
+            const removedProjectIds = new Set(workspaceProjects.filter(isDropboxBackedProject).map((project) => project.id));
+            if (!removedProjectIds.size) return;
             logWorkspaceDebug("clearDisconnectedDropboxWorkspace", {
                 reason,
                 projectId: activeProjectRecord?.id || null,
-                projectName: activeProjectRecord?.name || null
+                projectName: activeProjectRecord?.name || null,
+                removedProjectIds: Array.from(removedProjectIds)
             });
-            setActiveProject(null, { render: true, preserveRegion: true });
-            setProjectStatus("Dropbox project cleared because the Dropbox session is not connected.", "error");
+            workspaceProjects = workspaceProjects.filter((project) => !removedProjectIds.has(project.id));
+            pendingStartupDropboxProjectId = null;
+            if (activeProjectRecord && removedProjectIds.has(activeProjectRecord.id)) {
+                setActiveProject(null, { render: true, preserveRegion: true });
+            }
+            saveWorkspaceProjects();
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
+            updateWorkspaceContext();
+            setProjectStatus("Dropbox projects were removed because Dropbox is disconnected.", "success");
         }
 
         function isDropboxBackedProject(project) {
@@ -7981,6 +7990,7 @@
                 });
                 if (!response.ok) throw new Error("Unable to sign out of Dropbox.");
                 showDropboxDisconnectedState();
+                clearDisconnectedDropboxWorkspace("manual-disconnect");
                 dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 dropboxConnectStatus.textContent = "Dropbox disconnected.";
             } catch (error) {
