@@ -6080,6 +6080,9 @@
         });
         window.addEventListener("resize", () => {
             setSidebarVisibility(sidebarVisible);
+            if (settingsPanel && !settingsPanel.hidden) {
+                positionSettingsPanel();
+            }
         });
         checkDropboxConnectionStatus({ refreshList: true });
         loadWorkspaceProjects();
@@ -6168,7 +6171,11 @@
             setSearchExpanded(true);
             document.getElementById("searchInput")?.focus();
         });
-        menuSettingsBtn?.addEventListener("click", () => setSettingsPanelVisibility(settingsPanel?.hidden));
+        menuSettingsBtn?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setToolbarMenuVisibility(false);
+            setSettingsPanelVisibility(true);
+        });
         menuAboutBtn?.addEventListener("click", () => setProjectStatus("LalGeo Survey workspace.", "success"));
         menuForceCloseBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
@@ -6271,7 +6278,7 @@
             const onToolbarMenuButton = [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn]
                 .some((button) => button?.contains(event.target));
             const insideSettingsPanel = settingsPanel?.contains(event.target);
-            const onSettingsButton = false;
+            const onSettingsButton = menuSettingsBtn?.contains(event.target);
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
             }
@@ -9906,8 +9913,25 @@ function updateFloatingButtonLayer(panelOpen) {
                 flushRememberSessionToggleState("settings-close");
             }
             settingsPanel.hidden = !show;
+            if (show) {
+                positionSettingsPanel();
+            }
             settingsBtn?.classList.toggle("active", Boolean(show));
             settingsBtn?.setAttribute("aria-expanded", show ? "true" : "false");
+        }
+
+        function positionSettingsPanel() {
+            if (!settingsPanel) return;
+            const toolbarRect = toolbar?.getBoundingClientRect();
+            const panelWidth = Math.min(settingsPanel.offsetWidth || 300, window.innerWidth - 24);
+            const top = Math.round((toolbarRect?.bottom || 48) + 8);
+            const left = Math.round(Math.min(
+                Math.max(12, (window.innerWidth - panelWidth) / 2),
+                Math.max(12, window.innerWidth - panelWidth - 12)
+            ));
+            settingsPanel.style.top = `${top}px`;
+            settingsPanel.style.left = `${left}px`;
+            settingsPanel.style.right = "auto";
         }
 
         function setSearchExpanded(show) {
