@@ -910,6 +910,10 @@
         font-weight: 600;
         cursor: pointer;
     }
+    .panel-action-btn.active {
+        background: linear-gradient(135deg, #5cc8c0, #98f0d7);
+        color: #081019;
+    }
     #surveyFieldControls {
         position: absolute;
         bottom: calc(100% + 8px);
@@ -2627,6 +2631,20 @@
     #surveyTableWrapper tbody tr.selected {
         background: rgba(92, 200, 192, 0.16);
     }
+    .table-cell-editor {
+        width: 100%;
+        min-width: 120px;
+        border: 1px solid rgba(141, 223, 212, 0.35);
+        border-radius: 6px;
+        background: rgba(8, 18, 30, 0.72);
+        color: #eef6fb;
+        padding: 6px 8px;
+        font: inherit;
+    }
+    .table-cell-editor:focus {
+        outline: 2px solid rgba(141, 223, 212, 0.45);
+        outline-offset: 1px;
+    }
     #dropZone .drop-zone-inner h2 {
         letter-spacing: -0.02em;
     }
@@ -3172,6 +3190,7 @@
         <div id="surveyPanelActions">
             <div id="surveyTableContext">Create or open a project to view attributes.</div>
             <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
+            <button id="tableEditBtn" type="button" class="panel-action-btn" hidden>Edit</button>
             <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
         </div>
         <div id="surveyFieldControls" hidden>
@@ -3353,6 +3372,7 @@
         const surveyTableContext = document.getElementById("surveyTableContext");
         const selectedFeatureInspector = document.getElementById("selectedFeatureInspector");
         const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
+        const tableEditBtn = document.getElementById("tableEditBtn");
         const archiveToggleBtn = document.getElementById("archiveToggleBtn");
         const surveyFieldControls = document.getElementById("surveyFieldControls");
         const surveyFieldList = document.getElementById("surveyFieldList");
@@ -3387,6 +3407,7 @@
         }
         setSurveyTableVisibility(false);
         surveyFieldsBtn.hidden = true;
+        if (tableEditBtn) tableEditBtn.hidden = true;
         surveyFieldControls.hidden = true;
         let isImportPanelVisible = false;
         let undoStack = [];
@@ -3488,6 +3509,7 @@
         let hiddenFields = new Set();
         let archiveData = { headers: [], records: [], pointMeta: [] };
         let isArchiveView = false;
+        let tableEditMode = false;
         let archiveAnnotations = [];
         let archiveRowAnnotationMap = new Map();
         let draggedFieldName = null;
@@ -4951,58 +4973,8 @@
 
         function renderSelectedFeatureInspector() {
             if (!selectedFeatureInspector) return;
-            if (!activeProjectRecord) {
-                selectedFeatureInspector.classList.add("visible");
-                selectedFeatureInspector.innerHTML = `<div class="feature-inspector-empty">Create or open a project to view attributes.</div>`;
-                return;
-            }
-            const layer = getActiveLayerRecord();
-            if (!activeSurveyAnnotation?.surveyPoint) {
-                selectedFeatureInspector.classList.add("visible");
-                selectedFeatureInspector.innerHTML = `
-                    <div class="feature-inspector-title"><span class="workspace-badge">${escapeHtml(layer?.name || "Layer")}</span>Attribute editor</div>
-                    <div class="feature-inspector-empty">Select a feature to edit attributes.</div>
-                `;
-                return;
-            }
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
-            const record = currentSurveyData?.records?.[rowIndex] || {};
-            const headers = getOrderedHeaders({ includeHidden: false });
-            const fields = headers.map((header) => {
-                const options = dropdownFieldOptions[header];
-                const value = record?.[header] ?? "";
-                const schemaField = (layer?.schema || []).find((field) => field.name === header);
-                const isLocked = schemaField?.locked === true || isCoordinateField(header, currentSurveyData) || isAutoManagedField(header);
-                if (options?.length) {
-                    return `
-                        <div class="feature-inspector-field">
-                            <label>${escapeHtml(header)}</label>
-                            <select data-inspector-field="${escapeHtml(header)}" ${isLocked ? "disabled" : ""}>
-                                ${options.map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
-                            </select>
-                        </div>
-                    `;
-                }
-                return `
-                    <div class="feature-inspector-field">
-                        <label>${escapeHtml(header)}</label>
-                        <input type="text" data-inspector-field="${escapeHtml(header)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
-                    </div>
-                `;
-            }).join("");
-            selectedFeatureInspector.classList.add("visible");
-            selectedFeatureInspector.innerHTML = `
-                <div class="feature-inspector-title"><span class="workspace-badge">${escapeHtml(layer?.name || "Layer")}</span>Selected feature</div>
-                <div class="feature-inspector-grid">${fields}</div>
-                <div class="workspace-panel-muted">Changes autosave when you tab or click out of a field.</div>
-            `;
-            selectedFeatureInspector.querySelectorAll("[data-inspector-field]").forEach((input) => {
-                const commit = () => commitInspectorFieldChange(input);
-                input.addEventListener("change", commit);
-                if (input.tagName === "INPUT" || input.tagName === "TEXTAREA") {
-                    input.addEventListener("blur", commit);
-                }
-            });
+            selectedFeatureInspector.classList.remove("visible");
+            selectedFeatureInspector.innerHTML = "";
         }
 
         function getSelectedFeatureRecord() {
@@ -5160,6 +5132,8 @@
         }
 
         function renderFeatureDrawer() {
+            closeFeatureDrawer();
+            return;
             if (!featureDrawerBody || !featureDrawerMeta) return;
             const layer = getActiveLayerRecord();
             const feature = getSelectedFeatureRecord();
@@ -6679,9 +6653,21 @@
                 renderSurveyFieldControls();
             }
         });
+        tableEditBtn?.addEventListener("click", () => {
+            if (!currentSurveyData || isArchiveView) return;
+            tableEditMode = !tableEditMode;
+            tableEditBtn.classList.toggle("active", tableEditMode);
+            tableEditBtn.textContent = tableEditMode ? "Done editing" : "Edit";
+            updateSurveyTable();
+        });
         archiveToggleBtn.addEventListener("click", () => {
             if (!currentSurveyData) return;
             isArchiveView = !isArchiveView;
+            if (isArchiveView && tableEditMode) {
+                tableEditMode = false;
+                tableEditBtn?.classList.remove("active");
+                if (tableEditBtn) tableEditBtn.textContent = "Edit";
+            }
             archiveToggleBtn.textContent = isArchiveView ? "Show active" : "Show archive";
             if (isArchiveView) {
                 renderArchiveAnnotations();
@@ -7628,6 +7614,12 @@
             tableFieldOrder = [...parsed.headers];
             hiddenFields = new Set();
             surveyFieldsBtn.hidden = false;
+            if (tableEditBtn) {
+                tableEditBtn.hidden = false;
+                tableEditBtn.textContent = "Edit";
+                tableEditBtn.classList.remove("active");
+            }
+            tableEditMode = false;
             surveyFieldControls.hidden = true;
             analyzeSurveySchema(parsed);
             rebuildPointIndexes(parsed);
@@ -8868,6 +8860,8 @@
             tableFieldOrder = [];
             hiddenFields = new Set();
             surveyFieldsBtn.hidden = true;
+            if (tableEditBtn) tableEditBtn.hidden = true;
+            tableEditMode = false;
             surveyFieldControls.hidden = true;
             setSurveyTableVisibility(false);
         }
@@ -9417,6 +9411,7 @@
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">All fields are hidden. Enable at least one field.</div>";
                 return;
             }
+            const inlineEditEnabled = tableEditMode && !isArchiveView && canEditAttributes();
             const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
             const activeRowIndex = !isArchiveView && Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
                 ? activeSurveyAnnotation.surveyPoint.rowIndex
@@ -9424,7 +9419,10 @@
             const bodyRows = (dataset.records || []).map((record, index) => {
                 const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
-                const cells = visibleHeaders.map(header => `<td>${escapeHtml(record?.[header] ?? "")}</td>`).join("");
+                const cells = visibleHeaders.map(header => {
+                    if (inlineEditEnabled) return `<td>${renderTableCellEditor(index, header, record, activeLayer)}</td>`;
+                    return `<td>${escapeHtml(record?.[header] ?? "")}</td>`;
+                }).join("");
                 const actionCell = isArchiveView
                     ? `<td><button type="button" class="restore-btn" data-archive-index="${index}">Restore</button></td>`
                     : (hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>");
@@ -9439,6 +9437,60 @@
             `;
             renderSelectedFeatureInspector();
             refreshSharePanel();
+        }
+
+        function renderTableCellEditor(rowIndex, header, record, layer) {
+            const value = record?.[header] ?? "";
+            const schemaField = (layer?.schema || []).find((field) => field.name === header);
+            const isLocked = schemaField?.locked === true || isCoordinateField(header, currentSurveyData) || isAutoManagedField(header);
+            if (isLocked) return escapeHtml(value);
+            const options = dropdownFieldOptions[header] || schemaField?.options || [];
+            const attrs = `class="table-cell-editor" data-table-field="${escapeHtml(header)}" data-row-index="${rowIndex}"`;
+            if (options.length) {
+                return `
+                    <select ${attrs}>
+                        <option value="">Select...</option>
+                        ${options.map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
+                    </select>
+                `;
+            }
+            const inputType = schemaField?.type === "number" ? "number" : "text";
+            return `<input ${attrs} type="${inputType}" value="${escapeHtml(String(value))}">`;
+        }
+
+        function commitTableCellChange(input) {
+            if (!input || isArchiveView || !tableEditMode) return;
+            const rowIndex = Number(input.dataset.rowIndex);
+            const field = input.dataset.tableField;
+            if (!Number.isInteger(rowIndex) || !field) return;
+            const layer = getActiveLayerRecord();
+            const feature = layer?.features?.[rowIndex];
+            const record = currentSurveyData?.records?.[rowIndex];
+            const schemaField = (layer?.schema || []).find((item) => item.name === field);
+            if (!layer || !feature || !record || schemaField?.locked) return;
+            const before = { ...(feature.attributes || {}) };
+            const nextValue = normalizeFeatureFieldValue(schemaField, input.value);
+            if ((before[field] ?? "") === nextValue) return;
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation) {
+                activeSurveyAnnotation = annotation;
+                activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            }
+            const after = { ...before, [field]: nextValue };
+            if (applyFeatureAttributesToRow(rowIndex, after, { renderDrawer: false })) {
+                if (isDropboxSurvey()) {
+                    markSurveyDirty();
+                } else {
+                    recordAction({
+                        type: "edit-attributes",
+                        rowIndex,
+                        featureId: feature.id,
+                        before,
+                        after
+                    });
+                }
+                setProjectStatus("Table cell updated.", "success");
+            }
         }
 
         function isDropboxLinkSource() {
@@ -9552,6 +9604,10 @@
         }
 
         surveyTable?.addEventListener("click", (event) => {
+            if (event.target.closest("[data-table-field]")) {
+                event.stopPropagation();
+                return;
+            }
             const button = event.target.closest(".view-photo-btn");
             const restoreButton = event.target.closest(".restore-btn");
             if (restoreButton) {
@@ -9575,6 +9631,16 @@
             if (!row) return;
             const rowIndex = Number(row.dataset.rowIndex);
             previewAnnotationByRow(rowIndex);
+        });
+
+        surveyTable?.addEventListener("change", (event) => {
+            const input = event.target.closest("[data-table-field]");
+            if (input) commitTableCellChange(input);
+        });
+
+        surveyTable?.addEventListener("focusout", (event) => {
+            const input = event.target.closest("[data-table-field]");
+            if (input && input.tagName !== "SELECT") commitTableCellChange(input);
         });
 
         surveyTable?.addEventListener("dblclick", (event) => {
@@ -9623,14 +9689,12 @@
                 recenterPreservingZoom(coordinate);
             }
             setActiveTableRow(rowIndex);
-            // Ensure the same behavior as tapping the marker: select & open callout.
-            if (typeof map.selectAnnotation === "function") {
-                map.selectAnnotation(annotation);
-            }
+            activeSurveyAnnotation = annotation;
+            activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            refreshAnnotationStyles();
             try {
                 annotation.selected = true; // hint for MapKit selection visuals
             } catch {}
-            showSurveyCallout(annotation);
         }
 
         function focusAnnotationByRow(rowIndex) {
@@ -9640,11 +9704,9 @@
             if (coordinate) {
                 map.region = new mapkit.CoordinateRegion(coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
             }
-            if (typeof map.selectAnnotation === "function") {
-                map.selectAnnotation(annotation);
-            } else {
-                showSurveyCallout(annotation);
-            }
+            activeSurveyAnnotation = annotation;
+            activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            refreshAnnotationStyles();
         }
 
         function renderArchiveAnnotations() {
@@ -9700,6 +9762,7 @@
             surveyTablePanel.hidden = !show;
             if (show) {
                 surveyFieldsBtn.hidden = false;
+                if (tableEditBtn) tableEditBtn.hidden = false;
                 archiveToggleBtn.hidden = false;
                 updateFloatingButtonLayer(surveyTablePanel.classList.contains("open"));
                 return;
@@ -9709,8 +9772,12 @@
             surveyTableToggleIcon.textContent = "▲";
             surveyTableToggleLabel.textContent = "Open table";
             surveyFieldsBtn.hidden = true;
+            if (tableEditBtn) tableEditBtn.hidden = true;
             archiveToggleBtn.hidden = true;
             surveyFieldControls.hidden = true;
+            tableEditMode = false;
+            tableEditBtn?.classList.remove("active");
+            if (tableEditBtn) tableEditBtn.textContent = "Edit";
             updateFloatingButtonLayer(false);
         }
 
