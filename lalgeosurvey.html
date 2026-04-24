@@ -6117,6 +6117,11 @@
                     openToolbarMenu(menuKey, button);
                 }
             });
+            button?.addEventListener("mouseenter", () => {
+                const menuKey = button.dataset.menu;
+                if (!menuKey || !toolbarMenuVisible || toolbarMenuKey === menuKey) return;
+                openToolbarMenu(menuKey, button);
+            });
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         menuAddNewBtn?.addEventListener("click", () => addSurveyPointBtn?.click());
