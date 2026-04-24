@@ -2762,10 +2762,13 @@
         <div class="toolbar-left">
             <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
             <div class="menu-bar-actions app-menubar">
-                <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="sidebar" aria-expanded="true">Workspace</button>
-                <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="dataCatalogPane" aria-expanded="true">Data Manager</button>
-                <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false">Menu</button>
-                <button id="settingsBtn" type="button" class="menu-bar-btn" aria-controls="settingsPanel" aria-expanded="false">Settings</button>
+                <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">LAL GEO</button>
+                <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="file">File</button>
+                <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="edit">Edit</button>
+                <button id="settingsBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="view">View</button>
+                <button id="historyMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="history">History</button>
+                <button id="windowMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="window">Window</button>
+                <button id="helpMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="help">Help</button>
             </div>
         </div>
         <div class="toolbar-center">
@@ -2831,43 +2834,48 @@
         </div>
     </div>
     <div id="toolbarMenuTray" hidden>
-        <div class="workspace-context menubar-command-panel" id="workspaceContext">
-            <div class="workspace-context-top">
-                <span class="workspace-pill">Workspace</span>
-                <strong id="workspaceProjectName">Create or open a project</strong>
-            </div>
-            <div class="workspace-context-meta">
-                <span id="workspaceLayerName">Layer: None</span>
-                <span id="workspaceStorageLabel">Storage: Web</span>
-                <span id="workspaceSaveStatus">Status: Waiting for project</span>
-            </div>
+        <div class="menu-dropdown-section" data-menu-pane="app">
+            <button id="menuAboutBtn" type="button" class="menu-command"><span>About</span></button>
+            <button id="menuSettingsBtn" type="button" class="menu-command"><span>Settings</span><span class="menu-shortcut" data-shortcut="settings"></span></button>
+            <button id="workspacePanelBtn" type="button" class="menu-command"><span>Recent</span><span class="menu-shortcut" data-shortcut="projects"></span></button>
+            <button id="menuForceCloseBtn" type="button" class="menu-command"><span>Force Close</span></button>
+            <button id="menuLogoutBtn" type="button" class="menu-command"><span>Log Out</span></button>
         </div>
-        <div class="menu-dropdown-section">
-            <p class="menu-dropdown-title">File</p>
-            <button id="workspacePanelBtn" type="button" class="menu-command"><span>Projects</span><span class="menu-shortcut" data-shortcut="projects"></span></button>
+        <div class="menu-dropdown-section" data-menu-pane="file" hidden>
             <button id="newProjectBtn" type="button" class="menu-command" aria-label="Create a new project"><span>New Project</span><span class="menu-shortcut" data-shortcut="newProject"></span></button>
-            <button id="openProjectBtn" type="button" class="menu-command"><span>Open Project</span><span class="menu-shortcut" data-shortcut="openProject"></span></button>
-            <button id="toggleImportBtn" type="button" class="menu-command"><span>Import Project</span><span class="menu-shortcut" data-shortcut="importProject"></span></button>
+            <button id="menuNewLayerBtn" type="button" class="menu-command"><span>New Layer</span><span class="menu-shortcut" data-shortcut="newLayer"></span></button>
+            <button id="openProjectBtn" type="button" class="menu-command"><span>Import Project</span><span class="menu-shortcut" data-shortcut="openProject"></span></button>
+            <button id="toggleImportBtn" type="button" class="menu-command"><span>Import Layer</span><span class="menu-shortcut" data-shortcut="importProject"></span></button>
             <button id="shareMapBtn" type="button" class="menu-command"><span>Share Map</span><span class="menu-shortcut" data-shortcut="share"></span></button>
+            <button id="menuExportPdfBtn" type="button" class="menu-command"><span>Export as PDF</span><span class="menu-shortcut" data-shortcut="exportPdf"></span></button>
             <button id="printButton" type="button" class="menu-command"><span>Print Map</span><span class="menu-shortcut" data-shortcut="print"></span></button>
         </div>
-        <div class="menu-dropdown-section">
-            <p class="menu-dropdown-title">Edit</p>
-            <button id="menuAddNewBtn" type="button" class="menu-command"><span>Add New</span><span class="menu-shortcut" data-shortcut="addNew"></span></button>
+        <div class="menu-dropdown-section" data-menu-pane="edit" hidden>
             <button id="menuUndoBtn" type="button" class="menu-command"><span>Undo</span><span class="menu-shortcut" data-shortcut="undo"></span></button>
             <button id="menuRedoBtn" type="button" class="menu-command"><span>Redo</span><span class="menu-shortcut" data-shortcut="redo"></span></button>
+            <button id="menuCutBtn" type="button" class="menu-command" disabled><span>Cut</span></button>
+            <button id="menuCopyBtn" type="button" class="menu-command" disabled><span>Copy</span></button>
+            <button id="menuPasteBtn" type="button" class="menu-command" disabled><span>Paste</span></button>
+            <button id="menuPasteMatchBtn" type="button" class="menu-command" disabled><span>Paste and Match Style</span></button>
+            <button id="menuDeleteBtn" type="button" class="menu-command" disabled><span>Delete</span></button>
+            <button id="menuSelectAllBtn" type="button" class="menu-command" disabled><span>Select All</span></button>
         </div>
-        <div class="menu-dropdown-section">
-            <p class="menu-dropdown-title">View</p>
-            <button id="menuToggleLayersBtn" type="button" class="menu-command"><span>Layer List</span><span class="menu-shortcut" data-shortcut="toggleLayers"></span></button>
+        <div class="menu-dropdown-section" data-menu-pane="view" hidden>
             <button id="menuToggleDataPaneBtn" type="button" class="menu-command"><span>Data Manager</span><span class="menu-shortcut" data-shortcut="toggleData"></span></button>
+            <button id="menuToggleLayersBtn" type="button" class="menu-command"><span>Layer List</span><span class="menu-shortcut" data-shortcut="toggleLayers"></span></button>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
             <button id="menuSearchBtn" type="button" class="menu-command"><span>Open Location…</span><span class="menu-shortcut" data-shortcut="search"></span></button>
         </div>
-        <div class="menu-dropdown-section">
-            <p class="menu-dropdown-title">Help</p>
-            <button id="menuSettingsBtn" type="button" class="menu-command"><span>Settings</span><span class="menu-shortcut" data-shortcut="settings"></span></button>
-            <button id="exportProjectBtn" type="button" class="menu-command"><span>Export Project</span><span class="menu-shortcut" data-shortcut="export"></span></button>
+        <div class="menu-dropdown-section" data-menu-pane="history" hidden>
+            <button id="menuHistoryRecentBtn" type="button" class="menu-command"><span>Recent Projects</span></button>
+        </div>
+        <div class="menu-dropdown-section" data-menu-pane="window" hidden>
+            <button id="menuCloseLayersBtn" type="button" class="menu-command"><span>Close Layers</span></button>
+            <button id="menuCloseDataPaneBtn" type="button" class="menu-command"><span>Close Data Manager</span></button>
+        </div>
+        <div class="menu-dropdown-section" data-menu-pane="help" hidden>
+            <button id="menuHelpShortcutsBtn" type="button" class="menu-command"><span>Keyboard Shortcuts</span></button>
+            <button id="exportProjectBtn" type="button" class="menu-command"><span>Help</span><span class="menu-shortcut" data-shortcut="export"></span></button>
         </div>
     </div>
     <div class="map-controls"></div>
@@ -3206,6 +3214,7 @@
         let map = null;
         let mapReady = false;
         let toolbarMenuVisible = false;
+        let toolbarMenuKey = "app";
         let toolbarSearchExpanded = false;
         let voiceLang = 'en-US'; // Your chosen language
         let currentSteps = [];
@@ -3224,8 +3233,12 @@
         const toolbarMenuTray = document.getElementById("toolbarMenuTray");
         const openDataManagerBtn = document.getElementById("openDataManagerBtn");
         const settingsBtn = document.getElementById("settingsBtn");
+        const historyMenuBtn = document.getElementById("historyMenuBtn");
+        const windowMenuBtn = document.getElementById("windowMenuBtn");
+        const helpMenuBtn = document.getElementById("helpMenuBtn");
         const settingsPanel = document.getElementById("settingsPanel");
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
+        const rememberSessionOption = rememberSessionToggle?.closest(".settings-option");
         const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
@@ -3305,6 +3318,16 @@
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
         const menuSettingsBtn = document.getElementById("menuSettingsBtn");
+        const menuAboutBtn = document.getElementById("menuAboutBtn");
+        const menuForceCloseBtn = document.getElementById("menuForceCloseBtn");
+        const menuLogoutBtn = document.getElementById("menuLogoutBtn");
+        const menuNewLayerBtn = document.getElementById("menuNewLayerBtn");
+        const menuExportPdfBtn = document.getElementById("menuExportPdfBtn");
+        const menuHistoryRecentBtn = document.getElementById("menuHistoryRecentBtn");
+        const menuCloseLayersBtn = document.getElementById("menuCloseLayersBtn");
+        const menuCloseDataPaneBtn = document.getElementById("menuCloseDataPaneBtn");
+        const menuHelpShortcutsBtn = document.getElementById("menuHelpShortcutsBtn");
+        const menuPaneEls = Array.from(document.querySelectorAll("[data-menu-pane]"));
         const dropboxUrlInput = document.getElementById("dropboxUrlInput");
         const dropboxLoadBtn = document.getElementById("dropboxLoadBtn");
         const connectDropboxBtn = document.getElementById("connectDropboxBtn");
@@ -3937,10 +3960,12 @@
             const alt = isMacPlatform ? "⌥" : "Alt+";
             switch (action) {
                 case "newProject": return `${cmd}N`;
+                case "newLayer": return `${alt}N`;
                 case "openProject": return `${cmd}O`;
                 case "importProject": return `${alt}I`;
                 case "share": return `${cmd}${isMacPlatform ? "⇧" : "Shift+"}S`;
                 case "print": return `${cmd}P`;
+                case "exportPdf": return `${cmd}${isMacPlatform ? "⇧" : "Shift+"}P`;
                 case "addNew": return "A";
                 case "undo": return `${cmd}Z`;
                 case "redo": return isMacPlatform ? `${cmd}⇧Z` : "Ctrl+Y";
@@ -3953,6 +3978,26 @@
                 case "projects": return `${alt}P`;
                 default: return "";
             }
+        }
+
+        function setTopMenuButtonStates() {
+            const topButtons = [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn];
+            topButtons.forEach((button) => {
+                if (!button) return;
+                const isActive = toolbarMenuVisible && button.dataset.menu === toolbarMenuKey;
+                button.classList.toggle("active", isActive);
+                button.setAttribute("aria-expanded", isActive ? "true" : "false");
+            });
+        }
+
+        function openToolbarMenu(menuKey) {
+            toolbarMenuKey = menuKey;
+            toolbarMenuVisible = true;
+            if (toolbarMenuTray) toolbarMenuTray.hidden = false;
+            menuPaneEls.forEach((pane) => {
+                pane.hidden = pane.dataset.menuPane !== menuKey;
+            });
+            setTopMenuButtonStates();
         }
 
         function renderMenuShortcutLabels() {
@@ -4020,6 +4065,7 @@
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
             const commandState = [
                 [menuAddNewBtn, hasEditingSession],
+                [menuNewLayerBtn, hasProject],
                 [menuUndoBtn, undoStack.length > 0],
                 [menuRedoBtn, redoStack.length > 0],
                 [menuToggleLayersBtn, true],
@@ -4027,6 +4073,14 @@
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
                 [menuSettingsBtn, true],
+                [menuHistoryRecentBtn, workspaceProjects.length > 0],
+                [menuCloseLayersBtn, sidebarVisible],
+                [menuCloseDataPaneBtn, dataPaneVisible],
+                [menuExportPdfBtn, hasProject],
+                [menuAboutBtn, true],
+                [menuForceCloseBtn, Boolean(activeProjectRecord || sidebarVisible || dataPaneVisible || toolbarMenuVisible || !settingsPanel?.hidden)],
+                [menuLogoutBtn, dropboxConnected],
+                [menuHelpShortcutsBtn, true],
                 [newProjectBtn, true],
                 [openProjectBtn, true],
                 [toggleImportBtn, true],
@@ -4039,6 +4093,7 @@
                 button.classList.toggle("is-disabled", !enabled);
             });
             renderQuickActionButtons();
+            setTopMenuButtonStates();
         }
 
         function loadWorkspaceUiPrefs() {
@@ -4078,6 +4133,11 @@
             });
             if (rememberSessionToggle) {
                 rememberSessionToggle.checked = rememberLastSession;
+            }
+            try {
+                localStorage.setItem(WORKSPACE_REMEMBER_KEY, rememberLastSession ? "true" : "false");
+            } catch (error) {
+                console.warn("Unable to sync remember-session preference during load", error);
             }
             if (hideWorkspaceEmptyStateToggle) {
                 hideWorkspaceEmptyStateToggle.checked = hideWorkspaceEmptyStateForever;
@@ -4129,6 +4189,21 @@
             }
         }
 
+        function syncRememberSessionPreferenceFromUi(reason = "unknown") {
+            if (!rememberSessionToggle) return;
+            const nextValue = Boolean(rememberSessionToggle.checked);
+            try {
+                localStorage.setItem(WORKSPACE_REMEMBER_KEY, nextValue ? "true" : "false");
+            } catch (error) {
+                console.warn("Unable to persist remember-session toggle", error);
+            }
+            logWorkspaceDebug("syncRememberSessionPreferenceFromUi", {
+                reason,
+                nextValue
+            });
+            persistRememberSessionPreference(nextValue);
+        }
+
         function flushRememberSessionToggleState(reason = "unknown") {
             if (!rememberSessionToggle) return;
             const desiredRememberState = Boolean(rememberSessionToggle.checked);
@@ -4173,6 +4248,25 @@
             }
             if (rememberSessionToggle) rememberSessionToggle.checked = false;
             if (hideWorkspaceEmptyStateToggle) hideWorkspaceEmptyStateToggle.checked = false;
+        }
+
+        function clearDisconnectedDropboxWorkspace(reason = "dropbox-disconnected") {
+            const isDropboxProject = isDropboxBackedProject(activeProjectRecord);
+            if (!isDropboxProject) return;
+            logWorkspaceDebug("clearDisconnectedDropboxWorkspace", {
+                reason,
+                projectId: activeProjectRecord?.id || null,
+                projectName: activeProjectRecord?.name || null
+            });
+            setActiveProject(null, { render: true, preserveRegion: true });
+            setProjectStatus("Dropbox project cleared because the Dropbox session is not connected.", "error");
+        }
+
+        function isDropboxBackedProject(project) {
+            if (!project) return false;
+            if (project.source?.type === "dropbox") return true;
+            if (String(project.storageSource || "").toLowerCase().includes("dropbox")) return true;
+            return false;
         }
 
         function loadWorkspaceProjects() {
@@ -5954,7 +6048,7 @@
         if (rememberLastSession && storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
-                if (storedProject.source?.type === "dropbox") {
+                if (isDropboxBackedProject(storedProject)) {
                     pendingStartupDropboxProjectId = storedProject.id;
                     logWorkspaceDebug("startupRestoreAction", {
                         mode: "pending-dropbox-project",
@@ -5968,7 +6062,7 @@
                 }
             }
         } else if (rememberLastSession && workspaceProjects[0]) {
-            if (workspaceProjects[0].source?.type === "dropbox") {
+            if (isDropboxBackedProject(workspaceProjects[0])) {
                 pendingStartupDropboxProjectId = workspaceProjects[0].id;
                 logWorkspaceDebug("startupRestoreAction", {
                     mode: "pending-first-dropbox-project",
@@ -5997,20 +6091,20 @@
         workspacePanelBtn?.addEventListener("click", () => {
             setImportPanelVisibility(!isImportPanelVisible);
         });
-        sidebarToggleBtn?.addEventListener("click", () => {
-            setSidebarVisibility(!sidebarVisible);
-        });
-        toolbarMenuBtn?.addEventListener("click", () => {
-            setToolbarMenuVisibility(!toolbarMenuVisible);
-        });
-        settingsBtn?.addEventListener("click", () => {
-            setSettingsPanelVisibility(settingsPanel?.hidden);
-        });
-        openDataManagerBtn?.addEventListener("click", () => {
-            setDataPaneVisibility(!dataPaneVisible);
+        [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn].forEach((button) => {
+            button?.addEventListener("click", () => {
+                const menuKey = button.dataset.menu;
+                if (!menuKey) return;
+                if (toolbarMenuVisible && toolbarMenuKey === menuKey) {
+                    setToolbarMenuVisibility(false);
+                } else {
+                    openToolbarMenu(menuKey);
+                }
+            });
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         menuAddNewBtn?.addEventListener("click", () => addSurveyPointBtn?.click());
+        menuNewLayerBtn?.addEventListener("click", () => addLayerBtn?.click());
         menuUndoBtn?.addEventListener("click", () => undoBtn?.click());
         menuRedoBtn?.addEventListener("click", () => redoBtn?.click());
         menuToggleLayersBtn?.addEventListener("click", () => setSidebarVisibility(!sidebarVisible));
@@ -6021,18 +6115,42 @@
             document.getElementById("searchInput")?.focus();
         });
         menuSettingsBtn?.addEventListener("click", () => setSettingsPanelVisibility(settingsPanel?.hidden));
+        menuAboutBtn?.addEventListener("click", () => setProjectStatus("LalGeo Survey workspace.", "success"));
+        menuForceCloseBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(false);
+            setSettingsPanelVisibility(false);
+            setSidebarVisibility(false);
+            setDataPaneVisibility(false);
+            if (!importPanel.hidden) setImportPanelVisibility(false);
+            if (featureDrawer?.classList.contains("open")) hideSurveyCallout();
+        });
+        menuLogoutBtn?.addEventListener("click", () => {
+            if (dropboxConnected) {
+                connectDropboxBtn?.click();
+            } else {
+                setProjectStatus("Dropbox is not connected.", "error");
+            }
+        });
+        menuExportPdfBtn?.addEventListener("click", () => window.print());
+        menuHistoryRecentBtn?.addEventListener("click", () => workspacePanelBtn?.click());
+        menuCloseLayersBtn?.addEventListener("click", () => setSidebarVisibility(false));
+        menuCloseDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
+        menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
         toolbarMenuTray?.addEventListener("click", (event) => {
             if (event.target.closest(".menu-command")) {
                 setToolbarMenuVisibility(false);
             }
         });
         const handleRememberSessionToggle = () => {
-            persistRememberSessionPreference(Boolean(rememberSessionToggle?.checked));
+            syncRememberSessionPreferenceFromUi("toggle-change");
         };
         rememberSessionToggle?.addEventListener("change", handleRememberSessionToggle);
         rememberSessionToggle?.addEventListener("input", handleRememberSessionToggle);
         rememberSessionToggle?.addEventListener("click", () => {
-            queueMicrotask(handleRememberSessionToggle);
+            queueMicrotask(() => syncRememberSessionPreferenceFromUi("toggle-click"));
+        });
+        rememberSessionOption?.addEventListener("pointerup", () => {
+            window.setTimeout(() => syncRememberSessionPreferenceFromUi("settings-option-pointerup"), 0);
         });
         quickActionToggles.forEach((toggle) => {
             toggle.addEventListener("change", () => {
@@ -6083,9 +6201,10 @@
         drawerImportProjectBtn?.addEventListener("click", () => projectPickerBtn?.click());
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
-            const onToolbarMenuButton = toolbarMenuBtn?.contains(event.target);
+            const onToolbarMenuButton = [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn]
+                .some((button) => button?.contains(event.target));
             const insideSettingsPanel = settingsPanel?.contains(event.target);
-            const onSettingsButton = settingsBtn?.contains(event.target);
+            const onSettingsButton = false;
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
             }
@@ -7716,6 +7835,7 @@
                 pendingStartupDropboxProjectId = null;
                 currentDropboxProjects = [];
                 selectedDropboxProjectPath = null;
+                clearDisconnectedDropboxWorkspace("profile-disconnected");
                 if (dropboxSurveySelect) {
                     dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 }
@@ -7733,6 +7853,7 @@
                 pendingStartupDropboxProjectId = null;
                 currentDropboxProjects = [];
                 selectedDropboxProjectPath = null;
+                clearDisconnectedDropboxWorkspace(error.message || "worker-unreachable");
                 if (dropboxSurveySelect) {
                     dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
                 }
@@ -9581,13 +9702,13 @@ function updateFloatingButtonLayer(panelOpen) {
     document.getElementById("printButton").style.zIndex = zIndex;
 }
 
-function setToolbarMenuVisibility(show) {
+        function setToolbarMenuVisibility(show) {
             toolbarMenuVisible = Boolean(show);
             if (toolbarMenuTray) toolbarMenuTray.hidden = !toolbarMenuVisible;
-            if (toolbarMenuBtn) {
-                toolbarMenuBtn.classList.toggle("menu-open", toolbarMenuVisible);
-                toolbarMenuBtn.setAttribute("aria-expanded", toolbarMenuVisible ? "true" : "false");
+            if (!toolbarMenuVisible) {
+                menuPaneEls.forEach((pane) => pane.hidden = true);
             }
+            setTopMenuButtonStates();
         }
 
         function setSettingsPanelVisibility(show) {
