@@ -1181,6 +1181,20 @@
         width: auto;
         margin-right: 4px;
     }
+    .brand-menu-btn {
+        border: none;
+        background: transparent;
+        padding: 2px 8px 2px 0;
+        border-radius: 8px;
+        cursor: pointer;
+        display: inline-flex;
+        align-items: center;
+    }
+    .brand-menu-btn:hover,
+    .brand-menu-btn.active,
+    .brand-menu-btn.menu-open {
+        background: rgba(255,255,255,0.12);
+    }
     .app-menubar {
         display: inline-flex;
         align-items: center;
@@ -1294,6 +1308,9 @@
         display: grid;
         gap: 3px;
         padding-top: 0;
+    }
+    .menu-dropdown-section[hidden] {
+        display: none;
     }
     .menu-dropdown-title {
         margin: 0 0 3px;
@@ -2755,9 +2772,10 @@
 <body>
     <div id="toolbar">
         <div class="toolbar-left">
-            <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LAL GEO menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
+                <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+            </button>
             <div class="menu-bar-actions app-menubar">
-                <button id="sidebarToggleBtn" type="button" class="menu-bar-btn active" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">LAL GEO</button>
                 <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="file">File</button>
                 <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="edit">Edit</button>
                 <button id="settingsBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="view">View</button>
