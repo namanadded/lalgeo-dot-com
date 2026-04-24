@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="UTF-8">
 <title>LalGeo Maps</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
@@ -3405,17 +3406,12 @@
                 return input;
             }
         }
-        setSurveyTableVisibility(false);
-        surveyFieldsBtn.hidden = true;
-        if (tableEditBtn) tableEditBtn.hidden = true;
-        surveyFieldControls.hidden = true;
         let isImportPanelVisible = false;
         let undoStack = [];
         let redoStack = [];
         let pendingChanges = false;
         let surveyNeedsSave = false;
         let workspaceDirty = false;
-        setSurveyTableVisibility(false);
         const WORKER_BASE = "https://dropbox.lalgeo.com";
         const surveyCallout = document.getElementById("surveyCallout");
         const surveyCalloutCard = surveyCallout.querySelector(".callout-content");
@@ -3510,6 +3506,10 @@
         let archiveData = { headers: [], records: [], pointMeta: [] };
         let isArchiveView = false;
         let tableEditMode = false;
+        setSurveyTableVisibility(false);
+        surveyFieldsBtn.hidden = true;
+        if (tableEditBtn) tableEditBtn.hidden = true;
+        surveyFieldControls.hidden = true;
         let archiveAnnotations = [];
         let archiveRowAnnotationMap = new Map();
         let draggedFieldName = null;
