@@ -5132,9 +5132,11 @@
         }
 
         function renderFeatureDrawer() {
-            closeFeatureDrawer();
-            return;
             if (!featureDrawerBody || !featureDrawerMeta) return;
+            if (tableEditMode) {
+                closeFeatureDrawer();
+                return;
+            }
             const layer = getActiveLayerRecord();
             const feature = getSelectedFeatureRecord();
             if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) {
@@ -6658,6 +6660,11 @@
             tableEditMode = !tableEditMode;
             tableEditBtn.classList.toggle("active", tableEditMode);
             tableEditBtn.textContent = tableEditMode ? "Done editing" : "Edit";
+            if (tableEditMode) {
+                closeFeatureDrawer();
+            } else if (activeSurveyAnnotation?.surveyPoint) {
+                renderFeatureDrawer();
+            }
             updateSurveyTable();
         });
         archiveToggleBtn.addEventListener("click", () => {
