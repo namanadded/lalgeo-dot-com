@@ -290,6 +290,62 @@
         padding: 6px 10px;
         cursor: pointer;
     }
+    #layersMapBtn {
+        position: absolute;
+        right: 18px;
+        bottom: 82px;
+        z-index: 1125;
+        width: 46px;
+        height: 46px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 999px;
+        background: rgba(8, 18, 30, 0.86);
+        color: #eef6fb;
+        box-shadow: 0 14px 34px rgba(0,0,0,0.28);
+        backdrop-filter: blur(16px);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+    }
+    .layers-map-icon {
+        position: relative;
+        width: 22px;
+        height: 18px;
+        display: block;
+    }
+    .layers-map-icon span {
+        position: absolute;
+        left: 0;
+        width: 18px;
+        height: 5px;
+        border-radius: 2px;
+        background: currentColor;
+        box-shadow: 0 1px 0 rgba(255,255,255,0.18) inset;
+        transform: skewX(-18deg);
+    }
+    .layers-map-icon span:nth-child(1) {
+        top: 0;
+        left: 4px;
+        opacity: 0.72;
+    }
+    .layers-map-icon span:nth-child(2) {
+        top: 6px;
+        left: 2px;
+        opacity: 0.86;
+    }
+    .layers-map-icon span:nth-child(3) {
+        top: 12px;
+        left: 0;
+    }
+    #layersMapBtn:hover,
+    #layersMapBtn:focus-visible,
+    #layersMapBtn.active {
+        outline: none;
+        border-color: rgba(143,240,220,0.36);
+        background: rgba(19, 35, 48, 0.94);
+        color: #8ff0dc;
+    }
     .share-button {
         position: fixed;
         bottom: 135px;
@@ -1686,7 +1742,8 @@
     }
     #sidebar {
         top: 84px;
-        left: 12px;
+        left: auto;
+        right: 12px;
         width: 300px;
         max-height: calc(100vh - 96px);
         opacity: 1;
@@ -2753,11 +2810,12 @@
             grid-template-columns: 1fr;
         }
         #sidebar {
-            width: calc(100vw - 24px);
-            max-height: 44vh;
-            left: 12px;
-            top: auto;
-            bottom: 160px;
+            width: min(340px, calc(100vw - 24px));
+            max-height: calc(100vh - 228px);
+            left: auto;
+            right: 12px;
+            top: 144px;
+            bottom: auto;
         }
         .feature-inspector-grid {
             grid-template-columns: 1fr;
@@ -3128,6 +3186,9 @@
         <button id="contextAddToMapBtn" type="button" class="context-menu-btn">Add to Map</button>
     </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
+    <button id="layersMapBtn" type="button" aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
+        <span class="layers-map-icon" aria-hidden="true"><span></span><span></span><span></span></span>
+    </button>
     <div id="workspaceHint" class="workspace-screenshot-banner" hidden style="top:auto; bottom:22px; left:22px;">
         <h4>Start editing</h4>
         <p>Click Add New, then click on the map to place your first feature.</p>
@@ -3322,6 +3383,7 @@
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
+        const layersMapBtn = document.getElementById("layersMapBtn");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
         const dataCatalogTableBody = document.getElementById("dataCatalogTableBody");
@@ -3541,8 +3603,8 @@
             myLocation: myLocationBtn
         };
         let workspaceProjects = [];
-        let sidebarVisible = true;
-        let dataPaneVisible = true;
+        let sidebarVisible = false;
+        let dataPaneVisible = false;
         let rememberLastSession = true;
         let hideWorkspaceEmptyStateForever = false;
         let emptyStateDismissed = false;
@@ -4144,19 +4206,19 @@
                 rememberLastSession = rememberedValue === null ? prefs.rememberLastSession !== false : rememberedValue;
                 hideWorkspaceEmptyStateForever = prefs.hideWorkspaceEmptyStateForever === true;
                 if (rememberLastSession) {
-                    sidebarVisible = prefs.sidebarVisible !== false;
-                    dataPaneVisible = prefs.dataPaneVisible !== false;
+                    sidebarVisible = false;
+                    dataPaneVisible = false;
                     emptyStateDismissed = prefs.emptyStateDismissed === true;
                 } else {
-                    sidebarVisible = true;
-                    dataPaneVisible = true;
+                    sidebarVisible = false;
+                    dataPaneVisible = false;
                     emptyStateDismissed = false;
                 }
             } catch (error) {
                 console.warn("Unable to load workspace UI prefs", error);
                 rememberLastSession = rememberedValue === null ? true : rememberedValue;
-                sidebarVisible = true;
-                dataPaneVisible = true;
+                sidebarVisible = false;
+                dataPaneVisible = false;
                 hideWorkspaceEmptyStateForever = false;
                 emptyStateDismissed = false;
             }
@@ -4220,8 +4282,8 @@
             } else {
                 clearWorkspaceSessionPrefs();
                 setActiveProject(null, { render: true, preserveRegion: true });
-                setSidebarVisibility(true);
-                setDataPaneVisibility(true);
+                setSidebarVisibility(false);
+                setDataPaneVisibility(false);
                 if (workspaceEmptyState) workspaceEmptyState.hidden = false;
                 setProjectStatus("Session layout memory turned off.", "success");
             }
@@ -4262,8 +4324,8 @@
         }
 
         function clearWorkspaceSessionPrefs() {
-            sidebarVisible = true;
-            dataPaneVisible = true;
+            sidebarVisible = false;
+            dataPaneVisible = false;
             emptyStateDismissed = false;
             hideWorkspaceEmptyStateForever = false;
             pendingStartupDropboxProjectId = null;
@@ -4271,8 +4333,8 @@
                 localStorage.setItem(WORKSPACE_REMEMBER_KEY, "false");
                 localStorage.setItem(WORKSPACE_UI_PREFS_KEY, JSON.stringify({
                     rememberLastSession: false,
-                    sidebarVisible: true,
-                    dataPaneVisible: true,
+                    sidebarVisible: false,
+                    dataPaneVisible: false,
                     hideWorkspaceEmptyStateForever: false,
                     emptyStateDismissed: false
                 }));
@@ -4551,21 +4613,11 @@
             const layer = getActiveLayerRecord();
             sidebarContent.innerHTML = `
                 <div>
-                    <p class="workspace-section-kicker">Current project</p>
                     <h3 class="workspace-sidebar-title">${escapeHtml(activeProjectRecord.name)}</h3>
                     <div class="workspace-sidebar-meta">
                         <span class="workspace-badge">${escapeHtml(getStorageLabel())}</span>
                         <span>${escapeHtml(activeProjectRecord.type)}</span>
                         <span>${escapeHtml(formatProjectDate(activeProjectRecord.metadata?.updatedAt))}</span>
-                    </div>
-                </div>
-                <div class="workspace-sidebar-section">
-                    <p class="workspace-section-kicker">Active layer</p>
-                    <div class="workspace-sidebar-row">
-                        <div>
-                            <h5>${escapeHtml(layer ? layer.name : "No active layer")}</h5>
-                            <p>${escapeHtml(layer?.geometryType || "point")} · ${(layer?.parsed?.records || []).length} features</p>
-                        </div>
                     </div>
                 </div>
                 <div class="workspace-sidebar-section">
@@ -4757,6 +4809,10 @@
             if (sidebarToggleBtn) {
                 sidebarToggleBtn.classList.toggle("active", sidebarVisible);
                 sidebarToggleBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
+            }
+            if (layersMapBtn) {
+                layersMapBtn.classList.toggle("active", sidebarVisible);
+                layersMapBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
             updateCommandAvailability();
             if (rememberLastSession) saveWorkspaceUiPrefs();
@@ -6133,6 +6189,10 @@
         menuCloseLayersBtn?.addEventListener("click", () => setSidebarVisibility(false));
         menuCloseDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
+        layersMapBtn?.addEventListener("click", () => {
+            renderActiveProjectSidebar();
+            setSidebarVisibility(!sidebarVisible);
+        });
         toolbarMenuTray?.addEventListener("click", (event) => {
             if (event.target.closest(".menu-command")) {
                 setToolbarMenuVisibility(false);
@@ -6522,6 +6582,7 @@
             sharePanel,
             workspaceEmptyState,
             workspaceHint,
+            layersMapBtn,
             featureDrawer
         ].filter(Boolean).forEach((element) => {
             ["pointerdown", "mousedown", "touchstart", "click"].forEach((eventName) => {
