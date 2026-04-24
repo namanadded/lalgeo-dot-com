@@ -1274,8 +1274,8 @@
     #toolbarMenuTray {
         top: 48px;
         left: 110px;
-        min-width: 300px;
-        max-width: 360px;
+        min-width: 190px;
+        max-width: min(340px, calc(100vw - 20px));
         padding: 10px;
         border-radius: 14px;
         background: linear-gradient(180deg, rgba(28, 34, 36, 0.86), rgba(17, 22, 26, 0.84));
@@ -1293,11 +1293,6 @@
     .menu-dropdown-section {
         display: grid;
         gap: 3px;
-        padding-top: 6px;
-        border-top: 1px solid rgba(255,255,255,0.08);
-    }
-    .menu-dropdown-section:first-of-type {
-        border-top: none;
         padding-top: 0;
     }
     .menu-dropdown-title {
@@ -2864,19 +2859,10 @@
             <button id="menuToggleDataPaneBtn" type="button" class="menu-command"><span>Data Manager</span><span class="menu-shortcut" data-shortcut="toggleData"></span></button>
             <button id="menuToggleLayersBtn" type="button" class="menu-command"><span>Layer List</span><span class="menu-shortcut" data-shortcut="toggleLayers"></span></button>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
-            <button id="menuSearchBtn" type="button" class="menu-command"><span>Open Location…</span><span class="menu-shortcut" data-shortcut="search"></span></button>
         </div>
-        <div class="menu-dropdown-section" data-menu-pane="history" hidden>
-            <button id="menuHistoryRecentBtn" type="button" class="menu-command"><span>Recent Projects</span></button>
-        </div>
-        <div class="menu-dropdown-section" data-menu-pane="window" hidden>
-            <button id="menuCloseLayersBtn" type="button" class="menu-command"><span>Close Layers</span></button>
-            <button id="menuCloseDataPaneBtn" type="button" class="menu-command"><span>Close Data Manager</span></button>
-        </div>
-        <div class="menu-dropdown-section" data-menu-pane="help" hidden>
-            <button id="menuHelpShortcutsBtn" type="button" class="menu-command"><span>Keyboard Shortcuts</span></button>
-            <button id="exportProjectBtn" type="button" class="menu-command"><span>Help</span><span class="menu-shortcut" data-shortcut="export"></span></button>
-        </div>
+        <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
+        <div class="menu-dropdown-section" data-menu-pane="window" hidden></div>
+        <div class="menu-dropdown-section" data-menu-pane="help" hidden></div>
     </div>
     <div class="map-controls"></div>
     <div id="workspaceEmptyState" class="workspace-empty-state">
@@ -3989,13 +3975,26 @@
             });
         }
 
-        function openToolbarMenu(menuKey) {
+        function positionToolbarMenu(button) {
+            if (!toolbarMenuTray || !button) return;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            const buttonRect = button.getBoundingClientRect();
+            const trayWidth = Math.min(340, Math.max(190, toolbarMenuTray.offsetWidth || 190));
+            const maxLeft = Math.max(10, window.innerWidth - trayWidth - 10);
+            const left = Math.min(Math.max(10, buttonRect.left), maxLeft);
+            toolbarMenuTray.style.left = `${left}px`;
+            toolbarMenuTray.style.right = "auto";
+            toolbarMenuTray.style.top = `${Math.round(toolbarRect.bottom + 6)}px`;
+        }
+
+        function openToolbarMenu(menuKey, button = null) {
             toolbarMenuKey = menuKey;
             toolbarMenuVisible = true;
             if (toolbarMenuTray) toolbarMenuTray.hidden = false;
             menuPaneEls.forEach((pane) => {
                 pane.hidden = pane.dataset.menuPane !== menuKey;
             });
+            positionToolbarMenu(button || document.querySelector(`[data-menu="${menuKey}"]`));
             setTopMenuButtonStates();
         }
 
@@ -6097,7 +6096,7 @@
                 if (toolbarMenuVisible && toolbarMenuKey === menuKey) {
                     setToolbarMenuVisibility(false);
                 } else {
-                    openToolbarMenu(menuKey);
+                    openToolbarMenu(menuKey, button);
                 }
             });
         });
