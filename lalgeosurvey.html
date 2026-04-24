@@ -292,7 +292,8 @@
     }
     #layersMapBtn {
         position: absolute;
-        right: 18px;
+        left: 18px;
+        right: auto;
         bottom: 82px;
         z-index: 1125;
         width: 46px;
@@ -1129,19 +1130,20 @@
         color: #e5eef8;
     }
     #toolbar {
-        top: 14px;
-        left: 16px;
-        right: 16px;
+        top: 0;
+        left: 0;
+        right: 0;
         transform: none;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 12px;
         padding: 10px 14px;
-        background: rgba(8, 18, 30, 0.82);
-        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(8, 18, 30, 0.66);
+        border: none;
+        border-bottom: 1px solid rgba(255,255,255,0.08);
         box-shadow: 0 18px 42px rgba(0,0,0,0.28);
-        border-radius: 16px;
+        border-radius: 0 0 14px 14px;
         color: #e5eef8;
     }
     .toolbar-shell {
@@ -1215,13 +1217,15 @@
         display: none !important;
     }
     #toolbar {
-        top: 8px;
-        left: 10px;
-        right: 10px;
+        top: 0;
+        left: 0;
+        right: 0;
         transform: none;
         max-width: none;
         min-height: 34px;
-        padding: 4px 10px;
+        padding: 5px 12px;
+        background: rgba(8, 18, 30, 0.66);
+        border-radius: 0 0 14px 14px;
         display: grid;
         grid-template-columns: auto 1fr auto;
         grid-template-areas: "toolbar-left toolbar-center toolbar-right";
@@ -1742,8 +1746,8 @@
     }
     #sidebar {
         top: 84px;
-        left: auto;
-        right: 12px;
+        left: 12px;
+        right: auto;
         width: 300px;
         max-height: calc(100vh - 96px);
         opacity: 1;
@@ -2016,6 +2020,9 @@
         grid-template-columns: 1fr 1fr;
         gap: 10px;
         margin-top: 12px;
+    }
+    #drawerLoadProjectBtn {
+        grid-column: 1 / -1;
     }
     .workspace-section-kicker {
         margin: 0 0 6px;
@@ -2773,9 +2780,11 @@
             flex-wrap: wrap;
             align-items: center;
             gap: 8px;
-            padding: 10px;
-            left: 12px;
-            right: 12px;
+            padding: 8px 12px;
+            top: 0;
+            left: 0;
+            right: 0;
+            border-radius: 0 0 14px 14px;
             transform: none;
         }
 
@@ -2812,8 +2821,8 @@
         #sidebar {
             width: min(340px, calc(100vw - 24px));
             max-height: calc(100vh - 228px);
-            left: auto;
-            right: 12px;
+            left: 12px;
+            right: auto;
             top: 144px;
             bottom: auto;
         }
@@ -3002,26 +3011,8 @@
                         <option value="">Select a project</option>
                     </select>
                     <div class="workspace-panel-actions">
-                        <button id="drawerNewProjectBtn" type="button" class="workspace-primary-btn">New Project</button>
-                        <button id="drawerOpenProjectBtn" type="button" class="workspace-secondary-btn">Open Project</button>
-                        <button id="drawerImportProjectBtn" type="button" class="workspace-secondary-btn">Import Project</button>
-                        <a id="drawerDataManagerBtn" href="/datamanager" class="workspace-secondary-btn">Open Data Manager</a>
-                        <button id="drawerConnectDropboxBtn" type="button" class="workspace-secondary-btn">Connect Dropbox</button>
+                        <button id="drawerLoadProjectBtn" type="button" class="workspace-primary-btn">Load Project</button>
                     </div>
-                </div>
-            </div>
-
-            <div class="workspace-panel-section">
-                <div class="import-section-title">Project list</div>
-                <p class="workspace-panel-muted">Project records keep browser, Dropbox, and imported workspaces in one place.</p>
-                <div id="projectList" class="workspace-record-list"></div>
-            </div>
-
-            <div class="workspace-panel-section">
-                <div class="import-section-title">Layers / Surveys</div>
-                <div id="layerList" class="workspace-layer-list"></div>
-                <div class="workspace-inline-actions">
-                    <button id="addLayerBtn" type="button" class="mini-btn primary">Add new layer</button>
                 </div>
             </div>
 
@@ -3360,6 +3351,7 @@
         const workspacePanelProjectType = document.getElementById("workspacePanelProjectType");
         const workspacePanelStorage = document.getElementById("workspacePanelStorage");
         const projectSettingsSummary = document.getElementById("projectSettingsSummary");
+        const drawerLoadProjectBtn = document.getElementById("drawerLoadProjectBtn");
         const drawerNewProjectBtn = document.getElementById("drawerNewProjectBtn");
         const drawerOpenProjectBtn = document.getElementById("drawerOpenProjectBtn");
         const drawerImportProjectBtn = document.getElementById("drawerImportProjectBtn");
@@ -6166,7 +6158,7 @@
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         menuAddNewBtn?.addEventListener("click", () => addSurveyPointBtn?.click());
-        menuNewLayerBtn?.addEventListener("click", () => addLayerBtn?.click());
+        menuNewLayerBtn?.addEventListener("click", () => addLayerToActiveProject());
         menuUndoBtn?.addEventListener("click", () => undoBtn?.click());
         menuRedoBtn?.addEventListener("click", () => redoBtn?.click());
         menuToggleLayersBtn?.addEventListener("click", () => setSidebarVisibility(!sidebarVisible));
@@ -6250,6 +6242,15 @@
         openProjectBtn?.addEventListener("click", () => setImportPanelVisibility(true));
         drawerOpenProjectBtn?.addEventListener("click", () => setImportPanelVisibility(true));
         emptyImportProjectBtn?.addEventListener("click", () => setImportPanelVisibility(true));
+        drawerLoadProjectBtn?.addEventListener("click", () => {
+            const selected = workspaceProjects.find((item) => item.id === projectSwitcher?.value);
+            if (!selected) {
+                setProjectStatus("Select a project to load.", "error");
+                return;
+            }
+            setActiveProject(selected, { preserveRegion: true });
+            setImportPanelVisibility(false);
+        });
         emptyConnectDropboxBtn?.addEventListener("click", () => {
             setImportPanelVisibility(true);
             connectDropboxBtn?.click();
@@ -6363,12 +6364,7 @@
                 showWorkspaceHint("Click on the map to place your first feature.");
             }
         });
-        projectSwitcher?.addEventListener("change", () => {
-            const selected = workspaceProjects.find((item) => item.id === projectSwitcher.value);
-            if (selected) {
-                setActiveProject(selected, { preserveRegion: true });
-            }
-        });
+        projectSwitcher?.addEventListener("change", () => updateCommandAvailability());
         projectList?.addEventListener("click", (event) => {
             const openButton = event.target.closest("[data-open-project]");
             if (openButton) {
