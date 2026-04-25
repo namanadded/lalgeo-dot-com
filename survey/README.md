@@ -2,6 +2,17 @@
 
 Runs a survey builder + public survey links under `/survey`.
 
+## LalGeo Maps
+The legacy `lalgeosurvey.html` map app is now hosted inside this Next.js app:
+
+- `/maps`
+- `/lalgeosurvey`
+- `/` when the request host is `maps.lalgeo.com`
+
+For a dedicated Netlify site, use this `survey/` directory as the site base, keep the existing `npm run build` command, and point the custom domain to `maps.lalgeo.com`.
+
+Apple MapKit tokens are still embedded in `public/legacy/lalgeosurvey.html`. Before moving production traffic to `maps.lalgeo.com`, confirm the MapKit JS token allows that exact web origin or replace it with a token generated for the new hostname.
+
 ## Local storage
 Defaults to `/Volumes/LALGEO_CLOUD/surveys`.
 Override with:
