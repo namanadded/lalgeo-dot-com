@@ -1,10 +1,10 @@
-import MapsFrame from "./MapsFrame";
+import MapsFrame from "../MapsFrame";
 
 export const metadata = {
   title: "LalGeo Maps",
   description: "Create, import, edit, and share LalGeo map projects.",
 };
 
-export default function MapsPage() {
+export default function LalGeoSurveyPage() {
   return <MapsFrame />;
 }
