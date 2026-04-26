@@ -1686,9 +1686,17 @@
         overflow: hidden;
     }
     .toolbar-center {
-        flex: 1 1 auto;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
         justify-content: center;
         overflow: hidden;
+        width: min(420px, calc(100vw - 620px));
+        pointer-events: none;
+    }
+    .toolbar-center .toolbar-project-mini {
+        pointer-events: auto;
     }
     .toolbar-right {
         flex: 0 0 auto;
@@ -1779,26 +1787,54 @@
         color: #97aabd;
     }
     .layer-pane-row {
-        display: grid;
-        gap: 8px;
-        padding: 12px;
-        border-radius: 14px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.05), rgba(255,255,255,0.03));
-        border: 1px solid rgba(255,255,255,0.06);
-        margin-top: 10px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        width: 100%;
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: transparent;
+        border: 1px solid transparent;
+        color: #e5eef8;
+        cursor: default;
+        margin-top: 4px;
+        text-align: left;
+    }
+    .layer-pane-row:hover {
+        background: rgba(255,255,255,0.05);
     }
     .layer-pane-row.active {
-        border-color: rgba(92, 200, 192, 0.45);
-        box-shadow: inset 0 0 0 1px rgba(92, 200, 192, 0.18);
+        border-color: rgba(92, 200, 192, 0.24);
+        background: rgba(92, 200, 192, 0.08);
     }
-    .layer-pane-row h5 {
-        margin: 0;
+    .layer-visibility-toggle {
+        width: 24px;
+        height: 24px;
+        flex: 0 0 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        border: 1px solid rgba(125, 211, 200, 0.5);
+        background: rgba(125, 211, 200, 0.14);
+        color: #9ff7e5;
+        font-size: 15px;
+        font-weight: 800;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .layer-visibility-toggle.is-off {
+        background: rgba(255,255,255,0.03);
+        border-color: rgba(255,255,255,0.14);
+        color: transparent;
+    }
+    .layer-pane-name {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
         font-size: 14px;
-    }
-    .layer-pane-row p {
-        margin: 0;
-        font-size: 12px;
-        color: #9fb1c2;
+        font-weight: 700;
     }
     #editDock {
         display: none !important;
@@ -1900,8 +1936,9 @@
         font-size: 11px;
         color: #97aabd;
     }
-    #dropboxProjectContextMenu {
-        position: absolute;
+    #dropboxProjectContextMenu,
+    #layerContextMenu {
+        position: fixed;
         z-index: 1600;
         min-width: 160px;
         padding: 8px;
@@ -1912,7 +1949,8 @@
         display: grid;
         gap: 6px;
     }
-    #dropboxProjectContextMenu[hidden] {
+    #dropboxProjectContextMenu[hidden],
+    #layerContextMenu[hidden] {
         display: none;
     }
     .context-menu-btn {
@@ -2777,26 +2815,86 @@
         }
 
         #toolbar {
-            display: flex;
-            flex-wrap: wrap;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-areas: "toolbar-left toolbar-center toolbar-right";
             align-items: center;
-            gap: 8px;
-            padding: 8px 12px;
-            top: 0;
-            left: 0;
-            right: 0;
-            border-radius: 0 0 14px 14px;
+            gap: 6px;
+            min-height: 44px;
+            padding: 6px 8px;
+            top: 6px;
+            left: 6px;
+            right: 6px;
+            border-radius: 12px;
             transform: none;
         }
 
+        #toolbar .app-menubar,
+        #toolbar .toolbar-quick-actions {
+            display: none;
+        }
+
+        #toolbar .toolbar-left,
+        #toolbar .toolbar-center,
         #toolbar .toolbar-right {
-            justify-content: flex-start;
-            flex-wrap: wrap;
-            gap: 6px;
+            min-width: 0;
+        }
+
+        #toolbar .toolbar-left {
+            grid-area: toolbar-left;
+            overflow: visible;
+        }
+
+        #toolbar .toolbar-left .brand-logo {
+            height: 28px;
+            margin-right: 0;
+        }
+
+        #toolbar .toolbar-center {
+            grid-area: toolbar-center;
+            position: static;
+            transform: none;
+            width: auto;
+            justify-content: center;
+            pointer-events: auto;
+        }
+
+        #toolbar .toolbar-project-mini {
+            max-width: 100%;
+            min-width: 0;
+        }
+
+        #toolbar .toolbar-project-mini strong {
+            max-width: calc(100vw - 160px);
+            font-size: 11px;
+        }
+
+        #toolbar .toolbar-project-mini span {
+            display: none;
+        }
+
+        #toolbar .toolbar-right {
+            grid-area: toolbar-right;
+            justify-content: flex-end;
+            gap: 0;
+        }
+
+        #toolbarSearchShell {
+            width: 32px;
+            min-width: 32px;
+        }
+
+        #toolbarSearchShell:not(.collapsed) {
+            position: fixed;
+            top: 58px;
+            left: 10px;
+            right: 10px;
+            width: auto;
+            z-index: 1300;
         }
 
         #toolbarMenuTray {
-            top: 86px;
+            top: 58px;
             left: 12px;
             right: 12px;
             min-width: 0;
@@ -2820,12 +2918,36 @@
             grid-template-columns: 1fr;
         }
         #sidebar {
-            width: min(340px, calc(100vw - 24px));
-            max-height: calc(100vh - 228px);
-            left: 12px;
-            right: auto;
-            top: 144px;
+            width: auto;
+            max-height: min(440px, calc(100dvh - 84px));
+            left: 8px;
+            right: 8px;
+            top: 64px;
             bottom: auto;
+            padding: 14px;
+            border-radius: 18px;
+        }
+        .sidebar-shell {
+            gap: 8px;
+        }
+        .sidebar-heading {
+            font-size: 20px;
+        }
+        .layer-pane-row {
+            padding: 8px;
+        }
+        #dataCatalogPane {
+            top: 64px;
+            left: 8px;
+            right: 8px;
+            width: auto;
+            max-height: calc(100dvh - 84px);
+        }
+        #surveyTablePanel {
+            max-height: 58vh;
+        }
+        #surveyTableWrapper {
+            max-height: calc(58vh - 36px);
         }
         .feature-inspector-grid {
             grid-template-columns: 1fr;
@@ -2834,10 +2956,6 @@
         #toolbar input[type="text"] {
             width: 100%;
             min-width: 0;
-        }
-
-        .toolbar-project-mini {
-            max-width: calc(100vw - 180px);
         }
 
         .show-survey-table-btn {
@@ -3177,6 +3295,13 @@
     <div id="dropboxProjectContextMenu" hidden>
         <button id="contextAddToMapBtn" type="button" class="context-menu-btn">Add to Map</button>
     </div>
+    <div id="layerContextMenu" hidden>
+        <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set active layer</button>
+        <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
+        <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
+        <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
+        <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
+    </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
     <button id="layersMapBtn" type="button" aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
         <span class="layers-map-icon" aria-hidden="true"><span></span><span></span><span></span></span>
@@ -3383,6 +3508,8 @@
         const dataCatalogMeta = document.getElementById("dataCatalogMeta");
         const dropboxProjectContextMenu = document.getElementById("dropboxProjectContextMenu");
         const contextAddToMapBtn = document.getElementById("contextAddToMapBtn");
+        const layerContextMenu = document.getElementById("layerContextMenu");
+        const layerContextToggleBtn = document.getElementById("layerContextToggleBtn");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
         const projectStatus = document.getElementById("projectStatus");
@@ -3549,6 +3676,7 @@
         let currentDropboxProjects = [];
         let selectedDropboxProjectPath = null;
         let contextDropboxProjectPath = null;
+        let contextLayerId = null;
         let dropboxWatchAbort = null;
         let dropboxProfile = null;
         let isPersistingEdits = false;
@@ -4605,43 +4733,19 @@
             if (!sidebarContent) return;
             if (!activeProjectRecord) {
                 sidebarContent.innerHTML = `
-                    <div class="layer-pane-actions">
-                        <button type="button" class="mini-btn primary" data-sidebar-add-layer="1">Add Layer</button>
-                    </div>
-                    <p class="layer-pane-helper">Create or open a project to manage layers here. Use Workspace for imports and Dropbox connection.</p>
+                    <p class="layer-pane-helper">Create or open a project from File to manage layers here.</p>
                 `;
                 return;
             }
             const layer = getActiveLayerRecord();
             sidebarContent.innerHTML = `
-                <div>
-                    <h3 class="workspace-sidebar-title">${escapeHtml(activeProjectRecord.name)}</h3>
-                    <div class="workspace-sidebar-meta">
-                        <span class="workspace-badge">${escapeHtml(getStorageLabel())}</span>
-                        <span>${escapeHtml(activeProjectRecord.type)}</span>
-                        <span>${escapeHtml(formatProjectDate(activeProjectRecord.metadata?.updatedAt))}</span>
-                    </div>
-                </div>
                 <div class="workspace-sidebar-section">
-                    <p class="workspace-section-kicker">Layers</p>
-                    <div class="layer-pane-actions">
-                        <button type="button" class="mini-btn primary" data-sidebar-add-layer="1">Add Layer</button>
-                        <button type="button" class="mini-btn" data-sidebar-open-projects="1">Workspace</button>
-                    </div>
-                    <p class="layer-pane-helper">Switch layers for editing, hide them on the map, or remove them from the project.</p>
                     ${(activeProjectRecord.layers || []).map((item) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}">
-                            <div>
-                                <h5>${escapeHtml(item.name)}</h5>
-                                <p>${(item.parsed?.records || []).length} features · ${item.visible === false ? "Hidden" : "Visible"}</p>
-                            </div>
-                            <div class="workspace-inline-actions">
-                                <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
-                                <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
-                                <button type="button" class="mini-btn danger" data-remove-layer="${escapeHtml(item.id)}" aria-label="Remove ${escapeHtml(item.name)} from this project">Remove</button>
-                            </div>
+                            <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
+                            <div class="layer-pane-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
                         </div>
-                    `).join("")}
+                    `).join("") || `<p class="layer-pane-helper">Right-click here to add a layer.</p>`}
                 </div>
             `;
         }
@@ -4655,6 +4759,30 @@
         function hideDropboxProjectContextMenu() {
             contextDropboxProjectPath = null;
             if (dropboxProjectContextMenu) dropboxProjectContextMenu.hidden = true;
+        }
+
+        function positionContextMenu(menu, event) {
+            if (!menu) return;
+            menu.hidden = false;
+            const rect = menu.getBoundingClientRect();
+            const left = Math.max(8, Math.min(event.clientX, window.innerWidth - rect.width - 8));
+            const top = Math.max(8, Math.min(event.clientY, window.innerHeight - rect.height - 8));
+            menu.style.left = `${left}px`;
+            menu.style.top = `${top}px`;
+        }
+
+        function hideLayerContextMenu() {
+            contextLayerId = null;
+            if (layerContextMenu) layerContextMenu.hidden = true;
+        }
+
+        function showLayerContextMenu(layerId, event) {
+            contextLayerId = layerId || null;
+            const layer = contextLayerId ? getLayerById(contextLayerId) : null;
+            if (layerContextToggleBtn && layer) {
+                layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
+            }
+            positionContextMenu(layerContextMenu, event);
         }
 
         async function openDropboxProjectPath(path) {
@@ -5693,10 +5821,12 @@
                 clearSurveyLayers();
                 setSurveyTableVisibility(true);
                 surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">Open or create a project to view attributes.</div>`;
+                renderActiveProjectSidebar();
             } else if (layer.id === activeLayerId) {
                 setActiveProject(activeProjectRecord, { preserveRegion: true });
             } else {
                 renderWorkspaceCollections();
+                renderActiveProjectSidebar();
             }
         }
 
@@ -6289,6 +6419,9 @@
             if (dropboxProjectContextMenu && !dropboxProjectContextMenu.contains(event.target)) {
                 hideDropboxProjectContextMenu();
             }
+            if (layerContextMenu && !layerContextMenu.contains(event.target)) {
+                hideLayerContextMenu();
+            }
         });
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
         dataCatalogTableBody?.addEventListener("click", (event) => {
@@ -6312,9 +6445,7 @@
             selectedDropboxProjectPath = contextDropboxProjectPath;
             renderDropboxCatalogPane();
             if (dropboxProjectContextMenu) {
-                dropboxProjectContextMenu.hidden = false;
-                dropboxProjectContextMenu.style.left = `${event.pageX}px`;
-                dropboxProjectContextMenu.style.top = `${event.pageY}px`;
+                positionContextMenu(dropboxProjectContextMenu, event);
             }
         });
         dataCatalogTableBody?.addEventListener("dragstart", (event) => {
@@ -6411,6 +6542,39 @@
             setSidebarVisibility(false);
         });
         sidebarBackdrop?.addEventListener("click", () => setSidebarVisibility(false));
+        sidebarContent?.addEventListener("contextmenu", (event) => {
+            if (!activeProjectRecord) return;
+            const row = event.target.closest("[data-sidebar-layer]");
+            event.preventDefault();
+            showLayerContextMenu(row?.dataset.sidebarLayer || activeLayerId, event);
+        });
+        layerContextMenu?.addEventListener("click", (event) => {
+            const actionButton = event.target.closest("[data-layer-context-action]");
+            if (!actionButton || !activeProjectRecord) return;
+            const action = actionButton.dataset.layerContextAction;
+            const layerId = contextLayerId || activeLayerId;
+            hideLayerContextMenu();
+            if (action === "add") {
+                addLayerToActiveProject();
+                return;
+            }
+            if (!layerId) return;
+            if (action === "activate") {
+                switchToLayer(layerId, { revealTable: false });
+                return;
+            }
+            if (action === "open") {
+                switchToLayer(layerId);
+                return;
+            }
+            if (action === "toggle") {
+                toggleLayerVisibility(layerId);
+                return;
+            }
+            if (action === "remove") {
+                deleteLayer(layerId);
+            }
+        });
         sidebarContent?.addEventListener("click", (event) => {
             if (event.target.closest("[data-sidebar-open-projects]")) {
                 setImportPanelVisibility(true);
@@ -6424,19 +6588,10 @@
                 addLayerToActiveProject();
                 return;
             }
-            const openLayerButton = event.target.closest("[data-open-layer]");
-            if (openLayerButton) {
-                switchToLayer(openLayerButton.dataset.openLayer);
-                return;
-            }
             const toggleLayerButton = event.target.closest("[data-toggle-layer]");
             if (toggleLayerButton) {
                 toggleLayerVisibility(toggleLayerButton.dataset.toggleLayer);
                 return;
-            }
-            const removeLayerButton = event.target.closest("[data-remove-layer]");
-            if (removeLayerButton) {
-                deleteLayer(removeLayerButton.dataset.removeLayer);
             }
         });
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
@@ -6461,6 +6616,10 @@
                 }
                 if (dropboxProjectContextMenu && !dropboxProjectContextMenu.hidden) {
                     hideDropboxProjectContextMenu();
+                    return;
+                }
+                if (layerContextMenu && !layerContextMenu.hidden) {
+                    hideLayerContextMenu();
                     return;
                 }
                 if (settingsPanel && !settingsPanel.hidden) {
