@@ -1,6 +1,3 @@
-import { readFile } from "node:fs/promises";
-import path from "node:path";
-
 export const dynamic = "force-dynamic";
 
 const TOKEN_ASSIGNMENT_PATTERN =
@@ -19,8 +16,15 @@ function mapkitTokenScript() {
 }
 
 export async function GET() {
-  const htmlPath = path.join(process.cwd(), "public", "legacy", "lalgeosurvey.html");
-  const source = await readFile(htmlPath, "utf8");
+  const sourceResponse = await fetch(new URL("/legacy/lalgeosurvey.html", process.env.URL || "https://maps.lalgeo.com"), {
+    cache: "no-store",
+  });
+
+  if (!sourceResponse.ok) {
+    return new Response("Unable to load LalGeo Maps shell.", { status: 500 });
+  }
+
+  const source = await sourceResponse.text();
   const html = source.replace(TOKEN_ASSIGNMENT_PATTERN, `${mapkitTokenScript()}\n\n        mapkit.init(`);
 
   return new Response(html, {
