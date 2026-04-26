@@ -1,4 +1,6 @@
 export default function MapsFrame() {
+  const legacyMapUrl = process.env.NEXT_PUBLIC_LEGACY_MAP_URL || "https://lalgeo.com/lalgeosurvey.html";
+
   return (
     <main
       style={{
@@ -10,7 +12,7 @@ export default function MapsFrame() {
       }}
     >
       <iframe
-        src="/legacy/lalgeosurvey.html"
+        src={legacyMapUrl}
         title="LalGeo Maps"
         allow="geolocation; clipboard-read; clipboard-write; fullscreen"
         style={{
