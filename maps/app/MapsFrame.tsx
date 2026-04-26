@@ -1,7 +1,7 @@
 export default function MapsFrame() {
   const hasMapkitToken = Boolean((process.env.MAPKIT_TOKEN || process.env.NEXT_PUBLIC_MAPKIT_TOKEN || "").trim());
   const legacyMapUrl =
-    process.env.NEXT_PUBLIC_LEGACY_MAP_URL || (hasMapkitToken ? "/legacy/lalgeosurvey" : "https://lalgeo.com/lalgeosurvey.html");
+    process.env.NEXT_PUBLIC_LEGACY_MAP_URL || (hasMapkitToken ? "/render/lalgeosurvey" : "https://lalgeo.com/lalgeosurvey.html");
 
   return (
     <main
