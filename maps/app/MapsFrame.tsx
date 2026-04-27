@@ -1,13 +1,13 @@
 export default function MapsFrame() {
-  const hasMapkitToken = Boolean((process.env.MAPKIT_TOKEN || process.env.NEXT_PUBLIC_MAPKIT_TOKEN || "").trim());
-  const legacyMapUrl =
-    process.env.NEXT_PUBLIC_LEGACY_MAP_URL || (hasMapkitToken ? "/render/lalgeosurvey" : "https://lalgeo.com/lalgeosurvey.html");
+  const legacyMapUrl = process.env.NEXT_PUBLIC_LEGACY_MAP_URL || "/render/lalgeosurvey";
 
   return (
     <main
       style={{
-        width: "100vw",
-        height: "100vh",
+        position: "fixed",
+        inset: 0,
+        width: "100%",
+        height: "100dvh",
         margin: 0,
         overflow: "hidden",
         background: "#f8fafc",
@@ -17,11 +17,13 @@ export default function MapsFrame() {
         src={legacyMapUrl}
         title="LalGeo Maps"
         allow="geolocation; clipboard-read; clipboard-write; fullscreen"
+        scrolling="no"
         style={{
           display: "block",
           width: "100%",
           height: "100%",
           border: 0,
+          overflow: "hidden",
         }}
       />
     </main>
