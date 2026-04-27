@@ -825,7 +825,9 @@
     }
     #sharePanel.open { display: flex; }
     .share-panel-header {
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(280px, 1fr) minmax(220px, 420px) minmax(170px, 1fr);
+        grid-template-areas: "toolbar-left toolbar-center toolbar-right";
         align-items: center;
         justify-content: space-between;
         padding: 12px 14px;
@@ -1334,12 +1336,11 @@
         background: rgba(255,255,255,0.05);
     }
     .quick-action-icon {
-        font-size: 12px;
+        font-size: 16px;
         line-height: 1;
     }
     .quick-action-label {
-        font-size: 11px;
-        line-height: 1;
+        display: none;
     }
     .search-pill {
         width: 30px;
@@ -1709,27 +1710,27 @@
         flex-wrap: nowrap;
     }
     .toolbar-left {
-        flex: 0 0 auto;
+        grid-area: toolbar-left;
         justify-content: flex-start;
         overflow: hidden;
     }
     .toolbar-center {
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
+        grid-area: toolbar-center;
+        position: static;
+        transform: none;
         justify-content: center;
         overflow: hidden;
-        width: min(420px, calc(100vw - 620px));
+        width: auto;
         pointer-events: none;
     }
     .toolbar-center .toolbar-project-mini {
         pointer-events: auto;
     }
     .toolbar-right {
-        flex: 0 0 auto;
+        grid-area: toolbar-right;
         justify-content: flex-end;
         margin-left: auto;
+        overflow: hidden;
     }
     .toolbar-quick-actions {
         display: inline-flex;
@@ -1740,6 +1741,11 @@
     .menu-bar-btn.quick-action {
         border: 1px solid rgba(255,255,255,0.08);
         background: rgba(255,255,255,0.04);
+        width: 30px;
+        height: 30px;
+        padding: 0;
+        justify-content: center;
+        border-radius: 8px;
     }
     .menu-bar-btn.quick-action[disabled] {
         opacity: 0.5;
@@ -1749,6 +1755,64 @@
         background: rgba(92, 200, 192, 0.18);
         border-color: rgba(92, 200, 192, 0.3);
         color: #8ff0dc;
+    }
+    .quick-action-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+    .quick-action-label {
+        display: none;
+    }
+    @media (max-width: 1120px) {
+        #toolbar {
+            grid-template-columns: minmax(220px, 1fr) minmax(190px, 340px) minmax(134px, auto);
+        }
+        .menu-bar-btn {
+            font-size: 12px;
+            padding: 4px 5px;
+        }
+        #helpMenuBtn {
+            display: none;
+        }
+        .toolbar-project-mini strong {
+            max-width: 300px;
+        }
+        .toolbar-project-mini span {
+            max-width: 300px;
+        }
+    }
+    @media (max-width: 900px) {
+        #toolbar {
+            grid-template-columns: auto minmax(170px, 1fr) auto;
+        }
+        #windowMenuBtn,
+        #historyMenuBtn {
+            display: none;
+        }
+        .toolbar-left .brand-logo {
+            height: 36px;
+        }
+        .brand-menu-btn {
+            min-width: 34px;
+        }
+        .toolbar-project-mini strong {
+            max-width: 260px;
+            font-size: 13px;
+        }
+    }
+    @media (max-width: 760px) {
+        .app-menubar {
+            display: none;
+        }
+        #toolbar {
+            grid-template-columns: auto minmax(0, 1fr) auto;
+        }
+        .toolbar-center {
+            justify-content: center;
+        }
+        .toolbar-project-mini strong {
+            max-width: calc(100vw - 210px);
+        }
     }
     .search-pill {
         width: 28px;
@@ -3031,15 +3095,15 @@
                     <span class="quick-action-label">Add New</span>
                 </button>
                 <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
-                    <span class="quick-action-icon">↶</span>
+                    <span class="quick-action-icon" aria-hidden="true">↺</span>
                     <span class="quick-action-label">Undo</span>
                 </button>
                 <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
-                    <span class="quick-action-icon">↷</span>
+                    <span class="quick-action-icon" aria-hidden="true">↻</span>
                     <span class="quick-action-label">Redo</span>
                 </button>
                 <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
-                    <span class="quick-action-icon">◎</span>
+                    <span class="quick-action-icon" aria-hidden="true">⌖</span>
                     <span class="quick-action-label">My Location</span>
                 </button>
             </div>
