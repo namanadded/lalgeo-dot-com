@@ -10,16 +10,35 @@
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script> <style>
 
-    html, body, #map {
+    html, body {
         height: 100%;
+        width: 100%;
         margin: 0;
         padding: 0;
-        overflow: hidden; /* prevents scrollbars */
+        overflow: hidden !important;
         overscroll-behavior: none;
     }
+    body {
+        position: fixed;
+        inset: 0;
+    }
     #map {
-        height: 100%;
+        position: fixed;
+        inset: 0;
+        width: 100% !important;
+        height: 100dvh !important;
+        min-height: 100%;
+        overflow: hidden;
         touch-action: none;
+    }
+    #toolbar,
+    #sidebar,
+    #dataCatalogPane,
+    #surveyTablePanel,
+    #surveyTableWrapper,
+    #importPanel,
+    .import-panel-container {
+        box-sizing: border-box;
     }
     #toolbar {
         position: absolute;
