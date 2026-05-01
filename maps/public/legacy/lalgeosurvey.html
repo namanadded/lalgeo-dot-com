@@ -3543,6 +3543,7 @@
         <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set active layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
+        <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer properties</button>
         <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
@@ -3894,11 +3895,31 @@
         }
         identifierSelect.addEventListener("change", () => {
             identifierField = identifierSelect.value;
+            const layer = getActiveLayerRecord();
+            if (layer) {
+                layer.labelSettings = {
+                    mode: identifierField === "__custom__" ? "expression" : "field",
+                    field: identifierField === "__custom__" ? ensureLayerLabelSettings(layer).field : identifierField,
+                    expression: customIdentifierExpression
+                };
+                markActiveProjectUpdated();
+                scheduleLocalAutosave();
+            }
             toggleCustomExpressionUI(identifierField === "__custom__");
             updateAnnotationLabels();
         });
         customExpressionInput.addEventListener("input", () => {
             customIdentifierExpression = customExpressionInput.value;
+            const layer = getActiveLayerRecord();
+            if (layer && identifierField === "__custom__") {
+                layer.labelSettings = {
+                    ...ensureLayerLabelSettings(layer),
+                    mode: "expression",
+                    expression: customIdentifierExpression
+                };
+                markActiveProjectUpdated();
+                scheduleLocalAutosave();
+            }
             if (identifierField === "__custom__") {
                 updateAnnotationLabels();
             }
@@ -4043,6 +4064,46 @@
                 symbol_color: "Red",
                 symbol_shape: normalizedGeometry === "point" ? "Dot" : (normalizedGeometry === "line" ? "Plus" : "Circle")
             };
+        }
+
+        function isLayerStyleFieldName(name) {
+            return name === "symbol_color" || name === "symbol_shape";
+        }
+
+        function getLabelCandidateFields(layer, { includeStyle = false } = {}) {
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
+            return (layer?.schema || getDefaultLayerSchema(geometryType))
+                .map((field) => field.name)
+                .filter((name) => {
+                    if (!name) return false;
+                    if (!includeStyle && isLayerStyleFieldName(name)) return false;
+                    if (name === "Latitude" || name === "Longitude") return false;
+                    return true;
+                });
+        }
+
+        function getDefaultLabelFieldForLayer(layer) {
+            const candidates = getLabelCandidateFields(layer);
+            return candidates.find((name) => !isAutoManagedField(name) && name !== "ID")
+                || candidates.find((name) => name === "ID")
+                || candidates[0]
+                || "";
+        }
+
+        function ensureLayerLabelSettings(layer) {
+            if (!layer) return { mode: "field", field: "", expression: "" };
+            const candidates = getLabelCandidateFields(layer, { includeStyle: false });
+            const previous = layer.labelSettings || {};
+            const mode = previous.mode === "expression" || previous.field === "__custom__" ? "expression" : "field";
+            const field = candidates.includes(previous.field)
+                ? previous.field
+                : getDefaultLabelFieldForLayer(layer);
+            layer.labelSettings = {
+                mode,
+                field,
+                expression: previous.expression || previous.customExpression || ""
+            };
+            return layer.labelSettings;
         }
 
         function cloneLayerSchema(schema = getDefaultLayerSchema()) {
@@ -4254,6 +4315,7 @@
                 ...getDefaultLayerStyleDefaults(layer.geometryType),
                 ...(layer.styleDefaults || {})
             };
+            ensureLayerLabelSettings(layer);
             const featuresLookLegacy = Array.isArray(layer.features) && layer.features.length
                 && (!("geometry" in layer.features[0]) || !("attributes" in layer.features[0]));
             if (!Array.isArray(layer.features) || !layer.features.length || featuresLookLegacy) {
@@ -4330,7 +4392,7 @@
             const sourceParsed = parsed || createEmptyParsedLayer(name, normalizedGeometry);
             sourceParsed.geometryType = normalizedGeometry;
             const schema = createSchemaFromParsed(sourceParsed, normalizedGeometry);
-            return {
+            const layer = {
                 id: generateWorkspaceId("layer"),
                 name,
                 geometryType: normalizedGeometry,
@@ -4341,6 +4403,8 @@
                 features: buildLayerFeaturesFromParsed(sourceParsed, schema, normalizedGeometry),
                 parsed: sourceParsed
             };
+            ensureLayerLabelSettings(layer);
+            return layer;
         }
 
         function createProjectRecord({
@@ -5423,8 +5487,9 @@
             const isHovered = featureId === hoveredFeatureId;
             const isNew = Boolean(annotation.surveyPoint.isNew);
             const attrs = annotation.surveyPoint.attributes || {};
-            const baseColor = getSymbolColorValue(attrs.symbol_color);
-            const baseGlyph = getSymbolGlyphValue(attrs.symbol_shape);
+            const layer = getLayerById(annotation.surveyPoint.layerId) || getActiveLayerRecord();
+            const baseColor = getSymbolColorValue(attrs.symbol_color || layer?.styleDefaults?.symbol_color);
+            const baseGlyph = getSymbolGlyphValue(attrs.symbol_shape || layer?.styleDefaults?.symbol_shape);
             annotation.color = isSelected ? "#5cc8c0" : isHovered ? "#7aa7ff" : baseColor;
             annotation.glyphText = isSelected ? "◎" : isHovered ? "◉" : baseGlyph;
             if (!isNew) {
@@ -5483,7 +5548,7 @@
                 record.Longitude = feature.attributes.Longitude;
             }
             activeSurveyAnnotation.surveyPoint.attributes = { ...feature.attributes };
-            activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName);
+            activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName, layer);
             activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
             layer.features[rowIndex] = {
                 ...feature,
@@ -5585,9 +5650,7 @@
                 <span class="workspace-badge">${escapeHtml(layer.name)}</span>
                 <span>Feature ID: ${escapeHtml(feature.id || `feature-${rowIndex + 1}`)}</span>
             `;
-            const styleFieldNames = new Set(["symbol_color", "symbol_shape"]);
-            const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !styleFieldNames.has(field.name));
-            const styleFields = (layer.schema || getDefaultLayerSchema()).filter((field) => styleFieldNames.has(field.name));
+            const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name));
             const fields = attributeFields.map((field) => {
                 const value = feature.attributes?.[field.name] ?? "";
                 const isLocked = field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
@@ -5617,23 +5680,6 @@
                     </div>
                 `;
             }).join("");
-            const styleSection = styleFields.length ? `
-                <div class="feature-drawer-section">
-                    <div class="feature-drawer-section-label">Style</div>
-                    ${styleFields.map((field) => {
-                        const value = feature.attributes?.[field.name] ?? "";
-                        return `
-                            <div class="feature-drawer-field">
-                                <label>${escapeHtml(field.name.replace("symbol_", "").replace("_", " "))}</label>
-                                <select data-feature-field="${escapeHtml(field.name)}">
-                                    <option value="">Select…</option>
-                                    ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
-                                </select>
-                            </div>
-                        `;
-                    }).join("")}
-                </div>
-            ` : "";
             const imageSection = featureImageSrc ? `
                 <div class="feature-drawer-section">
                     <div class="feature-drawer-section-label">Photo</div>
@@ -5647,7 +5693,6 @@
                 <div class="feature-drawer-form">
                     ${imageSection}
                     ${fields}
-                    ${styleSection}
                     <div class="feature-drawer-actions">
                         <div class="workspace-inline-actions">
                             <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete">Delete feature</button>
@@ -5955,34 +6000,32 @@
             });
         }
 
-        function editLayerStyleDefaults(layerId) {
+        function editLayerProperties(layerId) {
             const layer = getLayerById(layerId);
             if (!layer) return;
             ensureLayerStructure(layer);
             const currentDefaults = {
-                ...getDefaultLayerStyleDefaults(),
+                ...getDefaultLayerStyleDefaults(layer.geometryType),
                 ...(layer.styleDefaults || {})
             };
-            const styleExceptions = (layer.features || []).filter((feature) => {
-                const attrs = feature.attributes || {};
-                return (attrs.symbol_color && attrs.symbol_color !== currentDefaults.symbol_color)
-                    || (attrs.symbol_shape && attrs.symbol_shape !== currentDefaults.symbol_shape);
-            }).length;
+            const labelSettings = ensureLayerLabelSettings(layer);
             const colorField = (layer.schema || []).find((field) => field.name === "symbol_color");
             const shapeField = (layer.schema || []).find((field) => field.name === "symbol_shape");
+            const labelFields = getLabelCandidateFields(layer);
+            const labelMode = labelSettings.mode === "expression" ? "expression" : "field";
             openLayerActionModal({
-                title: "Default Style",
-                description: `New points in ${layer.name} will inherit these defaults.`,
+                title: "Layer Properties",
+                description: `Set symbol and label behavior for ${layer.name}.`,
                 bodyHtml: `
                     <div class="layer-modal-grid">
                         <div class="workspace-field full">
-                            <label for="layerStyleColor">Default colour</label>
+                            <label for="layerStyleColor">Colour</label>
                             <select id="layerStyleColor" class="workspace-text-input">
                                 ${(colorField?.options || []).map((option) => `<option value="${escapeHtml(option)}" ${option === currentDefaults.symbol_color ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
                         </div>
                         <div class="workspace-field full">
-                            <label for="layerStyleShape">Default symbol</label>
+                            <label for="layerStyleShape">Shape</label>
                             <select id="layerStyleShape" class="workspace-text-input">
                                 ${(shapeField?.options || []).map((option) => `<option value="${escapeHtml(option)}" ${option === currentDefaults.symbol_shape ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
@@ -5993,32 +6036,81 @@
                                 ${(colorField?.options || []).map((option) => `<button type="button" class="style-swatch" data-style-swatch="${escapeHtml(option)}"><span class="style-swatch-dot" style="background:${getSymbolColorValue(option)}"></span>${escapeHtml(option)}</button>`).join("")}
                             </div>
                         </div>
-                        <div class="workspace-panel-muted full">${styleExceptions ? `${styleExceptions} existing feature${styleExceptions === 1 ? "" : "s"} currently use a different style.` : "Existing features already match these defaults."}</div>
+                        <div class="workspace-field full">
+                            <label for="layerLabelMode">Label type</label>
+                            <select id="layerLabelMode" class="workspace-text-input">
+                                <option value="field" ${labelMode === "field" ? "selected" : ""}>Attribute field</option>
+                                <option value="expression" ${labelMode === "expression" ? "selected" : ""}>Custom expression</option>
+                            </select>
+                        </div>
+                        <div class="workspace-field full" id="layerLabelFieldRow">
+                            <label for="layerLabelField">Label attribute</label>
+                            <select id="layerLabelField" class="workspace-text-input">
+                                ${labelFields.map((field) => `<option value="${escapeHtml(field)}" ${field === labelSettings.field ? "selected" : ""}>${escapeHtml(field)}</option>`).join("")}
+                            </select>
+                        </div>
+                        <div class="workspace-field full" id="layerLabelExpressionRow">
+                            <label for="layerLabelExpression">Custom label expression</label>
+                            <input id="layerLabelExpression" class="workspace-text-input" value="${escapeHtml(labelSettings.expression || "")}" placeholder="Name + ' - ' + Status">
+                        </div>
+                        <div class="workspace-panel-muted full">
+                            Expression examples: <code>Name</code>, <code>Name + ' - ' + Status</code>, <code>Address || ID</code>, <code>`#${'${ID}'} ${'${Name}'}`</code>.
+                        </div>
                     </div>
                 `,
                 actions: [
                     { label: "Cancel" },
                     {
-                        label: "Save style",
+                        label: "Save properties",
                         primary: true,
                         onClick: () => {
                             const nextColor = document.getElementById("layerStyleColor")?.value?.trim();
                             const nextShape = document.getElementById("layerStyleShape")?.value?.trim();
+                            const nextLabelMode = document.getElementById("layerLabelMode")?.value === "expression" ? "expression" : "field";
+                            const nextLabelField = document.getElementById("layerLabelField")?.value || getDefaultLabelFieldForLayer(layer);
+                            const nextExpression = document.getElementById("layerLabelExpression")?.value?.trim() || "";
                             if (!nextColor || !nextShape) return false;
+                            if (nextLabelMode === "expression" && !nextExpression) {
+                                document.getElementById("layerLabelExpression")?.focus();
+                                setProjectStatus("Enter a custom label expression or switch label type to Attribute field.", "error");
+                                return false;
+                            }
                             layer.styleDefaults = {
                                 symbol_color: nextColor,
                                 symbol_shape: nextShape
                             };
+                            layer.labelSettings = {
+                                mode: nextLabelMode,
+                                field: nextLabelField,
+                                expression: nextExpression
+                            };
+                            (layer.features || []).forEach((feature) => {
+                                feature.attributes = feature.attributes || {};
+                                feature.attributes.symbol_color = nextColor;
+                                feature.attributes.symbol_shape = nextShape;
+                            });
+                            layer.parsed = buildParsedFromLayer(layer);
+                            if (layer.id === activeLayerId) {
+                                currentSurveyData = layer.parsed;
+                            }
                             markActiveProjectUpdated();
                             scheduleLocalAutosave();
-                            renderWorkspaceCollections();
-                            renderActiveProjectSidebar();
-                            setProjectStatus(`Updated style defaults for ${layer.name}.`, "success");
+                            setActiveProject(activeProjectRecord, { preserveRegion: true });
+                            setProjectStatus(`Updated properties for ${layer.name}.`, "success");
                             return true;
                         }
                     }
                 ],
                 onOpen: () => {
+                    const syncLabelMode = () => {
+                        const mode = document.getElementById("layerLabelMode")?.value || "field";
+                        const fieldRow = document.getElementById("layerLabelFieldRow");
+                        const expressionRow = document.getElementById("layerLabelExpressionRow");
+                        if (fieldRow) fieldRow.hidden = mode === "expression";
+                        if (expressionRow) expressionRow.hidden = mode !== "expression";
+                    };
+                    document.getElementById("layerLabelMode")?.addEventListener("change", syncLabelMode);
+                    syncLabelMode();
                     document.querySelectorAll("[data-style-swatch]").forEach((button) => {
                         button.addEventListener("click", () => {
                             const color = button.getAttribute("data-style-swatch");
@@ -6028,6 +6120,10 @@
                     });
                 }
             });
+        }
+
+        function editLayerStyleDefaults(layerId) {
+            editLayerProperties(layerId);
         }
 
         function switchToLayer(layerId, { revealTable = true } = {}) {
@@ -6876,6 +6972,10 @@
             }
             if (action === "zoom") {
                 zoomToLayer(layerId);
+                return;
+            }
+            if (action === "properties") {
+                editLayerProperties(layerId);
                 return;
             }
             if (action === "toggle") {
@@ -7731,7 +7831,9 @@
                 annotation.surveyPoint.attributes = record;
                 annotation.surveyPoint.pointId = point.id;
                 annotation.surveyPoint.pointVersion = point.version ?? 1;
-                annotation.surveyPoint.title = computeLabelFromAttributes(record, activeProjectName);
+                const layer = getActiveLayerRecord();
+                annotation.surveyPoint.layerId = layer?.id || annotation.surveyPoint.layerId || null;
+                annotation.surveyPoint.title = computeLabelFromAttributes(record, activeProjectName, layer);
                 annotation.title = annotation.surveyPoint.title;
                 rowAnnotationMap.set(rowIndex, annotation);
             }
@@ -7913,7 +8015,7 @@
                 pointIdToDocIndex.set(docPoint.id, currentSurveyDocument.points.length - 1);
                 pointIdToRowIndex.set(docPoint.id, rowIndex);
             }
-            const markerTitle = computeLabelFromAttributes(newRecord, activeProjectName);
+            const markerTitle = computeLabelFromAttributes(newRecord, activeProjectName, layer);
             const annotation = new mapkit.MarkerAnnotation(coordinate, {
                 color: getSymbolColorValue(newRecord.symbol_color),
                 glyphText: getSymbolGlyphValue(newRecord.symbol_shape),
@@ -7926,6 +8028,7 @@
                 title: markerTitle || "New point",
                 rowIndex,
                 isNew: !dropboxMode,
+                layerId: layer?.id || null,
                 pointId: dropboxMode ? null : placeholderMeta.id,
                 pointVersion: placeholderMeta.version
             };
@@ -9047,12 +9150,12 @@
             }
         }
 
-        function evaluateCustomExpression(attrs) {
-            if (!customIdentifierExpression.trim()) return "";
+        function evaluateCustomExpression(attrs, expression = customIdentifierExpression) {
+            if (!String(expression || "").trim()) return "";
             try {
                 const fn = new Function("attrs", `
                     with (attrs) {
-                        return ${customIdentifierExpression};
+                        return ${expression};
                     }
                 `);
                 return fn(attrs);
@@ -9299,7 +9402,7 @@
             if (geometryType === "point") {
                 const coord = getFeatureRepresentativeCoordinate(feature);
                 if (!coord) return [];
-                const markerTitle = computeLabelFromAttributes(attributes, projectName);
+                const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(coord, {
                     color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
                     glyphText: getSymbolGlyphValue(attributes.symbol_shape || layer?.styleDefaults?.symbol_shape),
@@ -9311,6 +9414,7 @@
                     imageSrc,
                     title: markerTitle,
                     rowIndex,
+                    layerId: layer?.id || null,
                     pointId: feature.id || null,
                     pointVersion: feature.version ?? 1,
                     geometryType
@@ -9351,7 +9455,7 @@
             }
             const repCoord = getFeatureRepresentativeCoordinate(feature);
             if (repCoord) {
-                const markerTitle = computeLabelFromAttributes(attributes, projectName);
+                const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(repCoord, {
                     color: overlayColor,
                     glyphText: geometryType === "line" ? "━" : "▣",
@@ -9363,6 +9467,7 @@
                     imageSrc,
                     title: markerTitle,
                     rowIndex,
+                    layerId: layer?.id || null,
                     pointId: feature.id || null,
                     pointVersion: feature.version ?? 1,
                     geometryType
@@ -9447,7 +9552,10 @@
 
         function updateAnnotationLabels() {
             surveyAnnotations.forEach(annotation => {
-                annotation.title = computeLabelFromAttributes(annotation.surveyPoint?.attributes, activeProjectName);
+                const layer = getLayerById(annotation.surveyPoint?.layerId) || getActiveLayerRecord();
+                const nextTitle = computeLabelFromAttributes(annotation.surveyPoint?.attributes, activeProjectName, layer);
+                annotation.title = nextTitle;
+                if (annotation.surveyPoint) annotation.surveyPoint.title = nextTitle;
             });
             updateSurveyTable();
         }
@@ -9475,13 +9583,17 @@
             toggleCustomExpressionUI(identifierField === "__custom__");
         }
 
-        function computeLabelFromAttributes(attributes = {}, fallback = activeProjectName) {
-            if (identifierField === "__custom__") {
-                const customVal = evaluateCustomExpression(attributes);
+        function computeLabelFromAttributes(attributes = {}, fallback = activeProjectName, layer = getActiveLayerRecord()) {
+            const settings = layer ? ensureLayerLabelSettings(layer) : null;
+            const mode = settings?.mode || (identifierField === "__custom__" ? "expression" : "field");
+            const field = settings?.field || identifierField;
+            const expression = settings?.expression || customIdentifierExpression;
+            if (mode === "expression") {
+                const customVal = evaluateCustomExpression(attributes, expression);
                 if (customVal !== undefined && customVal !== null && customVal !== "") return customVal;
                 return fallback;
             }
-            const value = attributes?.[identifierField];
+            const value = attributes?.[field];
             return (value !== undefined && value !== null && value !== "") ? value : fallback;
         }
 
@@ -10119,8 +10231,11 @@
             const headers = currentSurveyData.headers || [];
             const latKey = currentSurveyData.latKey;
             const lonKey = currentSurveyData.lonKey;
+            const activeLayer = getActiveLayerRecord();
+            const activeLabelSettings = activeLayer ? ensureLayerLabelSettings(activeLayer) : null;
+            const activeLabelField = activeLabelSettings?.mode === "field" ? activeLabelSettings.field : identifierField;
             const cards = currentSurveyData.records.map((record, index) => {
-                const title = computeLabelFromAttributes(record, activeProjectName);
+                const title = computeLabelFromAttributes(record, activeProjectName, activeLayer);
                 const lat = record?.[latKey];
                 const lon = record?.[lonKey];
                 const annotation = rowAnnotationMap.get(index);
@@ -10136,7 +10251,7 @@
                 }
                 const metaFields = [];
                 headers.forEach(header => {
-                    if (!header || header === latKey || header === lonKey || header === identifierField) return;
+                    if (!header || header === latKey || header === lonKey || header === activeLabelField) return;
                     const value = record?.[header];
                     if (value !== undefined && value !== null && value !== "") {
                         metaFields.push(`<span><strong>${escapeHtml(header)}:</strong> ${escapeHtml(String(value)).slice(0, 80)}</span>`);
@@ -10313,7 +10428,7 @@
                         break;
                     }
                 }
-                const markerTitle = computeLabelFromAttributes(attributes, activeProjectName);
+                const markerTitle = computeLabelFromAttributes(attributes, activeProjectName, getActiveLayerRecord());
                 const meta = pointMeta[index] || {};
                 const marker = new mapkit.MarkerAnnotation(coord, {
                     color: "#9ca3af",
@@ -10326,6 +10441,7 @@
                     imageSrc,
                     title: markerTitle,
                     rowIndex: index,
+                    layerId: activeLayerId,
                     pointId: meta.id || null,
                     pointVersion: meta.version ?? 1
                 };
@@ -10652,7 +10768,7 @@ function setImportPanelVisibility(show) {
             const pointMeta = currentSurveyData.pointMeta?.[rowIndex] || {};
             const coord = new mapkit.Coordinate(lat, lon);
             const attributes = { ...record };
-            const markerTitle = computeLabelFromAttributes(attributes, activeProjectName);
+            const markerTitle = computeLabelFromAttributes(attributes, activeProjectName, getActiveLayerRecord());
             const annotation = new mapkit.MarkerAnnotation(coord, {
                 color: getSymbolColorValue(attributes.symbol_color),
                 glyphText: getSymbolGlyphValue(attributes.symbol_shape),
@@ -10664,6 +10780,7 @@ function setImportPanelVisibility(show) {
                 imageSrc: null,
                 title: markerTitle,
                 rowIndex,
+                layerId: activeLayerId,
                 pointId: pointMeta.id || null,
                 pointVersion: pointMeta.version ?? 1
             };
