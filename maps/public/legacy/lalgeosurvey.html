@@ -1638,7 +1638,9 @@
         right: 0;
         min-height: 26px;
         transform: none;
-        display: flex;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        grid-template-areas: "toolbar-left toolbar-center toolbar-right";
         align-items: center;
         gap: 6px;
         padding: 2px 10px;
@@ -1650,14 +1652,20 @@
         backdrop-filter: blur(20px);
     }
     .brand-menu-btn {
-        min-width: 38px;
-        min-height: 32px;
-        justify-content: center;
-        padding: 0 4px;
+        flex: 0 0 128px;
+        width: 128px;
+        min-width: 128px;
+        min-height: 50px;
+        justify-content: flex-start;
+        overflow: visible;
+        padding: 0 0 0 14px;
     }
     .toolbar-left .brand-logo {
-        margin-right: 2px;
+        flex: 0 0 auto;
+        width: auto;
         height: 42px;
+        max-width: none;
+        margin-right: 0;
         object-fit: contain;
         transform-origin: center;
     }
@@ -1733,6 +1741,7 @@
     .toolbar-left {
         grid-area: toolbar-left;
         justify-content: flex-start;
+        justify-self: start;
         overflow: visible;
         z-index: 2;
     }
@@ -1754,7 +1763,8 @@
     .toolbar-right {
         grid-area: toolbar-right;
         justify-content: flex-end;
-        margin-left: auto;
+        justify-self: end;
+        margin-left: 0;
         overflow: visible;
         z-index: 3;
     }
@@ -1762,6 +1772,14 @@
         display: inline-flex;
         align-items: center;
         gap: 4px;
+        margin-left: 4px;
+        order: 1;
+    }
+    #rightToolbarExpand {
+        order: 2;
+    }
+    #toolbarSearchShell {
+        order: 3;
         margin-left: 4px;
     }
     .menu-bar-btn.quick-action {
@@ -1831,12 +1849,6 @@
         #redoBtn {
             display: none;
         }
-        .toolbar-left .brand-logo {
-            height: 36px;
-        }
-        .brand-menu-btn {
-            min-width: 34px;
-        }
         .toolbar-project-mini strong {
             max-width: 260px;
             font-size: 13px;
@@ -1880,7 +1892,7 @@
     }
     @media (max-width: 600px) {
         .toolbar-center {
-            width: min(220px, calc(100vw - 150px));
+            width: min(220px, max(92px, calc(100vw - 360px)));
         }
     }
     .toolbar-left.expanded .app-menubar,
@@ -3024,7 +3036,7 @@
 
         #toolbar {
             display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
+            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
             grid-template-areas: "toolbar-left toolbar-center toolbar-right";
             align-items: center;
             gap: 6px;
@@ -3050,12 +3062,22 @@
 
         #toolbar .toolbar-left {
             grid-area: toolbar-left;
+            justify-self: start;
             overflow: visible;
         }
 
         #toolbar .toolbar-left .brand-logo {
-            height: 34px;
+            width: auto;
+            height: 42px;
+            max-width: none;
             margin-right: 0;
+        }
+
+        #toolbar .brand-menu-btn {
+            flex-basis: 128px;
+            width: 128px;
+            min-width: 128px;
+            min-height: 50px;
         }
 
         #toolbar .toolbar-center {
@@ -3064,7 +3086,7 @@
             left: 50%;
             top: 50%;
             transform: translate(-50%, -50%);
-            width: min(220px, calc(100vw - 150px));
+            width: min(220px, max(92px, calc(100vw - 360px)));
             justify-content: center;
             pointer-events: auto;
         }
@@ -3075,7 +3097,7 @@
         }
 
         #toolbar .toolbar-project-mini strong {
-            max-width: calc(100vw - 160px);
+            max-width: 100%;
             font-size: 13px;
         }
 
@@ -3086,6 +3108,7 @@
         #toolbar .toolbar-right {
             grid-area: toolbar-right;
             justify-content: flex-end;
+            justify-self: end;
             gap: 0;
         }
         #leftToolbarExpand,
@@ -3194,7 +3217,7 @@
             <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LAL GEO menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
                 <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
             </button>
-            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu commands" aria-expanded="false">›</button>
+            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu commands" aria-expanded="false">&gt;</button>
             <div class="menu-bar-actions app-menubar">
                 <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="file">File</button>
                 <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="edit">Edit</button>
@@ -3229,7 +3252,7 @@
                     <span class="quick-action-label">My Location</span>
                 </button>
             </div>
-            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-expanded="false">‹</button>
+            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-expanded="false">&lt;</button>
             <div class="search-pill collapsed" id="toolbarSearchShell">
                 <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
