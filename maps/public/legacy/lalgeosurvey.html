@@ -11252,7 +11252,7 @@ function setImportPanelVisibility(show) {
               const approxCoord = new mapkit.Coordinate(data.latitude, data.longitude);
               const approxRegion = new mapkit.CoordinateRegion(
                 approxCoord,
-                new mapkit.CoordinateSpan(0.025, 0.025)
+                new mapkit.CoordinateSpan(0.05, 0.05)
               );
               map.region = approxRegion;
               search.region = approxRegion;
