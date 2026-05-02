@@ -30,6 +30,19 @@
         min-height: 100%;
         overflow: hidden;
         touch-action: none;
+        --lalgeo-feature-label-size: 14px;
+        --lalgeo-feature-label-color: #1f2937;
+        --lalgeo-feature-label-font: "Inter", system-ui, sans-serif;
+    }
+    #map .mapkit-annotation-title,
+    #map .mapkit-annotation-subtitle,
+    #map .mk-annotation-title,
+    #map .mk-annotation-subtitle,
+    #map [class*="annotation-title"],
+    #map [class*="AnnotationTitle"] {
+        color: var(--lalgeo-feature-label-color) !important;
+        font-family: var(--lalgeo-feature-label-font) !important;
+        font-size: var(--lalgeo-feature-label-size) !important;
     }
     #toolbar,
     #sidebar,
@@ -3899,7 +3912,9 @@
             identifierField = identifierSelect.value;
             const layer = getActiveLayerRecord();
             if (layer) {
+                const previousSettings = ensureLayerLabelSettings(layer);
                 layer.labelSettings = {
+                    ...previousSettings,
                     mode: identifierField === "__custom__" ? "expression" : "field",
                     field: identifierField === "__custom__" ? ensureLayerLabelSettings(layer).field : identifierField,
                     expression: customIdentifierExpression
@@ -4103,9 +4118,32 @@
             layer.labelSettings = {
                 mode,
                 field,
-                expression: previous.expression || previous.customExpression || ""
+                expression: previous.expression || previous.customExpression || "",
+                textSize: Number.isFinite(Number(previous.textSize)) ? Number(previous.textSize) : 14,
+                textColor: previous.textColor || "#1f2937",
+                fontFamily: previous.fontFamily || "Inter"
             };
             return layer.labelSettings;
+        }
+
+        function getLabelFontStack(fontFamily = "Inter") {
+            const value = String(fontFamily || "Inter").trim();
+            const stacks = {
+                Inter: "\"Inter\", system-ui, sans-serif",
+                System: "system-ui, -apple-system, BlinkMacSystemFont, \"Segoe UI\", sans-serif",
+                Serif: "Georgia, \"Times New Roman\", serif",
+                Mono: "\"SFMono-Regular\", Consolas, \"Liberation Mono\", monospace"
+            };
+            return stacks[value] || stacks.Inter;
+        }
+
+        function applyFeatureLabelStyleSettings(layer = getActiveLayerRecord()) {
+            if (!mapElement) return;
+            const settings = layer ? ensureLayerLabelSettings(layer) : { textSize: 14, textColor: "#1f2937", fontFamily: "Inter" };
+            const textSize = Math.max(10, Math.min(32, Number(settings.textSize) || 14));
+            mapElement.style.setProperty("--lalgeo-feature-label-size", `${textSize}px`);
+            mapElement.style.setProperty("--lalgeo-feature-label-color", settings.textColor || "#1f2937");
+            mapElement.style.setProperty("--lalgeo-feature-label-font", getLabelFontStack(settings.fontFamily));
         }
 
         function cloneLayerSchema(schema = getDefaultLayerSchema()) {
@@ -5356,12 +5394,14 @@
                 renderWorkspaceCollections();
                 updateToolbarDockState();
                 applyBasemapPoisPreference(null);
+                applyFeatureLabelStyleSettings(null);
                 return;
             }
             activeProjectRecord.layers = (activeProjectRecord.layers || []).map((layer) => ensureLayerStructure(layer));
             const layer = getActiveLayerRecord();
             activeProjectName = project.name;
             currentSurveyData = layer?.parsed || createEmptyParsedLayer(layer?.name || "Field Points");
+            applyFeatureLabelStyleSettings(layer);
             currentSurveyDocument = buildSurveyDocumentFromParsed(currentSurveyData);
             currentSurveySource = project.source || null;
             currentSurveyImages = buildImageLookup(project.images || {});
@@ -6104,6 +6144,20 @@
                         <div class="workspace-panel-muted full">
                             Expression examples: <code>Name</code>, <code>Name + ' - ' + Status</code>, <code>Address || ID</code>, <code>'#' + ID + ' ' + Name</code>.
                         </div>
+                        <div class="workspace-field">
+                            <label for="layerLabelTextSize">Label text size</label>
+                            <input id="layerLabelTextSize" class="workspace-text-input" type="number" min="10" max="32" step="1" value="${escapeHtml(String(labelSettings.textSize || 14))}">
+                        </div>
+                        <div class="workspace-field">
+                            <label for="layerLabelTextColor">Label colour</label>
+                            <input id="layerLabelTextColor" class="workspace-text-input" type="color" value="${escapeHtml(labelSettings.textColor || "#1f2937")}">
+                        </div>
+                        <div class="workspace-field full">
+                            <label for="layerLabelFontFamily">Label font</label>
+                            <select id="layerLabelFontFamily" class="workspace-text-input">
+                                ${["Inter", "System", "Serif", "Mono"].map((font) => `<option value="${font}" ${font === (labelSettings.fontFamily || "Inter") ? "selected" : ""}>${font}</option>`).join("")}
+                            </select>
+                        </div>
                     </div>
                 `,
                 actions: [
@@ -6117,6 +6171,9 @@
                             const nextLabelMode = document.getElementById("layerLabelMode")?.value === "expression" ? "expression" : "field";
                             const nextLabelField = document.getElementById("layerLabelField")?.value || getDefaultLabelFieldForLayer(layer);
                             const nextExpression = document.getElementById("layerLabelExpression")?.value?.trim() || "";
+                            const nextTextSize = Math.max(10, Math.min(32, Number(document.getElementById("layerLabelTextSize")?.value) || 14));
+                            const nextTextColor = document.getElementById("layerLabelTextColor")?.value || "#1f2937";
+                            const nextFontFamily = document.getElementById("layerLabelFontFamily")?.value || "Inter";
                             if (!nextColor || !nextShape) return false;
                             if (nextLabelMode === "expression" && !nextExpression) {
                                 document.getElementById("layerLabelExpression")?.focus();
@@ -6130,7 +6187,10 @@
                             layer.labelSettings = {
                                 mode: nextLabelMode,
                                 field: nextLabelField,
-                                expression: nextExpression
+                                expression: nextExpression,
+                                textSize: nextTextSize,
+                                textColor: nextTextColor,
+                                fontFamily: nextFontFamily
                             };
                             (layer.features || []).forEach((feature) => {
                                 feature.attributes = feature.attributes || {};
@@ -6140,6 +6200,7 @@
                             layer.parsed = buildParsedFromLayer(layer);
                             if (layer.id === activeLayerId) {
                                 currentSurveyData = layer.parsed;
+                                applyFeatureLabelStyleSettings(layer);
                             }
                             markActiveProjectUpdated();
                             scheduleLocalAutosave();
@@ -11146,6 +11207,7 @@ function setImportPanelVisibility(show) {
         });
         mapReady = true;
         applyBasemapPoisPreference(activeProjectRecord);
+        applyFeatureLabelStyleSettings(getActiveLayerRecord());
         map.addEventListener("region-change-end", () => {
             if (activeSurveyAnnotation) {
                 positionSurveyCallout(activeSurveyAnnotation);
