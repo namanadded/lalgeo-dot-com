@@ -3325,6 +3325,7 @@
         <div class="menu-dropdown-section" data-menu-pane="view" hidden>
             <button id="menuToggleDataPaneBtn" type="button" class="menu-command"><span>Data Manager</span><span class="menu-shortcut" data-shortcut="toggleData"></span></button>
             <button id="menuToggleLayersBtn" type="button" class="menu-command"><span>Layer List</span><span class="menu-shortcut" data-shortcut="toggleLayers"></span></button>
+            <button id="menuShowBasemapPoisBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show POIs in Basemap</span></button>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
@@ -3769,6 +3770,7 @@
         const menuRedoBtn = document.getElementById("menuRedoBtn");
         const menuToggleLayersBtn = document.getElementById("menuToggleLayersBtn");
         const menuToggleDataPaneBtn = document.getElementById("menuToggleDataPaneBtn");
+        const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
         const menuSettingsBtn = document.getElementById("menuSettingsBtn");
@@ -4415,6 +4417,7 @@
             source = null,
             images = {},
             attachments = [],
+            mapOptions = {},
             layers = []
         }) {
             const now = new Date().toISOString();
@@ -4427,6 +4430,10 @@
                 source,
                 images,
                 attachments,
+                mapOptions: {
+                    showBasemapPOIs: true,
+                    ...(mapOptions || {})
+                },
                 metadata: { createdAt: now, updatedAt: now },
                 layers: layers.length ? layers : [createLayerRecord()],
                 activeLayerId: layers[0]?.id || null
@@ -4602,6 +4609,7 @@
                 [menuRedoBtn, redoStack.length > 0],
                 [menuToggleLayersBtn, true],
                 [menuToggleDataPaneBtn, true],
+                [menuShowBasemapPoisBtn, hasProject],
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
                 [menuSettingsBtn, true],
@@ -4887,6 +4895,38 @@
             saveWorkspaceProjects();
             renderWorkspaceCollections();
             updateWorkspaceContext();
+        }
+
+        function getProjectBasemapPoisVisible(project = activeProjectRecord) {
+            return project?.mapOptions?.showBasemapPOIs !== false;
+        }
+
+        function updateBasemapPoisMenuState() {
+            if (!menuShowBasemapPoisBtn) return;
+            const visible = getProjectBasemapPoisVisible();
+            menuShowBasemapPoisBtn.setAttribute("aria-pressed", visible ? "true" : "false");
+            const label = menuShowBasemapPoisBtn.querySelector("span");
+            if (label) label.textContent = `${visible ? "✓" : ""} Show POIs in Basemap`;
+        }
+
+        function applyBasemapPoisPreference(project = activeProjectRecord) {
+            const visible = getProjectBasemapPoisVisible(project);
+            if (map) {
+                map.showsPointsOfInterest = visible;
+            }
+            updateBasemapPoisMenuState();
+        }
+
+        function setProjectBasemapPoisVisible(visible) {
+            if (!activeProjectRecord) return;
+            activeProjectRecord.mapOptions = {
+                ...(activeProjectRecord.mapOptions || {}),
+                showBasemapPOIs: Boolean(visible)
+            };
+            applyBasemapPoisPreference(activeProjectRecord);
+            markActiveProjectUpdated();
+            scheduleLocalAutosave();
+            setProjectStatus(`${visible ? "Showing" : "Hiding"} basemap POIs.`, "success");
         }
 
         function getActiveLayerRecord() {
@@ -5285,6 +5325,12 @@
             }
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            if (activeProjectRecord) {
+                activeProjectRecord.mapOptions = {
+                    showBasemapPOIs: true,
+                    ...(activeProjectRecord.mapOptions || {})
+                };
+            }
             logWorkspaceDebug("setActiveProject", {
                 projectId: project?.id || null,
                 projectName: project?.name || null,
@@ -5309,6 +5355,7 @@
                 updateWorkspaceContext();
                 renderWorkspaceCollections();
                 updateToolbarDockState();
+                applyBasemapPoisPreference(null);
                 return;
             }
             activeProjectRecord.layers = (activeProjectRecord.layers || []).map((layer) => ensureLayerStructure(layer));
@@ -5346,6 +5393,7 @@
             updateWorkspaceContext();
             renderWorkspaceCollections();
             updateToolbarDockState();
+            applyBasemapPoisPreference(activeProjectRecord);
         }
 
         function addProjectToWorkspace(project, options = {}) {
@@ -6698,6 +6746,10 @@
         menuHistoryRecentBtn?.addEventListener("click", () => workspacePanelBtn?.click());
         menuCloseLayersBtn?.addEventListener("click", () => setSidebarVisibility(false));
         menuCloseDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
+        menuShowBasemapPoisBtn?.addEventListener("click", () => {
+            if (!activeProjectRecord) return;
+            setProjectBasemapPoisVisible(!getProjectBasemapPoisVisible());
+        });
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
         layersMapBtn?.addEventListener("click", () => {
             renderActiveProjectSidebar();
@@ -11089,9 +11141,11 @@ function setImportPanelVisibility(show) {
             isZoomEnabled: true,
             isScrollEnabled: true,
             showsZoomControl: true,
+            showsPointsOfInterest: getProjectBasemapPoisVisible(),
             showsCompass: mapkit.FeatureVisibility.Visible
         });
         mapReady = true;
+        applyBasemapPoisPreference(activeProjectRecord);
         map.addEventListener("region-change-end", () => {
             if (activeSurveyAnnotation) {
                 positionSurveyCallout(activeSurveyAnnotation);
