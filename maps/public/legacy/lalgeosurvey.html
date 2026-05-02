@@ -11431,23 +11431,44 @@ function setImportPanelVisibility(show) {
         const resultsList = document.createElement("ul");
         Object.assign(resultsList.style, {
             position: "absolute",
-            top: "55px",
-            left: "20px",
-            zIndex: "1500",
+            top: "0",
+            left: "0",
+            zIndex: "1700",
             backgroundColor: "#fff",
-            border: "1px solid #ccc",
+            color: "#0f172a",
+            border: "1px solid rgba(15, 23, 42, 0.12)",
             listStyle: "none",
-            padding: "0",
+            padding: "6px 0",
             margin: "0",
             width: "260px",
             maxHeight: "300px",
             overflowY: "auto",
             fontSize: "14px",
-            boxShadow: "0 2px 6px rgba(0,0,0,0.3)",
-            borderRadius: "6px",
+            boxShadow: "0 16px 36px rgba(15, 23, 42, 0.24)",
+            borderRadius: "12px",
             display: "none"
         });
         document.body.appendChild(resultsList);
+
+        function positionSearchSuggestions() {
+            const anchor = document.getElementById("toolbarSearchShell") || searchField;
+            const rect = anchor.getBoundingClientRect();
+            const viewportPadding = 10;
+            const width = Math.min(Math.max(rect.width, 260), window.innerWidth - viewportPadding * 2);
+            const left = Math.min(
+                Math.max(rect.left, viewportPadding),
+                window.innerWidth - width - viewportPadding
+            );
+            resultsList.style.position = "fixed";
+            resultsList.style.top = `${Math.round(rect.bottom + 8)}px`;
+            resultsList.style.left = `${Math.round(left)}px`;
+            resultsList.style.width = `${Math.round(width)}px`;
+        }
+        window.addEventListener("resize", () => {
+            if (resultsList.style.display === "block") {
+                positionSearchSuggestions();
+            }
+        });
 
         let currentAnnotation = null;
 
@@ -11488,10 +11509,12 @@ function setImportPanelVisibility(show) {
                 resultsList.innerHTML = "";
                 data.places.forEach(place => {
                     const li = document.createElement("li");
-                    li.style.padding = "10px";
+                    li.style.padding = "10px 14px";
                     li.style.cursor = "pointer";
-                    li.style.borderBottom = "1px solid #eee";
-                    li.innerHTML = `<strong>${place.name}</strong><br/><small>${place.formattedAddress || ""}</small>`;
+                    li.style.borderBottom = "1px solid rgba(15, 23, 42, 0.08)";
+                    li.style.backgroundColor = "#fff";
+                    li.style.color = "#0f172a";
+                    li.innerHTML = `<strong style="display:block;color:#020617;font-weight:700;line-height:1.25;">${place.name}</strong><small style="display:block;color:#334155;line-height:1.35;margin-top:2px;">${place.formattedAddress || ""}</small>`;
                     li.addEventListener("click", () => {
                         resultsList.style.display = "none";
                         searchField.value = place.name;
@@ -11503,6 +11526,7 @@ function setImportPanelVisibility(show) {
                     });
                     resultsList.appendChild(li);
                 });
+                positionSearchSuggestions();
                 resultsList.style.display = "block";
             });
         });
