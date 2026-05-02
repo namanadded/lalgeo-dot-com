@@ -3093,8 +3093,8 @@
 
         #toolbar .toolbar-left .brand-logo {
             width: auto;
-            height: 24px;
-            max-width: 76px;
+            height: 31px;
+            max-width: 66px;
             margin-right: 0;
             object-fit: contain;
         }
@@ -3147,13 +3147,34 @@
         #leftToolbarExpand,
         #rightToolbarExpand {
             display: inline-flex;
+            position: relative;
             flex: 0 0 34px;
             width: 34px;
             height: 34px;
             border-radius: 12px;
-            font-size: 18px;
+            overflow: hidden;
+            text-indent: -999px;
             background: rgba(255,255,255,0.08);
             border-color: rgba(255,255,255,0.13);
+        }
+        #leftToolbarExpand::before,
+        #rightToolbarExpand::before {
+            content: "";
+            width: 8px;
+            height: 8px;
+            border-top: 2px solid #f8fafc;
+            border-right: 2px solid #f8fafc;
+            opacity: 0.95;
+        }
+        #leftToolbarExpand::before {
+            transform: rotate(45deg);
+        }
+        #rightToolbarExpand::before {
+            transform: rotate(225deg);
+        }
+        #leftToolbarExpand[aria-expanded="true"]::before,
+        #rightToolbarExpand[aria-expanded="true"]::before {
+            transform: rotate(315deg);
         }
 
         #toolbarSearchShell {
