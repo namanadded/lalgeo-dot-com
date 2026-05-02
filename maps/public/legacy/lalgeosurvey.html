@@ -3055,17 +3055,21 @@
 
         #toolbar {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            grid-template-columns: 112px minmax(0, 1fr) 92px;
             grid-template-areas: "toolbar-left toolbar-center toolbar-right";
             align-items: center;
-            gap: 6px;
-            min-height: 44px;
-            padding: 2px 8px;
+            gap: 8px;
+            min-height: 52px;
+            padding: 6px 10px;
             top: 0;
             left: 0;
             right: 0;
-            border-radius: 0 0 12px 12px;
+            box-sizing: border-box;
+            border-radius: 0 0 18px 18px;
             transform: none;
+            background: rgba(47, 53, 51, 0.76);
+            border-color: rgba(255,255,255,0.1);
+            box-shadow: 0 10px 24px rgba(0,0,0,0.18);
         }
 
         #toolbar .toolbar-left:not(.expanded) .app-menubar,
@@ -3082,42 +3086,51 @@
         #toolbar .toolbar-left {
             grid-area: toolbar-left;
             justify-self: start;
+            align-items: center;
+            gap: 6px;
             overflow: visible;
         }
 
         #toolbar .toolbar-left .brand-logo {
             width: auto;
-            height: 42px;
-            max-width: none;
+            height: 24px;
+            max-width: 76px;
             margin-right: 0;
+            object-fit: contain;
         }
 
         #toolbar .brand-menu-btn {
-            flex-basis: 128px;
-            width: 128px;
-            min-width: 128px;
-            min-height: 50px;
+            flex: 0 0 74px;
+            width: 74px;
+            min-width: 74px;
+            min-height: 36px;
+            justify-content: center;
+            padding: 0 6px;
+            border-radius: 11px;
         }
 
         #toolbar .toolbar-center {
             grid-area: toolbar-center;
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            width: min(220px, max(92px, calc(100vw - 360px)));
+            position: static;
+            transform: none;
+            width: 100%;
             justify-content: center;
             pointer-events: auto;
+            overflow: hidden;
         }
 
         #toolbar .toolbar-project-mini {
             max-width: 100%;
             min-width: 0;
+            align-items: center;
+            text-align: center;
         }
 
         #toolbar .toolbar-project-mini strong {
             max-width: 100%;
-            font-size: 13px;
+            font-size: 14px;
+            line-height: 1.15;
+            color: #f8fafc;
         }
 
         #toolbar .toolbar-project-mini span {
@@ -3128,16 +3141,26 @@
             grid-area: toolbar-right;
             justify-content: flex-end;
             justify-self: end;
-            gap: 0;
+            align-items: center;
+            gap: 6px;
         }
         #leftToolbarExpand,
         #rightToolbarExpand {
             display: inline-flex;
+            flex: 0 0 34px;
+            width: 34px;
+            height: 34px;
+            border-radius: 12px;
+            font-size: 18px;
+            background: rgba(255,255,255,0.08);
+            border-color: rgba(255,255,255,0.13);
         }
 
         #toolbarSearchShell {
-            width: 32px;
-            min-width: 32px;
+            width: 40px;
+            min-width: 40px;
+            height: 34px;
+            border-radius: 999px;
         }
 
         #toolbarSearchShell:not(.collapsed) {
