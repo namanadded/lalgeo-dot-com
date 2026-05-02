@@ -4,7 +4,7 @@
 <base href="/">
 <meta charset="UTF-8">
 <title>LalGeo Maps</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
 <script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -1606,6 +1606,7 @@
     }
     #toolbarSearchShell input {
         min-width: 280px;
+        font-size: 16px;
     }
     .workspace-context {
         display: grid;
@@ -3141,11 +3142,41 @@
 
         #toolbarSearchShell:not(.collapsed) {
             position: fixed;
-            top: 58px;
-            left: 10px;
-            right: 10px;
+            top: calc(env(safe-area-inset-top, 0px) + 58px);
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
             width: auto;
-            z-index: 1300;
+            max-width: none;
+            min-width: 0;
+            height: 44px;
+            box-sizing: border-box;
+            z-index: 1600;
+            padding: 0 10px 0 4px;
+            background: rgba(24, 30, 31, 0.94);
+            border-color: rgba(255,255,255,0.18);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.28);
+        }
+
+        #toolbarSearchShell:not(.collapsed) .search-toggle-btn {
+            flex: 0 0 36px;
+            width: 36px;
+            height: 36px;
+        }
+
+        #toolbarSearchShell:not(.collapsed) input {
+            display: block;
+            flex: 1 1 auto;
+            width: 100%;
+            min-width: 0;
+            font-size: 16px;
+            line-height: 1.2;
+        }
+
+        #toolbarSearchShell:not(.collapsed) #collapseSearchBtn,
+        #toolbarSearchShell:not(.collapsed) #clearSearch {
+            flex: 0 0 32px;
+            width: 32px;
+            height: 32px;
         }
 
         #toolbarMenuTray {
@@ -3211,6 +3242,7 @@
         #toolbar input[type="text"] {
             width: 100%;
             min-width: 0;
+            font-size: 16px;
         }
 
         .show-survey-table-btn {
@@ -6780,7 +6812,9 @@
         menuMyLocationBtn?.addEventListener("click", () => myLocationBtn?.click());
         menuSearchBtn?.addEventListener("click", () => {
             setSearchExpanded(true);
-            document.getElementById("searchInput")?.focus();
+            if (window.matchMedia("(min-width: 701px)").matches) {
+                document.getElementById("searchInput")?.focus();
+            }
         });
         menuSettingsBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
@@ -7193,7 +7227,9 @@
             if (!event.defaultPrevented && primaryModifier && key === "l") {
                 event.preventDefault();
                 setSearchExpanded(true);
-                document.getElementById("searchInput")?.focus();
+                if (window.matchMedia("(min-width: 701px)").matches) {
+                    document.getElementById("searchInput")?.focus();
+                }
                 return;
             }
             if (!event.defaultPrevented && primaryModifier && key === "z" && !event.shiftKey) {
@@ -7253,7 +7289,9 @@
             if (event.key === "/") {
                 event.preventDefault();
                 setSearchExpanded(true);
-                document.getElementById("searchInput")?.focus();
+                if (window.matchMedia("(min-width: 701px)").matches) {
+                    document.getElementById("searchInput")?.focus();
+                }
                 return;
             }
             if (key === "a") {
@@ -10637,7 +10675,7 @@ function updateFloatingButtonLayer(panelOpen) {
         function setSearchExpanded(show) {
             toolbarSearchExpanded = Boolean(show);
             toolbarSearchShell?.classList.toggle("collapsed", !toolbarSearchExpanded);
-            if (toolbarSearchExpanded) {
+            if (toolbarSearchExpanded && window.matchMedia("(min-width: 701px)").matches) {
                 document.getElementById("searchInput")?.focus();
             }
         }
