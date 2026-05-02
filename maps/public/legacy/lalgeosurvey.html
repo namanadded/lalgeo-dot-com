@@ -3283,6 +3283,62 @@
             grid-template-columns: 1fr;
         }
 
+        #featureDrawer {
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            top: calc(env(safe-area-inset-top, 0px) + 76px);
+            width: auto;
+            max-width: none;
+            box-sizing: border-box;
+            max-height: min(70dvh, calc(100dvh - 150px));
+            padding: 16px;
+            border-radius: 20px;
+            overflow-x: hidden;
+        }
+        #featureDrawer.open {
+            transform: translateX(0);
+        }
+        .feature-drawer-header {
+            align-items: flex-start;
+            gap: 10px;
+            cursor: default;
+        }
+        .feature-drawer-header h3 {
+            font-size: 24px;
+            line-height: 1.05;
+        }
+        .feature-drawer-meta {
+            min-width: 0;
+            overflow-wrap: anywhere;
+            word-break: break-word;
+            line-height: 1.35;
+        }
+        .feature-drawer-controls {
+            flex: 0 0 auto;
+        }
+        .feature-drawer-close {
+            min-width: 44px;
+            width: 44px;
+            height: 44px;
+        }
+        .feature-drawer-field,
+        .feature-drawer-field input,
+        .feature-drawer-field select,
+        .feature-drawer-field textarea {
+            min-width: 0;
+        }
+        .feature-drawer-field input,
+        .feature-drawer-field textarea {
+            overflow-wrap: anywhere;
+            word-break: break-word;
+        }
+        .feature-drawer-actions {
+            align-items: flex-start;
+        }
+        .feature-drawer-actions .workspace-inline-actions {
+            flex-wrap: wrap;
+        }
+
         #toolbar input[type="text"] {
             width: 100%;
             min-width: 0;
