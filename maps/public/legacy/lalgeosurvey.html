@@ -2939,6 +2939,140 @@
         background: rgba(255,107,107,0.12);
         color: #ffb5b5;
     }
+
+    #layersMapBtn,
+    #surveyTableToggle,
+    .mini-btn,
+    .context-menu-btn,
+    .feature-drawer-close,
+    .feature-drawer-toggle {
+        background: rgba(255, 255, 255, 0.96);
+        color: #6b7280;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.16);
+        backdrop-filter: blur(18px) saturate(145%);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+    }
+    #layersMapBtn {
+        width: 56px;
+        height: 56px;
+        color: #5f6b68;
+        border-color: rgba(209, 213, 219, 0.78);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.18);
+    }
+    #layersMapBtn:hover,
+    #layersMapBtn:focus-visible,
+    #layersMapBtn.active {
+        background: #fff;
+        border-color: rgba(190, 197, 205, 0.95);
+        color: #4b5563;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.2);
+    }
+    .layers-map-icon {
+        width: 25px;
+        height: 20px;
+    }
+    .layers-map-icon span {
+        width: 21px;
+        height: 5px;
+        background: currentColor;
+        box-shadow: none;
+    }
+    #toolbarMenuTray,
+    #settingsPanel,
+    #dropboxProjectContextMenu,
+    #layerContextMenu,
+    #dataCatalogPane,
+    #sidebar,
+    #featureDrawer {
+        background: rgba(255, 255, 255, 0.96);
+        color: #4b5563;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+        backdrop-filter: blur(20px) saturate(150%);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+    }
+    #toolbarMenuTray {
+        gap: 6px;
+        padding: 8px;
+        border-radius: 14px;
+    }
+    .menu-dropdown-title,
+    .settings-panel-title,
+    .feature-drawer-section-label,
+    .feature-drawer-field label {
+        color: #6b7280;
+        letter-spacing: 0.08em;
+    }
+    .menu-command,
+    .settings-option,
+    .context-menu-btn,
+    .mini-btn,
+    .feature-drawer-empty,
+    .feature-drawer-meta,
+    .feature-drawer-photo-btn,
+    .workspace-panel-muted,
+    .settings-note,
+    .workspace-sidebar-helper {
+        color: #6b7280;
+    }
+    .menu-command {
+        border-radius: 9px;
+        padding: 8px 10px;
+    }
+    .menu-command:hover:not(:disabled),
+    .context-menu-btn:hover,
+    .mini-btn:hover,
+    .mini-btn:focus-visible {
+        background: #f3f4f6;
+        color: #374151;
+        border-color: rgba(190, 197, 205, 0.9);
+    }
+    .menu-command:disabled,
+    .menu-command.is-disabled,
+    .menu-shortcut,
+    .menu-command:disabled .menu-shortcut,
+    .menu-command.is-disabled .menu-shortcut {
+        color: #9ca3af;
+    }
+    .feature-drawer-header h3,
+    .sidebar-heading,
+    .workspace-context strong,
+    .workspace-record-title,
+    .workspace-layer-title,
+    .data-pane-title {
+        color: #374151;
+    }
+    .feature-drawer-field input,
+    .feature-drawer-field select,
+    .feature-drawer-field textarea,
+    .workspace-text-input,
+    .workspace-textarea,
+    .import-panel-container input[type="url"],
+    .import-panel-container input[type="file"],
+    .import-panel-container select {
+        background: #f9fafb;
+        color: #374151;
+        border: 1px solid #d1d5db;
+    }
+    .mini-btn.primary {
+        background: #f3f4f6;
+        color: #4b5563;
+        border-color: #d1d5db;
+    }
+    .mini-btn.danger,
+    .feature-drawer-delete {
+        background: #fff;
+        color: #b45353;
+        border-color: rgba(180, 83, 83, 0.28);
+    }
+    #surveyTableToggle {
+        color: #5f6b68;
+        font-weight: 600;
+    }
+    #surveyTableToggle::before {
+        color: #5f6b68;
+    }
     #surveyTableContext {
         margin-right: auto;
         color: #cbd8e4;
