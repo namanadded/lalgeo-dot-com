@@ -3502,6 +3502,27 @@
         backdrop-filter: blur(20px) saturate(150%);
         -webkit-backdrop-filter: blur(20px) saturate(150%);
     }
+    @media (min-width: 601px) {
+        #toolbar {
+            min-height: 46px;
+            padding-top: 0;
+            padding-bottom: 0;
+            border-radius: 0 0 8px 8px;
+        }
+        #toolbar .brand-menu-btn {
+            min-height: 44px;
+            height: 44px;
+            padding-top: 0;
+            padding-bottom: 0;
+        }
+        #toolbar .toolbar-left .brand-logo {
+            height: 42px;
+        }
+        #toolbar .menu-bar-btn {
+            padding-top: 3px;
+            padding-bottom: 3px;
+        }
+    }
     #toolbar .brand-menu-btn,
     #toolbar .toolbar-overflow-toggle,
     #toolbar #toolbarSearchShell,
