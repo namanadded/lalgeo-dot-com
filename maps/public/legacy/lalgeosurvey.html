@@ -8715,15 +8715,30 @@
             return (layer?.schema || []).find((field) => normalizedAliases.includes(String(field.name || "").trim().toLowerCase()))?.name || null;
         }
 
+        function readPlaceValue(place, keys = []) {
+            for (const key of keys) {
+                const value = place?.[key];
+                if (Array.isArray(value) && value.length) return value[0];
+                if (value !== "" && value !== null && value !== undefined) return value;
+            }
+            return "";
+        }
+
+        function normalizePlaceUrl(value) {
+            if (!value) return "";
+            if (value.href) return value.href;
+            return String(value);
+        }
+
         function buildPlaceAttributeMap(place) {
             if (!place) return {};
             const coordinate = place.coordinate || {};
             return {
-                name: place.name || "",
-                address: place.formattedAddress || "",
-                phone: place.phoneNumber || "",
-                website: place.url ? String(place.url) : "",
-                category: place.category || "",
+                name: readPlaceValue(place, ["name", "title"]),
+                address: readPlaceValue(place, ["formattedAddress", "address"]),
+                phone: readPlaceValue(place, ["phoneNumber", "phone", "telephone", "formattedPhoneNumber", "phoneNumbers"]),
+                website: normalizePlaceUrl(readPlaceValue(place, ["url", "website", "websiteURL", "webURL"])),
+                category: readPlaceValue(place, ["category", "pointOfInterestCategory"]),
                 latitude: coordinate.latitude ?? "",
                 longitude: coordinate.longitude ?? ""
             };
@@ -12203,6 +12218,66 @@ function setImportPanelVisibility(show) {
 
         let currentAnnotation = null;
 
+        function getPlaceIdentifier(place) {
+            return place?.identifier || place?.id || place?.placeID || place?.placeId || "";
+        }
+
+        function mergePlaceDetails(place, details) {
+            if (!details || details === place) return place;
+            const merged = { ...place };
+            [
+                "name",
+                "title",
+                "formattedAddress",
+                "address",
+                "phoneNumber",
+                "phone",
+                "telephone",
+                "formattedPhoneNumber",
+                "phoneNumbers",
+                "url",
+                "website",
+                "websiteURL",
+                "webURL",
+                "category",
+                "pointOfInterestCategory"
+            ].forEach((key) => {
+                const value = details[key];
+                if (value !== "" && value !== null && value !== undefined) {
+                    merged[key] = value;
+                }
+            });
+            if (details.coordinate) merged.coordinate = details.coordinate;
+            return merged;
+        }
+
+        function lookupPlaceDetails(place) {
+            const identifier = getPlaceIdentifier(place);
+            if (!identifier || !mapkit?.PlaceLookup) return Promise.resolve(place);
+            return new Promise((resolve) => {
+                try {
+                    const lookup = new mapkit.PlaceLookup();
+                    const callback = (error, data) => {
+                        if (error) {
+                            resolve(place);
+                            return;
+                        }
+                        const details = data?.place || data?.places?.[0] || data;
+                        resolve(mergePlaceDetails(place, details));
+                    };
+                    if (typeof lookup.getPlace === "function") {
+                        lookup.getPlace(identifier, callback);
+                    } else if (typeof lookup.lookup === "function") {
+                        lookup.lookup(identifier, callback);
+                    } else {
+                        resolve(place);
+                    }
+                } catch (error) {
+                    resolve(place);
+                }
+            });
+        }
+
         function getPlaceAddableLayers() {
             return (activeProjectRecord?.layers || [])
                 .map((layer) => ensureLayerStructure(layer))
@@ -12257,7 +12332,8 @@ function setImportPanelVisibility(show) {
             });
         }
 
-        function addSearchPlaceToCurrentProject(place) {
+        async function addSearchPlaceToCurrentProject(place) {
+            const detailedPlace = await lookupPlaceDetails(place);
             if (!activeProjectRecord) {
                 setProjectStatus("Create or open a project before adding map search results.", "error");
                 openCreateProjectModal();
@@ -12270,22 +12346,23 @@ function setImportPanelVisibility(show) {
                 return;
             }
             if (layers.length === 1) {
-                addSearchPlaceToLayer(place, layers[0].id);
+                addSearchPlaceToLayer(detailedPlace, layers[0].id);
                 return;
             }
-            chooseLayerForSearchPlace(place, layers);
+            chooseLayerForSearchPlace(detailedPlace, layers);
         }
 
         function showSidebar(place) {
             const sidebar = document.getElementById("sidebar");
             const content = document.getElementById("sidebar-content");
+            const placeAttributes = buildPlaceAttributeMap(place);
             // Fallback UI using place properties
             content.innerHTML = `
-                <h3>${place.name || "Unknown Place"}</h3>
-                <p>${place.formattedAddress || "No address available."}</p>
-                ${place.phoneNumber ? `<p>📞 ${place.phoneNumber}</p>` : ""}
-                ${place.url ? `<p><a href="${place.url}" target="_blank">Website</a></p>` : ""}
-                ${place.category ? `<p>📍 ${place.category}</p>` : ""}
+                <h3>${escapeHtml(placeAttributes.name || "Unknown Place")}</h3>
+                <p>${escapeHtml(placeAttributes.address || "No address available.")}</p>
+                ${placeAttributes.phone ? `<p>${escapeHtml(placeAttributes.phone)}</p>` : ""}
+                ${placeAttributes.website ? `<p><a href="${escapeHtml(placeAttributes.website)}" target="_blank">Website</a></p>` : ""}
+                ${placeAttributes.category ? `<p>${escapeHtml(placeAttributes.category)}</p>` : ""}
                 <div class="workspace-inline-actions">
                     <button id="searchPlaceDirectionsBtn" type="button" class="mini-btn">Get Directions</button>
                     <button id="searchPlaceAddBtn" type="button" class="mini-btn primary">Add to Current Project</button>
@@ -12310,6 +12387,15 @@ function setImportPanelVisibility(show) {
             return annotation;
         }
 
+        async function selectSearchPlace(place) {
+            const detailedPlace = await lookupPlaceDetails(place);
+            map.region = new mapkit.CoordinateRegion(detailedPlace.coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
+            if (currentAnnotation) {
+                map.removeAnnotation(currentAnnotation);
+            }
+            currentAnnotation = createAnnotation(detailedPlace);
+        }
+
         searchField.addEventListener("input", () => {
             const query = searchField.value;
             if (!query) {
@@ -12328,14 +12414,10 @@ function setImportPanelVisibility(show) {
                     li.style.backgroundColor = "#fff";
                     li.style.color = "#0f172a";
                     li.innerHTML = `<strong style="display:block;color:#020617;font-weight:700;line-height:1.25;">${place.name}</strong><small style="display:block;color:#334155;line-height:1.35;margin-top:2px;">${place.formattedAddress || ""}</small>`;
-                    li.addEventListener("click", () => {
+                    li.addEventListener("click", async () => {
                         resultsList.style.display = "none";
                         searchField.value = place.name;
-                        map.region = new mapkit.CoordinateRegion(place.coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
-                        if (currentAnnotation) {
-                            map.removeAnnotation(currentAnnotation);
-                        }
-                        currentAnnotation = createAnnotation(place);
+                        await selectSearchPlace(place);
                     });
                     resultsList.appendChild(li);
                 });
@@ -12365,14 +12447,10 @@ function setImportPanelVisibility(show) {
 
         searchField.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
-                search.search(searchField.value, (error, data) => {
+                search.search(searchField.value, async (error, data) => {
                     if (error || data.places.length === 0) return;
                     const place = data.places[0];
-                    map.region = new mapkit.CoordinateRegion(place.coordinate, new mapkit.CoordinateSpan(0.01, 0.01));
-                    if (currentAnnotation) {
-                        map.removeAnnotation(currentAnnotation);
-                    }
-                    currentAnnotation = createAnnotation(place);
+                    await selectSearchPlace(place);
                     resultsList.style.display = "none";
                 });
             }
