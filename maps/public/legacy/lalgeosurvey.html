@@ -342,6 +342,43 @@
         justify-content: center;
         cursor: pointer;
     }
+    #lookAroundPreview {
+        position: absolute;
+        right: 82px;
+        bottom: 68px;
+        z-index: 1120;
+        width: min(240px, calc(100vw - 124px));
+        height: 138px;
+        border-radius: 18px;
+        overflow: hidden;
+        background: #f8fafc;
+        border: 1px solid rgba(203, 213, 225, 0.9);
+        box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+    }
+    #lookAroundPreview[hidden] {
+        display: none;
+    }
+    #lookAroundContainer {
+        width: 100%;
+        height: 100%;
+        background: #f8fafc;
+    }
+    .look-around-loading {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        background: #f8fafc;
+    }
+    #lookAroundPreview.loaded .look-around-loading {
+        display: none;
+    }
     .layers-map-icon {
         position: relative;
         width: 22px;
@@ -3491,6 +3528,13 @@
             right: 10px;
             bottom: 80px;
         }
+        #lookAroundPreview {
+            right: 70px;
+            bottom: 94px;
+            width: min(170px, calc(100vw - 96px));
+            height: 104px;
+            border-radius: 16px;
+        }
     }
 
     #toolbar {
@@ -4049,6 +4093,10 @@
         <div class="menu-dropdown-section" data-menu-pane="help" hidden></div>
     </div>
     <div class="map-controls"></div>
+    <div id="lookAroundPreview" hidden aria-label="Look Around preview">
+        <div id="lookAroundContainer"></div>
+        <div class="look-around-loading">Look Around</div>
+    </div>
     <div id="workspaceEmptyState" class="workspace-empty-state">
         <div class="workspace-empty-card">
             <button id="workspaceEmptyCloseBtn" type="button" class="workspace-empty-close" aria-label="Close welcome panel">×</button>
@@ -4385,6 +4433,8 @@
         let currentSteps = [];
         let voiceNavActive = false;
         let voiceTimeouts = [];
+        let lookAroundPreview = null;
+        let lookAroundRequestId = 0;
         const workspaceContext = document.getElementById("workspaceContext");
         const toolbar = document.getElementById("toolbar");
         const toolbarEditGroup = document.getElementById("toolbarEditGroup");
@@ -4467,6 +4517,8 @@
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
         const layersMapBtn = document.getElementById("layersMapBtn");
+        const lookAroundPreviewEl = document.getElementById("lookAroundPreview");
+        const lookAroundContainerEl = document.getElementById("lookAroundContainer");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
         const dataCatalogTableBody = document.getElementById("dataCatalogTableBody");
@@ -12296,6 +12348,71 @@ function setImportPanelVisibility(show) {
             });
         }
 
+        function hideLookAroundPreview() {
+            lookAroundRequestId += 1;
+            if (lookAroundPreview?.destroy) {
+                lookAroundPreview.destroy();
+            }
+            lookAroundPreview = null;
+            if (lookAroundContainerEl) {
+                lookAroundContainerEl.innerHTML = "";
+            }
+            lookAroundPreviewEl?.classList.remove("loaded");
+            if (lookAroundPreviewEl) lookAroundPreviewEl.hidden = true;
+        }
+
+        async function ensureLookAroundLibrary() {
+            if (mapkit?.LookAroundPreview) return true;
+            if (!mapkit?.load) return false;
+            return new Promise((resolve) => {
+                let settled = false;
+                const finish = (available) => {
+                    if (settled) return;
+                    settled = true;
+                    resolve(Boolean(available && mapkit?.LookAroundPreview));
+                };
+                try {
+                    const result = mapkit.load(["look-around"], (error) => finish(!error));
+                    if (result?.then) {
+                        result.then(() => finish(true)).catch(() => finish(false));
+                    }
+                    window.setTimeout(() => finish(Boolean(mapkit?.LookAroundPreview)), 3000);
+                } catch (error) {
+                    finish(false);
+                }
+            });
+        }
+
+        async function showLookAroundPreview(place) {
+            if (!lookAroundPreviewEl || !lookAroundContainerEl || !place?.coordinate) return;
+            const requestId = lookAroundRequestId + 1;
+            lookAroundRequestId = requestId;
+            lookAroundPreviewEl.hidden = false;
+            lookAroundPreviewEl.classList.remove("loaded");
+            lookAroundContainerEl.innerHTML = "";
+
+            const available = await ensureLookAroundLibrary();
+            if (requestId !== lookAroundRequestId) return;
+            if (!available) {
+                hideLookAroundPreview();
+                return;
+            }
+
+            try {
+                lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, place, {
+                    showsDialogControl: true,
+                    showsRoadLabels: true,
+                    showsPointsOfInterest: true
+                });
+                const markLoaded = () => lookAroundPreviewEl?.classList.add("loaded");
+                lookAroundPreview.addEventListener?.("load", markLoaded);
+                lookAroundPreview.addEventListener?.("error", hideLookAroundPreview);
+                window.setTimeout(markLoaded, 1200);
+            } catch (error) {
+                hideLookAroundPreview();
+            }
+        }
+
         function getPlaceAddableLayers() {
             return (activeProjectRecord?.layers || [])
                 .map((layer) => ensureLayerStructure(layer))
@@ -12402,6 +12519,7 @@ function setImportPanelVisibility(show) {
             });
             map.addAnnotation(annotation);
             showSidebar(place);
+            showLookAroundPreview(place);
             return annotation;
         }
 
@@ -12450,6 +12568,7 @@ function setImportPanelVisibility(show) {
             resultsList.style.display = "none";
             stopVoice(); // Stop voice navigation if active
             setSidebarVisibility(false); // Hide sidebar
+            hideLookAroundPreview();
             if (currentAnnotation) { // Remove current place annotation (if any)
                 map.removeAnnotation(currentAnnotation);
                 currentAnnotation = null;
@@ -12478,6 +12597,7 @@ function setImportPanelVisibility(show) {
             if (shouldSuppressMapTap()) return;
             if (isAddingSurveyPoint) return;
             setSidebarVisibility(false);
+            hideLookAroundPreview();
             hideSurveyCallout();
             closeFeatureDrawer({ clearSelection: true });
             setImportPanelVisibility(false);
