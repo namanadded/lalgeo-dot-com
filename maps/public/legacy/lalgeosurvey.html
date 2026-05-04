@@ -4771,8 +4771,19 @@
                     { name: "Longitude", type: "number", locked: true }
                 );
             }
+            const placeFields = normalizedGeometry === "point"
+                ? [
+                    { name: "Name", type: "text" },
+                    { name: "Address", type: "text" },
+                    { name: "Phone", type: "text" },
+                    { name: "Website", type: "text" },
+                    { name: "Category", type: "text" },
+                    { name: "Notes", type: "text" }
+                ]
+                : [];
             return [
                 ...systemFields,
+                ...placeFields,
                 { name: "symbol_color", type: "dropdown", options: ["Red", "Blue", "Green", "Orange", "Purple"] },
                 { name: "symbol_shape", type: "dropdown", options: ["Circle", "Dot", "Pin", "Plus"] }
             ];
@@ -8699,7 +8710,44 @@
             }
         }
 
-        function buildNewFeaturePayload(layer, geometry, coordinate = null) {
+        function findSchemaFieldName(layer, aliases = []) {
+            const normalizedAliases = aliases.map((alias) => String(alias).trim().toLowerCase());
+            return (layer?.schema || []).find((field) => normalizedAliases.includes(String(field.name || "").trim().toLowerCase()))?.name || null;
+        }
+
+        function buildPlaceAttributeMap(place) {
+            if (!place) return {};
+            const coordinate = place.coordinate || {};
+            return {
+                name: place.name || "",
+                address: place.formattedAddress || "",
+                phone: place.phoneNumber || "",
+                website: place.url ? String(place.url) : "",
+                category: place.category || "",
+                latitude: coordinate.latitude ?? "",
+                longitude: coordinate.longitude ?? ""
+            };
+        }
+
+        function mapPlaceAttributesToLayer(layer, place) {
+            const source = buildPlaceAttributeMap(place);
+            const mapped = {};
+            const assign = (aliases, value) => {
+                if (value === "" || value === null || value === undefined) return;
+                const fieldName = findSchemaFieldName(layer, aliases);
+                if (fieldName) mapped[fieldName] = value;
+            };
+            assign(["name", "title", "place name", "place_name"], source.name);
+            assign(["address", "formatted address", "formatted_address"], source.address);
+            assign(["phone", "phone number", "phone_number", "telephone"], source.phone);
+            assign(["website", "url", "web", "link"], source.website);
+            assign(["category", "type", "place type", "place_type"], source.category);
+            assign(["latitude", "lat"], source.latitude);
+            assign(["longitude", "lon", "lng"], source.longitude);
+            return mapped;
+        }
+
+        function buildNewFeaturePayload(layer, geometry, coordinate = null, initialAttributes = {}) {
             const newRecord = {};
             (currentSurveyData?.headers || []).forEach((header) => {
                 newRecord[header] = "";
@@ -8726,6 +8774,11 @@
                 newRecord.Latitude = coordinate.latitude;
                 newRecord.Longitude = coordinate.longitude;
             }
+            Object.entries(initialAttributes || {}).forEach(([fieldName, value]) => {
+                if (fieldName in newRecord) {
+                    newRecord[fieldName] = value;
+                }
+            });
             const featureId = newRecord.ID || generateSurveyPointId();
             newRecord.ID = featureId;
             newRecord.Date = newRecord.Date || new Date().toISOString();
@@ -8789,7 +8842,7 @@
             if (mapAddHint) mapAddHint.hidden = true;
         }
 
-        async function handleNewSurveyPointPlacement(coordinate) {
+        async function handleNewSurveyPointPlacement(coordinate, options = {}) {
             if (!currentSurveyData || !coordinate) return;
             const activeLayer = getActiveLayerRecord();
             const geometryType = getActiveLayerGeometryType();
@@ -8808,7 +8861,8 @@
             const dropboxMode = isDropboxSurvey();
             const layer = activeLayer;
             const geometry = createPointGeometry(coordinate.latitude, coordinate.longitude);
-            const { newRecord, feature: featurePayload } = buildNewFeaturePayload(layer, geometry, coordinate);
+            const initialAttributes = options.initialAttributes || {};
+            const { newRecord, feature: featurePayload } = buildNewFeaturePayload(layer, geometry, coordinate, initialAttributes);
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
             if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
@@ -8898,8 +8952,14 @@
             }
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             refreshAnnotationStyles();
-            showSurveyCallout(annotation, { forceEdit: true });
-            renderFeatureDrawer();
+            if (options.openFeatureDrawerOnly) {
+                activeSurveyAnnotation = annotation;
+                renderFeatureDrawer();
+                featureDrawer?.classList.add("open");
+            } else {
+                showSurveyCallout(annotation, { forceEdit: true });
+                renderFeatureDrawer();
+            }
             setAnnotationDraggable(annotation);
             updateSurveyTable();
         }
@@ -12143,6 +12203,79 @@ function setImportPanelVisibility(show) {
 
         let currentAnnotation = null;
 
+        function getPlaceAddableLayers() {
+            return (activeProjectRecord?.layers || [])
+                .map((layer) => ensureLayerStructure(layer))
+                .filter((layer) => layer.visible !== false && normalizeLayerGeometryType(layer.geometryType) === "point");
+        }
+
+        async function addSearchPlaceToLayer(place, layerId) {
+            if (!place?.coordinate || !activeProjectRecord) return;
+            const layer = getLayerById(layerId);
+            if (!layer) {
+                setProjectStatus("Choose a valid point layer before adding this place.", "error");
+                return;
+            }
+            activeProjectRecord.activeLayerId = layer.id;
+            activeLayerId = layer.id;
+            markActiveProjectUpdated();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            const refreshedLayer = getActiveLayerRecord();
+            const initialAttributes = mapPlaceAttributesToLayer(refreshedLayer, place);
+            await handleNewSurveyPointPlacement(place.coordinate, {
+                initialAttributes,
+                openFeatureDrawerOnly: true
+            });
+            scheduleLocalAutosave();
+            setProjectStatus(`Added ${place.name || "place"} to ${refreshedLayer?.name || "current layer"}.`, "success");
+        }
+
+        function chooseLayerForSearchPlace(place, layers) {
+            openLayerActionModal({
+                title: "Add to Current Project",
+                description: "Choose the point layer that should receive this map search result.",
+                bodyHtml: `
+                    <div class="workspace-field full">
+                        <label for="searchPlaceLayerSelect">Layer</label>
+                        <select id="searchPlaceLayerSelect" class="workspace-text-input">
+                            ${layers.map((layer) => `<option value="${escapeHtml(layer.id)}">${escapeHtml(layer.name)}</option>`).join("")}
+                        </select>
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Add place",
+                        primary: true,
+                        onClick: async () => {
+                            const layerId = document.getElementById("searchPlaceLayerSelect")?.value;
+                            await addSearchPlaceToLayer(place, layerId);
+                            return true;
+                        }
+                    }
+                ]
+            });
+        }
+
+        function addSearchPlaceToCurrentProject(place) {
+            if (!activeProjectRecord) {
+                setProjectStatus("Create or open a project before adding map search results.", "error");
+                openCreateProjectModal();
+                return;
+            }
+            const layers = getPlaceAddableLayers();
+            if (!layers.length) {
+                setProjectStatus("Add a point layer before adding map search results.", "error");
+                showLayerActionInfo("No point layer", "Create a point layer first, then add the search result to your project.");
+                return;
+            }
+            if (layers.length === 1) {
+                addSearchPlaceToLayer(place, layers[0].id);
+                return;
+            }
+            chooseLayerForSearchPlace(place, layers);
+        }
+
         function showSidebar(place) {
             const sidebar = document.getElementById("sidebar");
             const content = document.getElementById("sidebar-content");
@@ -12153,8 +12286,17 @@ function setImportPanelVisibility(show) {
                 ${place.phoneNumber ? `<p>📞 ${place.phoneNumber}</p>` : ""}
                 ${place.url ? `<p><a href="${place.url}" target="_blank">Website</a></p>` : ""}
                 ${place.category ? `<p>📍 ${place.category}</p>` : ""}
-                <button onclick="getDirections(${place.coordinate.latitude}, ${place.coordinate.longitude})">📍 Get Directions</button>
+                <div class="workspace-inline-actions">
+                    <button id="searchPlaceDirectionsBtn" type="button" class="mini-btn">Get Directions</button>
+                    <button id="searchPlaceAddBtn" type="button" class="mini-btn primary">Add to Current Project</button>
+                </div>
             `;
+            content.querySelector("#searchPlaceDirectionsBtn")?.addEventListener("click", () => {
+                getDirections(place.coordinate.latitude, place.coordinate.longitude);
+            });
+            content.querySelector("#searchPlaceAddBtn")?.addEventListener("click", () => {
+                addSearchPlaceToCurrentProject(place);
+            });
             setSidebarVisibility(true);
         }
 
