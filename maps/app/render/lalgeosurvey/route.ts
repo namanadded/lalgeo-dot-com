@@ -1,18 +1,18 @@
 export const dynamic = "force-dynamic";
 
 const TOKEN_ASSIGNMENT_PATTERN =
-  /const token = hostname\.includes\("lalgeo\.ca"\)[\s\S]*?;\n\n        mapkit\.init\(/;
+  /window\.lalgeoMapkitToken = window\.location\.hostname\.includes\("lalgeo\.ca"\)[\s\S]*?;\n    document\.write/;
 
 function mapkitTokenScript() {
   const override = (process.env.MAPKIT_TOKEN || process.env.NEXT_PUBLIC_MAPKIT_TOKEN || "").trim();
 
   if (!override) {
-    return `const token = hostname.includes("lalgeo.ca")
+    return `window.lalgeoMapkitToken = window.location.hostname.includes("lalgeo.ca")
           ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
           : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw";`;
   }
 
-  return `const token = ${JSON.stringify(override)};`;
+  return `window.lalgeoMapkitToken = ${JSON.stringify(override)};`;
 }
 
 export async function GET() {
@@ -25,7 +25,7 @@ export async function GET() {
   }
 
   const source = await sourceResponse.text();
-  const html = source.replace(TOKEN_ASSIGNMENT_PATTERN, `${mapkitTokenScript()}\n\n        mapkit.init(`);
+  const html = source.replace(TOKEN_ASSIGNMENT_PATTERN, `${mapkitTokenScript()}\n    document.write`);
 
   return new Response(html, {
     headers: {

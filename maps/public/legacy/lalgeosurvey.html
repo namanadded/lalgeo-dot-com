@@ -5,7 +5,12 @@
 <meta charset="UTF-8">
 <title>LalGeo Maps</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
-<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.js"></script>
+<script>
+    window.lalgeoMapkitToken = window.location.hostname.includes("lalgeo.ca")
+        ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
+        : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw";
+    document.write(`<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js" crossorigin data-token="${window.lalgeoMapkitToken}" data-libraries="map,annotations,services,look-around"><\/script>`);
+</script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@turf/turf@6/turf.min.js"></script> <style>
@@ -4414,9 +4419,9 @@
     <script>
         const hostname = window.location.hostname;
 
-        const token = hostname.includes("lalgeo.ca")
+        const token = window.lalgeoMapkitToken || (hostname.includes("lalgeo.ca")
           ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
-          : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw";
+          : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw");
 
         mapkit.init({
           authorizationCallback: function(done) {
@@ -12369,6 +12374,7 @@ function setImportPanelVisibility(show) {
 
         function loadLookAroundCoreScript() {
             if (hasLookAroundPreviewApi()) return Promise.resolve(true);
+            if (document.querySelector('script[src*="mapkit.core.js"]')) return Promise.resolve(false);
             if (window.lalgeoLookAroundCoreLoadPromise) return window.lalgeoLookAroundCoreLoadPromise;
             window.lalgeoLookAroundCoreLoadPromise = new Promise((resolve) => {
                 const script = document.createElement("script");
