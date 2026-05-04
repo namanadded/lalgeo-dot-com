@@ -375,9 +375,11 @@
         font-weight: 700;
         text-align: center;
         background: #f8fafc;
+        transition: opacity 0.2s ease;
     }
     #lookAroundPreview.loaded .look-around-loading {
-        display: none;
+        opacity: 0;
+        pointer-events: none;
     }
     .layers-map-icon {
         position: relative;
@@ -12361,24 +12363,45 @@ function setImportPanelVisibility(show) {
             if (lookAroundPreviewEl) lookAroundPreviewEl.hidden = true;
         }
 
+        function hasLookAroundPreviewApi() {
+            return typeof mapkit !== "undefined" && typeof mapkit.LookAroundPreview === "function";
+        }
+
+        function loadLookAroundCoreScript() {
+            if (hasLookAroundPreviewApi()) return Promise.resolve(true);
+            if (window.lalgeoLookAroundCoreLoadPromise) return window.lalgeoLookAroundCoreLoadPromise;
+            window.lalgeoLookAroundCoreLoadPromise = new Promise((resolve) => {
+                const script = document.createElement("script");
+                script.src = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js";
+                script.dataset.libraries = "look-around,services";
+                script.dataset.token = token;
+                script.onload = () => resolve(hasLookAroundPreviewApi());
+                script.onerror = () => resolve(false);
+                document.head.appendChild(script);
+            });
+            return window.lalgeoLookAroundCoreLoadPromise;
+        }
+
         async function ensureLookAroundLibrary() {
-            if (mapkit?.LookAroundPreview) return true;
-            if (!mapkit?.load) return false;
+            if (hasLookAroundPreviewApi()) return true;
             return new Promise((resolve) => {
                 let settled = false;
                 const finish = (available) => {
                     if (settled) return;
                     settled = true;
-                    resolve(Boolean(available && mapkit?.LookAroundPreview));
+                    resolve(Boolean(available && hasLookAroundPreviewApi()));
                 };
                 try {
-                    const result = mapkit.load(["look-around"], (error) => finish(!error));
+                    const result = mapkit?.load?.(["look-around"], (error) => finish(!error));
                     if (result?.then) {
                         result.then(() => finish(true)).catch(() => finish(false));
                     }
-                    window.setTimeout(() => finish(Boolean(mapkit?.LookAroundPreview)), 3000);
+                    if (!result) {
+                        loadLookAroundCoreScript().then(finish);
+                    }
+                    window.setTimeout(() => finish(hasLookAroundPreviewApi()), 3500);
                 } catch (error) {
-                    finish(false);
+                    loadLookAroundCoreScript().then(finish);
                 }
             });
         }
@@ -12390,10 +12413,14 @@ function setImportPanelVisibility(show) {
             lookAroundPreviewEl.hidden = false;
             lookAroundPreviewEl.classList.remove("loaded");
             lookAroundContainerEl.innerHTML = "";
+            let timeoutId = window.setTimeout(() => {
+                if (requestId === lookAroundRequestId) hideLookAroundPreview();
+            }, 6000);
 
             const available = await ensureLookAroundLibrary();
             if (requestId !== lookAroundRequestId) return;
             if (!available) {
+                window.clearTimeout(timeoutId);
                 hideLookAroundPreview();
                 return;
             }
@@ -12404,11 +12431,21 @@ function setImportPanelVisibility(show) {
                     showsRoadLabels: true,
                     showsPointsOfInterest: true
                 });
-                const markLoaded = () => lookAroundPreviewEl?.classList.add("loaded");
+                const markLoaded = () => {
+                    window.clearTimeout(timeoutId);
+                    lookAroundPreviewEl?.classList.add("loaded");
+                };
+                const failLoad = () => {
+                    window.clearTimeout(timeoutId);
+                    hideLookAroundPreview();
+                };
                 lookAroundPreview.addEventListener?.("load", markLoaded);
-                lookAroundPreview.addEventListener?.("error", hideLookAroundPreview);
-                window.setTimeout(markLoaded, 1200);
+                lookAroundPreview.addEventListener?.("error", failLoad);
+                window.setTimeout(() => {
+                    if (requestId === lookAroundRequestId && lookAroundContainerEl.children.length > 0) markLoaded();
+                }, 1600);
             } catch (error) {
+                window.clearTimeout(timeoutId);
                 hideLookAroundPreview();
             }
         }
