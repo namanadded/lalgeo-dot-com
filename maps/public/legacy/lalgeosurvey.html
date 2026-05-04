@@ -3493,6 +3493,141 @@
         }
     }
 
+    #toolbar {
+        background: rgba(255, 255, 255, 0.96);
+        color: #4b5563;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        border-top: 0;
+        box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+        backdrop-filter: blur(20px) saturate(150%);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+    }
+    #toolbar .brand-menu-btn,
+    #toolbar .toolbar-overflow-toggle,
+    #toolbar #toolbarSearchShell,
+    #toolbar .menu-bar-btn.quick-action {
+        background: #fff;
+        color: #6b7280;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.12);
+    }
+    #toolbar .brand-menu-btn {
+        border-color: transparent;
+        box-shadow: none;
+    }
+    #toolbar .brand-menu-btn:hover,
+    #toolbar .brand-menu-btn.active,
+    #toolbar .brand-menu-btn.menu-open,
+    #toolbar .toolbar-overflow-toggle:hover,
+    #toolbar .toolbar-overflow-toggle.active,
+    #toolbar #toolbarSearchShell:hover,
+    #toolbar .menu-bar-btn.quick-action:hover,
+    #toolbar .menu-bar-btn.quick-action.active {
+        background: #f9fafb;
+        color: #374151;
+        border-color: rgba(190, 197, 205, 0.92);
+    }
+    #toolbar .toolbar-overflow-toggle::before,
+    #toolbar #leftToolbarExpand::before,
+    #toolbar #rightToolbarExpand::before {
+        border-color: #6b7280;
+    }
+    #toolbar .toolbar-project-mini strong {
+        color: #4b5563;
+        text-shadow: none;
+    }
+    #toolbar .toolbar-project-mini span,
+    #toolbarSearchShell input,
+    #toolbarSearchShell input::placeholder,
+    #toolbarSearchShell .search-toggle-btn,
+    #toolbarSearchShell #collapseSearchBtn,
+    #toolbarSearchShell #clearSearch {
+        color: #6b7280;
+    }
+    #toolbar .quick-action-icon {
+        color: #6b7280;
+    }
+    .toolbar-left.expanded .app-menubar,
+    .toolbar-right.expanded .toolbar-quick-actions {
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+        backdrop-filter: blur(20px) saturate(150%);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+    }
+    .toolbar-left.expanded .app-menubar .menu-bar-btn,
+    .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn {
+        color: #6b7280;
+        background: transparent;
+        border: none;
+        box-shadow: none;
+    }
+    .toolbar-left.expanded .app-menubar .menu-bar-btn:hover,
+    .toolbar-left.expanded .app-menubar .menu-bar-btn.active,
+    .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn:hover,
+    .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn.active {
+        background: #f3f4f6;
+        color: #374151;
+    }
+    #surveyPanelActions {
+        background: rgba(255, 255, 255, 0.96);
+        color: #4b5563;
+        border-top: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 -10px 30px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(18px) saturate(145%);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+    }
+    #surveyTableContext {
+        color: #6b7280;
+    }
+    #surveyTableContext .workspace-badge {
+        background: #f3f4f6;
+        color: #6b7280;
+    }
+    .panel-action-btn {
+        background: #fff;
+        color: #4b5563;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        border-radius: 12px;
+        box-shadow: 0 5px 16px rgba(15, 23, 42, 0.12);
+    }
+    .panel-action-btn:hover,
+    .panel-action-btn.active {
+        background: #f3f4f6;
+        border-color: rgba(190, 197, 205, 0.92);
+        color: #374151;
+    }
+    #surveyTableWrapper {
+        background: rgba(255, 255, 255, 0.98);
+        border-top: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 -8px 28px rgba(15, 23, 42, 0.12);
+    }
+    #surveyTableWrapper table {
+        color: #4b5563;
+    }
+    #surveyTableWrapper th {
+        background: #f9fafb;
+        color: #6b7280;
+    }
+    #surveyTableWrapper th,
+    #surveyTableWrapper td {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    #surveyTableWrapper tbody tr:hover {
+        background: #f3f4f6;
+    }
+    #surveyTableWrapper tbody tr.selected {
+        background: #e5e7eb;
+    }
+    .table-cell-editor {
+        background: #fff;
+        color: #374151;
+        border: 1px solid #d1d5db;
+    }
+    .table-cell-editor:focus {
+        outline: 2px solid rgba(156, 163, 175, 0.35);
+    }
+
 </style>
     </head>
 <body>
