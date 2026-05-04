@@ -3561,6 +3561,7 @@
         background: transparent;
         border: none;
         box-shadow: none;
+        opacity: 1;
     }
     .toolbar-left.expanded .app-menubar .menu-bar-btn:hover,
     .toolbar-left.expanded .app-menubar .menu-bar-btn.active,
@@ -3568,6 +3569,51 @@
     .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn.active {
         background: #f3f4f6;
         color: #374151;
+    }
+    #toolbar .menu-bar-actions .menu-bar-btn,
+    #toolbar .menu-bar-actions .menu-bar-btn[disabled],
+    #toolbar .menu-bar-actions .menu-bar-btn.is-disabled {
+        color: #6b7280;
+        opacity: 1;
+    }
+    #toolbar .menu-bar-actions .menu-bar-btn:hover,
+    #toolbar .menu-bar-actions .menu-bar-btn.active,
+    #toolbar .menu-bar-actions .menu-bar-btn.menu-open {
+        color: #374151;
+        background: #f3f4f6;
+    }
+    #sidebar .layer-pane-helper,
+    #sidebar .layer-pane-row,
+    #sidebar .layer-pane-name,
+    .workspace-layer-card,
+    .workspace-layer-title,
+    .workspace-layer-meta {
+        color: #4b5563;
+        opacity: 1;
+    }
+    #sidebar .layer-pane-row {
+        background: #fff;
+        border-color: #e5e7eb;
+    }
+    #sidebar .layer-pane-row:hover,
+    #sidebar .layer-pane-row.active {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+    #sidebar .layer-visibility-toggle {
+        background: #eefdfb;
+        border-color: #b7ebe5;
+        color: #38b2a6;
+    }
+    #sidebar .layer-visibility-toggle.is-off {
+        background: #f9fafb;
+        border-color: #d1d5db;
+        color: transparent;
+    }
+    .workspace-badge,
+    .workspace-pill {
+        background: #f3f4f6;
+        color: #6b7280;
     }
     #surveyPanelActions {
         background: rgba(255, 255, 255, 0.96);
