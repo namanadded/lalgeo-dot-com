@@ -8730,14 +8730,29 @@
             return String(value);
         }
 
+        function buildAppleMapsPlaceUrl(place) {
+            const coordinate = place?.coordinate || {};
+            const params = new URLSearchParams();
+            const name = readPlaceValue(place, ["name", "title"]);
+            const address = readPlaceValue(place, ["formattedAddress", "address"]);
+            if (name) params.set("q", name);
+            if (address) params.set("address", address);
+            if (coordinate.latitude !== undefined && coordinate.longitude !== undefined) {
+                params.set("ll", `${coordinate.latitude},${coordinate.longitude}`);
+            }
+            const query = params.toString();
+            return query ? `https://maps.apple.com/?${query}` : "";
+        }
+
         function buildPlaceAttributeMap(place) {
             if (!place) return {};
             const coordinate = place.coordinate || {};
+            const directWebsite = normalizePlaceUrl(readPlaceValue(place, ["url", "website", "websiteURL", "webURL", "homepageURL", "homepage", "urls"]));
             return {
                 name: readPlaceValue(place, ["name", "title"]),
                 address: readPlaceValue(place, ["formattedAddress", "address"]),
                 phone: readPlaceValue(place, ["phoneNumber", "phone", "telephone", "formattedPhoneNumber", "phoneNumbers"]),
-                website: normalizePlaceUrl(readPlaceValue(place, ["url", "website", "websiteURL", "webURL"])),
+                website: directWebsite || buildAppleMapsPlaceUrl(place),
                 category: readPlaceValue(place, ["category", "pointOfInterestCategory"]),
                 latitude: coordinate.latitude ?? "",
                 longitude: coordinate.longitude ?? ""
@@ -8755,7 +8770,7 @@
             assign(["name", "title", "place name", "place_name"], source.name);
             assign(["address", "formatted address", "formatted_address"], source.address);
             assign(["phone", "phone number", "phone_number", "telephone"], source.phone);
-            assign(["website", "url", "web", "link"], source.website);
+            assign(["website", "url", "web", "link", "map link", "apple maps"], source.website);
             assign(["category", "type", "place type", "place_type"], source.category);
             assign(["latitude", "lat"], source.latitude);
             assign(["longitude", "lon", "lng"], source.longitude);
@@ -12239,6 +12254,9 @@ function setImportPanelVisibility(show) {
                 "website",
                 "websiteURL",
                 "webURL",
+                "homepageURL",
+                "homepage",
+                "urls",
                 "category",
                 "pointOfInterestCategory"
             ].forEach((key) => {
