@@ -3787,6 +3787,118 @@
         background: #f3f4f6;
         color: #6b7280;
     }
+    .workspace-modal-backdrop,
+    .layer-modal-backdrop {
+        background: rgba(243, 244, 246, 0.5);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+    .workspace-modal,
+    .layer-modal {
+        background: rgba(255, 255, 255, 0.96);
+        color: #4b5563;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 28px 70px rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(20px) saturate(150%);
+        -webkit-backdrop-filter: blur(20px) saturate(150%);
+    }
+    .workspace-modal h3,
+    .layer-modal h3,
+    .layer-modal-header h3 {
+        color: #374151;
+    }
+    .workspace-modal p,
+    .layer-modal p,
+    .workspace-modal .workspace-panel-muted,
+    .layer-modal .workspace-panel-muted,
+    .workspace-modal #createProjectHelp,
+    .layer-modal-message {
+        color: #6b7280;
+    }
+    .workspace-field label,
+    .layer-modal .workspace-field label {
+        color: #6b7280;
+    }
+    .workspace-modal input,
+    .workspace-modal textarea,
+    .workspace-modal select,
+    .layer-modal input,
+    .layer-modal textarea,
+    .layer-modal select {
+        background: #f9fafb;
+        color: #374151;
+        border: 1px solid #d1d5db;
+    }
+    .workspace-modal input::placeholder,
+    .workspace-modal textarea::placeholder,
+    .layer-modal input::placeholder,
+    .layer-modal textarea::placeholder {
+        color: #9ca3af;
+    }
+    .workspace-modal .workspace-primary-btn,
+    .workspace-modal .workspace-secondary-btn,
+    .layer-modal .workspace-primary-btn,
+    .layer-modal .workspace-secondary-btn,
+    .layer-modal .mini-btn,
+    .layer-modal-close {
+        background: #fff;
+        color: #4b5563;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        box-shadow: 0 5px 16px rgba(15, 23, 42, 0.12);
+    }
+    .workspace-modal .workspace-primary-btn:hover,
+    .workspace-modal .workspace-secondary-btn:hover,
+    .layer-modal .workspace-primary-btn:hover,
+    .layer-modal .workspace-secondary-btn:hover,
+    .layer-modal .mini-btn:hover,
+    .layer-modal-close:hover,
+    .layer-modal-close:focus-visible {
+        background: #f3f4f6;
+        color: #374151;
+        border-color: rgba(190, 197, 205, 0.92);
+    }
+    .workspace-validation,
+    .layer-modal-danger {
+        color: #b45353;
+    }
+    .schema-editor-row {
+        background: #fff;
+        color: #4b5563;
+        border-color: #e5e7eb;
+    }
+    .schema-editor-row.locked {
+        opacity: 1;
+        color: #6b7280;
+        background: #f9fafb;
+    }
+    #dataCatalogPane .data-pane-header h3,
+    #dataCatalogPane .data-pane-title,
+    #dataCatalogPane .data-pane-meta strong {
+        color: #374151;
+    }
+    #dataCatalogPane .data-pane-header p,
+    #dataCatalogPane .data-pane-meta,
+    #dataCatalogPane .data-pane-note,
+    #dataCatalogPane .data-pane-table td {
+        color: #6b7280;
+    }
+    #dataCatalogPane .data-pane-table-wrap,
+    #dataCatalogPane .data-pane-meta {
+        background: #fff;
+        border: 1px solid #e5e7eb;
+    }
+    #dataCatalogPane .data-pane-table th {
+        background: #f9fafb;
+        color: #6b7280;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    #dataCatalogPane .data-pane-table td {
+        border-bottom: 1px solid #e5e7eb;
+    }
+    #dataCatalogPane .data-pane-table tbody tr:hover,
+    #dataCatalogPane .data-pane-table tbody tr.active {
+        background: #f3f4f6;
+    }
 
 </style>
     </head>
