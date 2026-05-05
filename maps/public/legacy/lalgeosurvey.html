@@ -416,6 +416,22 @@
         height: 24px;
         display: block;
     }
+    .look-around-drop-marker {
+        width: 28px;
+        height: 28px;
+        border-radius: 999px;
+        background: rgba(59, 130, 246, 0.22);
+        border: 2px solid rgba(37, 99, 235, 0.92);
+        box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.18), 0 0 22px rgba(37, 99, 235, 0.42);
+        pointer-events: none;
+    }
+    .look-around-drop-marker::after {
+        content: "";
+        position: absolute;
+        inset: 8px;
+        border-radius: inherit;
+        background: rgba(37, 99, 235, 0.9);
+    }
     .layers-map-icon {
         position: relative;
         width: 22px;
@@ -4484,6 +4500,7 @@
         let voiceTimeouts = [];
         let lookAroundPreview = null;
         let lookAroundRequestId = 0;
+        let lookAroundDropAnnotation = null;
         const workspaceContext = document.getElementById("workspaceContext");
         const toolbar = document.getElementById("toolbar");
         const toolbarEditGroup = document.getElementById("toolbarEditGroup");
@@ -12415,6 +12432,20 @@ function setImportPanelVisibility(show) {
             }
         }
 
+        function showLookAroundDropMarker(coordinate) {
+            if (!map || !coordinate) return;
+            if (lookAroundDropAnnotation) {
+                map.removeAnnotation(lookAroundDropAnnotation);
+                lookAroundDropAnnotation = null;
+            }
+            const markerElement = document.createElement("div");
+            markerElement.className = "look-around-drop-marker";
+            lookAroundDropAnnotation = new mapkit.Annotation(coordinate, () => markerElement, {
+                anchorOffset: new DOMPoint(0, -14)
+            });
+            map.addAnnotation(lookAroundDropAnnotation);
+        }
+
         function hasLookAroundPreviewApi() {
             return typeof mapkit !== "undefined" && typeof mapkit.LookAroundPreview === "function";
         }
@@ -12572,6 +12603,7 @@ function setImportPanelVisibility(show) {
                 if (!moved) return;
                 const coordinate = map.convertPointOnPageToCoordinate(dropPoint);
                 if (!coordinate) return;
+                showLookAroundDropMarker(coordinate);
                 setProjectStatus("Checking Look Around at dropped street location...", "info");
                 const loaded = await showLookAroundAtCoordinate(coordinate);
                 setProjectStatus(
