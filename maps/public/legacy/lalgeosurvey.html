@@ -12538,6 +12538,9 @@ function setImportPanelVisibility(show) {
         function hideLookAroundPreview() {
             lookAroundRequestId += 1;
             stopLookAroundSceneSync();
+            if (document.fullscreenElement === lookAroundPreviewEl && document.exitFullscreen) {
+                document.exitFullscreen().catch(() => {});
+            }
             if (lookAroundPreview?.destroy) {
                 lookAroundPreview.destroy();
             }
@@ -12593,8 +12596,8 @@ function setImportPanelVisibility(show) {
             lookAroundFullscreenBtn?.addEventListener("click", (event) => {
                 event.preventDefault();
                 event.stopPropagation();
-                if (lookAroundPreview?.openDialog) {
-                    lookAroundPreview.openDialog();
+                if (document.fullscreenElement === lookAroundPreviewEl) {
+                    document.exitFullscreen?.().catch(() => {});
                     return;
                 }
                 if (lookAroundPreviewEl.requestFullscreen) {
@@ -12654,7 +12657,7 @@ function setImportPanelVisibility(show) {
         }
 
         function normalizeLookAroundCoordinate(candidate) {
-            const coordinate = candidate?.coordinate || candidate?.center || candidate?.location || candidate;
+            const coordinate = candidate?.coordinate || candidate?.center || candidate?.location || candidate?.position || candidate?.camera?.coordinate || candidate?.camera?.position || candidate?.scene?.coordinate || candidate;
             const latitude = Number(coordinate?.latitude ?? coordinate?.lat);
             const longitude = Number(coordinate?.longitude ?? coordinate?.lng ?? coordinate?.lon);
             if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
@@ -12663,22 +12666,34 @@ function setImportPanelVisibility(show) {
 
         function readLookAroundHeading() {
             const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene || {};
-            const camera = lookAroundPreview?.camera || scene.camera || {};
+            const camera = lookAroundPreview?.camera || lookAroundPreview?.viewpoint || lookAroundPreview?.pointOfView || scene.camera || scene.viewpoint || {};
             const heading = Number(
                 camera.heading ??
                 camera.bearing ??
+                camera.yaw ??
+                camera.direction ??
                 scene.heading ??
                 scene.bearing ??
+                scene.yaw ??
+                scene.direction ??
                 scene.viewingDirection ??
+                lookAroundPreview?.cameraHeading ??
                 lookAroundPreview?.heading ??
-                lookAroundPreview?.bearing
+                lookAroundPreview?.bearing ??
+                lookAroundPreview?.yaw
             );
             return Number.isFinite(heading) ? heading : null;
         }
 
         function readLookAroundCoordinate() {
-            const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene;
-            return normalizeLookAroundCoordinate(scene) || normalizeLookAroundCoordinate(lookAroundPreview);
+            const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene || lookAroundPreview?.lookAroundScene;
+            const camera = lookAroundPreview?.camera || lookAroundPreview?.viewpoint || lookAroundPreview?.pointOfView || scene?.camera;
+            return normalizeLookAroundCoordinate(scene) ||
+                normalizeLookAroundCoordinate(camera) ||
+                normalizeLookAroundCoordinate(lookAroundPreview?.location) ||
+                normalizeLookAroundCoordinate(lookAroundPreview?.center) ||
+                normalizeLookAroundCoordinate(lookAroundPreview?.coordinate) ||
+                normalizeLookAroundCoordinate(lookAroundPreview);
         }
 
         function syncLookAroundMarkerFromScene() {
@@ -12855,6 +12870,19 @@ function setImportPanelVisibility(show) {
                             const state = lookAroundPreview?.readyState;
                             if (state === "complete" || state === mapkit.LookAroundPreview?.ReadyStates?.Complete) finish(true);
                             if (state === "failed" || state === mapkit.LookAroundPreview?.ReadyStates?.Failed) finish(false);
+                        });
+                        [
+                            "scene-change",
+                            "scene-change-end",
+                            "camera-change",
+                            "camera-change-end",
+                            "position-change",
+                            "move",
+                            "moveend",
+                            "viewpoint-change",
+                            "viewpoint-change-end"
+                        ].forEach((eventName) => {
+                            lookAroundPreview.addEventListener?.(eventName, syncLookAroundMarkerFromScene);
                         });
                         window.setTimeout(() => {
                             const rendered = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
