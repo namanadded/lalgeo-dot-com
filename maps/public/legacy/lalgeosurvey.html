@@ -12365,7 +12365,10 @@ function setImportPanelVisibility(show) {
                 lookAroundContainerEl.innerHTML = "";
             }
             lookAroundPreviewEl?.classList.remove("loaded");
-            if (lookAroundPreviewEl) lookAroundPreviewEl.hidden = true;
+            if (lookAroundPreviewEl) {
+                lookAroundPreviewEl.hidden = true;
+                lookAroundPreviewEl.style.visibility = "";
+            }
         }
 
         function hasLookAroundPreviewApi() {
@@ -12412,54 +12415,147 @@ function setImportPanelVisibility(show) {
             });
         }
 
+        function offsetCoordinate(coordinate, northMeters = 0, eastMeters = 0) {
+            const lat = Number(coordinate?.latitude);
+            const lon = Number(coordinate?.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+            const metersPerDegreeLat = 111320;
+            const metersPerDegreeLon = 111320 * Math.cos(lat * Math.PI / 180);
+            return new mapkit.Coordinate(
+                lat + northMeters / metersPerDegreeLat,
+                lon + eastMeters / metersPerDegreeLon
+            );
+        }
+
+        function reverseLookupClosestPlace(coordinate) {
+            if (!coordinate || !mapkit?.Geocoder) return Promise.resolve(null);
+            return new Promise((resolve) => {
+                try {
+                    const geocoder = new mapkit.Geocoder({ language: "en-CA" });
+                    geocoder.reverseLookup(coordinate, (error, data) => {
+                        if (error) {
+                            resolve(null);
+                            return;
+                        }
+                        resolve(data?.results?.[0] || null);
+                    });
+                } catch (error) {
+                    resolve(null);
+                }
+            });
+        }
+
+        function getLocationKey(location) {
+            const coordinate = location?.coordinate || location;
+            const lat = Number(coordinate?.latitude);
+            const lon = Number(coordinate?.longitude);
+            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return "";
+            return `${lat.toFixed(6)},${lon.toFixed(6)}`;
+        }
+
+        async function getLookAroundCandidateLocations(place) {
+            const candidates = [];
+            const addCandidate = (candidate) => {
+                if (!candidate) return;
+                const key = getLocationKey(candidate);
+                if (!key || candidates.some((item) => getLocationKey(item) === key)) return;
+                candidates.push(candidate);
+            };
+
+            addCandidate(place);
+            const closestPlace = await reverseLookupClosestPlace(place.coordinate);
+            addCandidate(closestPlace);
+            addCandidate(place.coordinate);
+
+            const nearbyOffsets = [
+                [0, 18],
+                [18, 0],
+                [0, -18],
+                [-18, 0],
+                [0, 36],
+                [36, 0],
+                [0, -36],
+                [-36, 0]
+            ];
+            nearbyOffsets.forEach(([north, east]) => addCandidate(offsetCoordinate(place.coordinate, north, east)));
+            return candidates;
+        }
+
+        function tryCreateLookAroundPreview(location, requestId) {
+            return new Promise((resolve) => {
+                if (requestId !== lookAroundRequestId) {
+                    resolve(false);
+                    return;
+                }
+                lookAroundContainerEl.innerHTML = "";
+                if (lookAroundPreview?.destroy) {
+                    lookAroundPreview.destroy();
+                }
+                lookAroundPreview = null;
+
+                let settled = false;
+                const finish = (loaded) => {
+                    if (settled) return;
+                    settled = true;
+                    window.clearTimeout(timeoutId);
+                    if (!loaded && lookAroundPreview?.destroy) {
+                        lookAroundPreview.destroy();
+                        lookAroundPreview = null;
+                    }
+                    resolve(Boolean(loaded));
+                };
+                const timeoutId = window.setTimeout(() => finish(false), 3500);
+
+                try {
+                    lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, location, {
+                        showsRoadLabels: true,
+                        showsPointsOfInterest: true
+                    });
+                    lookAroundPreview.addEventListener?.("load", () => finish(true));
+                    lookAroundPreview.addEventListener?.("error", () => finish(false));
+                    lookAroundPreview.addEventListener?.("readystatechange", () => {
+                        const state = lookAroundPreview?.readyState;
+                        if (state === "complete" || state === mapkit.LookAroundPreview?.ReadyStates?.Complete) finish(true);
+                        if (state === "failed" || state === mapkit.LookAroundPreview?.ReadyStates?.Failed) finish(false);
+                    });
+                    window.setTimeout(() => {
+                        const hasRenderedContent = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
+                        if (hasRenderedContent) finish(true);
+                    }, 1200);
+                } catch (error) {
+                    finish(false);
+                }
+            });
+        }
+
         async function showLookAroundPreview(place) {
             if (!lookAroundPreviewEl || !lookAroundContainerEl || !place?.coordinate) return;
             const requestId = lookAroundRequestId + 1;
             lookAroundRequestId = requestId;
-            lookAroundPreviewEl.hidden = true;
+            lookAroundPreviewEl.hidden = false;
+            lookAroundPreviewEl.style.visibility = "hidden";
             lookAroundPreviewEl.classList.remove("loaded");
             lookAroundContainerEl.innerHTML = "";
-            let timeoutId = window.setTimeout(() => {
-                if (requestId === lookAroundRequestId) hideLookAroundPreview();
-            }, 6000);
 
             const available = await ensureLookAroundLibrary();
             if (requestId !== lookAroundRequestId) return;
             if (!available) {
-                window.clearTimeout(timeoutId);
                 hideLookAroundPreview();
                 return;
             }
 
-            try {
-                lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, place.coordinate, {
-                    showsRoadLabels: true,
-                    showsPointsOfInterest: true
-                });
-                const markLoaded = () => {
-                    window.clearTimeout(timeoutId);
+            const candidates = await getLookAroundCandidateLocations(place);
+            for (const candidate of candidates) {
+                if (requestId !== lookAroundRequestId) return;
+                const loaded = await tryCreateLookAroundPreview(candidate, requestId);
+                if (loaded && requestId === lookAroundRequestId) {
                     lookAroundPreviewEl.hidden = false;
-                    lookAroundPreviewEl?.classList.add("loaded");
-                };
-                const failLoad = () => {
-                    window.clearTimeout(timeoutId);
-                    hideLookAroundPreview();
-                };
-                lookAroundPreview.addEventListener?.("load", markLoaded);
-                lookAroundPreview.addEventListener?.("error", failLoad);
-                lookAroundPreview.addEventListener?.("readystatechange", () => {
-                    const state = lookAroundPreview.readyState;
-                    if (state === "complete" || state === 2 || state === 3) markLoaded();
-                    if (state === "failed" || state === -1) failLoad();
-                });
-                window.setTimeout(() => {
-                    const hasRenderedContent = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
-                    if (requestId === lookAroundRequestId && hasRenderedContent) markLoaded();
-                }, 1800);
-            } catch (error) {
-                window.clearTimeout(timeoutId);
-                hideLookAroundPreview();
+                    lookAroundPreviewEl.style.visibility = "";
+                    lookAroundPreviewEl.classList.add("loaded");
+                    return;
+                }
             }
+            hideLookAroundPreview();
         }
 
         function getPlaceAddableLayers() {
