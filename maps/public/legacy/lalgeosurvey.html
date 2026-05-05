@@ -12536,6 +12536,10 @@ function setImportPanelVisibility(show) {
                 lookAroundPreviewEl.hidden = true;
                 lookAroundPreviewEl.style.visibility = "";
             }
+            if (lookAroundDropAnnotation) {
+                map.removeAnnotation(lookAroundDropAnnotation);
+                lookAroundDropAnnotation = null;
+            }
         }
 
         function getLookAroundPanelBounds(width = lookAroundPreviewEl?.offsetWidth || 240, height = lookAroundPreviewEl?.offsetHeight || 138) {
