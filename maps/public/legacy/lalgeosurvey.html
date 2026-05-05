@@ -511,40 +511,6 @@
         cursor: grabbing;
         transform: scale(1.08);
     }
-    .look-around-drop-direction {
-        position: absolute;
-        inset: -5px;
-        border-radius: 999px;
-        background: rgba(31, 41, 55, 0.82);
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.28);
-        transform: rotate(var(--look-around-heading, 0deg));
-        pointer-events: none;
-    }
-    .look-around-drop-direction::before {
-        content: "";
-        position: absolute;
-        left: 50%;
-        top: 3px;
-        width: 0;
-        height: 0;
-        border-left: 4px solid transparent;
-        border-right: 4px solid transparent;
-        border-bottom: 10px solid #ef4444;
-        transform: translateX(-50%);
-        filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
-    }
-    .look-around-drop-direction::after {
-        content: attr(data-compass-label);
-        position: absolute;
-        inset: 0;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: rgba(255, 255, 255, 0.86);
-        font-size: 11px;
-        font-weight: 800;
-        transform: rotate(calc(-1 * var(--look-around-heading, 0deg)));
-    }
     .look-around-drop-marker::after {
         content: "";
         position: absolute;
@@ -4633,8 +4599,6 @@
         let lookAroundPreview = null;
         let lookAroundRequestId = 0;
         let lookAroundDropAnnotation = null;
-        let lookAroundDropMarkerElement = null;
-        let lookAroundSceneSyncTimer = null;
         const workspaceContext = document.getElementById("workspaceContext");
         const toolbar = document.getElementById("toolbar");
         const toolbarEditGroup = document.getElementById("toolbarEditGroup");
@@ -12557,7 +12521,6 @@ function setImportPanelVisibility(show) {
 
         function hideLookAroundPreview() {
             lookAroundRequestId += 1;
-            stopLookAroundSceneSync();
             if (document.fullscreenElement === lookAroundPreviewEl && document.exitFullscreen) {
                 document.exitFullscreen().catch(() => {});
             }
@@ -12572,13 +12535,6 @@ function setImportPanelVisibility(show) {
             if (lookAroundPreviewEl) {
                 lookAroundPreviewEl.hidden = true;
                 lookAroundPreviewEl.style.visibility = "";
-            }
-        }
-
-        function stopLookAroundSceneSync() {
-            if (lookAroundSceneSyncTimer) {
-                window.clearInterval(lookAroundSceneSyncTimer);
-                lookAroundSceneSyncTimer = null;
             }
         }
 
@@ -12676,108 +12632,6 @@ function setImportPanelVisibility(show) {
             });
         }
 
-        function normalizeLookAroundCoordinate(candidate) {
-            const coordinate = candidate?.coordinate || candidate?.center || candidate?.location || candidate?.position || candidate?.camera?.coordinate || candidate?.camera?.position || candidate?.scene?.coordinate || candidate;
-            const latitude = Number(coordinate?.latitude ?? coordinate?.lat);
-            const longitude = Number(coordinate?.longitude ?? coordinate?.lng ?? coordinate?.lon);
-            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
-            return coordinate instanceof mapkit.Coordinate ? coordinate : new mapkit.Coordinate(latitude, longitude);
-        }
-
-        function readLookAroundHeading() {
-            const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene || {};
-            const camera = lookAroundPreview?.camera || lookAroundPreview?.viewpoint || lookAroundPreview?.pointOfView || scene.camera || scene.viewpoint || {};
-            const heading = Number(
-                camera.heading ??
-                camera.bearing ??
-                camera.yaw ??
-                camera.direction ??
-                scene.heading ??
-                scene.bearing ??
-                scene.yaw ??
-                scene.direction ??
-                scene.viewingDirection ??
-                lookAroundPreview?.cameraHeading ??
-                lookAroundPreview?.heading ??
-                lookAroundPreview?.bearing ??
-                lookAroundPreview?.yaw
-            );
-            return Number.isFinite(heading) ? heading : null;
-        }
-
-        function readLookAroundCoordinate() {
-            const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene || lookAroundPreview?.lookAroundScene;
-            const camera = lookAroundPreview?.camera || lookAroundPreview?.viewpoint || lookAroundPreview?.pointOfView || scene?.camera;
-            return normalizeLookAroundCoordinate(scene) ||
-                normalizeLookAroundCoordinate(camera) ||
-                normalizeLookAroundCoordinate(lookAroundPreview?.location) ||
-                normalizeLookAroundCoordinate(lookAroundPreview?.center) ||
-                normalizeLookAroundCoordinate(lookAroundPreview?.coordinate) ||
-                normalizeLookAroundCoordinate(lookAroundPreview);
-        }
-
-        function getTransformRotationDegrees(element) {
-            const transform = window.getComputedStyle(element).transform;
-            if (!transform || transform === "none") return null;
-            const matrix = transform.match(/matrix\(([^)]+)\)/);
-            if (matrix) {
-                const values = matrix[1].split(",").map((value) => Number(value.trim()));
-                if (values.length >= 6 && Number.isFinite(values[0]) && Number.isFinite(values[1])) {
-                    return Math.atan2(values[1], values[0]) * 180 / Math.PI;
-                }
-            }
-            const matrix3d = transform.match(/matrix3d\(([^)]+)\)/);
-            if (matrix3d) {
-                const values = matrix3d[1].split(",").map((value) => Number(value.trim()));
-                if (values.length >= 16 && Number.isFinite(values[0]) && Number.isFinite(values[1])) {
-                    return Math.atan2(values[1], values[0]) * 180 / Math.PI;
-                }
-            }
-            return null;
-        }
-
-        function readLookAroundCompassState() {
-            if (!lookAroundContainerEl) return null;
-            const elements = Array.from(lookAroundContainerEl.querySelectorAll("*"));
-            const compassCandidate = elements.find((element) => {
-                const text = element.textContent?.trim();
-                const rect = element.getBoundingClientRect();
-                const visible = rect.width >= 20 && rect.height >= 20 && rect.width <= 110 && rect.height <= 110;
-                const squareish = rect.width && rect.height && Math.abs(rect.width - rect.height) <= Math.max(rect.width, rect.height) * 0.35;
-                return visible && squareish && /^[NSEW]$/i.test(text || "");
-            });
-            if (!compassCandidate) return null;
-            const label = compassCandidate.textContent?.trim()?.toUpperCase() || "N";
-            const rotationElement = [compassCandidate, ...Array.from(compassCandidate.querySelectorAll("*"))]
-                .find((element) => getTransformRotationDegrees(element) !== null);
-            const heading = rotationElement ? getTransformRotationDegrees(rotationElement) : null;
-            return { label, heading };
-        }
-
-        function syncLookAroundMarkerFromScene() {
-            if (!lookAroundPreview || !lookAroundDropAnnotation) return;
-            const coordinate = readLookAroundCoordinate();
-            if (coordinate) {
-                lookAroundDropAnnotation.coordinate = coordinate;
-            }
-            const compassState = readLookAroundCompassState();
-            const heading = readLookAroundHeading() ?? compassState?.heading;
-            if (lookAroundDropMarkerElement) {
-                lookAroundDropMarkerElement
-                    .querySelector(".look-around-drop-direction")
-                    ?.setAttribute("data-compass-label", compassState?.label || "N");
-            }
-            if (heading !== null && lookAroundDropMarkerElement) {
-                lookAroundDropMarkerElement.style.setProperty("--look-around-heading", `${heading}deg`);
-            }
-        }
-
-        function startLookAroundSceneSync() {
-            stopLookAroundSceneSync();
-            syncLookAroundMarkerFromScene();
-            lookAroundSceneSyncTimer = window.setInterval(syncLookAroundMarkerFromScene, 300);
-        }
-
         function showLookAroundDropMarker(coordinate) {
             if (!map || !coordinate) return;
             if (lookAroundDropAnnotation) {
@@ -12786,8 +12640,6 @@ function setImportPanelVisibility(show) {
             }
             const markerElement = document.createElement("div");
             markerElement.className = "look-around-drop-marker";
-            markerElement.innerHTML = '<span class="look-around-drop-direction" data-compass-label="N" aria-hidden="true"></span>';
-            lookAroundDropMarkerElement = markerElement;
             let draggingMarker = false;
             let markerPointerId = null;
             markerElement.addEventListener("pointerdown", (event) => {
@@ -12911,7 +12763,6 @@ function setImportPanelVisibility(show) {
                         lookAroundPreviewEl.classList.add("loaded");
                         const rect = wasVisible ? previousRect : lookAroundPreviewEl.getBoundingClientRect();
                         setLookAroundPanelRect(rect.left, rect.top, rect.width, rect.height);
-                        startLookAroundSceneSync();
                         resolve(true);
                         return;
                     }
@@ -12946,19 +12797,6 @@ function setImportPanelVisibility(show) {
                             const state = lookAroundPreview?.readyState;
                             if (state === "complete" || state === mapkit.LookAroundPreview?.ReadyStates?.Complete) finish(true);
                             if (state === "failed" || state === mapkit.LookAroundPreview?.ReadyStates?.Failed) finish(false);
-                        });
-                        [
-                            "scene-change",
-                            "scene-change-end",
-                            "camera-change",
-                            "camera-change-end",
-                            "position-change",
-                            "move",
-                            "moveend",
-                            "viewpoint-change",
-                            "viewpoint-change-end"
-                        ].forEach((eventName) => {
-                            lookAroundPreview.addEventListener?.(eventName, syncLookAroundMarkerFromScene);
                         });
                         window.setTimeout(() => {
                             const rendered = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
