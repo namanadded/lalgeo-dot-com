@@ -2377,6 +2377,46 @@
         text-align: left;
         cursor: pointer;
     }
+    .mobile-context-trigger {
+        width: 34px;
+        height: 34px;
+        min-width: 34px;
+        border-radius: 999px;
+        border: 1px solid rgba(203, 213, 225, 0.92);
+        background: rgba(255, 255, 255, 0.96);
+        color: #6b7280;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
+        line-height: 1;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .mobile-context-trigger:hover,
+    .mobile-context-trigger:focus-visible {
+        color: #374151;
+        background: #f8fafc;
+        outline: none;
+    }
+    .layer-pane-actions {
+        margin-left: auto;
+        display: inline-flex;
+        align-items: center;
+    }
+    .data-row-name-cell {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+    }
+    .data-row-name-cell .mobile-context-trigger {
+        width: 30px;
+        height: 30px;
+        min-width: 30px;
+        box-shadow: none;
+    }
     #importPanel {
         inset: 0;
         justify-content: flex-start;
@@ -4460,9 +4500,9 @@
         </div>
         <div id="dataCatalogMeta" class="data-pane-meta">
             <strong>No Dropbox project selected</strong>
-            <div>Select a file, drag it onto the map, or right-click and choose Add to Map.</div>
+            <div>Select a file, tap ..., or drag it onto the map.</div>
         </div>
-        <p class="data-pane-note">Right-click for Add to Map. Drag a row onto the map to load it into the current workspace.</p>
+        <p class="data-pane-note">Tap ... for Add to Map. Drag a row onto the map to load it into the current workspace.</p>
     </aside>
     <div id="dropboxProjectContextMenu" hidden>
         <button id="contextAddToMapBtn" type="button" class="context-menu-btn">Add to Map</button>
@@ -6040,6 +6080,7 @@
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
+                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
                             </div>
                         </div>
                     `).join("");
@@ -6068,8 +6109,11 @@
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}">
                             <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
                             <div class="layer-pane-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
+                            <div class="layer-pane-actions">
+                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
+                            </div>
                         </div>
-                    `).join("") || `<p class="layer-pane-helper">Right-click here to add a layer.</p>`}
+                    `).join("") || `<p class="layer-pane-helper">Tap Add Layer from the menu to create a layer.</p>`}
                 </div>
             `;
         }
@@ -6095,6 +6139,15 @@
             menu.style.top = `${top}px`;
         }
 
+        function positionContextMenuNearElement(menu, element) {
+            if (!menu || !element) return;
+            const rect = element.getBoundingClientRect();
+            positionContextMenu(menu, {
+                clientX: rect.left + rect.width / 2,
+                clientY: rect.bottom + 6
+            });
+        }
+
         function hideLayerContextMenu() {
             contextLayerId = null;
             if (layerContextMenu) layerContextMenu.hidden = true;
@@ -6107,6 +6160,50 @@
                 layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
             }
             positionContextMenu(layerContextMenu, event);
+        }
+
+        function showLayerContextMenuForElement(layerId, element) {
+            contextLayerId = layerId || null;
+            const layer = contextLayerId ? getLayerById(contextLayerId) : null;
+            if (layerContextToggleBtn && layer) {
+                layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
+            }
+            positionContextMenuNearElement(layerContextMenu, element);
+        }
+
+        function installLongPressContextMenu(container, selector, getId, openMenu) {
+            if (!container) return;
+            let timer = null;
+            let startX = 0;
+            let startY = 0;
+            let targetElement = null;
+            const clear = () => {
+                if (timer) window.clearTimeout(timer);
+                timer = null;
+                targetElement = null;
+            };
+            container.addEventListener("pointerdown", (event) => {
+                if (event.pointerType === "mouse" || event.target.closest("button, input, select, textarea, a")) return;
+                const target = event.target.closest(selector);
+                if (!target) return;
+                startX = event.clientX;
+                startY = event.clientY;
+                targetElement = target;
+                timer = window.setTimeout(() => {
+                    const id = getId(targetElement);
+                    if (!id) return;
+                    suppressMapTapFor(900);
+                    openMenu(id, { clientX: startX, clientY: startY });
+                    timer = null;
+                }, 550);
+            });
+            container.addEventListener("pointermove", (event) => {
+                if (!timer) return;
+                if (Math.hypot(event.clientX - startX, event.clientY - startY) > 10) clear();
+            });
+            container.addEventListener("pointerup", clear);
+            container.addEventListener("pointercancel", clear);
+            container.addEventListener("pointerleave", clear);
         }
 
         async function openDropboxProjectPath(path) {
@@ -6134,7 +6231,7 @@
             }
             if (!currentDropboxProjects.length) {
                 dataCatalogTableBody.innerHTML = `<tr><td colspan="3">No .lal or .zip projects found in Dropbox.</td></tr>`;
-                dataCatalogMeta.innerHTML = `<strong>No Dropbox projects selected</strong><div>Drag a row onto the map or right-click and choose Add to Map when files are available.</div>`;
+                dataCatalogMeta.innerHTML = `<strong>No Dropbox projects selected</strong><div>Tap a row's ... button or drag a row onto the map when files are available.</div>`;
                 return;
             }
             dataCatalogTableBody.innerHTML = currentDropboxProjects.map((file) => `
@@ -6143,7 +6240,12 @@
                     draggable="true"
                     class="${selectedDropboxProjectPath === (file.path_display || file.path_lower || "") ? "active" : ""}"
                 >
-                    <td>${escapeHtml(file.name || "Project")}</td>
+                    <td>
+                        <div class="data-row-name-cell">
+                            <span>${escapeHtml(file.name || "Project")}</span>
+                            <button type="button" class="mobile-context-trigger" data-dropbox-row-actions="${escapeHtml(file.path_display || file.path_lower || "")}" aria-label="More actions for ${escapeHtml(file.name || "Project")}">...</button>
+                        </div>
+                    </td>
                     <td>${escapeHtml((file.name || "").toLowerCase().endsWith(".zip") ? "ZIP" : "LAL")}</td>
                     <td>${escapeHtml(formatProjectDate(file.server_modified || file.client_modified || ""))}</td>
                 </tr>
@@ -7878,6 +7980,16 @@
         });
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
         dataCatalogTableBody?.addEventListener("click", (event) => {
+            const actionButton = event.target.closest("[data-dropbox-row-actions]");
+            if (actionButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                contextDropboxProjectPath = actionButton.dataset.dropboxRowActions;
+                selectedDropboxProjectPath = contextDropboxProjectPath;
+                positionContextMenuNearElement(dropboxProjectContextMenu, actionButton);
+                renderDropboxCatalogPane();
+                return;
+            }
             const row = event.target.closest("[data-dropbox-project-row]");
             if (!row) return;
             selectedDropboxProjectPath = row.dataset.dropboxProjectRow;
@@ -7914,6 +8026,17 @@
             hideDropboxProjectContextMenu();
             await openDropboxProjectPath(path);
         });
+        installLongPressContextMenu(
+            dataCatalogTableBody,
+            "[data-dropbox-project-row]",
+            (row) => {
+                contextDropboxProjectPath = row.dataset.dropboxProjectRow;
+                selectedDropboxProjectPath = contextDropboxProjectPath;
+                renderDropboxCatalogPane();
+                return contextDropboxProjectPath;
+            },
+            (_path, point) => positionContextMenu(dropboxProjectContextMenu, point)
+        );
         mapElement?.addEventListener("dragover", (event) => {
             if (event.dataTransfer?.types?.includes("text/lalgeo-dropbox-path")) {
                 event.preventDefault();
@@ -7978,6 +8101,13 @@
             }
         });
         layerList?.addEventListener("click", (event) => {
+            const actionButton = event.target.closest("[data-layer-actions]");
+            if (actionButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                showLayerContextMenuForElement(actionButton.dataset.layerActions, actionButton);
+                return;
+            }
             const openButton = event.target.closest("[data-open-layer]");
             if (openButton) {
                 switchToLayer(openButton.dataset.openLayer);
@@ -8037,6 +8167,13 @@
             }
         });
         sidebarContent?.addEventListener("click", (event) => {
+            const layerActionButton = event.target.closest("[data-layer-actions]");
+            if (layerActionButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                showLayerContextMenuForElement(layerActionButton.dataset.layerActions, layerActionButton);
+                return;
+            }
             if (event.target.closest("[data-sidebar-open-projects]")) {
                 setImportPanelVisibility(true);
                 return;
@@ -8055,6 +8192,18 @@
                 return;
             }
         });
+        installLongPressContextMenu(
+            sidebarContent,
+            "[data-sidebar-layer]",
+            (row) => row.dataset.sidebarLayer || activeLayerId,
+            (layerId, point) => showLayerContextMenu(layerId, point)
+        );
+        installLongPressContextMenu(
+            layerList,
+            "[data-layer-id]",
+            (row) => row.dataset.layerId || activeLayerId,
+            (layerId, point) => showLayerContextMenu(layerId, point)
+        );
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
         downloadProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
         copyShareLinkBtn?.addEventListener("click", () => {
