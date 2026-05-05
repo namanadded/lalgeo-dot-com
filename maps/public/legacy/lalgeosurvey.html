@@ -359,14 +359,76 @@
         background: #f8fafc;
         border: 1px solid rgba(203, 213, 225, 0.9);
         box-shadow: 0 18px 42px rgba(15, 23, 42, 0.22);
+        display: flex;
+        flex-direction: column;
+        min-width: 180px;
+        min-height: 132px;
     }
     #lookAroundPreview[hidden] {
         display: none;
     }
+    .look-around-panel-header {
+        height: 32px;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 10px 0 12px;
+        color: #4b5563;
+        font-size: 12px;
+        font-weight: 800;
+        background: rgba(255, 255, 255, 0.94);
+        border-bottom: 1px solid rgba(203, 213, 225, 0.82);
+        cursor: grab;
+        user-select: none;
+    }
+    .look-around-panel-header:active {
+        cursor: grabbing;
+    }
+    .look-around-panel-close {
+        width: 24px;
+        height: 24px;
+        border: 0;
+        border-radius: 999px;
+        background: transparent;
+        color: #6b7280;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
+    }
+    .look-around-panel-close:hover,
+    .look-around-panel-close:focus-visible {
+        background: rgba(229, 231, 235, 0.9);
+        outline: none;
+    }
     #lookAroundContainer {
         width: 100%;
-        height: 100%;
+        flex: 1;
+        min-height: 0;
         background: #f8fafc;
+    }
+    #lookAroundResizeHandle {
+        position: absolute;
+        right: 4px;
+        bottom: 4px;
+        width: 18px;
+        height: 18px;
+        cursor: nwse-resize;
+        z-index: 2;
+    }
+    #lookAroundResizeHandle::before {
+        content: "";
+        position: absolute;
+        right: 3px;
+        bottom: 3px;
+        width: 10px;
+        height: 10px;
+        border-right: 2px solid rgba(107, 114, 128, 0.72);
+        border-bottom: 2px solid rgba(107, 114, 128, 0.72);
     }
     .look-around-loading {
         position: absolute;
@@ -423,7 +485,13 @@
         background: rgba(59, 130, 246, 0.22);
         border: 2px solid rgba(37, 99, 235, 0.92);
         box-shadow: 0 0 0 8px rgba(59, 130, 246, 0.18), 0 0 22px rgba(37, 99, 235, 0.42);
-        pointer-events: none;
+        cursor: grab;
+        pointer-events: auto;
+        touch-action: none;
+    }
+    .look-around-drop-marker.dragging {
+        cursor: grabbing;
+        transform: scale(1.08);
     }
     .look-around-drop-marker::after {
         content: "";
@@ -4153,8 +4221,13 @@
     </div>
     <div class="map-controls"></div>
     <div id="lookAroundPreview" hidden aria-label="Look Around preview">
+        <div id="lookAroundDragHandle" class="look-around-panel-header">
+            <span>Look Around</span>
+            <button id="lookAroundCloseBtn" type="button" class="look-around-panel-close" aria-label="Close Look Around">×</button>
+        </div>
         <div id="lookAroundContainer"></div>
         <div class="look-around-loading">Look Around</div>
+        <div id="lookAroundResizeHandle" aria-hidden="true"></div>
     </div>
     <button id="streetViewDropBtn" type="button" aria-label="Drag to street for Look Around" title="Drag to street for Look Around">
         <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -4585,6 +4658,9 @@
         const layersMapBtn = document.getElementById("layersMapBtn");
         const lookAroundPreviewEl = document.getElementById("lookAroundPreview");
         const lookAroundContainerEl = document.getElementById("lookAroundContainer");
+        const lookAroundDragHandle = document.getElementById("lookAroundDragHandle");
+        const lookAroundResizeHandle = document.getElementById("lookAroundResizeHandle");
+        const lookAroundCloseBtn = document.getElementById("lookAroundCloseBtn");
         const streetViewDropBtn = document.getElementById("streetViewDropBtn");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
@@ -12126,6 +12202,7 @@ function setImportPanelVisibility(show) {
         mapReady = true;
         applyBasemapPoisPreference(activeProjectRecord);
         applyFeatureLabelStyleSettings(getActiveLayerRecord());
+        initializeLookAroundPanelControls();
         initializeStreetViewDropControl();
         map.addEventListener("region-change-end", () => {
             if (activeSurveyAnnotation) {
@@ -12432,6 +12509,89 @@ function setImportPanelVisibility(show) {
             }
         }
 
+        function getLookAroundPanelBounds(width = lookAroundPreviewEl?.offsetWidth || 240, height = lookAroundPreviewEl?.offsetHeight || 138) {
+            const mapRect = mapElement?.getBoundingClientRect?.() || { left: 0, top: 0, right: window.innerWidth, bottom: window.innerHeight, width: window.innerWidth, height: window.innerHeight };
+            const margin = 12;
+            const minWidth = 180;
+            const minHeight = 132;
+            const maxWidth = Math.max(minWidth, mapRect.width - margin * 2);
+            const maxHeight = Math.max(minHeight, mapRect.height - margin * 2);
+            const nextWidth = Math.min(Math.max(width, minWidth), maxWidth);
+            const nextHeight = Math.min(Math.max(height, minHeight), maxHeight);
+            return { mapRect, margin, width: nextWidth, height: nextHeight };
+        }
+
+        function setLookAroundPanelRect(left, top, width = lookAroundPreviewEl?.offsetWidth || 240, height = lookAroundPreviewEl?.offsetHeight || 138) {
+            if (!lookAroundPreviewEl) return;
+            const bounds = getLookAroundPanelBounds(width, height);
+            const minLeft = bounds.mapRect.left + bounds.margin;
+            const minTop = bounds.mapRect.top + bounds.margin;
+            const maxLeft = bounds.mapRect.right - bounds.margin - bounds.width;
+            const maxTop = bounds.mapRect.bottom - bounds.margin - bounds.height;
+            lookAroundPreviewEl.style.left = `${Math.min(Math.max(left, minLeft), maxLeft)}px`;
+            lookAroundPreviewEl.style.top = `${Math.min(Math.max(top, minTop), maxTop)}px`;
+            lookAroundPreviewEl.style.width = `${bounds.width}px`;
+            lookAroundPreviewEl.style.height = `${bounds.height}px`;
+            lookAroundPreviewEl.style.right = "auto";
+            lookAroundPreviewEl.style.bottom = "auto";
+            lookAroundPreview?.resize?.();
+        }
+
+        function initializeLookAroundPanelControls() {
+            if (!lookAroundPreviewEl) return;
+            lookAroundCloseBtn?.addEventListener("click", hideLookAroundPreview);
+
+            lookAroundDragHandle?.addEventListener("pointerdown", (event) => {
+                if (event.target === lookAroundCloseBtn) return;
+                event.preventDefault();
+                const pointerId = event.pointerId;
+                const rect = lookAroundPreviewEl.getBoundingClientRect();
+                const offsetX = event.clientX - rect.left;
+                const offsetY = event.clientY - rect.top;
+                lookAroundDragHandle.setPointerCapture?.(pointerId);
+                const onMove = (moveEvent) => {
+                    if (moveEvent.pointerId !== pointerId) return;
+                    moveEvent.preventDefault();
+                    setLookAroundPanelRect(moveEvent.clientX - offsetX, moveEvent.clientY - offsetY, rect.width, rect.height);
+                };
+                const onEnd = (endEvent) => {
+                    if (endEvent.pointerId !== pointerId) return;
+                    lookAroundDragHandle.releasePointerCapture?.(pointerId);
+                    lookAroundDragHandle.removeEventListener("pointermove", onMove);
+                    lookAroundDragHandle.removeEventListener("pointerup", onEnd);
+                    lookAroundDragHandle.removeEventListener("pointercancel", onEnd);
+                };
+                lookAroundDragHandle.addEventListener("pointermove", onMove);
+                lookAroundDragHandle.addEventListener("pointerup", onEnd);
+                lookAroundDragHandle.addEventListener("pointercancel", onEnd);
+            });
+
+            lookAroundResizeHandle?.addEventListener("pointerdown", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                const pointerId = event.pointerId;
+                const rect = lookAroundPreviewEl.getBoundingClientRect();
+                const startX = event.clientX;
+                const startY = event.clientY;
+                lookAroundResizeHandle.setPointerCapture?.(pointerId);
+                const onMove = (moveEvent) => {
+                    if (moveEvent.pointerId !== pointerId) return;
+                    moveEvent.preventDefault();
+                    setLookAroundPanelRect(rect.left, rect.top, rect.width + moveEvent.clientX - startX, rect.height + moveEvent.clientY - startY);
+                };
+                const onEnd = (endEvent) => {
+                    if (endEvent.pointerId !== pointerId) return;
+                    lookAroundResizeHandle.releasePointerCapture?.(pointerId);
+                    lookAroundResizeHandle.removeEventListener("pointermove", onMove);
+                    lookAroundResizeHandle.removeEventListener("pointerup", onEnd);
+                    lookAroundResizeHandle.removeEventListener("pointercancel", onEnd);
+                };
+                lookAroundResizeHandle.addEventListener("pointermove", onMove);
+                lookAroundResizeHandle.addEventListener("pointerup", onEnd);
+                lookAroundResizeHandle.addEventListener("pointercancel", onEnd);
+            });
+        }
+
         function showLookAroundDropMarker(coordinate) {
             if (!map || !coordinate) return;
             if (lookAroundDropAnnotation) {
@@ -12440,6 +12600,48 @@ function setImportPanelVisibility(show) {
             }
             const markerElement = document.createElement("div");
             markerElement.className = "look-around-drop-marker";
+            let draggingMarker = false;
+            let markerPointerId = null;
+            markerElement.addEventListener("pointerdown", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                draggingMarker = true;
+                markerPointerId = event.pointerId;
+                markerElement.classList.add("dragging");
+                markerElement.setPointerCapture?.(markerPointerId);
+            });
+            markerElement.addEventListener("pointermove", (event) => {
+                if (!draggingMarker || event.pointerId !== markerPointerId) return;
+                event.preventDefault();
+                event.stopPropagation();
+                const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX, event.clientY));
+                if (coordinate && lookAroundDropAnnotation) {
+                    lookAroundDropAnnotation.coordinate = coordinate;
+                }
+            });
+            markerElement.addEventListener("pointerup", async (event) => {
+                if (!draggingMarker || event.pointerId !== markerPointerId) return;
+                event.preventDefault();
+                event.stopPropagation();
+                draggingMarker = false;
+                markerPointerId = null;
+                markerElement.classList.remove("dragging");
+                markerElement.releasePointerCapture?.(event.pointerId);
+                const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX, event.clientY));
+                if (!coordinate || !lookAroundDropAnnotation) return;
+                lookAroundDropAnnotation.coordinate = coordinate;
+                setProjectStatus("Checking Look Around at adjusted marker location...", "info");
+                const loaded = await showLookAroundAtCoordinate(coordinate);
+                setProjectStatus(
+                    loaded ? "Look Around loaded for adjusted marker location." : "No Look Around imagery loaded for that adjusted location.",
+                    loaded ? "success" : "error"
+                );
+            });
+            markerElement.addEventListener("pointercancel", () => {
+                draggingMarker = false;
+                markerPointerId = null;
+                markerElement.classList.remove("dragging");
+            });
             lookAroundDropAnnotation = new mapkit.Annotation(coordinate, () => markerElement, {
                 anchorOffset: new DOMPoint(0, -14)
             });
@@ -12513,6 +12715,8 @@ function setImportPanelVisibility(show) {
                         lookAroundPreviewEl.hidden = false;
                         lookAroundPreviewEl.style.visibility = "";
                         lookAroundPreviewEl.classList.add("loaded");
+                        const rect = lookAroundPreviewEl.getBoundingClientRect();
+                        setLookAroundPanelRect(rect.left, rect.top, rect.width, rect.height);
                         resolve(true);
                         return;
                     }
