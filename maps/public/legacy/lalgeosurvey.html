@@ -371,7 +371,7 @@
     .look-around-loading {
         position: absolute;
         inset: 0;
-        display: flex;
+        display: none;
         align-items: center;
         justify-content: center;
         padding: 16px;
@@ -12416,7 +12416,7 @@ function setImportPanelVisibility(show) {
             if (!lookAroundPreviewEl || !lookAroundContainerEl || !place?.coordinate) return;
             const requestId = lookAroundRequestId + 1;
             lookAroundRequestId = requestId;
-            lookAroundPreviewEl.hidden = false;
+            lookAroundPreviewEl.hidden = true;
             lookAroundPreviewEl.classList.remove("loaded");
             lookAroundContainerEl.innerHTML = "";
             let timeoutId = window.setTimeout(() => {
@@ -12432,13 +12432,13 @@ function setImportPanelVisibility(show) {
             }
 
             try {
-                lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, place, {
-                    showsDialogControl: true,
+                lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, place.coordinate, {
                     showsRoadLabels: true,
                     showsPointsOfInterest: true
                 });
                 const markLoaded = () => {
                     window.clearTimeout(timeoutId);
+                    lookAroundPreviewEl.hidden = false;
                     lookAroundPreviewEl?.classList.add("loaded");
                 };
                 const failLoad = () => {
@@ -12447,9 +12447,15 @@ function setImportPanelVisibility(show) {
                 };
                 lookAroundPreview.addEventListener?.("load", markLoaded);
                 lookAroundPreview.addEventListener?.("error", failLoad);
+                lookAroundPreview.addEventListener?.("readystatechange", () => {
+                    const state = lookAroundPreview.readyState;
+                    if (state === "complete" || state === 2 || state === 3) markLoaded();
+                    if (state === "failed" || state === -1) failLoad();
+                });
                 window.setTimeout(() => {
-                    if (requestId === lookAroundRequestId && lookAroundContainerEl.children.length > 0) markLoaded();
-                }, 1600);
+                    const hasRenderedContent = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
+                    if (requestId === lookAroundRequestId && hasRenderedContent) markLoaded();
+                }, 1800);
             } catch (error) {
                 window.clearTimeout(timeoutId);
                 hideLookAroundPreview();
