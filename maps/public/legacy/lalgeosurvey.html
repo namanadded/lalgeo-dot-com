@@ -383,9 +383,19 @@
         cursor: grab;
         user-select: none;
     }
+    .look-around-panel-title {
+        flex: 1;
+        min-width: 0;
+    }
+    .look-around-panel-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+    }
     .look-around-panel-header:active {
         cursor: grabbing;
     }
+    .look-around-panel-action,
     .look-around-panel-close {
         width: 24px;
         height: 24px;
@@ -400,6 +410,13 @@
         font-size: 18px;
         line-height: 1;
     }
+    .look-around-panel-action svg {
+        width: 14px;
+        height: 14px;
+        display: block;
+    }
+    .look-around-panel-action:hover,
+    .look-around-panel-action:focus-visible,
     .look-around-panel-close:hover,
     .look-around-panel-close:focus-visible {
         background: rgba(229, 231, 235, 0.9);
@@ -4222,8 +4239,15 @@
     <div class="map-controls"></div>
     <div id="lookAroundPreview" hidden aria-label="Look Around preview">
         <div id="lookAroundDragHandle" class="look-around-panel-header">
-            <span>Look Around</span>
-            <button id="lookAroundCloseBtn" type="button" class="look-around-panel-close" aria-label="Close Look Around">×</button>
+            <span class="look-around-panel-title">Look Around</span>
+            <span class="look-around-panel-actions">
+                <button id="lookAroundFullscreenBtn" type="button" class="look-around-panel-action" aria-label="Open Look Around fullscreen">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M5 9V5h4M19 9V5h-4M5 15v4h4M19 15v4h-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <button id="lookAroundCloseBtn" type="button" class="look-around-panel-close" aria-label="Close Look Around">×</button>
+            </span>
         </div>
         <div id="lookAroundContainer"></div>
         <div class="look-around-loading">Look Around</div>
@@ -4660,6 +4684,7 @@
         const lookAroundContainerEl = document.getElementById("lookAroundContainer");
         const lookAroundDragHandle = document.getElementById("lookAroundDragHandle");
         const lookAroundResizeHandle = document.getElementById("lookAroundResizeHandle");
+        const lookAroundFullscreenBtn = document.getElementById("lookAroundFullscreenBtn");
         const lookAroundCloseBtn = document.getElementById("lookAroundCloseBtn");
         const streetViewDropBtn = document.getElementById("streetViewDropBtn");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
@@ -12540,9 +12565,20 @@ function setImportPanelVisibility(show) {
         function initializeLookAroundPanelControls() {
             if (!lookAroundPreviewEl) return;
             lookAroundCloseBtn?.addEventListener("click", hideLookAroundPreview);
+            lookAroundFullscreenBtn?.addEventListener("click", (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                if (lookAroundPreview?.openDialog) {
+                    lookAroundPreview.openDialog();
+                    return;
+                }
+                if (lookAroundPreviewEl.requestFullscreen) {
+                    lookAroundPreviewEl.requestFullscreen().catch(() => {});
+                }
+            });
 
             lookAroundDragHandle?.addEventListener("pointerdown", (event) => {
-                if (event.target === lookAroundCloseBtn) return;
+                if (event.target?.closest?.("button")) return;
                 event.preventDefault();
                 const pointerId = event.pointerId;
                 const rect = lookAroundPreviewEl.getBoundingClientRect();
@@ -12649,7 +12685,7 @@ function setImportPanelVisibility(show) {
         }
 
         function hasLookAroundPreviewApi() {
-            return typeof mapkit !== "undefined" && typeof mapkit.LookAroundPreview === "function";
+            return typeof mapkit !== "undefined" && (typeof mapkit.LookAround === "function" || typeof mapkit.LookAroundPreview === "function");
         }
 
         function loadLookAroundCoreScript() {
@@ -12731,7 +12767,11 @@ function setImportPanelVisibility(show) {
                         return;
                     }
                     try {
-                        lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, coordinate, {
+                        const LookAroundView = mapkit.LookAround || mapkit.LookAroundPreview;
+                        lookAroundPreview = new LookAroundView(lookAroundContainerEl, coordinate, {
+                            isNavigationEnabled: true,
+                            isScrollEnabled: true,
+                            isZoomEnabled: true,
                             showsRoadLabels: true,
                             showsPointsOfInterest: true
                         });
