@@ -12729,6 +12729,7 @@ function setImportPanelVisibility(show) {
             markerElement.addEventListener("pointerdown", (event) => {
                 event.preventDefault();
                 event.stopPropagation();
+                suppressMapTapFor(1200);
                 draggingMarker = true;
                 markerPointerId = event.pointerId;
                 markerElement.classList.add("dragging");
@@ -12738,6 +12739,7 @@ function setImportPanelVisibility(show) {
                 if (!draggingMarker || event.pointerId !== markerPointerId) return;
                 event.preventDefault();
                 event.stopPropagation();
+                suppressMapTapFor(1200);
                 const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX, event.clientY));
                 if (coordinate && lookAroundDropAnnotation) {
                     lookAroundDropAnnotation.coordinate = coordinate;
@@ -12747,6 +12749,7 @@ function setImportPanelVisibility(show) {
                 if (!draggingMarker || event.pointerId !== markerPointerId) return;
                 event.preventDefault();
                 event.stopPropagation();
+                suppressMapTapFor(1200);
                 draggingMarker = false;
                 markerPointerId = null;
                 markerElement.classList.remove("dragging");
@@ -12762,6 +12765,7 @@ function setImportPanelVisibility(show) {
                 );
             });
             markerElement.addEventListener("pointercancel", () => {
+                suppressMapTapFor(1200);
                 draggingMarker = false;
                 markerPointerId = null;
                 markerElement.classList.remove("dragging");
@@ -12823,6 +12827,8 @@ function setImportPanelVisibility(show) {
             lookAroundPreviewEl.hidden = false;
             lookAroundPreviewEl.style.visibility = "hidden";
             lookAroundPreviewEl.classList.remove("loaded");
+            const wasVisible = lookAroundContainerEl.children.length > 0 && lookAroundPreview;
+            const previousRect = lookAroundPreviewEl.getBoundingClientRect();
             return new Promise((resolve) => {
                 lookAroundContainerEl.innerHTML = "";
                 if (lookAroundPreview?.destroy) {
@@ -12839,13 +12845,19 @@ function setImportPanelVisibility(show) {
                         lookAroundPreviewEl.hidden = false;
                         lookAroundPreviewEl.style.visibility = "";
                         lookAroundPreviewEl.classList.add("loaded");
-                        const rect = lookAroundPreviewEl.getBoundingClientRect();
+                        const rect = wasVisible ? previousRect : lookAroundPreviewEl.getBoundingClientRect();
                         setLookAroundPanelRect(rect.left, rect.top, rect.width, rect.height);
                         startLookAroundSceneSync();
                         resolve(true);
                         return;
                     }
-                    hideLookAroundPreview();
+                    if (wasVisible && requestId === lookAroundRequestId) {
+                        lookAroundPreviewEl.hidden = false;
+                        lookAroundPreviewEl.style.visibility = "";
+                        lookAroundPreviewEl.classList.add("loaded");
+                    } else {
+                        hideLookAroundPreview();
+                    }
                     resolve(false);
                 };
                 const timeoutId = window.setTimeout(() => finish(false), 5000);
