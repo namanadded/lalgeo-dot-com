@@ -386,6 +386,36 @@
         opacity: 0;
         pointer-events: none;
     }
+    #streetViewDropBtn {
+        position: absolute;
+        right: 18px;
+        bottom: 150px;
+        z-index: 1130;
+        width: 46px;
+        height: 46px;
+        border-radius: 999px;
+        border: 1px solid rgba(203, 213, 225, 0.95);
+        background: rgba(255, 255, 255, 0.96);
+        color: #6b7280;
+        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+    }
+    #streetViewDropBtn:active,
+    #streetViewDropBtn.dragging {
+        cursor: grabbing;
+        transform: scale(1.05);
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.28);
+    }
+    #streetViewDropBtn svg {
+        width: 24px;
+        height: 24px;
+        display: block;
+    }
     .layers-map-icon {
         position: relative;
         width: 22px;
@@ -3542,6 +3572,12 @@
             height: 104px;
             border-radius: 16px;
         }
+        #streetViewDropBtn {
+            right: 12px;
+            bottom: 146px;
+            width: 44px;
+            height: 44px;
+        }
     }
 
     #toolbar {
@@ -4104,6 +4140,12 @@
         <div id="lookAroundContainer"></div>
         <div class="look-around-loading">Look Around</div>
     </div>
+    <button id="streetViewDropBtn" type="button" aria-label="Drag to street for Look Around" title="Drag to street for Look Around">
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 3a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z" fill="currentColor"/>
+            <path d="M7 10.2c0-.75.61-1.35 1.36-1.35h7.28c.75 0 1.36.6 1.36 1.35 0 .52-.3 1-.76 1.22l-2.14 1.07.7 6.02A1.35 1.35 0 0 1 13.46 20h-2.92a1.35 1.35 0 0 1-1.34-1.5l.7-6.01-2.14-1.07A1.36 1.36 0 0 1 7 10.2Z" fill="currentColor"/>
+        </svg>
+    </button>
     <div id="workspaceEmptyState" class="workspace-empty-state">
         <div class="workspace-empty-card">
             <button id="workspaceEmptyCloseBtn" type="button" class="workspace-empty-close" aria-label="Close welcome panel">×</button>
@@ -4526,6 +4568,7 @@
         const layersMapBtn = document.getElementById("layersMapBtn");
         const lookAroundPreviewEl = document.getElementById("lookAroundPreview");
         const lookAroundContainerEl = document.getElementById("lookAroundContainer");
+        const streetViewDropBtn = document.getElementById("streetViewDropBtn");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
         const dataCatalogTableBody = document.getElementById("dataCatalogTableBody");
@@ -12066,6 +12109,7 @@ function setImportPanelVisibility(show) {
         mapReady = true;
         applyBasemapPoisPreference(activeProjectRecord);
         applyFeatureLabelStyleSettings(getActiveLayerRecord());
+        initializeStreetViewDropControl();
         map.addEventListener("region-change-end", () => {
             if (activeSurveyAnnotation) {
                 positionSurveyCallout(activeSurveyAnnotation);
@@ -12415,78 +12459,14 @@ function setImportPanelVisibility(show) {
             });
         }
 
-        function offsetCoordinate(coordinate, northMeters = 0, eastMeters = 0) {
-            const lat = Number(coordinate?.latitude);
-            const lon = Number(coordinate?.longitude);
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
-            const metersPerDegreeLat = 111320;
-            const metersPerDegreeLon = 111320 * Math.cos(lat * Math.PI / 180);
-            return new mapkit.Coordinate(
-                lat + northMeters / metersPerDegreeLat,
-                lon + eastMeters / metersPerDegreeLon
-            );
-        }
-
-        function reverseLookupClosestPlace(coordinate) {
-            if (!coordinate || !mapkit?.Geocoder) return Promise.resolve(null);
+        function showLookAroundAtCoordinate(coordinate) {
+            if (!lookAroundPreviewEl || !lookAroundContainerEl || !coordinate) return Promise.resolve(false);
+            const requestId = lookAroundRequestId + 1;
+            lookAroundRequestId = requestId;
+            lookAroundPreviewEl.hidden = false;
+            lookAroundPreviewEl.style.visibility = "hidden";
+            lookAroundPreviewEl.classList.remove("loaded");
             return new Promise((resolve) => {
-                try {
-                    const geocoder = new mapkit.Geocoder({ language: "en-CA" });
-                    geocoder.reverseLookup(coordinate, (error, data) => {
-                        if (error) {
-                            resolve(null);
-                            return;
-                        }
-                        resolve(data?.results?.[0] || null);
-                    });
-                } catch (error) {
-                    resolve(null);
-                }
-            });
-        }
-
-        function getLocationKey(location) {
-            const coordinate = location?.coordinate || location;
-            const lat = Number(coordinate?.latitude);
-            const lon = Number(coordinate?.longitude);
-            if (!Number.isFinite(lat) || !Number.isFinite(lon)) return "";
-            return `${lat.toFixed(6)},${lon.toFixed(6)}`;
-        }
-
-        async function getLookAroundCandidateLocations(place) {
-            const candidates = [];
-            const addCandidate = (candidate) => {
-                if (!candidate) return;
-                const key = getLocationKey(candidate);
-                if (!key || candidates.some((item) => getLocationKey(item) === key)) return;
-                candidates.push(candidate);
-            };
-
-            addCandidate(place);
-            const closestPlace = await reverseLookupClosestPlace(place.coordinate);
-            addCandidate(closestPlace);
-            addCandidate(place.coordinate);
-
-            const nearbyOffsets = [
-                [0, 18],
-                [18, 0],
-                [0, -18],
-                [-18, 0],
-                [0, 36],
-                [36, 0],
-                [0, -36],
-                [-36, 0]
-            ];
-            nearbyOffsets.forEach(([north, east]) => addCandidate(offsetCoordinate(place.coordinate, north, east)));
-            return candidates;
-        }
-
-        function tryCreateLookAroundPreview(location, requestId) {
-            return new Promise((resolve) => {
-                if (requestId !== lookAroundRequestId) {
-                    resolve(false);
-                    return;
-                }
                 lookAroundContainerEl.innerHTML = "";
                 if (lookAroundPreview?.destroy) {
                     lookAroundPreview.destroy();
@@ -12498,64 +12478,113 @@ function setImportPanelVisibility(show) {
                     if (settled) return;
                     settled = true;
                     window.clearTimeout(timeoutId);
-                    if (!loaded && lookAroundPreview?.destroy) {
-                        lookAroundPreview.destroy();
-                        lookAroundPreview = null;
+                    if (loaded && requestId === lookAroundRequestId) {
+                        lookAroundPreviewEl.hidden = false;
+                        lookAroundPreviewEl.style.visibility = "";
+                        lookAroundPreviewEl.classList.add("loaded");
+                        resolve(true);
+                        return;
                     }
-                    resolve(Boolean(loaded));
+                    hideLookAroundPreview();
+                    resolve(false);
                 };
-                const timeoutId = window.setTimeout(() => finish(false), 3500);
+                const timeoutId = window.setTimeout(() => finish(false), 5000);
 
-                try {
-                    lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, location, {
-                        showsRoadLabels: true,
-                        showsPointsOfInterest: true
-                    });
-                    lookAroundPreview.addEventListener?.("load", () => finish(true));
-                    lookAroundPreview.addEventListener?.("error", () => finish(false));
-                    lookAroundPreview.addEventListener?.("readystatechange", () => {
-                        const state = lookAroundPreview?.readyState;
-                        if (state === "complete" || state === mapkit.LookAroundPreview?.ReadyStates?.Complete) finish(true);
-                        if (state === "failed" || state === mapkit.LookAroundPreview?.ReadyStates?.Failed) finish(false);
-                    });
-                    window.setTimeout(() => {
-                        const hasRenderedContent = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
-                        if (hasRenderedContent) finish(true);
-                    }, 1200);
-                } catch (error) {
-                    finish(false);
-                }
+                ensureLookAroundLibrary().then((available) => {
+                    if (requestId !== lookAroundRequestId || !available) {
+                        finish(false);
+                        return;
+                    }
+                    try {
+                        lookAroundPreview = new mapkit.LookAroundPreview(lookAroundContainerEl, coordinate, {
+                            showsRoadLabels: true,
+                            showsPointsOfInterest: true
+                        });
+                        lookAroundPreview.addEventListener?.("load", () => finish(true));
+                        lookAroundPreview.addEventListener?.("error", () => finish(false));
+                        lookAroundPreview.addEventListener?.("readystatechange", () => {
+                            const state = lookAroundPreview?.readyState;
+                            if (state === "complete" || state === mapkit.LookAroundPreview?.ReadyStates?.Complete) finish(true);
+                            if (state === "failed" || state === mapkit.LookAroundPreview?.ReadyStates?.Failed) finish(false);
+                        });
+                        window.setTimeout(() => {
+                            const rendered = lookAroundContainerEl.querySelector("canvas, img, video, iframe");
+                            if (rendered) finish(true);
+                        }, 1400);
+                    } catch (error) {
+                        finish(false);
+                    }
+                });
             });
         }
 
-        async function showLookAroundPreview(place) {
-            if (!lookAroundPreviewEl || !lookAroundContainerEl || !place?.coordinate) return;
-            const requestId = lookAroundRequestId + 1;
-            lookAroundRequestId = requestId;
-            lookAroundPreviewEl.hidden = false;
-            lookAroundPreviewEl.style.visibility = "hidden";
-            lookAroundPreviewEl.classList.remove("loaded");
-            lookAroundContainerEl.innerHTML = "";
+        function initializeStreetViewDropControl() {
+            if (!streetViewDropBtn || !mapElement) return;
+            let dragging = false;
+            let pointerId = null;
+            let startX = 0;
+            let startY = 0;
+            let moved = false;
 
-            const available = await ensureLookAroundLibrary();
-            if (requestId !== lookAroundRequestId) return;
-            if (!available) {
-                hideLookAroundPreview();
-                return;
-            }
+            const resetButton = () => {
+                streetViewDropBtn.classList.remove("dragging");
+                streetViewDropBtn.style.position = "";
+                streetViewDropBtn.style.left = "";
+                streetViewDropBtn.style.top = "";
+                streetViewDropBtn.style.right = "";
+                streetViewDropBtn.style.bottom = "";
+                streetViewDropBtn.style.transform = "";
+            };
 
-            const candidates = await getLookAroundCandidateLocations(place);
-            for (const candidate of candidates) {
-                if (requestId !== lookAroundRequestId) return;
-                const loaded = await tryCreateLookAroundPreview(candidate, requestId);
-                if (loaded && requestId === lookAroundRequestId) {
-                    lookAroundPreviewEl.hidden = false;
-                    lookAroundPreviewEl.style.visibility = "";
-                    lookAroundPreviewEl.classList.add("loaded");
-                    return;
-                }
-            }
-            hideLookAroundPreview();
+            streetViewDropBtn.addEventListener("pointerdown", (event) => {
+                event.preventDefault();
+                dragging = true;
+                moved = false;
+                pointerId = event.pointerId;
+                startX = event.clientX;
+                startY = event.clientY;
+                streetViewDropBtn.setPointerCapture?.(pointerId);
+                streetViewDropBtn.classList.add("dragging");
+                streetViewDropBtn.style.position = "fixed";
+                streetViewDropBtn.style.right = "auto";
+                streetViewDropBtn.style.bottom = "auto";
+                streetViewDropBtn.style.left = `${event.clientX - streetViewDropBtn.offsetWidth / 2}px`;
+                streetViewDropBtn.style.top = `${event.clientY - streetViewDropBtn.offsetHeight / 2}px`;
+                streetViewDropBtn.style.transform = "scale(1.05)";
+            });
+
+            streetViewDropBtn.addEventListener("pointermove", (event) => {
+                if (!dragging || event.pointerId !== pointerId) return;
+                event.preventDefault();
+                if (Math.hypot(event.clientX - startX, event.clientY - startY) > 4) moved = true;
+                streetViewDropBtn.style.left = `${event.clientX - streetViewDropBtn.offsetWidth / 2}px`;
+                streetViewDropBtn.style.top = `${event.clientY - streetViewDropBtn.offsetHeight / 2}px`;
+            });
+
+            streetViewDropBtn.addEventListener("pointerup", async (event) => {
+                if (!dragging || event.pointerId !== pointerId) return;
+                event.preventDefault();
+                dragging = false;
+                pointerId = null;
+                streetViewDropBtn.releasePointerCapture?.(event.pointerId);
+                const dropPoint = new DOMPoint(event.clientX, event.clientY);
+                resetButton();
+                if (!moved) return;
+                const coordinate = map.convertPointOnPageToCoordinate(dropPoint);
+                if (!coordinate) return;
+                setProjectStatus("Checking Look Around at dropped street location...", "info");
+                const loaded = await showLookAroundAtCoordinate(coordinate);
+                setProjectStatus(
+                    loaded ? "Look Around loaded for dropped location." : "No Look Around imagery loaded for that dropped location.",
+                    loaded ? "success" : "error"
+                );
+            });
+
+            streetViewDropBtn.addEventListener("pointercancel", () => {
+                dragging = false;
+                pointerId = null;
+                resetButton();
+            });
         }
 
         function getPlaceAddableLayers() {
@@ -12664,7 +12693,6 @@ function setImportPanelVisibility(show) {
             });
             map.addAnnotation(annotation);
             showSidebar(place);
-            showLookAroundPreview(place);
             return annotation;
         }
 
