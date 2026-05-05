@@ -534,7 +534,7 @@
         filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
     }
     .look-around-drop-direction::after {
-        content: "N";
+        content: attr(data-compass-label);
         position: absolute;
         inset: 0;
         display: flex;
@@ -12716,13 +12716,57 @@ function setImportPanelVisibility(show) {
                 normalizeLookAroundCoordinate(lookAroundPreview);
         }
 
+        function getTransformRotationDegrees(element) {
+            const transform = window.getComputedStyle(element).transform;
+            if (!transform || transform === "none") return null;
+            const matrix = transform.match(/matrix\(([^)]+)\)/);
+            if (matrix) {
+                const values = matrix[1].split(",").map((value) => Number(value.trim()));
+                if (values.length >= 6 && Number.isFinite(values[0]) && Number.isFinite(values[1])) {
+                    return Math.atan2(values[1], values[0]) * 180 / Math.PI;
+                }
+            }
+            const matrix3d = transform.match(/matrix3d\(([^)]+)\)/);
+            if (matrix3d) {
+                const values = matrix3d[1].split(",").map((value) => Number(value.trim()));
+                if (values.length >= 16 && Number.isFinite(values[0]) && Number.isFinite(values[1])) {
+                    return Math.atan2(values[1], values[0]) * 180 / Math.PI;
+                }
+            }
+            return null;
+        }
+
+        function readLookAroundCompassState() {
+            if (!lookAroundContainerEl) return null;
+            const elements = Array.from(lookAroundContainerEl.querySelectorAll("*"));
+            const compassCandidate = elements.find((element) => {
+                const text = element.textContent?.trim();
+                const rect = element.getBoundingClientRect();
+                const visible = rect.width >= 20 && rect.height >= 20 && rect.width <= 110 && rect.height <= 110;
+                const squareish = rect.width && rect.height && Math.abs(rect.width - rect.height) <= Math.max(rect.width, rect.height) * 0.35;
+                return visible && squareish && /^[NSEW]$/i.test(text || "");
+            });
+            if (!compassCandidate) return null;
+            const label = compassCandidate.textContent?.trim()?.toUpperCase() || "N";
+            const rotationElement = [compassCandidate, ...Array.from(compassCandidate.querySelectorAll("*"))]
+                .find((element) => getTransformRotationDegrees(element) !== null);
+            const heading = rotationElement ? getTransformRotationDegrees(rotationElement) : null;
+            return { label, heading };
+        }
+
         function syncLookAroundMarkerFromScene() {
             if (!lookAroundPreview || !lookAroundDropAnnotation) return;
             const coordinate = readLookAroundCoordinate();
             if (coordinate) {
                 lookAroundDropAnnotation.coordinate = coordinate;
             }
-            const heading = readLookAroundHeading();
+            const compassState = readLookAroundCompassState();
+            const heading = readLookAroundHeading() ?? compassState?.heading;
+            if (lookAroundDropMarkerElement) {
+                lookAroundDropMarkerElement
+                    .querySelector(".look-around-drop-direction")
+                    ?.setAttribute("data-compass-label", compassState?.label || "N");
+            }
             if (heading !== null && lookAroundDropMarkerElement) {
                 lookAroundDropMarkerElement.style.setProperty("--look-around-heading", `${heading}deg`);
             }
@@ -12742,7 +12786,7 @@ function setImportPanelVisibility(show) {
             }
             const markerElement = document.createElement("div");
             markerElement.className = "look-around-drop-marker";
-            markerElement.innerHTML = '<span class="look-around-drop-direction" aria-hidden="true"></span>';
+            markerElement.innerHTML = '<span class="look-around-drop-direction" data-compass-label="N" aria-hidden="true"></span>';
             lookAroundDropMarkerElement = markerElement;
             let draggingMarker = false;
             let markerPointerId = null;
