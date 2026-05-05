@@ -496,6 +496,7 @@
         display: block;
     }
     .look-around-drop-marker {
+        position: relative;
         width: 28px;
         height: 28px;
         border-radius: 999px;
@@ -509,6 +510,20 @@
     .look-around-drop-marker.dragging {
         cursor: grabbing;
         transform: scale(1.08);
+    }
+    .look-around-drop-direction {
+        position: absolute;
+        left: 50%;
+        top: -17px;
+        width: 0;
+        height: 0;
+        border-left: 7px solid transparent;
+        border-right: 7px solid transparent;
+        border-bottom: 18px solid rgba(37, 99, 235, 0.92);
+        filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.45));
+        transform: translateX(-50%) rotate(var(--look-around-heading, 0deg));
+        transform-origin: 50% 31px;
+        pointer-events: none;
     }
     .look-around-drop-marker::after {
         content: "";
@@ -4598,6 +4613,8 @@
         let lookAroundPreview = null;
         let lookAroundRequestId = 0;
         let lookAroundDropAnnotation = null;
+        let lookAroundDropMarkerElement = null;
+        let lookAroundSceneSyncTimer = null;
         const workspaceContext = document.getElementById("workspaceContext");
         const toolbar = document.getElementById("toolbar");
         const toolbarEditGroup = document.getElementById("toolbarEditGroup");
@@ -12520,6 +12537,7 @@ function setImportPanelVisibility(show) {
 
         function hideLookAroundPreview() {
             lookAroundRequestId += 1;
+            stopLookAroundSceneSync();
             if (lookAroundPreview?.destroy) {
                 lookAroundPreview.destroy();
             }
@@ -12531,6 +12549,13 @@ function setImportPanelVisibility(show) {
             if (lookAroundPreviewEl) {
                 lookAroundPreviewEl.hidden = true;
                 lookAroundPreviewEl.style.visibility = "";
+            }
+        }
+
+        function stopLookAroundSceneSync() {
+            if (lookAroundSceneSyncTimer) {
+                window.clearInterval(lookAroundSceneSyncTimer);
+                lookAroundSceneSyncTimer = null;
             }
         }
 
@@ -12628,6 +12653,52 @@ function setImportPanelVisibility(show) {
             });
         }
 
+        function normalizeLookAroundCoordinate(candidate) {
+            const coordinate = candidate?.coordinate || candidate?.center || candidate?.location || candidate;
+            const latitude = Number(coordinate?.latitude ?? coordinate?.lat);
+            const longitude = Number(coordinate?.longitude ?? coordinate?.lng ?? coordinate?.lon);
+            if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) return null;
+            return coordinate instanceof mapkit.Coordinate ? coordinate : new mapkit.Coordinate(latitude, longitude);
+        }
+
+        function readLookAroundHeading() {
+            const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene || {};
+            const camera = lookAroundPreview?.camera || scene.camera || {};
+            const heading = Number(
+                camera.heading ??
+                camera.bearing ??
+                scene.heading ??
+                scene.bearing ??
+                scene.viewingDirection ??
+                lookAroundPreview?.heading ??
+                lookAroundPreview?.bearing
+            );
+            return Number.isFinite(heading) ? heading : null;
+        }
+
+        function readLookAroundCoordinate() {
+            const scene = lookAroundPreview?.scene || lookAroundPreview?.currentScene;
+            return normalizeLookAroundCoordinate(scene) || normalizeLookAroundCoordinate(lookAroundPreview);
+        }
+
+        function syncLookAroundMarkerFromScene() {
+            if (!lookAroundPreview || !lookAroundDropAnnotation) return;
+            const coordinate = readLookAroundCoordinate();
+            if (coordinate) {
+                lookAroundDropAnnotation.coordinate = coordinate;
+            }
+            const heading = readLookAroundHeading();
+            if (heading !== null && lookAroundDropMarkerElement) {
+                lookAroundDropMarkerElement.style.setProperty("--look-around-heading", `${heading}deg`);
+            }
+        }
+
+        function startLookAroundSceneSync() {
+            stopLookAroundSceneSync();
+            syncLookAroundMarkerFromScene();
+            lookAroundSceneSyncTimer = window.setInterval(syncLookAroundMarkerFromScene, 300);
+        }
+
         function showLookAroundDropMarker(coordinate) {
             if (!map || !coordinate) return;
             if (lookAroundDropAnnotation) {
@@ -12636,6 +12707,8 @@ function setImportPanelVisibility(show) {
             }
             const markerElement = document.createElement("div");
             markerElement.className = "look-around-drop-marker";
+            markerElement.innerHTML = '<span class="look-around-drop-direction" aria-hidden="true"></span>';
+            lookAroundDropMarkerElement = markerElement;
             let draggingMarker = false;
             let markerPointerId = null;
             markerElement.addEventListener("pointerdown", (event) => {
@@ -12753,6 +12826,7 @@ function setImportPanelVisibility(show) {
                         lookAroundPreviewEl.classList.add("loaded");
                         const rect = lookAroundPreviewEl.getBoundingClientRect();
                         setLookAroundPanelRect(rect.left, rect.top, rect.width, rect.height);
+                        startLookAroundSceneSync();
                         resolve(true);
                         return;
                     }
