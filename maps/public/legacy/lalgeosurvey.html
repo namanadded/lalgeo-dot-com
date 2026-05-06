@@ -2396,6 +2396,21 @@
         cursor: pointer;
         padding: 0;
         font-family: ui-sans-serif, system-ui, sans-serif;
+        position: relative;
+        overflow: hidden;
+        text-indent: -999px;
+    }
+    .mobile-context-trigger::before {
+        content: "";
+        width: 3px;
+        height: 3px;
+        border-radius: 999px;
+        background: currentColor;
+        box-shadow: -5px 0 0 currentColor, 5px 0 0 currentColor;
+        position: absolute;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
     }
     .mobile-context-trigger:hover,
     .mobile-context-trigger:focus-visible {
