@@ -706,9 +706,9 @@
         content: attr(data-tooltip);
         position: absolute;
         left: 50%;
-        top: calc(100% + 8px);
-        transform: translateX(-50%) translateY(-3px);
-        z-index: 5;
+        top: calc(100% + 10px);
+        transform: translateX(-50%) translateY(-4px);
+        z-index: 1300;
         padding: 5px 8px;
         border-radius: 7px;
         background: rgba(31, 41, 55, 0.92);
@@ -724,6 +724,24 @@
     .edit-tool-btn:focus-visible::after {
         opacity: 1;
         transform: translateX(-50%) translateY(0);
+    }
+    .edit-tool-btn::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 4px);
+        transform: translateX(-50%);
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 6px solid rgba(31, 41, 55, 0.92);
+        opacity: 0;
+        pointer-events: none;
+        z-index: 1300;
+        transition: opacity 120ms ease;
+    }
+    .edit-tool-btn:hover::before,
+    .edit-tool-btn:focus-visible::before {
+        opacity: 1;
     }
     .edit-tool-btn.primary {
         background: #e6fffb;
@@ -6587,6 +6605,17 @@
             `).join("");
         }
 
+        function setDocumentTitleTooltipSuppressed(suppress) {
+            const titleEl = document.querySelector("title");
+            if (!titleEl) return;
+            if (suppress) {
+                if (!titleEl.dataset.originalTitle) titleEl.dataset.originalTitle = titleEl.textContent || "";
+                titleEl.textContent = "";
+                return;
+            }
+            if (titleEl.dataset.originalTitle) titleEl.textContent = titleEl.dataset.originalTitle;
+        }
+
         function syncEditPanelState() {
             const layerId = getEditPanelLayerId();
             const layer = layerId ? getLayerById(layerId) : null;
@@ -8665,6 +8694,14 @@
         editPanelUndoBtn?.addEventListener("click", () => performUndo());
         editPanelRedoBtn?.addEventListener("click", () => performRedo());
         installEditPanelDrag();
+        editFloatingPanel?.addEventListener("pointerenter", () => setDocumentTitleTooltipSuppressed(true));
+        editFloatingPanel?.addEventListener("pointerleave", () => setDocumentTitleTooltipSuppressed(false));
+        editFloatingPanel?.addEventListener("focusin", () => setDocumentTitleTooltipSuppressed(true));
+        editFloatingPanel?.addEventListener("focusout", () => {
+            window.setTimeout(() => {
+                if (!editFloatingPanel?.contains(document.activeElement)) setDocumentTitleTooltipSuppressed(false);
+            }, 0);
+        });
         menuOpenEditPanelBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
             openEditPanelForLayer(activeLayerId);
