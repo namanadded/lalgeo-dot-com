@@ -719,6 +719,7 @@
         opacity: 0;
         pointer-events: none;
         transition: opacity 120ms ease, transform 120ms ease;
+        display: none;
     }
     .edit-tool-btn:hover::after,
     .edit-tool-btn:focus-visible::after {
@@ -738,10 +739,40 @@
         pointer-events: none;
         z-index: 1300;
         transition: opacity 120ms ease;
+        display: none;
     }
     .edit-tool-btn:hover::before,
     .edit-tool-btn:focus-visible::before {
         opacity: 1;
+    }
+    #editToolbarTooltip {
+        position: fixed;
+        z-index: 5000;
+        left: 0;
+        top: 0;
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: rgba(31, 41, 55, 0.94);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 800;
+        line-height: 1.2;
+        white-space: nowrap;
+        pointer-events: none;
+        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.22);
+    }
+    #editToolbarTooltip[hidden] {
+        display: none;
+    }
+    #editToolbarTooltip::before {
+        content: "";
+        position: absolute;
+        left: 50%;
+        top: -6px;
+        transform: translateX(-50%);
+        border-left: 5px solid transparent;
+        border-right: 5px solid transparent;
+        border-bottom: 6px solid rgba(31, 41, 55, 0.94);
     }
     .edit-tool-btn.primary {
         background: #e6fffb;
@@ -4666,6 +4697,7 @@
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
     </div>
+    <div id="editToolbarTooltip" hidden></div>
     <div id="lookAroundPreview" hidden aria-label="Look Around preview">
         <div id="lookAroundDragHandle" class="look-around-panel-header">
             <span class="look-around-panel-title">Look Around</span>
@@ -5137,6 +5169,7 @@
         const editPanelUndoBtn = document.getElementById("editPanelUndoBtn");
         const editPanelRedoBtn = document.getElementById("editPanelRedoBtn");
         const editPanelHelp = document.getElementById("editPanelHelp");
+        const editToolbarTooltip = document.getElementById("editToolbarTooltip");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
         const dataCatalogTableBody = document.getElementById("dataCatalogTableBody");
@@ -6614,6 +6647,33 @@
                 return;
             }
             if (titleEl.dataset.originalTitle) titleEl.textContent = titleEl.dataset.originalTitle;
+        }
+
+        function hideEditToolbarTooltip() {
+            if (editToolbarTooltip) editToolbarTooltip.hidden = true;
+        }
+
+        function showEditToolbarTooltip(button) {
+            if (!editToolbarTooltip || !button) return;
+            const label = button.dataset.tooltip || button.getAttribute("aria-label") || "";
+            if (!label) {
+                hideEditToolbarTooltip();
+                return;
+            }
+            editToolbarTooltip.textContent = label;
+            editToolbarTooltip.hidden = false;
+            const buttonRect = button.getBoundingClientRect();
+            const tooltipRect = editToolbarTooltip.getBoundingClientRect();
+            const left = Math.max(8, Math.min(
+                buttonRect.left + buttonRect.width / 2 - tooltipRect.width / 2,
+                window.innerWidth - tooltipRect.width - 8
+            ));
+            const top = Math.min(
+                window.innerHeight - tooltipRect.height - 8,
+                buttonRect.bottom + 10
+            );
+            editToolbarTooltip.style.left = `${Math.round(left)}px`;
+            editToolbarTooltip.style.top = `${Math.round(top)}px`;
         }
 
         function syncEditPanelState() {
@@ -8702,6 +8762,22 @@
                 if (!editFloatingPanel?.contains(document.activeElement)) setDocumentTitleTooltipSuppressed(false);
             }, 0);
         });
+        editFloatingPanel?.addEventListener("pointerover", (event) => {
+            const button = event.target.closest(".edit-tool-btn");
+            if (button && editFloatingPanel.contains(button)) showEditToolbarTooltip(button);
+        });
+        editFloatingPanel?.addEventListener("pointermove", (event) => {
+            const button = event.target.closest(".edit-tool-btn");
+            if (button && editFloatingPanel.contains(button)) showEditToolbarTooltip(button);
+        });
+        editFloatingPanel?.addEventListener("pointerout", (event) => {
+            if (!event.relatedTarget || !event.relatedTarget.closest?.(".edit-tool-btn")) hideEditToolbarTooltip();
+        });
+        editFloatingPanel?.addEventListener("focusin", (event) => {
+            const button = event.target.closest(".edit-tool-btn");
+            if (button) showEditToolbarTooltip(button);
+        });
+        editFloatingPanel?.addEventListener("focusout", hideEditToolbarTooltip);
         menuOpenEditPanelBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
             openEditPanelForLayer(activeLayerId);
