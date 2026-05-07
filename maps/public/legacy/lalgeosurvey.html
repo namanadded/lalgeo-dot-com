@@ -500,9 +500,13 @@
         right: 18px;
         top: 58px;
         z-index: 1160;
+        display: flex;
+        align-items: center;
+        gap: 0;
         width: auto;
         max-width: min(760px, calc(100vw - 28px));
-        border-radius: 14px;
+        min-height: 44px;
+        border-radius: 12px;
         background: rgba(255, 255, 255, 0.98);
         border: 1px solid rgba(203, 213, 225, 0.92);
         box-shadow: 0 18px 46px rgba(15, 23, 42, 0.22);
@@ -513,25 +517,33 @@
         display: none;
     }
     #editFloatingPanel.docked {
-        left: 12px !important;
-        right: 12px !important;
+        height: 44px;
+        min-height: 44px;
         max-width: none;
         right: auto !important;
         transform: none !important;
-        border-radius: 0 0 14px 14px;
+        border-radius: 0 0 12px 12px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.09);
     }
     .edit-panel-header {
-        min-height: 36px;
+        align-self: stretch;
+        min-width: 42px;
+        min-height: 0;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        gap: 10px;
-        padding: 5px 8px 0 10px;
-        border-bottom: 1px solid #e5e7eb;
+        justify-content: center;
+        gap: 6px;
+        padding: 0 8px;
+        border-right: 1px solid #e5e7eb;
+        border-bottom: 0;
         background: #fff;
-        border-radius: inherit;
+        border-radius: 12px 0 0 12px;
         cursor: grab;
         user-select: none;
+    }
+    #editFloatingPanel.docked .edit-panel-header {
+        border-radius: 0;
+        margin-left: var(--edit-toolbar-offset, 0px);
     }
     .edit-panel-header:active {
         cursor: grabbing;
@@ -539,9 +551,12 @@
     .edit-panel-title {
         display: inline-flex;
         align-items: center;
-        gap: 6px;
-        font-size: 14px;
-        font-weight: 800;
+        justify-content: center;
+        width: 18px;
+        height: 24px;
+        overflow: hidden;
+        text-indent: -999px;
+        font-size: 0;
         color: #374151;
     }
     .edit-panel-title::before {
@@ -558,11 +573,11 @@
     .edit-panel-actions {
         display: inline-flex;
         align-items: center;
-        gap: 5px;
+        gap: 4px;
     }
     .edit-panel-icon-btn {
-        width: 26px;
-        height: 26px;
+        width: 28px;
+        height: 28px;
         border: 1px solid rgba(203, 213, 225, 0.9);
         border-radius: 999px;
         background: #fff;
@@ -582,11 +597,15 @@
         outline: none;
     }
     .edit-panel-body {
-        padding: 8px 10px 10px;
+        min-width: 0;
+        min-height: 42px;
+        padding: 4px 8px;
         display: flex;
         align-items: center;
-        gap: 8px;
-        flex-wrap: wrap;
+        gap: 7px;
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        scrollbar-width: thin;
     }
     .edit-panel-field {
         display: flex;
@@ -601,20 +620,23 @@
         clip: rect(0 0 0 0);
     }
     #editPanelLayerSelect {
-        min-width: 150px;
-        max-width: 210px;
-        height: 36px;
+        min-width: 128px;
+        max-width: 180px;
+        height: 32px;
         border-radius: 999px;
-        font-size: 13px;
+        font-size: 12px;
         font-weight: 700;
+        padding-top: 0;
+        padding-bottom: 0;
     }
     .edit-panel-status {
         display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 7px;
-        min-height: 36px;
-        padding: 0 10px;
+        height: 32px;
+        min-height: 32px;
+        padding: 0 6px 0 10px;
         border: 1px solid #e5e7eb;
         border-radius: 999px;
         background: #f9fafb;
@@ -623,9 +645,13 @@
         white-space: nowrap;
     }
     #editPanelStatusText {
-        max-width: 100px;
+        max-width: 74px;
         overflow: hidden;
         text-overflow: ellipsis;
+    }
+    #editFloatingPanel.docked #editPanelStatusText,
+    #editFloatingPanel.compact #editPanelStatusText {
+        display: none;
     }
     .edit-panel-status-dot {
         width: 8px;
@@ -642,14 +668,14 @@
         display: flex;
         align-items: center;
         gap: 6px;
-        flex-wrap: wrap;
+        flex-wrap: nowrap;
     }
     .edit-tool-btn {
         position: relative;
-        width: 36px;
-        height: 36px;
-        min-width: 36px;
-        min-height: 36px;
+        width: 32px;
+        height: 32px;
+        min-width: 32px;
+        min-height: 32px;
         padding: 0;
         border-radius: 999px;
         border: 1px solid rgba(203, 213, 225, 0.92);
@@ -728,16 +754,12 @@
     }
     .edit-panel-separator {
         width: 1px;
-        height: 28px;
+        height: 24px;
         background: #e5e7eb;
         margin: 0 2px;
     }
     .edit-panel-helper {
-        flex-basis: 100%;
-        margin: -2px 0 0;
-        color: #6b7280;
-        font-size: 12px;
-        line-height: 1.35;
+        display: none;
     }
     @media (max-width: 700px) {
         #editFloatingPanel {
@@ -746,21 +768,20 @@
             max-width: calc(100vw - 20px);
         }
         #editFloatingPanel.docked {
-            left: 8px !important;
-            right: 8px !important;
+            height: 44px;
         }
         #editPanelLayerSelect {
-            min-width: 132px;
-            max-width: 170px;
+            min-width: 116px;
+            max-width: 150px;
         }
         .edit-panel-body {
-            gap: 6px;
+            gap: 5px;
         }
         .edit-tool-btn {
-            width: 34px;
-            height: 34px;
-            min-width: 34px;
-            min-height: 34px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
         }
     }
     .edit-panel-field .legacy-hidden,
@@ -6606,6 +6627,7 @@
                     ? `${layer?.name || "Layer"} is ready. Add new ${geometryType} features, edit attributes, or drag point markers to adjust geometry.`
                     : "Choose a layer and start editing to add or modify features.";
             }
+            editFloatingPanel?.classList.toggle("compact", true);
         }
 
         function setEditPanelVisibility(show, { layerId = null } = {}) {
@@ -6727,10 +6749,21 @@
             editPanelPinned = true;
             editFloatingPanel.classList.add("docked");
             editFloatingPanel.style.top = `${Math.round(toolbarRect.bottom)}px`;
-            editFloatingPanel.style.left = "";
-            editFloatingPanel.style.right = "";
+            editFloatingPanel.style.left = `${Math.round(toolbarRect.left)}px`;
+            editFloatingPanel.style.width = `${Math.round(toolbarRect.width)}px`;
+            editFloatingPanel.style.right = "auto";
             editFloatingPanel.style.transform = "";
             syncEditPanelState();
+        }
+
+        function setDockedEditPanelOffset(clientX, pointerOffset = 0) {
+            if (!editFloatingPanel || !editPanelDragHandle) return;
+            const panelRect = editFloatingPanel.getBoundingClientRect();
+            const bodyWidth = editFloatingPanel.querySelector(".edit-panel-body")?.scrollWidth || 0;
+            const groupWidth = editPanelDragHandle.offsetWidth + bodyWidth;
+            const maxOffset = Math.max(0, panelRect.width - groupWidth - 10);
+            const nextOffset = Math.max(0, Math.min(clientX - panelRect.left - pointerOffset, maxOffset));
+            editFloatingPanel.style.setProperty("--edit-toolbar-offset", `${Math.round(nextOffset)}px`);
         }
 
         function undockEditPanel({ preservePosition = true } = {}) {
@@ -6738,9 +6771,11 @@
             const rect = editFloatingPanel.getBoundingClientRect();
             editPanelPinned = false;
             editFloatingPanel.classList.remove("docked");
+            editFloatingPanel.style.removeProperty("--edit-toolbar-offset");
             if (preservePosition) {
                 editFloatingPanel.style.left = `${rect.left}px`;
                 editFloatingPanel.style.top = `${rect.top}px`;
+                editFloatingPanel.style.width = "auto";
                 editFloatingPanel.style.right = "auto";
                 editFloatingPanel.style.transform = "none";
                 clampFloatingPanelToMap(editFloatingPanel);
@@ -6751,7 +6786,7 @@
         function shouldDockEditPanel(pointerY) {
             if (!toolbar) return false;
             const toolbarRect = toolbar.getBoundingClientRect();
-            return pointerY <= toolbarRect.bottom + 44;
+            return pointerY <= toolbarRect.bottom + 46;
         }
 
         function installEditPanelDrag() {
@@ -6760,16 +6795,32 @@
             editPanelDragHandle.addEventListener("pointerdown", (event) => {
                 if (event.target.closest("button, select, input")) return;
                 const rect = editFloatingPanel.getBoundingClientRect();
-                undockEditPanel({ preservePosition: true });
+                const wasDocked = editPanelPinned;
+                if (!wasDocked) {
+                    undockEditPanel({ preservePosition: true });
+                }
                 drag = {
                     offsetX: event.clientX - rect.left,
-                    offsetY: event.clientY - rect.top
+                    offsetY: event.clientY - rect.top,
+                    handleOffsetX: wasDocked ? event.clientX - editPanelDragHandle.getBoundingClientRect().left : event.clientX - rect.left,
+                    fromDock: wasDocked
                 };
                 editPanelDragHandle.setPointerCapture?.(event.pointerId);
                 event.preventDefault();
             });
             editPanelDragHandle.addEventListener("pointermove", (event) => {
                 if (!drag) return;
+                if (drag.fromDock && shouldDockEditPanel(event.clientY)) {
+                    setDockedEditPanelOffset(event.clientX, drag.handleOffsetX);
+                    return;
+                }
+                if (drag.fromDock && editPanelPinned) {
+                    undockEditPanel({ preservePosition: true });
+                    const rect = editFloatingPanel.getBoundingClientRect();
+                    drag.offsetX = Math.min(drag.handleOffsetX, rect.width - 16);
+                    drag.offsetY = 12;
+                    drag.fromDock = false;
+                }
                 editFloatingPanel.style.left = `${event.clientX - drag.offsetX}px`;
                 editFloatingPanel.style.top = `${event.clientY - drag.offsetY}px`;
                 editFloatingPanel.style.right = "auto";
@@ -8581,6 +8632,7 @@
                 editFloatingPanel.style.top = `${(toolbar?.getBoundingClientRect().bottom || 44) + 12}px`;
                 editFloatingPanel.style.right = "18px";
                 editFloatingPanel.style.left = "auto";
+                editFloatingPanel.style.width = "auto";
                 editFloatingPanel.style.transform = "none";
             } else {
                 dockEditPanel();
