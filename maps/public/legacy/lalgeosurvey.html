@@ -7599,14 +7599,34 @@
             return annotation?.element || annotation?._element || annotation?.annotationElement || null;
         }
 
-        function findSurveyAnnotationFromTarget(target) {
-            if (!target) return null;
+        function findNearestPointAnnotation(clientX, clientY, radius = 48) {
+            if (!map) return null;
+            let best = null;
+            let bestDistance = Infinity;
+            surveyAnnotations.forEach((annotation) => {
+                if (!annotation?.surveyPoint?.coordinate && !annotation?.coordinate) return;
+                const point = map.convertCoordinateToPointOnPage(annotation.coordinate || annotation.surveyPoint.coordinate);
+                if (!point) return;
+                const distance = Math.hypot(point.x - clientX, point.y - clientY);
+                if (distance < bestDistance && distance <= radius) {
+                    best = annotation;
+                    bestDistance = distance;
+                }
+            });
+            return best;
+        }
+
+        function findSurveyAnnotationFromTarget(target, event = null) {
+            if (!target && !event) return null;
             const annotationElement = target.closest?.(".mapkit-annotation");
-            return surveyAnnotations.find((annotation) => {
+            const matched = surveyAnnotations.find((annotation) => {
                 const element = getAnnotationElement(annotation);
                 if (!element) return false;
                 return element === annotationElement || element.contains(target) || annotationElement?.contains(element);
             }) || null;
+            if (matched) return matched;
+            if (event) return findNearestPointAnnotation(event.clientX, event.clientY);
+            return null;
         }
 
         function updateLocalPointGeometry(annotation, coord) {
@@ -7672,7 +7692,7 @@
 
         function startPointGeometryDrag(event) {
             if (!pointGeometryEditMode || !map || event.button > 0) return;
-            const annotation = findSurveyAnnotationFromTarget(event.target);
+            const annotation = findSurveyAnnotationFromTarget(event.target, event);
             if (!annotation?.surveyPoint) return;
             event.preventDefault();
             event.stopPropagation();
