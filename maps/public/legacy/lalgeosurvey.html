@@ -495,7 +495,7 @@
         height: 24px;
         display: block;
     }
-    #editFloatingPanel {
+    .floating-toolbar {
         position: absolute;
         right: 18px;
         top: 58px;
@@ -513,17 +513,30 @@
         color: #4b5563;
         overflow: visible;
     }
-    #editFloatingPanel[hidden] {
+    .floating-toolbar[hidden] {
         display: none;
     }
-    #editFloatingPanel.docked {
+    .floating-toolbar.docked {
         height: 44px;
         min-height: 44px;
-        max-width: none;
         right: auto !important;
         transform: none !important;
         border-radius: 0 0 12px 12px;
         box-shadow: 0 8px 24px rgba(15, 23, 42, 0.09);
+    }
+    #toolbarDockStrip {
+        position: absolute;
+        z-index: 1150;
+        height: 44px;
+        border-radius: 0 0 12px 12px;
+        background: rgba(255, 255, 255, 0.94);
+        border: 1px solid rgba(203, 213, 225, 0.9);
+        border-top: 0;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+        pointer-events: none;
+    }
+    #toolbarDockStrip[hidden] {
+        display: none;
     }
     .edit-panel-header {
         align-self: stretch;
@@ -541,9 +554,8 @@
         cursor: grab;
         user-select: none;
     }
-    #editFloatingPanel.docked .edit-panel-header {
+    .floating-toolbar.docked .edit-panel-header {
         border-radius: 0;
-        margin-left: var(--edit-toolbar-offset, 0px);
     }
     .edit-panel-header:active {
         cursor: grabbing;
@@ -619,7 +631,7 @@
         overflow: hidden;
         clip: rect(0 0 0 0);
     }
-    #editPanelLayerSelect {
+    .toolbar-layer-select {
         min-width: 128px;
         max-width: 180px;
         height: 32px;
@@ -649,8 +661,8 @@
         overflow: hidden;
         text-overflow: ellipsis;
     }
-    #editFloatingPanel.docked #editPanelStatusText,
-    #editFloatingPanel.compact #editPanelStatusText {
+    .floating-toolbar.docked #editPanelStatusText,
+    .floating-toolbar.compact #editPanelStatusText {
         display: none;
     }
     .edit-panel-status-dot {
@@ -810,16 +822,21 @@
     .edit-panel-helper {
         display: none;
     }
+    .menu-nested-section {
+        padding-left: 14px;
+        border-left: 1px solid #e5e7eb;
+        margin: 2px 0 4px 8px;
+    }
     @media (max-width: 700px) {
-        #editFloatingPanel {
+        .floating-toolbar {
             top: 88px;
             right: 10px;
             max-width: calc(100vw - 20px);
         }
-        #editFloatingPanel.docked {
+        .floating-toolbar.docked {
             height: 44px;
         }
-        #editPanelLayerSelect {
+        .toolbar-layer-select {
             min-width: 116px;
             max-width: 150px;
         }
@@ -4095,7 +4112,7 @@
             width: 44px;
             height: 44px;
         }
-        #editFloatingPanel {
+        .floating-toolbar {
             top: 88px;
             right: 10px;
             max-width: calc(100vw - 20px);
@@ -4595,6 +4612,7 @@
             </div>
         </div>
     </div>
+    <div id="toolbarDockStrip" hidden></div>
     <div id="settingsPanel" hidden>
         <p class="settings-panel-title">Workspace settings</p>
         <label class="settings-option">
@@ -4655,6 +4673,11 @@
         <div class="menu-dropdown-section" data-menu-pane="view" hidden>
             <button id="menuToggleDataPaneBtn" type="button" class="menu-command"><span>Data Manager</span><span class="menu-shortcut" data-shortcut="toggleData"></span></button>
             <button id="menuToggleLayersBtn" type="button" class="menu-command"><span>Layer List</span><span class="menu-shortcut" data-shortcut="toggleLayers"></span></button>
+            <button id="menuToolbarsBtn" type="button" class="menu-command" aria-expanded="false"><span>Toolbars</span><span>›</span></button>
+            <div id="menuToolbarsList" class="menu-nested-section" hidden>
+                <button id="menuToggleEditToolbarBtn" type="button" class="menu-command"><span>✓ Edit Tools</span></button>
+                <button id="menuToggleLayerToolbarBtn" type="button" class="menu-command"><span>Layer Tools</span></button>
+            </div>
             <button id="menuShowBasemapPoisBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show POIs in Basemap</span></button>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
@@ -4663,7 +4686,7 @@
         <div class="menu-dropdown-section" data-menu-pane="help" hidden></div>
     </div>
     <div class="map-controls"></div>
-    <div id="editFloatingPanel" hidden aria-label="Edit toolbar">
+    <div id="editFloatingPanel" class="floating-toolbar" hidden aria-label="Edit toolbar">
         <div id="editPanelDragHandle" class="edit-panel-header">
             <span class="edit-panel-title">Edit Tools</span>
             <span class="edit-panel-actions">
@@ -4678,23 +4701,35 @@
             </div>
             <div class="edit-panel-field">
                 <label for="editPanelLayerSelect">Layer</label>
-                <select id="editPanelLayerSelect" class="workspace-text-input"></select>
+                <select id="editPanelLayerSelect" class="workspace-text-input toolbar-layer-select"></select>
             </div>
             <div class="edit-panel-grid">
                 <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span></button>
                 <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
                 <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
-                <span class="edit-panel-separator" aria-hidden="true"></span>
-                <button id="editPanelAddLayerBtn" type="button" class="edit-tool-btn green" data-tooltip="New layer" aria-label="New layer"><span class="edit-tool-icon" aria-hidden="true">▦</span></button>
-                <button id="editPanelPropertiesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Layer properties" aria-label="Layer properties"><span class="edit-tool-icon" aria-hidden="true">⚙</span></button>
-                <button id="editPanelFieldsBtn" type="button" class="edit-tool-btn purple" data-tooltip="Fields" aria-label="Fields"><span class="edit-tool-icon" aria-hidden="true">☷</span></button>
-                <button id="editPanelZoomBtn" type="button" class="edit-tool-btn blue" data-tooltip="Zoom to layer" aria-label="Zoom to layer"><span class="edit-tool-icon" aria-hidden="true">⌖</span></button>
-                <span class="edit-panel-separator" aria-hidden="true"></span>
-                <button id="editPanelSaveBtn" type="button" class="edit-tool-btn green" data-tooltip="Save" aria-label="Save"><span class="edit-tool-icon" aria-hidden="true">✓</span></button>
-                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↺</span></button>
-                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↻</span></button>
             </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
+        </div>
+    </div>
+    <div id="layerToolsPanel" class="floating-toolbar" hidden aria-label="Layer tools toolbar">
+        <div id="layerToolsDragHandle" class="edit-panel-header">
+            <span class="edit-panel-title">Layer Tools</span>
+            <span class="edit-panel-actions">
+                <button id="layerToolsPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Dock layer toolbar below menu" title="Dock below menu">⇥</button>
+                <button id="layerToolsCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close layer toolbar" title="Close">×</button>
+            </span>
+        </div>
+        <div class="edit-panel-body">
+            <div class="edit-panel-field">
+                <label for="layerToolsLayerSelect">Layer</label>
+                <select id="layerToolsLayerSelect" class="workspace-text-input toolbar-layer-select"></select>
+            </div>
+            <div class="edit-panel-grid">
+                <button id="layerToolsAddLayerBtn" type="button" class="edit-tool-btn green" data-tooltip="New layer" aria-label="New layer"><span class="edit-tool-icon" aria-hidden="true">▦</span></button>
+                <button id="layerToolsPropertiesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Layer properties" aria-label="Layer properties"><span class="edit-tool-icon" aria-hidden="true">⚙</span></button>
+                <button id="layerToolsFieldsBtn" type="button" class="edit-tool-btn purple" data-tooltip="Fields" aria-label="Fields"><span class="edit-tool-icon" aria-hidden="true">☷</span></button>
+                <button id="layerToolsZoomBtn" type="button" class="edit-tool-btn blue" data-tooltip="Zoom to layer" aria-label="Zoom to layer"><span class="edit-tool-icon" aria-hidden="true">⌖</span></button>
+            </div>
         </div>
     </div>
     <div id="editToolbarTooltip" hidden></div>
@@ -5062,6 +5097,7 @@
         let lookAroundDropAnnotation = null;
         const workspaceContext = document.getElementById("workspaceContext");
         const toolbar = document.getElementById("toolbar");
+        const toolbarDockStrip = document.getElementById("toolbarDockStrip");
         const toolbarEditGroup = document.getElementById("toolbarEditGroup");
         const workspaceProjectNameEl = document.getElementById("workspaceProjectName");
         const workspaceLayerNameEl = document.getElementById("workspaceLayerName");
@@ -5161,14 +5197,16 @@
         const editPanelAddFeatureBtn = document.getElementById("editPanelAddFeatureBtn");
         const editPanelEditExistingBtn = document.getElementById("editPanelEditExistingBtn");
         const editPanelGeometryBtn = document.getElementById("editPanelGeometryBtn");
-        const editPanelAddLayerBtn = document.getElementById("editPanelAddLayerBtn");
-        const editPanelPropertiesBtn = document.getElementById("editPanelPropertiesBtn");
-        const editPanelFieldsBtn = document.getElementById("editPanelFieldsBtn");
-        const editPanelZoomBtn = document.getElementById("editPanelZoomBtn");
-        const editPanelSaveBtn = document.getElementById("editPanelSaveBtn");
-        const editPanelUndoBtn = document.getElementById("editPanelUndoBtn");
-        const editPanelRedoBtn = document.getElementById("editPanelRedoBtn");
         const editPanelHelp = document.getElementById("editPanelHelp");
+        const layerToolsPanel = document.getElementById("layerToolsPanel");
+        const layerToolsDragHandle = document.getElementById("layerToolsDragHandle");
+        const layerToolsPinBtn = document.getElementById("layerToolsPinBtn");
+        const layerToolsCloseBtn = document.getElementById("layerToolsCloseBtn");
+        const layerToolsLayerSelect = document.getElementById("layerToolsLayerSelect");
+        const layerToolsAddLayerBtn = document.getElementById("layerToolsAddLayerBtn");
+        const layerToolsPropertiesBtn = document.getElementById("layerToolsPropertiesBtn");
+        const layerToolsFieldsBtn = document.getElementById("layerToolsFieldsBtn");
+        const layerToolsZoomBtn = document.getElementById("layerToolsZoomBtn");
         const editToolbarTooltip = document.getElementById("editToolbarTooltip");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
@@ -5190,6 +5228,10 @@
         const menuRedoBtn = document.getElementById("menuRedoBtn");
         const menuToggleLayersBtn = document.getElementById("menuToggleLayersBtn");
         const menuToggleDataPaneBtn = document.getElementById("menuToggleDataPaneBtn");
+        const menuToolbarsBtn = document.getElementById("menuToolbarsBtn");
+        const menuToolbarsList = document.getElementById("menuToolbarsList");
+        const menuToggleEditToolbarBtn = document.getElementById("menuToggleEditToolbarBtn");
+        const menuToggleLayerToolbarBtn = document.getElementById("menuToggleLayerToolbarBtn");
         const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
@@ -5260,6 +5302,8 @@
         }
         let isImportPanelVisible = false;
         let editPanelPinned = false;
+        let layerToolsPinned = false;
+        let pointGeometryEditMode = false;
         let editSessionActive = false;
         let undoStack = [];
         let redoStack = [];
@@ -6068,6 +6112,9 @@
                 [menuRedoBtn, redoStack.length > 0],
                 [menuToggleLayersBtn, true],
                 [menuToggleDataPaneBtn, true],
+                [menuToolbarsBtn, true],
+                [menuToggleEditToolbarBtn, hasProject],
+                [menuToggleLayerToolbarBtn, hasProject],
                 [menuShowBasemapPoisBtn, hasProject],
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
@@ -6618,24 +6665,29 @@
         }
 
         function getEditPanelLayerId() {
-            return editPanelLayerSelect?.value || activeLayerId || activeProjectRecord?.layers?.[0]?.id || "";
+            return editPanelLayerSelect?.value || layerToolsLayerSelect?.value || activeLayerId || activeProjectRecord?.layers?.[0]?.id || "";
         }
 
-        function renderEditPanelLayerOptions(selectedLayerId = getEditPanelLayerId()) {
-            if (!editPanelLayerSelect) return;
+        function renderToolbarLayerSelect(selectEl, selectedLayerId = getEditPanelLayerId()) {
+            if (!selectEl) return;
             const layers = activeProjectRecord?.layers || [];
             if (!layers.length) {
-                editPanelLayerSelect.innerHTML = `<option value="">No layers</option>`;
-                editPanelLayerSelect.disabled = true;
+                selectEl.innerHTML = `<option value="">No layers</option>`;
+                selectEl.disabled = true;
                 return;
             }
             const targetLayerId = layers.some((layer) => layer.id === selectedLayerId)
                 ? selectedLayerId
                 : (activeLayerId || layers[0].id);
-            editPanelLayerSelect.disabled = layers.length <= 1;
-            editPanelLayerSelect.innerHTML = layers.map((layer) => `
+            selectEl.disabled = layers.length <= 1;
+            selectEl.innerHTML = layers.map((layer) => `
                 <option value="${escapeHtml(layer.id)}" ${layer.id === targetLayerId ? "selected" : ""}>${escapeHtml(layer.name)}</option>
             `).join("");
+        }
+
+        function renderEditPanelLayerOptions(selectedLayerId = getEditPanelLayerId()) {
+            renderToolbarLayerSelect(editPanelLayerSelect, selectedLayerId);
+            renderToolbarLayerSelect(layerToolsLayerSelect, selectedLayerId);
         }
 
         function setDocumentTitleTooltipSuppressed(suppress) {
@@ -6689,6 +6741,12 @@
                 editPanelPinBtn.title = editPanelPinned ? "Undock toolbar" : "Dock below menu";
                 editPanelPinBtn.setAttribute("aria-label", editPanelPinned ? "Undock edit toolbar" : "Dock edit toolbar below menu");
             }
+            layerToolsPinBtn?.classList.toggle("active", layerToolsPinned);
+            if (layerToolsPinBtn) {
+                layerToolsPinBtn.textContent = layerToolsPinned ? "⇤" : "⇥";
+                layerToolsPinBtn.title = layerToolsPinned ? "Undock toolbar" : "Dock below menu";
+                layerToolsPinBtn.setAttribute("aria-label", layerToolsPinned ? "Undock layer toolbar" : "Dock layer toolbar below menu");
+            }
             if (editPanelStatus) editPanelStatus.classList.toggle("editing", editSessionActive);
             if (editPanelStatusText) editPanelStatusText.textContent = editSessionActive ? "Editing active" : "Editing stopped";
             if (editPanelSessionBtn) {
@@ -6700,14 +6758,12 @@
             if (editPanelAddFeatureBtn) editPanelAddFeatureBtn.disabled = !canEdit;
             if (editPanelEditExistingBtn) editPanelEditExistingBtn.disabled = !canEdit;
             if (editPanelGeometryBtn) editPanelGeometryBtn.disabled = !canEdit;
-            if (editPanelAddLayerBtn) editPanelAddLayerBtn.disabled = !activeProjectRecord;
-            if (editPanelPropertiesBtn) editPanelPropertiesBtn.disabled = !layer;
-            if (editPanelFieldsBtn) editPanelFieldsBtn.disabled = !layer;
-            if (editPanelZoomBtn) editPanelZoomBtn.disabled = !layer;
+            if (editPanelGeometryBtn) editPanelGeometryBtn.classList.toggle("active", pointGeometryEditMode);
+            if (layerToolsAddLayerBtn) layerToolsAddLayerBtn.disabled = !activeProjectRecord;
+            if (layerToolsPropertiesBtn) layerToolsPropertiesBtn.disabled = !layer;
+            if (layerToolsFieldsBtn) layerToolsFieldsBtn.disabled = !layer;
+            if (layerToolsZoomBtn) layerToolsZoomBtn.disabled = !layer;
             if (editPanelSessionBtn) editPanelSessionBtn.disabled = !layer || !activeProjectRecord;
-            if (editPanelSaveBtn) editPanelSaveBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
-            if (editPanelUndoBtn) editPanelUndoBtn.disabled = !undoStack.length;
-            if (editPanelRedoBtn) editPanelRedoBtn.disabled = !redoStack.length;
             editPanelAddFeatureBtn?.classList.toggle("active", isAddingSurveyPoint);
             editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
             if (editPanelHelp) {
@@ -6717,6 +6773,8 @@
                     : "Choose a layer and start editing to add or modify features.";
             }
             editFloatingPanel?.classList.toggle("compact", true);
+            menuToggleEditToolbarBtn?.querySelector("span") && (menuToggleEditToolbarBtn.querySelector("span").textContent = `${editFloatingPanel && !editFloatingPanel.hidden ? "✓ " : ""}Edit Tools`);
+            menuToggleLayerToolbarBtn?.querySelector("span") && (menuToggleLayerToolbarBtn.querySelector("span").textContent = `${layerToolsPanel && !layerToolsPanel.hidden ? "✓ " : ""}Layer Tools`);
         }
 
         function setEditPanelVisibility(show, { layerId = null } = {}) {
@@ -6736,12 +6794,37 @@
                 if (editPanelPinned) dockEditPanel();
                 syncEditPanelState();
             } else {
+                updateToolbarDockStrip();
                 syncEditPanelState();
             }
         }
 
+        function setLayerToolsVisibility(show, { layerId = null } = {}) {
+            if (!layerToolsPanel) return;
+            if (show && !activeProjectRecord) {
+                setProjectStatus("Create or open a project before using layer tools.", "error");
+                openCreateProjectModal();
+                return;
+            }
+            layerToolsPanel.hidden = !show;
+            if (show) {
+                const targetLayerId = layerId || getEditPanelLayerId();
+                renderEditPanelLayerOptions(targetLayerId);
+                if (targetLayerId && targetLayerId !== activeLayerId) {
+                    switchToLayer(targetLayerId, { revealTable: false });
+                }
+                if (layerToolsPinned) dockLayerToolsPanel();
+            }
+            if (!show) updateToolbarDockStrip();
+            syncEditPanelState();
+        }
+
         function openEditPanelForLayer(layerId = activeLayerId) {
             setEditPanelVisibility(true, { layerId });
+        }
+
+        function openLayerToolsForLayer(layerId = activeLayerId) {
+            setLayerToolsVisibility(true, { layerId });
         }
 
         function setEditSessionActive(nextActive) {
@@ -6757,6 +6840,7 @@
             editSessionActive = Boolean(nextActive);
             if (!editSessionActive) {
                 if (isAddingSurveyPoint) toggleAddSurveyPointMode();
+                pointGeometryEditMode = false;
                 if (tableEditMode) {
                     tableEditMode = false;
                     tableEditBtn?.classList.remove("active");
@@ -6810,9 +6894,11 @@
             if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
             const geometryType = getActiveLayerGeometryType();
             if (geometryType === "point") {
+                pointGeometryEditMode = true;
                 setProjectStatus("Drag point markers on the map to edit geometry.", "success");
-                showWorkspaceHint("Drag point markers to adjust their location. Use Undo if you need to revert a move.");
+                showWorkspaceHint("Point geometry edit is active. Drag a point marker to move it to a new location.");
             } else {
+                pointGeometryEditMode = false;
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} drawing is active.`, "success");
             }
@@ -6832,27 +6918,61 @@
             panel.style.transform = "none";
         }
 
-        function dockEditPanel() {
-            if (!editFloatingPanel || !toolbar) return;
+        function dockToolbar(panel, pinnedSetter = null) {
+            if (!panel || !toolbar) return;
             const toolbarRect = toolbar.getBoundingClientRect();
-            editPanelPinned = true;
-            editFloatingPanel.classList.add("docked");
-            editFloatingPanel.style.top = `${Math.round(toolbarRect.bottom)}px`;
-            editFloatingPanel.style.left = `${Math.round(toolbarRect.left)}px`;
-            editFloatingPanel.style.width = `${Math.round(toolbarRect.width)}px`;
-            editFloatingPanel.style.right = "auto";
-            editFloatingPanel.style.transform = "";
+            pinnedSetter?.(true);
+            panel.classList.add("docked");
+            panel.style.top = `${Math.round(toolbarRect.bottom)}px`;
+            const offset = Number.parseFloat(panel.dataset.dockOffset || "0") || getNextToolbarDockOffset(panel);
+            panel.dataset.dockOffset = String(offset);
+            panel.style.left = `${Math.round(toolbarRect.left + offset)}px`;
+            panel.style.width = "auto";
+            panel.style.right = "auto";
+            panel.style.transform = "";
+            updateToolbarDockStrip();
             syncEditPanelState();
         }
 
-        function setDockedEditPanelOffset(clientX, pointerOffset = 0) {
-            if (!editFloatingPanel || !editPanelDragHandle) return;
-            const panelRect = editFloatingPanel.getBoundingClientRect();
-            const bodyWidth = editFloatingPanel.querySelector(".edit-panel-body")?.scrollWidth || 0;
-            const groupWidth = editPanelDragHandle.offsetWidth + bodyWidth;
-            const maxOffset = Math.max(0, panelRect.width - groupWidth - 10);
-            const nextOffset = Math.max(0, Math.min(clientX - panelRect.left - pointerOffset, maxOffset));
-            editFloatingPanel.style.setProperty("--edit-toolbar-offset", `${Math.round(nextOffset)}px`);
+        function dockEditPanel() {
+            dockToolbar(editFloatingPanel, (value) => { editPanelPinned = value; });
+        }
+
+        function dockLayerToolsPanel() {
+            dockToolbar(layerToolsPanel, (value) => { layerToolsPinned = value; });
+        }
+
+        function setDockedToolbarOffset(panel, handle, clientX, pointerOffset = 0) {
+            if (!panel || !handle || !toolbar) return;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            const maxOffset = Math.max(0, toolbarRect.width - panel.getBoundingClientRect().width - 8);
+            const nextOffset = Math.max(0, Math.min(clientX - toolbarRect.left - pointerOffset, maxOffset));
+            panel.dataset.dockOffset = String(nextOffset);
+            panel.style.left = `${Math.round(toolbarRect.left + nextOffset)}px`;
+            updateToolbarDockStrip();
+        }
+
+        function getDockedToolbars() {
+            return [editFloatingPanel, layerToolsPanel].filter((panel) => panel && !panel.hidden && panel.classList.contains("docked"));
+        }
+
+        function getNextToolbarDockOffset(panel) {
+            const docked = getDockedToolbars().filter((item) => item !== panel);
+            return docked.reduce((offset, item) => {
+                const current = Number.parseFloat(item.dataset.dockOffset || "0") || 0;
+                return Math.max(offset, current + item.getBoundingClientRect().width + 8);
+            }, 0);
+        }
+
+        function updateToolbarDockStrip() {
+            if (!toolbarDockStrip || !toolbar) return;
+            const docked = getDockedToolbars();
+            toolbarDockStrip.hidden = !docked.length;
+            if (!docked.length) return;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            toolbarDockStrip.style.left = `${Math.round(toolbarRect.left)}px`;
+            toolbarDockStrip.style.top = `${Math.round(toolbarRect.bottom)}px`;
+            toolbarDockStrip.style.width = `${Math.round(toolbarRect.width)}px`;
         }
 
         function undockEditPanel({ preservePosition = true } = {}) {
@@ -6861,6 +6981,7 @@
             editPanelPinned = false;
             editFloatingPanel.classList.remove("docked");
             editFloatingPanel.style.removeProperty("--edit-toolbar-offset");
+            delete editFloatingPanel.dataset.dockOffset;
             if (preservePosition) {
                 editFloatingPanel.style.left = `${rect.left}px`;
                 editFloatingPanel.style.top = `${rect.top}px`;
@@ -6869,6 +6990,26 @@
                 editFloatingPanel.style.transform = "none";
                 clampFloatingPanelToMap(editFloatingPanel);
             }
+            updateToolbarDockStrip();
+            syncEditPanelState();
+        }
+
+        function undockLayerToolsPanel({ preservePosition = true } = {}) {
+            if (!layerToolsPanel) return;
+            const rect = layerToolsPanel.getBoundingClientRect();
+            layerToolsPinned = false;
+            layerToolsPanel.classList.remove("docked");
+            layerToolsPanel.style.removeProperty("--edit-toolbar-offset");
+            delete layerToolsPanel.dataset.dockOffset;
+            if (preservePosition) {
+                layerToolsPanel.style.left = `${rect.left}px`;
+                layerToolsPanel.style.top = `${rect.top}px`;
+                layerToolsPanel.style.width = "auto";
+                layerToolsPanel.style.right = "auto";
+                layerToolsPanel.style.transform = "none";
+                clampFloatingPanelToMap(layerToolsPanel);
+            }
+            updateToolbarDockStrip();
             syncEditPanelState();
         }
 
@@ -6900,7 +7041,7 @@
             editPanelDragHandle.addEventListener("pointermove", (event) => {
                 if (!drag) return;
                 if (drag.fromDock && shouldDockEditPanel(event.clientY)) {
-                    setDockedEditPanelOffset(event.clientX, drag.handleOffsetX);
+                    setDockedToolbarOffset(editFloatingPanel, editPanelDragHandle, event.clientX, drag.handleOffsetX);
                     return;
                 }
                 if (drag.fromDock && editPanelPinned) {
@@ -6928,6 +7069,53 @@
             };
             editPanelDragHandle.addEventListener("pointerup", endDrag);
             editPanelDragHandle.addEventListener("pointercancel", endDrag);
+        }
+
+        function installLayerToolsDrag() {
+            if (!layerToolsPanel || !layerToolsDragHandle) return;
+            let drag = null;
+            layerToolsDragHandle.addEventListener("pointerdown", (event) => {
+                if (event.target.closest("button, select, input")) return;
+                const rect = layerToolsPanel.getBoundingClientRect();
+                const wasDocked = layerToolsPinned;
+                if (!wasDocked) undockLayerToolsPanel({ preservePosition: true });
+                drag = {
+                    offsetX: event.clientX - rect.left,
+                    offsetY: event.clientY - rect.top,
+                    handleOffsetX: wasDocked ? event.clientX - layerToolsDragHandle.getBoundingClientRect().left : event.clientX - rect.left,
+                    fromDock: wasDocked
+                };
+                layerToolsDragHandle.setPointerCapture?.(event.pointerId);
+                event.preventDefault();
+            });
+            layerToolsDragHandle.addEventListener("pointermove", (event) => {
+                if (!drag) return;
+                if (drag.fromDock && shouldDockEditPanel(event.clientY)) {
+                    setDockedToolbarOffset(layerToolsPanel, layerToolsDragHandle, event.clientX, drag.handleOffsetX);
+                    return;
+                }
+                if (drag.fromDock && layerToolsPinned) {
+                    undockLayerToolsPanel({ preservePosition: true });
+                    const rect = layerToolsPanel.getBoundingClientRect();
+                    drag.offsetX = Math.min(drag.handleOffsetX, rect.width - 16);
+                    drag.offsetY = 12;
+                    drag.fromDock = false;
+                }
+                layerToolsPanel.style.left = `${event.clientX - drag.offsetX}px`;
+                layerToolsPanel.style.top = `${event.clientY - drag.offsetY}px`;
+                layerToolsPanel.style.right = "auto";
+                layerToolsPanel.style.transform = "none";
+                clampFloatingPanelToMap(layerToolsPanel);
+            });
+            const endDrag = (event) => {
+                if (!drag) return;
+                drag = null;
+                layerToolsDragHandle.releasePointerCapture?.(event.pointerId);
+                if (shouldDockEditPanel(event.clientY)) dockLayerToolsPanel();
+                else clampFloatingPanelToMap(layerToolsPanel);
+            };
+            layerToolsDragHandle.addEventListener("pointerup", endDrag);
+            layerToolsDragHandle.addEventListener("pointercancel", endDrag);
         }
 
         function installLongPressContextMenu(container, selector, getId, openMenu) {
@@ -8615,6 +8803,14 @@
             setSidebarVisibility(!sidebarVisible);
         });
         toolbarMenuTray?.addEventListener("click", (event) => {
+            if (event.target.closest("#menuToolbarsBtn")) {
+                event.preventDefault();
+                event.stopPropagation();
+                const expanded = Boolean(menuToolbarsList?.hidden);
+                if (menuToolbarsList) menuToolbarsList.hidden = !expanded;
+                menuToolbarsBtn?.setAttribute("aria-expanded", expanded ? "true" : "false");
+                return;
+            }
             if (event.target.closest(".menu-command")) {
                 setToolbarMenuVisibility(false);
             }
@@ -8733,54 +8929,87 @@
             if (layerId) switchToLayer(layerId, { revealTable: false });
             syncEditPanelState();
         });
+        layerToolsLayerSelect?.addEventListener("change", () => {
+            const layerId = layerToolsLayerSelect.value;
+            if (layerId) switchToLayer(layerId, { revealTable: false });
+            syncEditPanelState();
+        });
         editPanelSessionBtn?.addEventListener("click", () => setEditSessionActive(!editSessionActive));
         editPanelAddFeatureBtn?.addEventListener("click", startEditPanelAddFeature);
         editPanelEditExistingBtn?.addEventListener("click", openActiveLayerTableForEditing);
         editPanelGeometryBtn?.addEventListener("click", startEditPanelGeometryEdit);
-        editPanelAddLayerBtn?.addEventListener("click", addLayerToActiveProject);
-        editPanelPropertiesBtn?.addEventListener("click", () => {
-            const layerId = getEditPanelLayerId();
+        layerToolsAddLayerBtn?.addEventListener("click", addLayerToActiveProject);
+        layerToolsPropertiesBtn?.addEventListener("click", () => {
+            const layerId = layerToolsLayerSelect?.value || getEditPanelLayerId();
             if (layerId) editLayerProperties(layerId);
         });
-        editPanelFieldsBtn?.addEventListener("click", () => {
-            const layerId = getEditPanelLayerId();
+        layerToolsFieldsBtn?.addEventListener("click", () => {
+            const layerId = layerToolsLayerSelect?.value || getEditPanelLayerId();
             if (layerId) editLayerSchema(layerId);
         });
-        editPanelZoomBtn?.addEventListener("click", () => {
-            const layerId = getEditPanelLayerId();
+        layerToolsZoomBtn?.addEventListener("click", () => {
+            const layerId = layerToolsLayerSelect?.value || getEditPanelLayerId();
             if (layerId) zoomToLayer(layerId);
         });
-        editPanelSaveBtn?.addEventListener("click", () => persistSurveyEditsIfNeeded(true));
-        editPanelUndoBtn?.addEventListener("click", () => performUndo());
-        editPanelRedoBtn?.addEventListener("click", () => performRedo());
         installEditPanelDrag();
-        editFloatingPanel?.addEventListener("pointerenter", () => setDocumentTitleTooltipSuppressed(true));
-        editFloatingPanel?.addEventListener("pointerleave", () => setDocumentTitleTooltipSuppressed(false));
-        editFloatingPanel?.addEventListener("focusin", () => setDocumentTitleTooltipSuppressed(true));
-        editFloatingPanel?.addEventListener("focusout", () => {
-            window.setTimeout(() => {
-                if (!editFloatingPanel?.contains(document.activeElement)) setDocumentTitleTooltipSuppressed(false);
-            }, 0);
+        installLayerToolsDrag();
+        layerToolsCloseBtn?.addEventListener("click", () => setLayerToolsVisibility(false));
+        layerToolsPinBtn?.addEventListener("click", () => {
+            if (!layerToolsPanel) return;
+            if (layerToolsPinned) {
+                undockLayerToolsPanel({ preservePosition: false });
+                layerToolsPanel.style.top = `${(toolbar?.getBoundingClientRect().bottom || 44) + 12}px`;
+                layerToolsPanel.style.right = "18px";
+                layerToolsPanel.style.left = "auto";
+                layerToolsPanel.style.width = "auto";
+                layerToolsPanel.style.transform = "none";
+            } else {
+                dockLayerToolsPanel();
+            }
+            syncEditPanelState();
         });
-        editFloatingPanel?.addEventListener("pointerover", (event) => {
-            const button = event.target.closest(".edit-tool-btn");
-            if (button && editFloatingPanel.contains(button)) showEditToolbarTooltip(button);
-        });
-        editFloatingPanel?.addEventListener("pointermove", (event) => {
-            const button = event.target.closest(".edit-tool-btn");
-            if (button && editFloatingPanel.contains(button)) showEditToolbarTooltip(button);
-        });
-        editFloatingPanel?.addEventListener("pointerout", (event) => {
-            if (!event.relatedTarget || !event.relatedTarget.closest?.(".edit-tool-btn")) hideEditToolbarTooltip();
-        });
-        editFloatingPanel?.addEventListener("focusin", (event) => {
-            const button = event.target.closest(".edit-tool-btn");
-            if (button) showEditToolbarTooltip(button);
-        });
-        editFloatingPanel?.addEventListener("focusout", hideEditToolbarTooltip);
+        function installToolbarTooltipEvents(panel) {
+            panel?.addEventListener("pointerenter", () => setDocumentTitleTooltipSuppressed(true));
+            panel?.addEventListener("pointerleave", () => {
+                setDocumentTitleTooltipSuppressed(false);
+                hideEditToolbarTooltip();
+            });
+            panel?.addEventListener("focusin", () => setDocumentTitleTooltipSuppressed(true));
+            panel?.addEventListener("focusout", () => {
+                window.setTimeout(() => {
+                    if (!panel?.contains(document.activeElement)) setDocumentTitleTooltipSuppressed(false);
+                }, 0);
+                hideEditToolbarTooltip();
+            });
+            panel?.addEventListener("pointerover", (event) => {
+                const button = event.target.closest(".edit-tool-btn");
+                if (button && panel.contains(button)) showEditToolbarTooltip(button);
+            });
+            panel?.addEventListener("pointermove", (event) => {
+                const button = event.target.closest(".edit-tool-btn");
+                if (button && panel.contains(button)) showEditToolbarTooltip(button);
+            });
+            panel?.addEventListener("pointerout", (event) => {
+                if (!event.relatedTarget || !event.relatedTarget.closest?.(".edit-tool-btn")) hideEditToolbarTooltip();
+            });
+            panel?.addEventListener("focusin", (event) => {
+                const button = event.target.closest(".edit-tool-btn");
+                if (button) showEditToolbarTooltip(button);
+            });
+        }
+        installToolbarTooltipEvents(editFloatingPanel);
+        installToolbarTooltipEvents(layerToolsPanel);
         menuOpenEditPanelBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
             openEditPanelForLayer(activeLayerId);
+        });
+        menuToggleEditToolbarBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(false);
+            setEditPanelVisibility(Boolean(editFloatingPanel?.hidden), { layerId: activeLayerId });
+        });
+        menuToggleLayerToolbarBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(false);
+            setLayerToolsVisibility(Boolean(layerToolsPanel?.hidden), { layerId: activeLayerId });
         });
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
