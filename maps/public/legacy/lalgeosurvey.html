@@ -9705,6 +9705,9 @@
         document.addEventListener("pointermove", dragFeatureDrawer);
         document.addEventListener("pointerup", stopFeatureDrawerDrag);
         mapElement?.addEventListener("mousemove", (event) => {
+            if (pointGeometryEditMode && !pointGeometryDragState) {
+                mapElement.style.cursor = findNearestPointAnnotation(event.clientX, event.clientY) ? "grab" : "";
+            }
             if (!mapAddHint || !isAddingSurveyPoint) return;
             mapAddHint.hidden = false;
             mapAddHint.style.left = `${event.clientX}px`;
