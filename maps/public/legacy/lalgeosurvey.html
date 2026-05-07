@@ -5310,6 +5310,7 @@
         let editPanelPinned = false;
         let layerToolsPinned = false;
         let pointGeometryEditMode = false;
+        let pointGeometryDragState = null;
         let editSessionActive = false;
         let undoStack = [];
         let redoStack = [];
@@ -7578,6 +7579,7 @@
         function setPointGeometryEditMode(active) {
             pointGeometryEditMode = Boolean(active);
             document.body.classList.toggle("point-geometry-editing", pointGeometryEditMode);
+            if (!pointGeometryEditMode) pointGeometryDragState = null;
             surveyAnnotations.forEach((annotation) => {
                 if (!annotation?.surveyPoint) return;
                 try {
@@ -7591,6 +7593,141 @@
             });
             if (!pointGeometryEditMode) mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             syncEditPanelState();
+        }
+
+        function getAnnotationElement(annotation) {
+            return annotation?.element || annotation?._element || annotation?.annotationElement || null;
+        }
+
+        function findSurveyAnnotationFromTarget(target) {
+            if (!target) return null;
+            const annotationElement = target.closest?.(".mapkit-annotation");
+            return surveyAnnotations.find((annotation) => {
+                const element = getAnnotationElement(annotation);
+                if (!element) return false;
+                return element === annotationElement || element.contains(target) || annotationElement?.contains(element);
+            }) || null;
+        }
+
+        function updateLocalPointGeometry(annotation, coord) {
+            const rowIndex = annotation?.surveyPoint?.rowIndex;
+            if (!Number.isInteger(rowIndex) || !currentSurveyData?.records?.[rowIndex]) return false;
+            currentSurveyData.records[rowIndex][currentSurveyData.latKey] = coord.latitude;
+            currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.longitude;
+            const layer = getActiveLayerRecord();
+            if (layer?.features?.[rowIndex]) {
+                layer.features[rowIndex].geometry = { type: "Point", lat: coord.latitude, lng: coord.longitude };
+                layer.features[rowIndex].attributes.Latitude = coord.latitude;
+                layer.features[rowIndex].attributes.Longitude = coord.longitude;
+            }
+            annotation.surveyPoint.coordinate = coord;
+            rowAnnotationMap.set(rowIndex, annotation);
+            return true;
+        }
+
+        async function commitPointGeometryMove(annotation, start, coord) {
+            if (!annotation?.surveyPoint || !coord || !start) return;
+            const rowIndex = annotation.surveyPoint.rowIndex;
+            if (!Number.isInteger(rowIndex) || !currentSurveyData?.records?.[rowIndex]) return;
+            const delta = Math.abs(coord.latitude - start.lat) + Math.abs(coord.longitude - start.lon);
+            if (delta < 1e-9) return;
+            if (isDropboxSurvey()) {
+                try {
+                    const meta = getPointMeta(rowIndex);
+                    if (!meta?.id) throw new Error("Missing Dropbox point metadata.");
+                    const response = await updateDropboxPointRequest(meta.id, {
+                        version: meta.version,
+                        lat: coord.latitude,
+                        lon: coord.longitude,
+                        updatedBy: getDropboxUpdatedBy()
+                    });
+                    applyPointToRow(rowIndex, response.point);
+                    annotation.surveyPoint.coordinate = coord;
+                    rowAnnotationMap.set(rowIndex, annotation);
+                    updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
+                    markSurveyDirty();
+                    setProjectStatus("Point moved on Dropbox.", "success");
+                    updateSurveyTable();
+                } catch (error) {
+                    console.error(error);
+                    setProjectStatus(error.message || "Unable to move point on Dropbox.", "error");
+                    annotation.coordinate = new mapkit.Coordinate(start.lat, start.lon);
+                    annotation.surveyPoint.coordinate = annotation.coordinate;
+                    updateSurveyTable();
+                }
+                return;
+            }
+            if (!updateLocalPointGeometry(annotation, coord)) return;
+            recordAction({
+                type: "move",
+                rowIndex,
+                featureId: annotation.surveyPoint?.pointId || getActiveLayerRecord()?.features?.[rowIndex]?.id || null,
+                from: start,
+                to: { lat: coord.latitude, lon: coord.longitude }
+            });
+            pendingChanges = true;
+            updateSurveyTable();
+            setProjectStatus("Point moved.", "success");
+        }
+
+        function startPointGeometryDrag(event) {
+            if (!pointGeometryEditMode || !map || event.button > 0) return;
+            const annotation = findSurveyAnnotationFromTarget(event.target);
+            if (!annotation?.surveyPoint) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            suppressMapTapFor(900);
+            hideSurveyCallout();
+            closeFeatureDrawer();
+            activeSurveyAnnotation = annotation;
+            activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            refreshAnnotationStyles();
+            try {
+                annotation.selected = false;
+            } catch {}
+            pointGeometryDragState = {
+                annotation,
+                pointerId: event.pointerId,
+                start: {
+                    lat: annotation.coordinate.latitude,
+                    lon: annotation.coordinate.longitude
+                },
+                moved: false
+            };
+            mapElement.setPointerCapture?.(event.pointerId);
+            mapElement.style.cursor = "grabbing";
+            const element = getAnnotationElement(annotation);
+            if (element) element.style.cursor = "grabbing";
+        }
+
+        function dragPointGeometry(event) {
+            if (!pointGeometryDragState || pointGeometryDragState.pointerId !== event.pointerId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            const coord = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX, event.clientY));
+            if (!coord) return;
+            const { annotation } = pointGeometryDragState;
+            annotation.coordinate = coord;
+            annotation.surveyPoint.coordinate = coord;
+            pointGeometryDragState.moved = true;
+        }
+
+        function stopPointGeometryDrag(event) {
+            if (!pointGeometryDragState || pointGeometryDragState.pointerId !== event.pointerId) return;
+            event.preventDefault();
+            event.stopPropagation();
+            event.stopImmediatePropagation?.();
+            const state = pointGeometryDragState;
+            pointGeometryDragState = null;
+            mapElement.releasePointerCapture?.(event.pointerId);
+            mapElement.style.cursor = "";
+            const element = getAnnotationElement(state.annotation);
+            if (element) element.style.cursor = pointGeometryEditMode ? "grab" : "";
+            if (state.moved) {
+                void commitPointGeometryMove(state.annotation, state.start, state.annotation.coordinate);
+            }
         }
 
         function refreshAnnotationStyles() {
@@ -9553,6 +9690,10 @@
             mapAddHint.style.left = `${event.clientX}px`;
             mapAddHint.style.top = `${event.clientY}px`;
         });
+        mapElement?.addEventListener("pointerdown", startPointGeometryDrag, true);
+        mapElement?.addEventListener("pointermove", dragPointGeometry, true);
+        mapElement?.addEventListener("pointerup", stopPointGeometryDrag, true);
+        mapElement?.addEventListener("pointercancel", stopPointGeometryDrag, true);
 
         toggleImportBtn?.addEventListener("click", () => {
             setImportPanelVisibility(!isImportPanelVisible);
@@ -13194,52 +13335,7 @@ function setImportPanelVisibility(show) {
                 if (pointGeometryEditMode) mapElement.style.cursor = "";
                 const coord = event?.annotation?.coordinate || annotation.coordinate;
                 const start = annotation._dragStart;
-                if (!coord || !start) return;
-                const delta = Math.abs(coord.latitude - start.lat) + Math.abs(coord.longitude - start.lon);
-                if (delta < 1e-9) return;
-                const rowIndex = annotation.surveyPoint?.rowIndex;
-                if (!Number.isInteger(rowIndex) || !currentSurveyData?.records?.[rowIndex]) return;
-                if (isDropboxSurvey()) {
-                    (async () => {
-                        try {
-                            const meta = getPointMeta(rowIndex);
-                            if (!meta?.id) throw new Error("Missing Dropbox point metadata.");
-                            const response = await updateDropboxPointRequest(meta.id, {
-                                version: meta.version,
-                                lat: coord.latitude,
-                                lon: coord.longitude,
-                                updatedBy: getDropboxUpdatedBy()
-                            });
-                            applyPointToRow(rowIndex, response.point);
-                            annotation.surveyPoint.coordinate = coord;
-                            rowAnnotationMap.set(rowIndex, annotation);
-                            updateSurveyDocumentMetadata(response.version, response.point.updatedBy, response.point.updatedAt);
-                            markSurveyDirty();
-                            setProjectStatus("Point moved on Dropbox.", "success");
-                            updateSurveyTable();
-                        } catch (error) {
-                            console.error(error);
-                            setProjectStatus(error.message || "Unable to move point on Dropbox.", "error");
-                            annotation.coordinate = new mapkit.Coordinate(start.lat, start.lon);
-                            annotation.surveyPoint.coordinate = annotation.coordinate;
-                            updateSurveyTable();
-                        }
-                    })();
-                    return;
-                }
-                currentSurveyData.records[rowIndex][currentSurveyData.latKey] = coord.latitude;
-                currentSurveyData.records[rowIndex][currentSurveyData.lonKey] = coord.longitude;
-                annotation.surveyPoint.coordinate = coord;
-                rowAnnotationMap.set(rowIndex, annotation);
-                recordAction({
-                    type: "move",
-                    rowIndex,
-                    featureId: annotation.surveyPoint?.pointId || getActiveLayerRecord()?.features?.[rowIndex]?.id || null,
-                    from: start,
-                    to: { lat: coord.latitude, lon: coord.longitude }
-                });
-                pendingChanges = true;
-                updateSurveyTable();
+                void commitPointGeometryMove(annotation, start, coord);
             });
         }
 
