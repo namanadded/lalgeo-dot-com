@@ -827,6 +827,12 @@
         border-left: 1px solid #e5e7eb;
         margin: 2px 0 4px 8px;
     }
+    body.point-geometry-editing #map .mapkit-annotation {
+        cursor: grab !important;
+    }
+    body.point-geometry-editing #map .mapkit-annotation:active {
+        cursor: grabbing !important;
+    }
     @media (max-width: 700px) {
         .floating-toolbar {
             top: 88px;
@@ -6840,7 +6846,7 @@
             editSessionActive = Boolean(nextActive);
             if (!editSessionActive) {
                 if (isAddingSurveyPoint) toggleAddSurveyPointMode();
-                pointGeometryEditMode = false;
+                setPointGeometryEditMode(false);
                 if (tableEditMode) {
                     tableEditMode = false;
                     tableEditBtn?.classList.remove("active");
@@ -6894,11 +6900,11 @@
             if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
             const geometryType = getActiveLayerGeometryType();
             if (geometryType === "point") {
-                pointGeometryEditMode = true;
+                setPointGeometryEditMode(true);
                 setProjectStatus("Drag point markers on the map to edit geometry.", "success");
                 showWorkspaceHint("Point geometry edit is active. Drag a point marker to move it to a new location.");
             } else {
-                pointGeometryEditMode = false;
+                setPointGeometryEditMode(false);
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} drawing is active.`, "success");
             }
@@ -7567,6 +7573,24 @@
             if (!isNew) {
                 annotation.surveyPoint.isNew = false;
             }
+        }
+
+        function setPointGeometryEditMode(active) {
+            pointGeometryEditMode = Boolean(active);
+            document.body.classList.toggle("point-geometry-editing", pointGeometryEditMode);
+            surveyAnnotations.forEach((annotation) => {
+                if (!annotation?.surveyPoint) return;
+                try {
+                    annotation.draggable = pointGeometryEditMode || normalizeLayerGeometryType(getActiveLayerRecord()?.geometryType || "point") === "point";
+                } catch {}
+                const element = annotation.element || annotation._element || null;
+                if (element) {
+                    element.style.cursor = pointGeometryEditMode ? "grab" : "";
+                    element.setAttribute("draggable", pointGeometryEditMode ? "true" : "false");
+                }
+            });
+            if (!pointGeometryEditMode) mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
+            syncEditPanelState();
         }
 
         function refreshAnnotationStyles() {
@@ -11771,10 +11795,12 @@
                 };
                 marker.addEventListener?.("mouseenter", () => {
                     hoveredFeatureId = marker.surveyPoint.pointId || marker.surveyPoint.rowIndex;
+                    if (pointGeometryEditMode && marker.element) marker.element.style.cursor = "grab";
                     updateAnnotationVisualState(marker);
                 });
                 marker.addEventListener?.("mouseleave", () => {
                     hoveredFeatureId = null;
+                    if (marker.element) marker.element.style.cursor = pointGeometryEditMode ? "grab" : "";
                     updateAnnotationVisualState(marker);
                 });
                 surveyAnnotations.push(marker);
@@ -13154,12 +13180,18 @@ function setImportPanelVisibility(show) {
                 annotation.draggable = true;
             } catch {}
             annotation.addEventListener?.("dragstart", () => {
+                if (pointGeometryEditMode) {
+                    hideSurveyCallout();
+                    closeFeatureDrawer();
+                    mapElement.style.cursor = "grabbing";
+                }
                 annotation._dragStart = {
                     lat: annotation.coordinate.latitude,
                     lon: annotation.coordinate.longitude
                 };
             });
             annotation.addEventListener?.("dragend", (event) => {
+                if (pointGeometryEditMode) mapElement.style.cursor = "";
                 const coord = event?.annotation?.coordinate || annotation.coordinate;
                 const start = annotation._dragStart;
                 if (!coord || !start) return;
@@ -13456,6 +13488,17 @@ function setImportPanelVisibility(show) {
 
         map.addEventListener("select", (event) => {
             if (event?.annotation?.surveyPoint) {
+                if (pointGeometryEditMode) {
+                    activeSurveyAnnotation = event.annotation;
+                    activeFeatureId = event.annotation.surveyPoint.pointId || event.annotation.surveyPoint.rowIndex;
+                    hideSurveyCallout();
+                    refreshAnnotationStyles();
+                    try {
+                        event.annotation.selected = false;
+                    } catch {}
+                    setProjectStatus("Drag the point marker to move it.", "success");
+                    return;
+                }
                 showSurveyCallout(event.annotation);
                 return;
             } else {
