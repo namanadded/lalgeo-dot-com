@@ -495,6 +495,137 @@
         height: 24px;
         display: block;
     }
+    #editFloatingPanel {
+        position: absolute;
+        right: 18px;
+        top: 58px;
+        z-index: 1160;
+        width: min(320px, calc(100vw - 28px));
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.98);
+        border: 1px solid rgba(203, 213, 225, 0.92);
+        box-shadow: 0 18px 46px rgba(15, 23, 42, 0.22);
+        color: #4b5563;
+        overflow: hidden;
+    }
+    #editFloatingPanel[hidden] {
+        display: none;
+    }
+    #editFloatingPanel.pinned {
+        top: 48px !important;
+        left: 50% !important;
+        right: auto !important;
+        transform: translateX(-50%);
+    }
+    .edit-panel-header {
+        height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 0 10px 0 14px;
+        border-bottom: 1px solid #e5e7eb;
+        background: #fff;
+        cursor: grab;
+        user-select: none;
+    }
+    .edit-panel-header:active {
+        cursor: grabbing;
+    }
+    .edit-panel-title {
+        font-size: 14px;
+        font-weight: 800;
+        color: #374151;
+    }
+    .edit-panel-actions {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+    }
+    .edit-panel-icon-btn {
+        width: 26px;
+        height: 26px;
+        border: 1px solid rgba(203, 213, 225, 0.9);
+        border-radius: 999px;
+        background: #fff;
+        color: #6b7280;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        font-size: 14px;
+        line-height: 1;
+    }
+    .edit-panel-icon-btn:hover,
+    .edit-panel-icon-btn:focus-visible,
+    .edit-panel-icon-btn.active {
+        background: #f3f4f6;
+        color: #374151;
+        outline: none;
+    }
+    .edit-panel-body {
+        padding: 12px;
+        display: grid;
+        gap: 10px;
+    }
+    .edit-panel-field {
+        display: grid;
+        gap: 6px;
+    }
+    .edit-panel-field label {
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .edit-panel-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        padding: 9px 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        background: #f9fafb;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .edit-panel-status-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: #9ca3af;
+        box-shadow: 0 0 0 4px rgba(156, 163, 175, 0.18);
+    }
+    .edit-panel-status.editing .edit-panel-status-dot {
+        background: #14b8a6;
+        box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.18);
+    }
+    .edit-panel-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+    .edit-panel-grid .mini-btn {
+        min-height: 38px;
+        justify-content: center;
+        text-align: center;
+    }
+    .edit-panel-grid .mini-btn.active {
+        background: #e6fffb;
+        color: #0f766e;
+        border-color: rgba(20, 184, 166, 0.4);
+    }
+    .edit-panel-wide {
+        grid-column: 1 / -1;
+    }
+    .edit-panel-helper {
+        margin: 0;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
+    }
     .look-around-drop-marker {
         position: relative;
         width: 28px;
@@ -3743,6 +3874,11 @@
             width: 44px;
             height: 44px;
         }
+        #editFloatingPanel {
+            top: 88px;
+            right: 10px;
+            width: min(300px, calc(100vw - 20px));
+        }
     }
 
     #toolbar {
@@ -4226,6 +4362,10 @@
                 </button>
             </div>
             <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-expanded="false">&lt;</button>
+            <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
+                <span class="quick-action-icon" aria-hidden="true">✎</span>
+                <span class="quick-action-label">Edit</span>
+            </button>
             <div class="search-pill collapsed" id="toolbarSearchShell">
                 <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
@@ -4281,6 +4421,7 @@
             <button id="printButton" type="button" class="menu-command"><span>Print Map</span><span class="menu-shortcut" data-shortcut="print"></span></button>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="edit" hidden>
+            <button id="menuOpenEditPanelBtn" type="button" class="menu-command"><span>Open Edit Panel</span></button>
             <button id="menuUndoBtn" type="button" class="menu-command"><span>Undo</span><span class="menu-shortcut" data-shortcut="undo"></span></button>
             <button id="menuRedoBtn" type="button" class="menu-command"><span>Redo</span><span class="menu-shortcut" data-shortcut="redo"></span></button>
             <button id="menuCutBtn" type="button" class="menu-command" disabled><span>Cut</span></button>
@@ -4301,6 +4442,38 @@
         <div class="menu-dropdown-section" data-menu-pane="help" hidden></div>
     </div>
     <div class="map-controls"></div>
+    <div id="editFloatingPanel" hidden aria-label="Edit panel">
+        <div id="editPanelDragHandle" class="edit-panel-header">
+            <span class="edit-panel-title">Edit</span>
+            <span class="edit-panel-actions">
+                <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Pin edit panel to top" title="Pin to top">⌃</button>
+                <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit panel" title="Close">×</button>
+            </span>
+        </div>
+        <div class="edit-panel-body">
+            <div id="editPanelStatus" class="edit-panel-status">
+                <span><span class="edit-panel-status-dot" aria-hidden="true"></span> <span id="editPanelStatusText">Editing stopped</span></span>
+                <button id="editPanelSessionBtn" type="button" class="mini-btn primary">Start</button>
+            </div>
+            <div class="edit-panel-field">
+                <label for="editPanelLayerSelect">Layer</label>
+                <select id="editPanelLayerSelect" class="workspace-text-input"></select>
+            </div>
+            <div class="edit-panel-grid">
+                <button id="editPanelAddFeatureBtn" type="button" class="mini-btn primary">+ Add</button>
+                <button id="editPanelEditExistingBtn" type="button" class="mini-btn">Edit existing</button>
+                <button id="editPanelGeometryBtn" type="button" class="mini-btn">Edit geometry</button>
+                <button id="editPanelAddLayerBtn" type="button" class="mini-btn">+ Layer</button>
+                <button id="editPanelPropertiesBtn" type="button" class="mini-btn">Layer properties</button>
+                <button id="editPanelFieldsBtn" type="button" class="mini-btn">Fields</button>
+                <button id="editPanelZoomBtn" type="button" class="mini-btn">Zoom</button>
+                <button id="editPanelSaveBtn" type="button" class="mini-btn">Save</button>
+                <button id="editPanelUndoBtn" type="button" class="mini-btn">Undo</button>
+                <button id="editPanelRedoBtn" type="button" class="mini-btn">Redo</button>
+            </div>
+            <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
+        </div>
+    </div>
     <div id="lookAroundPreview" hidden aria-label="Look Around preview">
         <div id="lookAroundDragHandle" class="look-around-panel-header">
             <span class="look-around-panel-title">Look Around</span>
@@ -4532,6 +4705,7 @@
     </div>
     <div id="layerContextMenu" hidden>
         <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set active layer</button>
+        <button type="button" class="context-menu-btn" data-layer-context-action="edit">Edit layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer properties</button>
@@ -4751,6 +4925,26 @@
         const lookAroundFullscreenBtn = document.getElementById("lookAroundFullscreenBtn");
         const lookAroundCloseBtn = document.getElementById("lookAroundCloseBtn");
         const streetViewDropBtn = document.getElementById("streetViewDropBtn");
+        const editPanelToggleBtn = document.getElementById("editPanelToggleBtn");
+        const editFloatingPanel = document.getElementById("editFloatingPanel");
+        const editPanelDragHandle = document.getElementById("editPanelDragHandle");
+        const editPanelPinBtn = document.getElementById("editPanelPinBtn");
+        const editPanelCloseBtn = document.getElementById("editPanelCloseBtn");
+        const editPanelStatus = document.getElementById("editPanelStatus");
+        const editPanelStatusText = document.getElementById("editPanelStatusText");
+        const editPanelSessionBtn = document.getElementById("editPanelSessionBtn");
+        const editPanelLayerSelect = document.getElementById("editPanelLayerSelect");
+        const editPanelAddFeatureBtn = document.getElementById("editPanelAddFeatureBtn");
+        const editPanelEditExistingBtn = document.getElementById("editPanelEditExistingBtn");
+        const editPanelGeometryBtn = document.getElementById("editPanelGeometryBtn");
+        const editPanelAddLayerBtn = document.getElementById("editPanelAddLayerBtn");
+        const editPanelPropertiesBtn = document.getElementById("editPanelPropertiesBtn");
+        const editPanelFieldsBtn = document.getElementById("editPanelFieldsBtn");
+        const editPanelZoomBtn = document.getElementById("editPanelZoomBtn");
+        const editPanelSaveBtn = document.getElementById("editPanelSaveBtn");
+        const editPanelUndoBtn = document.getElementById("editPanelUndoBtn");
+        const editPanelRedoBtn = document.getElementById("editPanelRedoBtn");
+        const editPanelHelp = document.getElementById("editPanelHelp");
         const dataCatalogPane = document.getElementById("dataCatalogPane");
         const closeDataPaneBtn = document.getElementById("closeDataPaneBtn");
         const dataCatalogTableBody = document.getElementById("dataCatalogTableBody");
@@ -4766,6 +4960,7 @@
         const shareButton = document.getElementById("shareMapBtn");
         const logoBadge = document.getElementById("logoBadge");
         const menuAddNewBtn = document.getElementById("menuAddNewBtn");
+        const menuOpenEditPanelBtn = document.getElementById("menuOpenEditPanelBtn");
         const menuUndoBtn = document.getElementById("menuUndoBtn");
         const menuRedoBtn = document.getElementById("menuRedoBtn");
         const menuToggleLayersBtn = document.getElementById("menuToggleLayersBtn");
@@ -4839,6 +5034,8 @@
             }
         }
         let isImportPanelVisible = false;
+        let editPanelPinned = false;
+        let editSessionActive = false;
         let undoStack = [];
         let redoStack = [];
         let pendingChanges = false;
@@ -5639,6 +5836,7 @@
             const hasProject = Boolean(activeProjectRecord);
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
             const commandState = [
+                [menuOpenEditPanelBtn, hasProject],
                 [menuAddNewBtn, hasEditingSession],
                 [menuNewLayerBtn, hasProject],
                 [menuUndoBtn, undoStack.length > 0],
@@ -6192,6 +6390,204 @@
                 layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
             }
             positionContextMenuNearElement(layerContextMenu, element);
+        }
+
+        function getEditPanelLayerId() {
+            return editPanelLayerSelect?.value || activeLayerId || activeProjectRecord?.layers?.[0]?.id || "";
+        }
+
+        function renderEditPanelLayerOptions(selectedLayerId = getEditPanelLayerId()) {
+            if (!editPanelLayerSelect) return;
+            const layers = activeProjectRecord?.layers || [];
+            if (!layers.length) {
+                editPanelLayerSelect.innerHTML = `<option value="">No layers</option>`;
+                editPanelLayerSelect.disabled = true;
+                return;
+            }
+            const targetLayerId = layers.some((layer) => layer.id === selectedLayerId)
+                ? selectedLayerId
+                : (activeLayerId || layers[0].id);
+            editPanelLayerSelect.disabled = layers.length <= 1;
+            editPanelLayerSelect.innerHTML = layers.map((layer) => `
+                <option value="${escapeHtml(layer.id)}" ${layer.id === targetLayerId ? "selected" : ""}>${escapeHtml(layer.name)}</option>
+            `).join("");
+        }
+
+        function syncEditPanelState() {
+            const layerId = getEditPanelLayerId();
+            const layer = layerId ? getLayerById(layerId) : null;
+            const canEdit = Boolean(activeProjectRecord && layer && currentSurveyData && !isArchiveView);
+            renderEditPanelLayerOptions(layerId);
+            editPanelToggleBtn?.classList.toggle("active", Boolean(editFloatingPanel && !editFloatingPanel.hidden));
+            editPanelToggleBtn?.setAttribute("aria-expanded", editFloatingPanel && !editFloatingPanel.hidden ? "true" : "false");
+            editPanelPinBtn?.classList.toggle("active", editPanelPinned);
+            if (editPanelStatus) editPanelStatus.classList.toggle("editing", editSessionActive);
+            if (editPanelStatusText) editPanelStatusText.textContent = editSessionActive ? "Editing active" : "Editing stopped";
+            if (editPanelSessionBtn) editPanelSessionBtn.textContent = editSessionActive ? "Stop" : "Start";
+            if (editPanelAddFeatureBtn) editPanelAddFeatureBtn.disabled = !canEdit;
+            if (editPanelEditExistingBtn) editPanelEditExistingBtn.disabled = !canEdit;
+            if (editPanelGeometryBtn) editPanelGeometryBtn.disabled = !canEdit;
+            if (editPanelAddLayerBtn) editPanelAddLayerBtn.disabled = !activeProjectRecord;
+            if (editPanelPropertiesBtn) editPanelPropertiesBtn.disabled = !layer;
+            if (editPanelFieldsBtn) editPanelFieldsBtn.disabled = !layer;
+            if (editPanelZoomBtn) editPanelZoomBtn.disabled = !layer;
+            if (editPanelSessionBtn) editPanelSessionBtn.disabled = !layer || !activeProjectRecord;
+            if (editPanelSaveBtn) editPanelSaveBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
+            if (editPanelUndoBtn) editPanelUndoBtn.disabled = !undoStack.length;
+            if (editPanelRedoBtn) editPanelRedoBtn.disabled = !redoStack.length;
+            editPanelAddFeatureBtn?.classList.toggle("active", isAddingSurveyPoint);
+            editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
+            if (editPanelHelp) {
+                const geometryType = layer?.geometryType || getActiveLayerGeometryType();
+                editPanelHelp.textContent = editSessionActive
+                    ? `${layer?.name || "Layer"} is ready. Add new ${geometryType} features, edit attributes, or drag point markers to adjust geometry.`
+                    : "Choose a layer and start editing to add or modify features.";
+            }
+        }
+
+        function setEditPanelVisibility(show, { layerId = null } = {}) {
+            if (!editFloatingPanel) return;
+            if (show && !activeProjectRecord) {
+                setProjectStatus("Create or open a project before editing.", "error");
+                openCreateProjectModal();
+                return;
+            }
+            editFloatingPanel.hidden = !show;
+            if (show) {
+                const targetLayerId = layerId || getEditPanelLayerId();
+                renderEditPanelLayerOptions(targetLayerId);
+                if (targetLayerId && targetLayerId !== activeLayerId) {
+                    switchToLayer(targetLayerId, { revealTable: false });
+                }
+                syncEditPanelState();
+            } else {
+                syncEditPanelState();
+            }
+        }
+
+        function openEditPanelForLayer(layerId = activeLayerId) {
+            setEditPanelVisibility(true, { layerId });
+        }
+
+        function setEditSessionActive(nextActive) {
+            if (!activeProjectRecord || !getEditPanelLayerId()) {
+                setProjectStatus("Open a project with an editable layer first.", "error");
+                syncEditPanelState();
+                return;
+            }
+            const layerId = getEditPanelLayerId();
+            if (layerId && layerId !== activeLayerId) {
+                switchToLayer(layerId, { revealTable: false });
+            }
+            editSessionActive = Boolean(nextActive);
+            if (!editSessionActive) {
+                if (isAddingSurveyPoint) toggleAddSurveyPointMode();
+                if (tableEditMode) {
+                    tableEditMode = false;
+                    tableEditBtn?.classList.remove("active");
+                    if (tableEditBtn) tableEditBtn.textContent = "Edit";
+                    updateSurveyTable();
+                }
+                hideWorkspaceHint();
+                setProjectStatus("Editing stopped.", "success");
+            } else {
+                setProjectStatus("Editing started. Choose an edit action from the panel.", "success");
+            }
+            syncEditPanelState();
+        }
+
+        function ensureEditSessionStarted() {
+            if (!editSessionActive) setEditSessionActive(true);
+            return editSessionActive;
+        }
+
+        function openActiveLayerTableForEditing() {
+            const layerId = getEditPanelLayerId();
+            if (!layerId || !ensureEditSessionStarted()) return;
+            if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
+            setSurveyTableVisibility(true);
+            surveyTablePanel?.classList.add("open");
+            if (surveyTableWrapper) surveyTableWrapper.hidden = false;
+            if (surveyTableToggleIcon) surveyTableToggleIcon.textContent = "▼";
+            if (surveyTableToggleLabel) surveyTableToggleLabel.textContent = "Close table";
+            if (!tableEditMode && tableEditBtn && !tableEditBtn.hidden) tableEditBtn.click();
+            updateSurveyTable();
+            updateFloatingButtonLayer(true);
+            setProjectStatus("Attribute editing is active.", "success");
+            syncEditPanelState();
+        }
+
+        function startEditPanelAddFeature() {
+            const layerId = getEditPanelLayerId();
+            if (!layerId || !ensureEditSessionStarted()) return;
+            if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
+            if (!currentSurveyData) {
+                setProjectStatus("Open a layer before adding features.", "error");
+                return;
+            }
+            if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+            syncEditPanelState();
+        }
+
+        function startEditPanelGeometryEdit() {
+            const layerId = getEditPanelLayerId();
+            if (!layerId || !ensureEditSessionStarted()) return;
+            if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
+            const geometryType = getActiveLayerGeometryType();
+            if (geometryType === "point") {
+                setProjectStatus("Drag point markers on the map to edit geometry.", "success");
+                showWorkspaceHint("Drag point markers to adjust their location. Use Undo if you need to revert a move.");
+            } else {
+                if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+                setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} drawing is active.`, "success");
+            }
+            syncEditPanelState();
+        }
+
+        function clampFloatingPanelToMap(panel) {
+            if (!panel || !mapElement) return;
+            const mapRect = mapElement.getBoundingClientRect();
+            const rect = panel.getBoundingClientRect();
+            const left = Math.max(mapRect.left + 8, Math.min(rect.left, mapRect.right - rect.width - 8));
+            const top = Math.max(mapRect.top + 8, Math.min(rect.top, mapRect.bottom - rect.height - 8));
+            panel.style.left = `${left}px`;
+            panel.style.top = `${top}px`;
+            panel.style.right = "auto";
+            panel.style.transform = "none";
+        }
+
+        function installEditPanelDrag() {
+            if (!editFloatingPanel || !editPanelDragHandle) return;
+            let drag = null;
+            editPanelDragHandle.addEventListener("pointerdown", (event) => {
+                if (event.target.closest("button, select, input")) return;
+                editPanelPinned = false;
+                editFloatingPanel.classList.remove("pinned");
+                syncEditPanelState();
+                const rect = editFloatingPanel.getBoundingClientRect();
+                drag = {
+                    offsetX: event.clientX - rect.left,
+                    offsetY: event.clientY - rect.top
+                };
+                editPanelDragHandle.setPointerCapture?.(event.pointerId);
+                event.preventDefault();
+            });
+            editPanelDragHandle.addEventListener("pointermove", (event) => {
+                if (!drag) return;
+                editFloatingPanel.style.left = `${event.clientX - drag.offsetX}px`;
+                editFloatingPanel.style.top = `${event.clientY - drag.offsetY}px`;
+                editFloatingPanel.style.right = "auto";
+                editFloatingPanel.style.transform = "none";
+                clampFloatingPanelToMap(editFloatingPanel);
+            });
+            const endDrag = (event) => {
+                if (!drag) return;
+                drag = null;
+                editPanelDragHandle.releasePointerCapture?.(event.pointerId);
+                clampFloatingPanelToMap(editFloatingPanel);
+            };
+            editPanelDragHandle.addEventListener("pointerup", endDrag);
+            editPanelDragHandle.addEventListener("pointercancel", endDrag);
         }
 
         function installLongPressContextMenu(container, selector, getId, openMenu) {
@@ -7972,9 +8368,58 @@
             rightToolbarExpandBtn.classList.toggle("active", expanded);
             rightToolbarExpandBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
         });
+        editPanelToggleBtn?.addEventListener("click", (event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            setEditPanelVisibility(Boolean(editFloatingPanel?.hidden));
+        });
+        editPanelCloseBtn?.addEventListener("click", () => setEditPanelVisibility(false));
+        editPanelPinBtn?.addEventListener("click", () => {
+            if (!editFloatingPanel) return;
+            editPanelPinned = !editPanelPinned;
+            editFloatingPanel.classList.toggle("pinned", editPanelPinned);
+            if (editPanelPinned) {
+                editFloatingPanel.style.left = "";
+                editFloatingPanel.style.right = "";
+                editFloatingPanel.style.transform = "";
+            } else {
+                clampFloatingPanelToMap(editFloatingPanel);
+            }
+            syncEditPanelState();
+        });
+        editPanelLayerSelect?.addEventListener("change", () => {
+            const layerId = getEditPanelLayerId();
+            if (layerId) switchToLayer(layerId, { revealTable: false });
+            syncEditPanelState();
+        });
+        editPanelSessionBtn?.addEventListener("click", () => setEditSessionActive(!editSessionActive));
+        editPanelAddFeatureBtn?.addEventListener("click", startEditPanelAddFeature);
+        editPanelEditExistingBtn?.addEventListener("click", openActiveLayerTableForEditing);
+        editPanelGeometryBtn?.addEventListener("click", startEditPanelGeometryEdit);
+        editPanelAddLayerBtn?.addEventListener("click", addLayerToActiveProject);
+        editPanelPropertiesBtn?.addEventListener("click", () => {
+            const layerId = getEditPanelLayerId();
+            if (layerId) editLayerProperties(layerId);
+        });
+        editPanelFieldsBtn?.addEventListener("click", () => {
+            const layerId = getEditPanelLayerId();
+            if (layerId) editLayerSchema(layerId);
+        });
+        editPanelZoomBtn?.addEventListener("click", () => {
+            const layerId = getEditPanelLayerId();
+            if (layerId) zoomToLayer(layerId);
+        });
+        editPanelSaveBtn?.addEventListener("click", () => persistSurveyEditsIfNeeded(true));
+        editPanelUndoBtn?.addEventListener("click", () => performUndo());
+        editPanelRedoBtn?.addEventListener("click", () => performRedo());
+        installEditPanelDrag();
+        menuOpenEditPanelBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(false);
+            openEditPanelForLayer(activeLayerId);
+        });
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
-            const onToolbarMenuButton = [sidebarToggleBtn, leftToolbarExpandBtn, rightToolbarExpandBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn]
+            const onToolbarMenuButton = [sidebarToggleBtn, leftToolbarExpandBtn, rightToolbarExpandBtn, editPanelToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn]
                 .some((button) => button?.contains(event.target));
             const insideSettingsPanel = settingsPanel?.contains(event.target);
             const onSettingsButton = menuSettingsBtn?.contains(event.target);
@@ -8167,6 +8612,10 @@
             if (!layerId) return;
             if (action === "activate") {
                 switchToLayer(layerId, { revealTable: false });
+                return;
+            }
+            if (action === "edit") {
+                openEditPanelForLayer(layerId);
                 return;
             }
             if (action === "open") {
@@ -8536,6 +8985,7 @@
                 renderFeatureDrawer();
             }
             updateSurveyTable();
+            syncEditPanelState();
         });
         archiveToggleBtn.addEventListener("click", () => {
             if (!currentSurveyData) return;
@@ -8587,6 +9037,7 @@
                 }
                 setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} drawing`} cancelled.`, "success");
             }
+            syncEditPanelState();
         }
 
         function convertSurveyDocumentToParsed(doc) {
@@ -12174,6 +12625,7 @@ function setImportPanelVisibility(show) {
             if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
             updateWorkspaceContext();
             updateCommandAvailability();
+            syncEditPanelState();
         }
 
         function renderSurveyFieldControls() {
