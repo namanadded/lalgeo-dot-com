@@ -500,32 +500,36 @@
         right: 18px;
         top: 58px;
         z-index: 1160;
-        width: min(320px, calc(100vw - 28px));
-        border-radius: 16px;
+        width: auto;
+        max-width: min(760px, calc(100vw - 28px));
+        border-radius: 14px;
         background: rgba(255, 255, 255, 0.98);
         border: 1px solid rgba(203, 213, 225, 0.92);
         box-shadow: 0 18px 46px rgba(15, 23, 42, 0.22);
         color: #4b5563;
-        overflow: hidden;
+        overflow: visible;
     }
     #editFloatingPanel[hidden] {
         display: none;
     }
-    #editFloatingPanel.pinned {
-        top: 48px !important;
-        left: 50% !important;
+    #editFloatingPanel.docked {
+        left: 12px !important;
+        right: 12px !important;
+        max-width: none;
         right: auto !important;
-        transform: translateX(-50%);
+        transform: none !important;
+        border-radius: 0 0 14px 14px;
     }
     .edit-panel-header {
-        height: 38px;
+        min-height: 36px;
         display: flex;
         align-items: center;
         justify-content: space-between;
         gap: 10px;
-        padding: 0 10px 0 14px;
+        padding: 5px 8px 0 10px;
         border-bottom: 1px solid #e5e7eb;
         background: #fff;
+        border-radius: inherit;
         cursor: grab;
         user-select: none;
     }
@@ -533,9 +537,23 @@
         cursor: grabbing;
     }
     .edit-panel-title {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
         font-size: 14px;
         font-weight: 800;
         color: #374151;
+    }
+    .edit-panel-title::before {
+        content: "";
+        width: 14px;
+        height: 14px;
+        border-radius: 4px;
+        background:
+            radial-gradient(circle at 3px 3px, #9ca3af 1.8px, transparent 2px),
+            radial-gradient(circle at 10px 3px, #9ca3af 1.8px, transparent 2px),
+            radial-gradient(circle at 3px 10px, #9ca3af 1.8px, transparent 2px),
+            radial-gradient(circle at 10px 10px, #9ca3af 1.8px, transparent 2px);
     }
     .edit-panel-actions {
         display: inline-flex;
@@ -564,32 +582,50 @@
         outline: none;
     }
     .edit-panel-body {
-        padding: 12px;
-        display: grid;
-        gap: 10px;
+        padding: 8px 10px 10px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex-wrap: wrap;
     }
     .edit-panel-field {
-        display: grid;
+        display: flex;
+        align-items: center;
         gap: 6px;
     }
     .edit-panel-field label {
-        color: #6b7280;
-        font-size: 11px;
-        font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        overflow: hidden;
+        clip: rect(0 0 0 0);
     }
-    .edit-panel-status {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-        padding: 9px 10px;
-        border: 1px solid #e5e7eb;
-        border-radius: 12px;
-        background: #f9fafb;
+    #editPanelLayerSelect {
+        min-width: 150px;
+        max-width: 210px;
+        height: 36px;
+        border-radius: 999px;
         font-size: 13px;
         font-weight: 700;
+    }
+    .edit-panel-status {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        min-height: 36px;
+        padding: 0 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 999px;
+        background: #f9fafb;
+        font-size: 12px;
+        font-weight: 800;
+        white-space: nowrap;
+    }
+    #editPanelStatusText {
+        max-width: 100px;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
     .edit-panel-status-dot {
         width: 8px;
@@ -603,28 +639,143 @@
         box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.18);
     }
     .edit-panel-grid {
-        display: grid;
-        grid-template-columns: 1fr 1fr;
-        gap: 8px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: wrap;
     }
-    .edit-panel-grid .mini-btn {
-        min-height: 38px;
+    .edit-tool-btn {
+        position: relative;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0;
+        border-radius: 999px;
+        border: 1px solid rgba(203, 213, 225, 0.92);
+        background: linear-gradient(180deg, #fff, #f8fafc);
+        color: #4b5563;
+        display: inline-flex;
+        align-items: center;
         justify-content: center;
-        text-align: center;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
+        cursor: pointer;
+        font-size: 18px;
+        line-height: 1;
     }
-    .edit-panel-grid .mini-btn.active {
+    .edit-tool-btn:hover,
+    .edit-tool-btn:focus-visible,
+    .edit-tool-btn.active {
+        background: #f3f4f6;
+        color: #374151;
+        border-color: rgba(148, 163, 184, 0.75);
+        outline: none;
+    }
+    .edit-tool-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+        box-shadow: none;
+    }
+    .edit-tool-btn::after {
+        content: attr(data-tooltip);
+        position: absolute;
+        left: 50%;
+        top: calc(100% + 8px);
+        transform: translateX(-50%) translateY(-3px);
+        z-index: 5;
+        padding: 5px 8px;
+        border-radius: 7px;
+        background: rgba(31, 41, 55, 0.92);
+        color: #fff;
+        font-size: 12px;
+        font-weight: 700;
+        white-space: nowrap;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 120ms ease, transform 120ms ease;
+    }
+    .edit-tool-btn:hover::after,
+    .edit-tool-btn:focus-visible::after {
+        opacity: 1;
+        transform: translateX(-50%) translateY(0);
+    }
+    .edit-tool-btn.primary {
         background: #e6fffb;
         color: #0f766e;
-        border-color: rgba(20, 184, 166, 0.4);
+        border-color: rgba(20, 184, 166, 0.35);
     }
-    .edit-panel-wide {
-        grid-column: 1 / -1;
+    .edit-tool-btn.danger {
+        color: #b45309;
+    }
+    .edit-tool-btn.blue {
+        color: #2563eb;
+    }
+    .edit-tool-btn.green {
+        color: #0f766e;
+    }
+    .edit-tool-btn.purple {
+        color: #7c3aed;
+    }
+    .edit-tool-btn.orange {
+        color: #ea580c;
+    }
+    .edit-tool-btn.red {
+        color: #dc2626;
+    }
+    .edit-tool-icon {
+        display: block;
+        transform: translateY(-0.5px);
+    }
+    .edit-panel-separator {
+        width: 1px;
+        height: 28px;
+        background: #e5e7eb;
+        margin: 0 2px;
     }
     .edit-panel-helper {
-        margin: 0;
+        flex-basis: 100%;
+        margin: -2px 0 0;
         color: #6b7280;
         font-size: 12px;
         line-height: 1.35;
+    }
+    @media (max-width: 700px) {
+        #editFloatingPanel {
+            top: 88px;
+            right: 10px;
+            max-width: calc(100vw - 20px);
+        }
+        #editFloatingPanel.docked {
+            left: 8px !important;
+            right: 8px !important;
+        }
+        #editPanelLayerSelect {
+            min-width: 132px;
+            max-width: 170px;
+        }
+        .edit-panel-body {
+            gap: 6px;
+        }
+        .edit-tool-btn {
+            width: 34px;
+            height: 34px;
+            min-width: 34px;
+            min-height: 34px;
+        }
+    }
+    .edit-panel-field .legacy-hidden,
+    .edit-panel-status .legacy-hidden {
+        display: none;
+    }
+    .edit-panel-field label.legacy-visible {
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+    .edit-panel-wide {
+        grid-column: 1 / -1;
     }
     .look-around-drop-marker {
         position: relative;
@@ -3877,7 +4028,7 @@
         #editFloatingPanel {
             top: 88px;
             right: 10px;
-            width: min(300px, calc(100vw - 20px));
+            max-width: calc(100vw - 20px);
         }
     }
 
@@ -4442,34 +4593,36 @@
         <div class="menu-dropdown-section" data-menu-pane="help" hidden></div>
     </div>
     <div class="map-controls"></div>
-    <div id="editFloatingPanel" hidden aria-label="Edit panel">
+    <div id="editFloatingPanel" hidden aria-label="Edit toolbar">
         <div id="editPanelDragHandle" class="edit-panel-header">
-            <span class="edit-panel-title">Edit</span>
+            <span class="edit-panel-title">Edit Tools</span>
             <span class="edit-panel-actions">
-                <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Pin edit panel to top" title="Pin to top">⌃</button>
-                <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit panel" title="Close">×</button>
+                <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Dock edit toolbar below menu" title="Dock below menu">⇥</button>
+                <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit toolbar" title="Close">×</button>
             </span>
         </div>
         <div class="edit-panel-body">
             <div id="editPanelStatus" class="edit-panel-status">
                 <span><span class="edit-panel-status-dot" aria-hidden="true"></span> <span id="editPanelStatusText">Editing stopped</span></span>
-                <button id="editPanelSessionBtn" type="button" class="mini-btn primary">Start</button>
+                <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span></button>
             </div>
             <div class="edit-panel-field">
                 <label for="editPanelLayerSelect">Layer</label>
                 <select id="editPanelLayerSelect" class="workspace-text-input"></select>
             </div>
             <div class="edit-panel-grid">
-                <button id="editPanelAddFeatureBtn" type="button" class="mini-btn primary">+ Add</button>
-                <button id="editPanelEditExistingBtn" type="button" class="mini-btn">Edit existing</button>
-                <button id="editPanelGeometryBtn" type="button" class="mini-btn">Edit geometry</button>
-                <button id="editPanelAddLayerBtn" type="button" class="mini-btn">+ Layer</button>
-                <button id="editPanelPropertiesBtn" type="button" class="mini-btn">Layer properties</button>
-                <button id="editPanelFieldsBtn" type="button" class="mini-btn">Fields</button>
-                <button id="editPanelZoomBtn" type="button" class="mini-btn">Zoom</button>
-                <button id="editPanelSaveBtn" type="button" class="mini-btn">Save</button>
-                <button id="editPanelUndoBtn" type="button" class="mini-btn">Undo</button>
-                <button id="editPanelRedoBtn" type="button" class="mini-btn">Redo</button>
+                <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span></button>
+                <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
+                <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
+                <span class="edit-panel-separator" aria-hidden="true"></span>
+                <button id="editPanelAddLayerBtn" type="button" class="edit-tool-btn green" data-tooltip="New layer" aria-label="New layer"><span class="edit-tool-icon" aria-hidden="true">▦</span></button>
+                <button id="editPanelPropertiesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Layer properties" aria-label="Layer properties"><span class="edit-tool-icon" aria-hidden="true">⚙</span></button>
+                <button id="editPanelFieldsBtn" type="button" class="edit-tool-btn purple" data-tooltip="Fields" aria-label="Fields"><span class="edit-tool-icon" aria-hidden="true">☷</span></button>
+                <button id="editPanelZoomBtn" type="button" class="edit-tool-btn blue" data-tooltip="Zoom to layer" aria-label="Zoom to layer"><span class="edit-tool-icon" aria-hidden="true">⌖</span></button>
+                <span class="edit-panel-separator" aria-hidden="true"></span>
+                <button id="editPanelSaveBtn" type="button" class="edit-tool-btn green" data-tooltip="Save" aria-label="Save"><span class="edit-tool-icon" aria-hidden="true">✓</span></button>
+                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↺</span></button>
+                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↻</span></button>
             </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
@@ -6421,9 +6574,19 @@
             editPanelToggleBtn?.classList.toggle("active", Boolean(editFloatingPanel && !editFloatingPanel.hidden));
             editPanelToggleBtn?.setAttribute("aria-expanded", editFloatingPanel && !editFloatingPanel.hidden ? "true" : "false");
             editPanelPinBtn?.classList.toggle("active", editPanelPinned);
+            if (editPanelPinBtn) {
+                editPanelPinBtn.textContent = editPanelPinned ? "⇤" : "⇥";
+                editPanelPinBtn.title = editPanelPinned ? "Undock toolbar" : "Dock below menu";
+                editPanelPinBtn.setAttribute("aria-label", editPanelPinned ? "Undock edit toolbar" : "Dock edit toolbar below menu");
+            }
             if (editPanelStatus) editPanelStatus.classList.toggle("editing", editSessionActive);
             if (editPanelStatusText) editPanelStatusText.textContent = editSessionActive ? "Editing active" : "Editing stopped";
-            if (editPanelSessionBtn) editPanelSessionBtn.textContent = editSessionActive ? "Stop" : "Start";
+            if (editPanelSessionBtn) {
+                editPanelSessionBtn.dataset.tooltip = editSessionActive ? "Stop editing" : "Start editing";
+                editPanelSessionBtn.setAttribute("aria-label", editSessionActive ? "Stop editing" : "Start editing");
+                editPanelSessionBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${editSessionActive ? "■" : "▶"}</span>`;
+                editPanelSessionBtn.classList.toggle("red", editSessionActive);
+            }
             if (editPanelAddFeatureBtn) editPanelAddFeatureBtn.disabled = !canEdit;
             if (editPanelEditExistingBtn) editPanelEditExistingBtn.disabled = !canEdit;
             if (editPanelGeometryBtn) editPanelGeometryBtn.disabled = !canEdit;
@@ -6459,6 +6622,7 @@
                 if (targetLayerId && targetLayerId !== activeLayerId) {
                     switchToLayer(targetLayerId, { revealTable: false });
                 }
+                if (editPanelPinned) dockEditPanel();
                 syncEditPanelState();
             } else {
                 syncEditPanelState();
@@ -6546,6 +6710,7 @@
 
         function clampFloatingPanelToMap(panel) {
             if (!panel || !mapElement) return;
+            if (panel.classList.contains("docked")) return;
             const mapRect = mapElement.getBoundingClientRect();
             const rect = panel.getBoundingClientRect();
             const left = Math.max(mapRect.left + 8, Math.min(rect.left, mapRect.right - rect.width - 8));
@@ -6556,15 +6721,46 @@
             panel.style.transform = "none";
         }
 
+        function dockEditPanel() {
+            if (!editFloatingPanel || !toolbar) return;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            editPanelPinned = true;
+            editFloatingPanel.classList.add("docked");
+            editFloatingPanel.style.top = `${Math.round(toolbarRect.bottom)}px`;
+            editFloatingPanel.style.left = "";
+            editFloatingPanel.style.right = "";
+            editFloatingPanel.style.transform = "";
+            syncEditPanelState();
+        }
+
+        function undockEditPanel({ preservePosition = true } = {}) {
+            if (!editFloatingPanel) return;
+            const rect = editFloatingPanel.getBoundingClientRect();
+            editPanelPinned = false;
+            editFloatingPanel.classList.remove("docked");
+            if (preservePosition) {
+                editFloatingPanel.style.left = `${rect.left}px`;
+                editFloatingPanel.style.top = `${rect.top}px`;
+                editFloatingPanel.style.right = "auto";
+                editFloatingPanel.style.transform = "none";
+                clampFloatingPanelToMap(editFloatingPanel);
+            }
+            syncEditPanelState();
+        }
+
+        function shouldDockEditPanel(pointerY) {
+            if (!toolbar) return false;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            return pointerY <= toolbarRect.bottom + 44;
+        }
+
         function installEditPanelDrag() {
             if (!editFloatingPanel || !editPanelDragHandle) return;
             let drag = null;
             editPanelDragHandle.addEventListener("pointerdown", (event) => {
                 if (event.target.closest("button, select, input")) return;
-                editPanelPinned = false;
-                editFloatingPanel.classList.remove("pinned");
-                syncEditPanelState();
                 const rect = editFloatingPanel.getBoundingClientRect();
+                undockEditPanel({ preservePosition: true });
                 drag = {
                     offsetX: event.clientX - rect.left,
                     offsetY: event.clientY - rect.top
@@ -6584,7 +6780,11 @@
                 if (!drag) return;
                 drag = null;
                 editPanelDragHandle.releasePointerCapture?.(event.pointerId);
-                clampFloatingPanelToMap(editFloatingPanel);
+                if (shouldDockEditPanel(event.clientY)) {
+                    dockEditPanel();
+                } else {
+                    clampFloatingPanelToMap(editFloatingPanel);
+                }
             };
             editPanelDragHandle.addEventListener("pointerup", endDrag);
             editPanelDragHandle.addEventListener("pointercancel", endDrag);
@@ -8376,14 +8576,14 @@
         editPanelCloseBtn?.addEventListener("click", () => setEditPanelVisibility(false));
         editPanelPinBtn?.addEventListener("click", () => {
             if (!editFloatingPanel) return;
-            editPanelPinned = !editPanelPinned;
-            editFloatingPanel.classList.toggle("pinned", editPanelPinned);
             if (editPanelPinned) {
-                editFloatingPanel.style.left = "";
-                editFloatingPanel.style.right = "";
-                editFloatingPanel.style.transform = "";
+                undockEditPanel({ preservePosition: false });
+                editFloatingPanel.style.top = `${(toolbar?.getBoundingClientRect().bottom || 44) + 12}px`;
+                editFloatingPanel.style.right = "18px";
+                editFloatingPanel.style.left = "auto";
+                editFloatingPanel.style.transform = "none";
             } else {
-                clampFloatingPanelToMap(editFloatingPanel);
+                dockEditPanel();
             }
             syncEditPanelState();
         });
