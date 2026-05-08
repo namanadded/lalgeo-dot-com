@@ -13587,6 +13587,8 @@ function setImportPanelVisibility(show) {
             speechSynthesis.speak(utterance);
         }
 
+        function initializeMapRuntime() {
+        if (mapReady) return;
         map = new mapkit.Map("map", {
             isZoomEnabled: true,
             isScrollEnabled: true,
@@ -14713,6 +14715,46 @@ function setImportPanelVisibility(show) {
                 console.error("Failed to load GeoJSON:", error);
             }
         }
+
+        }
+
+        function initializeMapRuntimeWithRetry(attempt = 0) {
+            const maxAttempts = 4;
+            const retryDelay = Math.min(4000, 500 * Math.pow(2, attempt));
+            const retry = (error = null) => {
+                if (error) console.warn("MapKit map library load failed", error);
+                if (attempt >= maxAttempts) {
+                    setProjectStatus("Map failed to load. Refresh the page or check network access to Apple MapKit.", "error");
+                    return;
+                }
+                window.setTimeout(() => initializeMapRuntimeWithRetry(attempt + 1), retryDelay);
+            };
+            try {
+                if (mapkit?.Map) {
+                    initializeMapRuntime();
+                    return;
+                }
+                if (typeof mapkit?.load === "function") {
+                    mapkit.load(["map"], () => {
+                        try {
+                            if (!mapkit.Map) {
+                                retry(new Error("MapKit map library unavailable after load."));
+                                return;
+                            }
+                            initializeMapRuntime();
+                        } catch (error) {
+                            retry(error);
+                        }
+                    });
+                    return;
+                }
+                retry(new Error("MapKit load() is unavailable."));
+            } catch (error) {
+                retry(error);
+            }
+        }
+
+        initializeMapRuntimeWithRetry();
 
         
         
