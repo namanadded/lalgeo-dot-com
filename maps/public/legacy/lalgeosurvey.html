@@ -828,9 +828,22 @@
         margin: 2px 0 4px 8px;
     }
     body.point-geometry-editing #map .mapkit-annotation {
-        cursor: grab !important;
+        cursor: pointer !important;
+    }
+    body.point-geometry-editing #map .mapkit-annotation * {
+        cursor: pointer !important;
     }
     body.point-geometry-editing #map .mapkit-annotation:active {
+        cursor: grabbing !important;
+    }
+    body.point-geometry-editing.point-geometry-hover,
+    body.point-geometry-editing.point-geometry-hover #map,
+    body.point-geometry-editing.point-geometry-hover #map * {
+        cursor: pointer !important;
+    }
+    body.point-geometry-editing.point-geometry-dragging,
+    body.point-geometry-editing.point-geometry-dragging #map,
+    body.point-geometry-editing.point-geometry-dragging #map * {
         cursor: grabbing !important;
     }
     @media (max-width: 700px) {
@@ -7579,7 +7592,11 @@
         function setPointGeometryEditMode(active) {
             pointGeometryEditMode = Boolean(active);
             document.body.classList.toggle("point-geometry-editing", pointGeometryEditMode);
-            if (!pointGeometryEditMode) pointGeometryDragState = null;
+            if (!pointGeometryEditMode) {
+                pointGeometryDragState = null;
+                document.body.classList.remove("point-geometry-hover", "point-geometry-dragging");
+                document.body.style.cursor = "";
+            }
             surveyAnnotations.forEach((annotation) => {
                 if (!annotation?.surveyPoint) return;
                 try {
@@ -7587,12 +7604,25 @@
                 } catch {}
                 const element = annotation.element || annotation._element || null;
                 if (element) {
-                    element.style.cursor = pointGeometryEditMode ? "grab" : "";
+                    element.style.cursor = pointGeometryEditMode ? "pointer" : "";
                     element.setAttribute("draggable", pointGeometryEditMode ? "true" : "false");
                 }
             });
             if (!pointGeometryEditMode) mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             syncEditPanelState();
+        }
+
+        function updatePointGeometryHoverCursor(event) {
+            if (!pointGeometryEditMode || pointGeometryDragState) return;
+            const overPoint = Boolean(findNearestPointAnnotation(event.clientX, event.clientY));
+            document.body.classList.toggle("point-geometry-hover", overPoint);
+            const cursor = overPoint ? "pointer" : "";
+            document.body.style.cursor = cursor;
+            mapElement.style.cursor = cursor;
+            const targetEl = event.target?.closest?.("*");
+            if (targetEl && mapElement.contains(targetEl)) {
+                targetEl.style.cursor = cursor;
+            }
         }
 
         function getAnnotationElement(annotation) {
@@ -7715,6 +7745,9 @@
                 },
                 moved: false
             };
+            document.body.classList.remove("point-geometry-hover");
+            document.body.classList.add("point-geometry-dragging");
+            document.body.style.cursor = "grabbing";
             mapElement.setPointerCapture?.(event.pointerId);
             mapElement.style.cursor = "grabbing";
             const element = getAnnotationElement(annotation);
@@ -7741,6 +7774,8 @@
             event.stopImmediatePropagation?.();
             const state = pointGeometryDragState;
             pointGeometryDragState = null;
+            document.body.classList.remove("point-geometry-dragging");
+            document.body.style.cursor = "";
             mapElement.releasePointerCapture?.(event.pointerId);
             mapElement.style.cursor = "";
             const element = getAnnotationElement(state.annotation);
@@ -9705,13 +9740,20 @@
         document.addEventListener("pointermove", dragFeatureDrawer);
         document.addEventListener("pointerup", stopFeatureDrawerDrag);
         mapElement?.addEventListener("mousemove", (event) => {
-            if (pointGeometryEditMode && !pointGeometryDragState) {
-                mapElement.style.cursor = findNearestPointAnnotation(event.clientX, event.clientY) ? "grab" : "";
-            }
+            updatePointGeometryHoverCursor(event);
             if (!mapAddHint || !isAddingSurveyPoint) return;
             mapAddHint.hidden = false;
             mapAddHint.style.left = `${event.clientX}px`;
             mapAddHint.style.top = `${event.clientY}px`;
+        });
+        mapElement?.addEventListener("pointermove", updatePointGeometryHoverCursor, true);
+        document.addEventListener("pointermove", updatePointGeometryHoverCursor, true);
+        mapElement?.addEventListener("pointerleave", () => {
+            if (!pointGeometryDragState) {
+                document.body.classList.remove("point-geometry-hover");
+                document.body.style.cursor = "";
+                if (pointGeometryEditMode) mapElement.style.cursor = "";
+            }
         });
         mapElement?.addEventListener("pointerdown", startPointGeometryDrag, true);
         mapElement?.addEventListener("pointermove", dragPointGeometry, true);
