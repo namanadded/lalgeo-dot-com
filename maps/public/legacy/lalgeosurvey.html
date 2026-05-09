@@ -495,6 +495,12 @@
         height: 24px;
         display: block;
     }
+    body.survey-table-open #layersMapBtn,
+    body.survey-table-open #lookAroundPreview,
+    body.survey-table-open #streetViewDropBtn,
+    body.survey-table-open .share-button {
+        z-index: 650 !important;
+    }
     .floating-toolbar {
         position: absolute;
         right: 18px;
@@ -1332,7 +1338,7 @@
         max-height: 50vh;
         transform: translateY(calc(100% - 36px));
         transition: transform 0.25s ease;
-        z-index: 900;
+        z-index: 1145;
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
         display: flex;
         flex-direction: column;
@@ -13059,6 +13065,7 @@
         }
 
 function updateFloatingButtonLayer(panelOpen) {
+    document.body.classList.toggle("survey-table-open", Boolean(panelOpen));
     const zIndex = panelOpen ? "600" : "1000";
     if (shareButton) shareButton.style.zIndex = zIndex;
     if (addSurveyPointBtn) addSurveyPointBtn.style.zIndex = zIndex;
