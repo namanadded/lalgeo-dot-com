@@ -13199,6 +13199,31 @@
             updateSurveyTable();
         }
 
+        function getSelectedTableCoordinates() {
+            return Array.from(selectedTableRows)
+                .sort((a, b) => a - b)
+                .map((rowIndex) => rowAnnotationMap.get(rowIndex)?.coordinate)
+                .filter((coord) => coord && Number.isFinite(coord.latitude) && Number.isFinite(coord.longitude));
+        }
+
+        function zoomToSelectedTableRows(fallbackRowIndex = null) {
+            if (!map || isArchiveView) return false;
+            const coords = getSelectedTableCoordinates();
+            if (coords.length > 1) {
+                map.region = computeBounds(coords);
+                return true;
+            }
+            const rowIndex = coords.length === 1
+                ? Array.from(selectedTableRows)[0]
+                : fallbackRowIndex;
+            const annotation = Number.isInteger(rowIndex) ? rowAnnotationMap.get(rowIndex) : null;
+            const coordinate = annotation?.coordinate;
+            if (coordinate && !isCoordinateVisibleOnMap(coordinate)) {
+                recenterPreservingZoom(coordinate);
+            }
+            return Boolean(coordinate);
+        }
+
         function getVisibleTableRowIndexes() {
             const total = currentSurveyData?.records?.length || 0;
             const indexes = [];
@@ -13618,7 +13643,8 @@
             if (!row) return;
             const rowIndex = Number(row.dataset.rowIndex);
             setTableRowSelection(rowIndex, event);
-            previewAnnotationByRow(rowIndex);
+            previewAnnotationByRow(rowIndex, { preserveSelectionView: selectedTableRows.size > 1 });
+            zoomToSelectedTableRows(rowIndex);
         });
 
         surveyTable?.addEventListener("contextmenu", (event) => {
@@ -13697,11 +13723,11 @@
             });
         }
 
-        function previewAnnotationByRow(rowIndex) {
+        function previewAnnotationByRow(rowIndex, { preserveSelectionView = false } = {}) {
             const annotation = rowAnnotationMap.get(rowIndex);
             if (!annotation) return;
             const coordinate = annotation.coordinate;
-            if (coordinate && !isCoordinateVisibleOnMap(coordinate)) {
+            if (!preserveSelectionView && coordinate && !isCoordinateVisibleOnMap(coordinate)) {
                 recenterPreservingZoom(coordinate);
             }
             setActiveTableRow(rowIndex);
