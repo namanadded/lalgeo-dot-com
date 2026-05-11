@@ -3453,6 +3453,18 @@
         color: #9fb1c2;
         font-size: 12px;
     }
+    .feature-drawer-system {
+        display: grid;
+        gap: 6px;
+        margin: 4px 0 14px;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .feature-drawer-system strong {
+        color: #374151;
+        font-weight: 700;
+    }
     .feature-drawer-close {
         border: 1px solid rgba(255,255,255,0.1);
         background: rgba(255,255,255,0.06);
@@ -3561,6 +3573,12 @@
     .feature-drawer-actions .workspace-inline-actions {
         margin-top: 0;
     }
+    .feature-drawer-actions .workspace-inline-actions {
+        width: 100%;
+        display: flex;
+        justify-content: space-between;
+        gap: 12px;
+    }
     .feature-drawer-empty {
         color: #9fb1c2;
         font-size: 13px;
@@ -3571,6 +3589,14 @@
         border: 1px solid rgba(255,107,107,0.22);
         background: rgba(255,107,107,0.12);
         color: #ffb5b5;
+    }
+    .mini-btn[disabled],
+    .feature-drawer-delete[disabled],
+    .feature-drawer-field input[readonly],
+    .feature-drawer-field textarea[readonly],
+    .feature-drawer-field select:disabled {
+        opacity: 0.58;
+        cursor: not-allowed;
     }
 
     #layersMapBtn,
@@ -4359,6 +4385,66 @@
     #surveyTableWrapper tbody tr.selected {
         background: #e5e7eb;
     }
+    #surveyTableWrapper tbody tr.multi-selected {
+        background: rgba(45, 212, 191, 0.18);
+        outline: 1px solid rgba(20, 184, 166, 0.38);
+        outline-offset: -1px;
+    }
+    #surveyTableWrapper th[data-table-column] {
+        cursor: context-menu;
+    }
+    #surveySelectionControls {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        margin-left: 8px;
+    }
+    #surveySelectionControls[hidden] {
+        display: none;
+    }
+    #surveySelectionSummary {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .field-calc-help {
+        margin: 0 0 12px;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.5;
+    }
+    .field-calc-grid {
+        display: grid;
+        gap: 10px;
+    }
+    .field-calc-grid label {
+        display: grid;
+        gap: 6px;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+    }
+    .field-calc-grid select,
+    .field-calc-grid textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid #d1d5db;
+        border-radius: 12px;
+        background: #fff;
+        color: #374151;
+        padding: 10px 12px;
+        font: inherit;
+        text-transform: none;
+        letter-spacing: 0;
+    }
+    .field-calc-grid textarea {
+        min-height: 120px;
+        resize: vertical;
+        font-family: "SFMono-Regular", Consolas, "Liberation Mono", monospace;
+        font-size: 13px;
+    }
     .table-cell-editor {
         background: #fff;
         color: #374151;
@@ -4645,6 +4731,15 @@
             <span>Remember and load previous session/project on startup.</span>
         </label>
         <p class="settings-note">When enabled, LalGeo reopens your last project after refresh. Side panels still start closed until you open them.</p>
+        <div class="settings-divider"></div>
+        <p class="settings-panel-title">Time zone</p>
+        <label class="settings-option">
+            <span>Display project dates in</span>
+            <select id="projectTimeZoneSelect" class="workspace-text-input">
+                <option value="">Auto detect</option>
+            </select>
+        </label>
+        <p class="settings-note">New features store the selected time zone with the project and each feature date.</p>
         <div class="settings-divider"></div>
         <p class="settings-panel-title">Quick actions</p>
         <p class="settings-note">Choose which frequently used actions appear on the right side of the menu bar.</p>
@@ -5066,6 +5161,12 @@
             <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
             <button id="tableEditBtn" type="button" class="panel-action-btn" hidden>Edit</button>
             <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
+            <div id="surveySelectionControls" hidden>
+                <span id="surveySelectionSummary">0 selected</span>
+                <button id="showSelectedRowsBtn" type="button" class="panel-action-btn">Show selected</button>
+                <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn">Show unselected</button>
+                <button id="showAllRowsBtn" type="button" class="panel-action-btn">Show all</button>
+            </div>
         </div>
         <div id="surveyFieldControls" hidden>
             <h4>Table fields</h4>
@@ -5074,6 +5175,39 @@
         <div id="selectedFeatureInspector"></div>
         <div id="surveyTableWrapper" hidden>
             <div id="surveyTable"></div>
+        </div>
+    </div>
+    <div id="fieldCalculatorBackdrop" class="layer-modal-backdrop" hidden>
+        <div id="fieldCalculatorModal" class="layer-modal" role="dialog" aria-modal="true" aria-labelledby="fieldCalculatorTitle">
+            <div class="layer-modal-header">
+                <div>
+                    <h3 id="fieldCalculatorTitle">Calculate field</h3>
+                    <p id="fieldCalculatorDescription" class="workspace-panel-muted">Calculate values for selected or visible records.</p>
+                </div>
+                <button id="fieldCalculatorClose" type="button" class="layer-modal-close" aria-label="Close field calculator">×</button>
+            </div>
+            <div class="layer-modal-body">
+                <p class="field-calc-help">Use a Python-style expression. Examples: <code>index + 1</code>, <code>"ASSET-" + str(index + 1)</code>, <code>round(lat, 6)</code>, <code>row["Name"].upper()</code>.</p>
+                <div class="field-calc-grid">
+                    <label>Field
+                        <select id="fieldCalculatorField"></select>
+                    </label>
+                    <label>Apply to
+                        <select id="fieldCalculatorScope">
+                            <option value="selected">Selected records</option>
+                            <option value="visible">Visible records</option>
+                            <option value="all">All records</option>
+                        </select>
+                    </label>
+                    <label>Expression
+                        <textarea id="fieldCalculatorExpression" spellcheck="false" placeholder='"ASSET-" + str(index + 1)'></textarea>
+                    </label>
+                </div>
+            </div>
+            <div class="layer-modal-actions">
+                <button id="fieldCalculatorCancel" type="button" class="mini-btn">Cancel</button>
+                <button id="fieldCalculatorApply" type="button" class="mini-btn primary">Calculate</button>
+            </div>
         </div>
     </div>
     <div id="sharePanel" hidden>
@@ -5142,6 +5276,7 @@
         const settingsPanel = document.getElementById("settingsPanel");
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
         const rememberSessionOption = rememberSessionToggle?.closest(".settings-option");
+        const projectTimeZoneSelect = document.getElementById("projectTimeZoneSelect");
         const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
@@ -5290,6 +5425,11 @@
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
         const surveyTableContext = document.getElementById("surveyTableContext");
+        const surveySelectionControls = document.getElementById("surveySelectionControls");
+        const surveySelectionSummary = document.getElementById("surveySelectionSummary");
+        const showSelectedRowsBtn = document.getElementById("showSelectedRowsBtn");
+        const showUnselectedRowsBtn = document.getElementById("showUnselectedRowsBtn");
+        const showAllRowsBtn = document.getElementById("showAllRowsBtn");
         const selectedFeatureInspector = document.getElementById("selectedFeatureInspector");
         const surveyFieldsBtn = document.getElementById("surveyFieldsBtn");
         const tableEditBtn = document.getElementById("tableEditBtn");
@@ -5310,6 +5450,13 @@
         const shareToast = document.getElementById("shareToast");
         const shareToastInput = document.getElementById("shareToastInput");
         const shareToastCopy = document.getElementById("shareToastCopy");
+        const fieldCalculatorBackdrop = document.getElementById("fieldCalculatorBackdrop");
+        const fieldCalculatorClose = document.getElementById("fieldCalculatorClose");
+        const fieldCalculatorCancel = document.getElementById("fieldCalculatorCancel");
+        const fieldCalculatorApply = document.getElementById("fieldCalculatorApply");
+        const fieldCalculatorField = document.getElementById("fieldCalculatorField");
+        const fieldCalculatorScope = document.getElementById("fieldCalculatorScope");
+        const fieldCalculatorExpression = document.getElementById("fieldCalculatorExpression");
         let autoOpenSharePanel = false;
         let isSharedView = false;
         function resolveDropboxLink(input = "") {
@@ -5331,6 +5478,10 @@
         let pointGeometryEditMode = false;
         let pointGeometryDragState = null;
         let editSessionActive = false;
+        let selectedTableRows = new Set();
+        let lastSelectedTableRow = null;
+        let tableRowFilterMode = "all";
+        let fieldCalculatorContext = null;
         let undoStack = [];
         let redoStack = [];
         let pendingChanges = false;
@@ -5539,7 +5690,8 @@
             const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             const systemFields = [
                 { name: "ID", type: "text", locked: true },
-                { name: "Date", type: "text", locked: true }
+                { name: "Date", type: "text", locked: true },
+                { name: "TimeZone", type: "text", locked: true }
             ];
             if (normalizedGeometry === "point") {
                 systemFields.push(
@@ -5577,6 +5729,56 @@
             return name === "symbol_color" || name === "symbol_shape";
         }
 
+        function isSystemFieldName(name) {
+            return ["ID", "Date", "TimeZone", "Latitude", "Longitude"].includes(name);
+        }
+
+        function getDetectedTimeZone() {
+            return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+        }
+
+        function getProjectTimeZone() {
+            return activeProjectRecord?.metadata?.timeZone || getDetectedTimeZone();
+        }
+
+        function ensureProjectTimeZone(project = activeProjectRecord) {
+            if (!project) return getDetectedTimeZone();
+            project.metadata = project.metadata || {};
+            if (!project.metadata.timeZone) {
+                project.metadata.timeZone = getDetectedTimeZone();
+            }
+            if (projectTimeZoneSelect) projectTimeZoneSelect.value = project.metadata.timeZone;
+            return project.metadata.timeZone;
+        }
+
+        function formatFeatureDateTime(value, timeZone = getProjectTimeZone()) {
+            if (!value) return "";
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) return String(value);
+            try {
+                return new Intl.DateTimeFormat(undefined, {
+                    dateStyle: "medium",
+                    timeStyle: "medium",
+                    timeZone,
+                    timeZoneName: "short"
+                }).format(date);
+            } catch {
+                return date.toLocaleString();
+            }
+        }
+
+        function populateProjectTimeZoneSelect() {
+            if (!projectTimeZoneSelect) return;
+            const detected = getDetectedTimeZone();
+            const zones = typeof Intl.supportedValuesOf === "function"
+                ? Intl.supportedValuesOf("timeZone")
+                : ["UTC", detected, "America/Edmonton", "America/Toronto", "America/Vancouver", "America/New_York", "America/Chicago", "America/Denver", "America/Los_Angeles"];
+            const uniqueZones = Array.from(new Set([detected, ...zones])).filter(Boolean);
+            projectTimeZoneSelect.innerHTML = `<option value="${escapeHtml(detected)}">Auto detect (${escapeHtml(detected)})</option>`
+                + uniqueZones.map((zone) => `<option value="${escapeHtml(zone)}">${escapeHtml(zone)}</option>`).join("");
+            projectTimeZoneSelect.value = getProjectTimeZone();
+        }
+
         function getLabelCandidateFields(layer, { includeStyle = false } = {}) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             return (layer?.schema || getDefaultLayerSchema(geometryType))
@@ -5584,7 +5786,7 @@
                 .filter((name) => {
                     if (!name) return false;
                     if (!includeStyle && isLayerStyleFieldName(name)) return false;
-                    if (name === "Latitude" || name === "Longitude") return false;
+                    if (isSystemFieldName(name)) return false;
                     return true;
                 });
         }
@@ -5859,6 +6061,8 @@
                             feature.attributes[field.name] = generateSurveyPointId();
                         } else if (field.name === "Date") {
                             feature.attributes[field.name] = new Date().toISOString();
+                        } else if (field.name === "TimeZone") {
+                            feature.attributes[field.name] = getProjectTimeZone();
                         } else if (field.name === "Latitude") {
                             feature.attributes[field.name] = feature.geometry?.lat ?? "";
                         } else if (field.name === "Longitude") {
@@ -5904,6 +6108,7 @@
             parsed.records = points.map((point) => ({
                 ID: point.id || generateSurveyPointId(),
                 Date: point.date || new Date().toISOString(),
+                TimeZone: point.timeZone || getProjectTimeZone(),
                 symbol_color: point.symbol_color || "Red",
                 symbol_shape: point.symbol_shape || "Dot",
                 Latitude: point.lat,
@@ -6878,6 +7083,7 @@
             } else {
                 setProjectStatus("Editing started. Choose an edit action from the panel.", "success");
             }
+            renderFeatureDrawer();
             syncEditPanelState();
         }
 
@@ -7373,11 +7579,15 @@
             }
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            selectedTableRows = new Set();
+            lastSelectedTableRow = null;
+            tableRowFilterMode = "all";
             if (activeProjectRecord) {
                 activeProjectRecord.mapOptions = {
                     showBasemapPOIs: true,
                     ...(activeProjectRecord.mapOptions || {})
                 };
+                ensureProjectTimeZone(activeProjectRecord);
             }
             logWorkspaceDebug("setActiveProject", {
                 projectId: project?.id || null,
@@ -7835,24 +8045,31 @@
                 feature.attributes.Date = new Date().toISOString();
                 record.Date = feature.attributes.Date;
             }
+            if (!feature.attributes.TimeZone) {
+                feature.attributes.TimeZone = getProjectTimeZone();
+                record.TimeZone = feature.attributes.TimeZone;
+            }
             if (normalizeLayerGeometryType(layer.geometryType) === "point") {
                 feature.attributes.Latitude = feature.geometry?.lat ?? "";
                 feature.attributes.Longitude = feature.geometry?.lng ?? "";
                 record.Latitude = feature.attributes.Latitude;
                 record.Longitude = feature.attributes.Longitude;
             }
-            activeSurveyAnnotation.surveyPoint.attributes = { ...feature.attributes };
-            activeSurveyAnnotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName, layer);
-            activeSurveyAnnotation.surveyPoint.title = activeSurveyAnnotation.title;
+            const annotation = rowAnnotationMap.get(rowIndex) || activeSurveyAnnotation;
+            if (annotation?.surveyPoint) {
+                annotation.surveyPoint.attributes = { ...feature.attributes };
+                annotation.title = computeLabelFromAttributes(feature.attributes, activeProjectName, layer);
+                annotation.surveyPoint.title = annotation.title;
+                annotation.surveyPoint.isNew = false;
+                updateAnnotationVisualState(annotation);
+            }
             layer.features[rowIndex] = {
                 ...feature,
                 attributes: { ...feature.attributes }
             };
             layer.parsed = buildParsedFromLayer(layer);
             currentSurveyData = layer.parsed;
-            activeSurveyAnnotation.surveyPoint.isNew = false;
             updateAnnotationLabels();
-            updateAnnotationVisualState(activeSurveyAnnotation);
             updateSurveyTable();
             renderSelectedFeatureInspector();
             if (options.renderDrawer !== false) renderFeatureDrawer();
@@ -7863,6 +8080,7 @@
             const layer = getActiveLayerRecord();
             const feature = getSelectedFeatureRecord();
             if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
+            if (!editSessionActive || !canEditAttributes()) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
             const schemaField = (layer.schema || []).find((field) => field.name === fieldName);
             if (!schemaField || schemaField.locked) return;
@@ -7884,6 +8102,7 @@
 
         function commitInspectorFieldChange(input) {
             if (!input || !activeSurveyAnnotation?.surveyPoint || !currentSurveyData) return;
+            if (!editSessionActive || !canEditAttributes()) return;
             const field = input.getAttribute("data-inspector-field");
             if (!field) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
@@ -7940,14 +8159,28 @@
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
             const featureImageSrc = activeSurveyAnnotation.surveyPoint.imageSrc || null;
             const featureImageTitle = activeSurveyAnnotation.surveyPoint.title || feature.attributes?.name || `Feature ${rowIndex + 1}`;
+            const attrs = feature.attributes || {};
+            const featureId = attrs.ID || feature.id || `feature-${rowIndex + 1}`;
+            const featureDate = attrs.Date || "";
+            const featureTimeZone = attrs.TimeZone || getProjectTimeZone();
+            const editable = editSessionActive && canEditAttributes() && !isArchiveView;
             featureDrawerMeta.innerHTML = `
                 <span class="workspace-badge">${escapeHtml(layer.name)}</span>
-                <span>Feature ID: ${escapeHtml(feature.id || `feature-${rowIndex + 1}`)}</span>
+                <span>Feature ID: ${escapeHtml(featureId)}</span>
             `;
-            const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name));
+            const systemDetails = `
+                <div class="feature-drawer-system">
+                    <div><strong>Feature ID:</strong> ${escapeHtml(featureId)}</div>
+                    <div><strong>Date:</strong> ${escapeHtml(formatFeatureDateTime(featureDate, featureTimeZone))}</div>
+                    ${featureTimeZone ? `<div><strong>Time zone:</strong> ${escapeHtml(featureTimeZone)}</div>` : ""}
+                    ${Number.isFinite(Number(attrs.Latitude ?? feature.geometry?.lat)) ? `<div><strong>Latitude:</strong> ${escapeHtml(String(attrs.Latitude ?? feature.geometry?.lat))}</div>` : ""}
+                    ${Number.isFinite(Number(attrs.Longitude ?? feature.geometry?.lng)) ? `<div><strong>Longitude:</strong> ${escapeHtml(String(attrs.Longitude ?? feature.geometry?.lng))}</div>` : ""}
+                </div>
+            `;
+            const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name) && !isSystemFieldName(field.name));
             const fields = attributeFields.map((field) => {
                 const value = feature.attributes?.[field.name] ?? "";
-                const isLocked = field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
+                const isLocked = !editable || field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
                 if (field.type === "dropdown") {
                     return `
                         <div class="feature-drawer-field">
@@ -7985,14 +8218,15 @@
             ` : "";
             featureDrawerBody.innerHTML = `
                 <div class="feature-drawer-form">
+                    ${systemDetails}
                     ${imageSection}
                     ${fields}
                     <div class="feature-drawer-actions">
                         <div class="workspace-inline-actions">
-                            <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete">Delete feature</button>
                             <button id="featureDrawerDone" type="button" class="mini-btn primary">Done</button>
+                            <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete" aria-label="Delete feature" ${editable ? "" : "disabled"}>🗑</button>
                         </div>
-                        <span class="workspace-panel-muted">Changes autosave to your workspace.</span>
+                        <span class="workspace-panel-muted">${editable ? "Changes autosave to your workspace." : "Turn on edit mode to edit attributes or delete this feature."}</span>
                     </div>
                 </div>
             `;
@@ -8003,7 +8237,10 @@
                     input.addEventListener("blur", commit);
                 }
             });
-            featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => deleteActivePoint());
+            featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => {
+                if (!editable) return;
+                deleteActivePoint();
+            });
             featureDrawerBody.querySelector("#featureDrawerPhotoBtn")?.addEventListener("click", () => {
                 openImageModal(featureImageSrc, featureImageTitle);
             });
@@ -8181,6 +8418,7 @@
                                     if (sourceName in previous) nextAttributes[field.name] = previous[sourceName];
                                     else if (field.name === "ID") nextAttributes[field.name] = generateSurveyPointId();
                                     else if (field.name === "Date") nextAttributes[field.name] = new Date().toISOString();
+                                    else if (field.name === "TimeZone") nextAttributes[field.name] = getProjectTimeZone();
                                     else if (field.name === "Latitude") nextAttributes[field.name] = feature.geometry?.lat ?? "";
                                     else if (field.name === "Longitude") nextAttributes[field.name] = feature.geometry?.lng ?? "";
                                     else if (field.name === "symbol_color") nextAttributes[field.name] = layer.styleDefaults?.symbol_color || "Red";
@@ -9048,6 +9286,28 @@
         rememberSessionOption?.addEventListener("pointerup", () => {
             window.setTimeout(() => syncRememberSessionPreferenceFromUi("settings-option-pointerup"), 0);
         });
+        populateProjectTimeZoneSelect();
+        projectTimeZoneSelect?.addEventListener("change", () => {
+            if (!activeProjectRecord) return;
+            activeProjectRecord.metadata = activeProjectRecord.metadata || {};
+            activeProjectRecord.metadata.timeZone = projectTimeZoneSelect.value || getDetectedTimeZone();
+            (activeProjectRecord.layers || []).forEach((layer) => {
+                (layer.features || []).forEach((feature) => {
+                    feature.attributes = feature.attributes || {};
+                    feature.attributes.TimeZone = activeProjectRecord.metadata.timeZone;
+                });
+            });
+            if (currentSurveyData?.records) {
+                currentSurveyData.records.forEach((record) => {
+                    record.TimeZone = activeProjectRecord.metadata.timeZone;
+                });
+            }
+            updateActiveProjectFromSurveyData();
+            updateSurveyTable();
+            renderFeatureDrawer();
+            scheduleLocalAutosave();
+            setProjectStatus(`Project time zone set to ${activeProjectRecord.metadata.timeZone}.`, "success");
+        });
         quickActionToggles.forEach((toggle) => {
             toggle.addEventListener("change", () => {
                 quickActions = quickActionToggles
@@ -9806,6 +10066,10 @@
         });
         tableEditBtn?.addEventListener("click", () => {
             if (!currentSurveyData || isArchiveView) return;
+            if (!editSessionActive) {
+                setProjectStatus("Start edit mode before editing table attributes.", "error");
+                return;
+            }
             tableEditMode = !tableEditMode;
             tableEditBtn.classList.toggle("active", tableEditMode);
             tableEditBtn.textContent = tableEditMode ? "Done editing" : "Edit";
@@ -10486,6 +10750,7 @@
             const featureId = newRecord.ID || generateSurveyPointId();
             newRecord.ID = featureId;
             newRecord.Date = newRecord.Date || new Date().toISOString();
+            newRecord.TimeZone = newRecord.TimeZone || getProjectTimeZone();
             const feature = {
                 id: featureId,
                 geometry,
@@ -11616,7 +11881,7 @@
 
         function isAutoManagedField(header) {
             const normalized = normalizeHeaderName(header);
-            return normalized === "id" || normalized === "date" || normalized === "created_at" || normalized === "latitude" || normalized === "longitude";
+            return normalized === "id" || normalized === "date" || normalized === "timezone" || normalized === "time_zone" || normalized === "created_at" || normalized === "latitude" || normalized === "longitude";
         }
 
         function normalizeMetaType(meta) {
@@ -11646,6 +11911,9 @@
             }
             if (normalized === "date") {
                 return new Date().toISOString();
+            }
+            if (normalized === "timezone" || normalized === "time_zone") {
+                return getProjectTimeZone();
             }
             return undefined;
         }
@@ -12464,6 +12732,12 @@
 
         async function deleteActivePoint() {
             if (!activeSurveyAnnotation) return;
+            if (!editSessionActive || !canEditAttributes()) {
+                setProjectStatus("Turn on edit mode before deleting features.", "error");
+                return;
+            }
+            const ok = window.confirm("Delete this feature? It will be moved to the archive.");
+            if (!ok) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
             const meta = getPointMeta(rowIndex);
             if (isDropboxSurvey() && getActiveLayerGeometryType() === "point") {
@@ -12672,6 +12946,199 @@
             return Papa.unparse({ fields: currentSurveyData.headers, data: rows });
         }
 
+        function updateSurveySelectionControls() {
+            if (!surveySelectionControls || !surveySelectionSummary) return;
+            const count = selectedTableRows.size;
+            surveySelectionControls.hidden = count === 0 && tableRowFilterMode === "all";
+            surveySelectionSummary.textContent = `${count} selected`;
+            showSelectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "selected");
+            showUnselectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "unselected");
+            showAllRowsBtn?.classList.toggle("active", tableRowFilterMode === "all");
+        }
+
+        function setTableRowSelection(rowIndex, event = {}) {
+            if (!Number.isInteger(rowIndex)) return;
+            const total = currentSurveyData?.records?.length || 0;
+            if (event.shiftKey && Number.isInteger(lastSelectedTableRow)) {
+                const start = Math.max(0, Math.min(lastSelectedTableRow, rowIndex));
+                const end = Math.min(total - 1, Math.max(lastSelectedTableRow, rowIndex));
+                for (let index = start; index <= end; index += 1) selectedTableRows.add(index);
+            } else if (event.metaKey || event.ctrlKey) {
+                if (selectedTableRows.has(rowIndex)) selectedTableRows.delete(rowIndex);
+                else selectedTableRows.add(rowIndex);
+                lastSelectedTableRow = rowIndex;
+            } else {
+                selectedTableRows = new Set([rowIndex]);
+                lastSelectedTableRow = rowIndex;
+            }
+            updateSurveyTable();
+        }
+
+        function getVisibleTableRowIndexes() {
+            const total = currentSurveyData?.records?.length || 0;
+            const indexes = [];
+            for (let index = 0; index < total; index += 1) {
+                if (tableRowFilterMode === "selected" && !selectedTableRows.has(index)) continue;
+                if (tableRowFilterMode === "unselected" && selectedTableRows.has(index)) continue;
+                indexes.push(index);
+            }
+            return indexes;
+        }
+
+        function getFieldCalculatorScopeIndexes(scope = fieldCalculatorScope?.value || "selected") {
+            const total = currentSurveyData?.records?.length || 0;
+            if (scope === "selected" && selectedTableRows.size) return Array.from(selectedTableRows).sort((a, b) => a - b);
+            if (scope === "visible") return getVisibleTableRowIndexes();
+            return Array.from({ length: total }, (_, index) => index);
+        }
+
+        function transformPythonLikeExpression(expression) {
+            return String(expression || "")
+                .replace(/\bNone\b/g, "null")
+                .replace(/\bTrue\b/g, "true")
+                .replace(/\bFalse\b/g, "false")
+                .replace(/\.upper\(\)/g, ".toUpperCase()")
+                .replace(/\.lower\(\)/g, ".toLowerCase()");
+        }
+
+        function getFeatureMetricHelpers(feature) {
+            const coords = getGeometryCoordinates(feature).map((coord) => ({ lat: coord.latitude, lng: coord.longitude }));
+            const toRad = (value) => value * Math.PI / 180;
+            const distanceMeters = (a, b) => {
+                const earth = 6371008.8;
+                const dLat = toRad(b.lat - a.lat);
+                const dLng = toRad(b.lng - a.lng);
+                const lat1 = toRad(a.lat);
+                const lat2 = toRad(b.lat);
+                const h = Math.sin(dLat / 2) ** 2 + Math.cos(lat1) * Math.cos(lat2) * Math.sin(dLng / 2) ** 2;
+                return 2 * earth * Math.asin(Math.sqrt(h));
+            };
+            let length_m = 0;
+            for (let i = 1; i < coords.length; i += 1) length_m += distanceMeters(coords[i - 1], coords[i]);
+            let area_m2 = 0;
+            if (feature?.geometry?.type === "Polygon" && coords.length > 2) {
+                const lat0 = toRad(coords.reduce((sum, item) => sum + item.lat, 0) / coords.length);
+                const metersPerDegreeLat = 111132;
+                const metersPerDegreeLng = 111320 * Math.cos(lat0);
+                const projected = coords.map((item) => ({ x: item.lng * metersPerDegreeLng, y: item.lat * metersPerDegreeLat }));
+                for (let i = 0; i < projected.length; i += 1) {
+                    const a = projected[i];
+                    const b = projected[(i + 1) % projected.length];
+                    area_m2 += a.x * b.y - b.x * a.y;
+                }
+                area_m2 = Math.abs(area_m2 / 2);
+            }
+            return { length_m, length_km: length_m / 1000, area_m2, area_ha: area_m2 / 10000, area_acres: area_m2 / 4046.8564224 };
+        }
+
+        function evaluateFieldCalculatorExpression(expression, context) {
+            const jsExpression = transformPythonLikeExpression(expression);
+            const helpers = {
+                str: (value) => value === null || value === undefined ? "" : String(value),
+                int: (value) => parseInt(value, 10) || 0,
+                float: (value) => parseFloat(value) || 0,
+                round: (value, decimals = 0) => {
+                    const factor = 10 ** Number(decimals || 0);
+                    return Math.round(Number(value || 0) * factor) / factor;
+                },
+                abs: Math.abs,
+                min: Math.min,
+                max: Math.max
+            };
+            const fn = new Function("row", "feature", "index", "selectedIndex", "value", "lat", "lng", "x", "y", "length_m", "length_km", "area_m2", "area_ha", "area_acres", ...Object.keys(helpers), `return (${jsExpression});`);
+            return fn(context.row, context.feature, context.index, context.selectedIndex, context.value, context.lat, context.lng, context.lng, context.lat, context.length_m, context.length_km, context.area_m2, context.area_ha, context.area_acres, ...Object.values(helpers));
+        }
+
+        function openFieldCalculator(fieldName = "") {
+            if (!currentSurveyData || isArchiveView || !fieldCalculatorBackdrop) return;
+            const layer = getActiveLayerRecord();
+            const fields = (layer?.schema || []).filter((field) => !isLayerStyleFieldName(field.name));
+            fieldCalculatorField.innerHTML = fields.map((field) => `<option value="${escapeHtml(field.name)}">${escapeHtml(field.name)}</option>`).join("");
+            fieldCalculatorField.value = fieldName || fields.find((field) => !field.locked)?.name || fields[0]?.name || "";
+            fieldCalculatorScope.value = selectedTableRows.size ? "selected" : "visible";
+            fieldCalculatorExpression.value = "";
+            fieldCalculatorContext = { fieldName: fieldCalculatorField.value };
+            fieldCalculatorBackdrop.hidden = false;
+            fieldCalculatorExpression.focus();
+        }
+
+        function closeFieldCalculator() {
+            fieldCalculatorContext = null;
+            if (fieldCalculatorBackdrop) fieldCalculatorBackdrop.hidden = true;
+        }
+
+        function applyFieldCalculator() {
+            const field = fieldCalculatorField?.value;
+            const expression = fieldCalculatorExpression?.value?.trim();
+            if (!field || !expression || !currentSurveyData) return;
+            const layer = getActiveLayerRecord();
+            const schemaField = (layer?.schema || []).find((item) => item.name === field);
+            if (!layer || !schemaField) return;
+            if (schemaField.locked || isAutoManagedField(field) || isCoordinateField(field, currentSurveyData)) {
+                setProjectStatus("Choose an editable attribute field for field calculator.", "error");
+                return;
+            }
+            if (!editSessionActive) {
+                const ok = window.confirm("You are outside edit mode. Field calculator changes will autosave and cannot be undone. Continue?");
+                if (!ok) return;
+            }
+            const indexes = getFieldCalculatorScopeIndexes(fieldCalculatorScope?.value);
+            if (!indexes.length) {
+                setProjectStatus("No records match the selected field calculator scope.", "error");
+                return;
+            }
+            const changes = [];
+            try {
+                indexes.forEach((rowIndex, selectedIndex) => {
+                    const feature = layer.features?.[rowIndex];
+                    const row = currentSurveyData.records?.[rowIndex];
+                    if (!feature || !row) return;
+                    const metrics = getFeatureMetricHelpers(feature);
+                    const lat = feature.geometry?.lat ?? row.Latitude ?? "";
+                    const lng = feature.geometry?.lng ?? row.Longitude ?? "";
+                    const before = { ...(feature.attributes || {}) };
+                    const value = evaluateFieldCalculatorExpression(expression, {
+                        row,
+                        feature,
+                        index: rowIndex,
+                        selectedIndex,
+                        value: before[field] ?? "",
+                        lat,
+                        lng,
+                        ...metrics
+                    });
+                    const nextValue = normalizeFeatureFieldValue(schemaField, value);
+                    if ((before[field] ?? "") === nextValue) return;
+                    const after = { ...before, [field]: nextValue };
+                    if (applyFeatureAttributesToRow(rowIndex, after, { renderDrawer: false })) {
+                        changes.push({ rowIndex, featureId: feature.id, before, after });
+                    }
+                });
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Field calculator expression failed.", "error");
+                return;
+            }
+            if (!changes.length) {
+                setProjectStatus("Field calculator made no changes.", "success");
+                closeFieldCalculator();
+                return;
+            }
+            if (editSessionActive && !isDropboxSurvey()) {
+                recordAction({ type: "bulk-edit-attributes", changes });
+            } else if (isDropboxSurvey()) {
+                markSurveyDirty();
+            } else {
+                pendingChanges = true;
+                scheduleLocalAutosave();
+                updateHistoryButtons();
+            }
+            updateSurveyTable();
+            renderFeatureDrawer();
+            closeFieldCalculator();
+            setProjectStatus(`Calculated ${field} for ${changes.length} record${changes.length === 1 ? "" : "s"}.`, "success");
+        }
+
         function updateSurveyTable() {
             if (!surveyTable) return;
             const dataset = isArchiveView ? archiveData : currentSurveyData;
@@ -12690,12 +13157,20 @@
                 surveyTable.innerHTML = "<div style=\"padding:12px; color:#5f6368;\">All fields are hidden. Enable at least one field.</div>";
                 return;
             }
-            const inlineEditEnabled = tableEditMode && !isArchiveView && canEditAttributes();
-            const headerRow = visibleHeaders.map(header => `<th>${escapeHtml(header)}</th>`).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
+            const inlineEditEnabled = tableEditMode && !isArchiveView && editSessionActive && canEditAttributes();
+            const headerRow = visibleHeaders.map(header => `<th data-table-column="${escapeHtml(header)}">${escapeHtml(header)}</th>`).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
             const activeRowIndex = !isArchiveView && Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
                 ? activeSurveyAnnotation.surveyPoint.rowIndex
                 : null;
-            const bodyRows = (dataset.records || []).map((record, index) => {
+            selectedTableRows = new Set(Array.from(selectedTableRows).filter((index) => index >= 0 && index < (dataset.records || []).length));
+            const filteredRecords = (dataset.records || [])
+                .map((record, index) => ({ record, index }))
+                .filter(({ index }) => {
+                    if (tableRowFilterMode === "selected") return selectedTableRows.has(index);
+                    if (tableRowFilterMode === "unselected") return !selectedTableRows.has(index);
+                    return true;
+                });
+            const bodyRows = filteredRecords.map(({ record, index }) => {
                 const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
                 const cells = visibleHeaders.map(header => {
@@ -12705,7 +13180,11 @@
                 const actionCell = isArchiveView
                     ? `<td><button type="button" class="restore-btn" data-archive-index="${index}">Restore</button></td>`
                     : (hasPhoto ? `<td><button type="button" class="view-photo-btn" data-row-index="${index}">View</button></td>` : "<td></td>");
-                const rowClass = activeRowIndex === index ? ' class="selected"' : "";
+                const rowClasses = [
+                    activeRowIndex === index ? "selected" : "",
+                    selectedTableRows.has(index) ? "multi-selected" : ""
+                ].filter(Boolean).join(" ");
+                const rowClass = rowClasses ? ` class="${rowClasses}"` : "";
                 return `<tr data-row-index="${index}"${rowClass}>${cells}${actionCell}</tr>`;
             }).join("");
             surveyTable.innerHTML = `
@@ -12714,6 +13193,7 @@
                     <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">No features yet in this layer.</td></tr>`}</tbody>
                 </table>
             `;
+            updateSurveySelectionControls();
             renderSelectedFeatureInspector();
             refreshSharePanel();
         }
@@ -12738,7 +13218,7 @@
         }
 
         function commitTableCellChange(input) {
-            if (!input || isArchiveView || !tableEditMode) return;
+            if (!input || isArchiveView || !tableEditMode || !editSessionActive) return;
             const rowIndex = Number(input.dataset.rowIndex);
             const field = input.dataset.tableField;
             if (!Number.isInteger(rowIndex) || !field) return;
@@ -12912,7 +13392,17 @@
             const row = event.target.closest("tr[data-row-index]");
             if (!row) return;
             const rowIndex = Number(row.dataset.rowIndex);
+            setTableRowSelection(rowIndex, event);
             previewAnnotationByRow(rowIndex);
+        });
+
+        surveyTable?.addEventListener("contextmenu", (event) => {
+            const header = event.target.closest("th[data-table-column]");
+            if (!header) return;
+            event.preventDefault();
+            const fieldName = header.dataset.tableColumn;
+            const action = window.confirm(`Calculate field "${fieldName}"?`);
+            if (action) openFieldCalculator(fieldName);
         });
 
         surveyTable?.addEventListener("change", (event) => {
@@ -12931,6 +13421,25 @@
             const rowIndex = Number(row.dataset.rowIndex);
             focusAnnotationByRow(rowIndex);
         });
+
+        showSelectedRowsBtn?.addEventListener("click", () => {
+            tableRowFilterMode = "selected";
+            updateSurveyTable();
+        });
+        showUnselectedRowsBtn?.addEventListener("click", () => {
+            tableRowFilterMode = "unselected";
+            updateSurveyTable();
+        });
+        showAllRowsBtn?.addEventListener("click", () => {
+            tableRowFilterMode = "all";
+            updateSurveyTable();
+        });
+        fieldCalculatorClose?.addEventListener("click", closeFieldCalculator);
+        fieldCalculatorCancel?.addEventListener("click", closeFieldCalculator);
+        fieldCalculatorBackdrop?.addEventListener("click", (event) => {
+            if (event.target === fieldCalculatorBackdrop) closeFieldCalculator();
+        });
+        fieldCalculatorApply?.addEventListener("click", applyFieldCalculator);
 
         function isCoordinateVisibleOnMap(coord) {
             if (!coord || !map?.region?.span || !map?.region?.center) return false;
@@ -13090,6 +13599,7 @@ function updateFloatingButtonLayer(panelOpen) {
             }
             settingsPanel.hidden = !show;
             if (show) {
+                populateProjectTimeZoneSelect();
                 positionSettingsPanel();
             }
             settingsBtn?.classList.toggle("active", Boolean(show));
@@ -13166,6 +13676,12 @@ function setImportPanelVisibility(show) {
                 if (applyFeatureAttributesToRow(rowIndex === -1 ? action.rowIndex : rowIndex, action.before)) {
                     redoStack.push({ ...action });
                 }
+            } else if (action.type === "bulk-edit-attributes") {
+                action.changes.forEach((change) => {
+                    const rowIndex = findRowIndexByFeatureId(change.featureId);
+                    applyFeatureAttributesToRow(rowIndex === -1 ? change.rowIndex : rowIndex, change.before, { renderDrawer: false });
+                });
+                redoStack.push({ ...action });
             }
             scheduleLocalAutosave();
             updateHistoryButtons();
@@ -13200,6 +13716,14 @@ function setImportPanelVisibility(show) {
             if (action.type === "edit-attributes") {
                 const rowIndex = findRowIndexByFeatureId(action.featureId);
                 applyFeatureAttributesToRow(rowIndex === -1 ? action.rowIndex : rowIndex, action.after);
+            }
+            if (action.type === "bulk-edit-attributes") {
+                action.changes.forEach((change) => {
+                    const rowIndex = findRowIndexByFeatureId(change.featureId);
+                    applyFeatureAttributesToRow(rowIndex === -1 ? change.rowIndex : rowIndex, change.after, { renderDrawer: false });
+                });
+                updateSurveyTable();
+                renderFeatureDrawer();
             }
             undoStack.push(action);
             scheduleLocalAutosave();
