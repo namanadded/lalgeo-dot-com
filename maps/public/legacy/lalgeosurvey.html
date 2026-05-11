@@ -3453,6 +3453,20 @@
         color: #9fb1c2;
         font-size: 12px;
     }
+    .feature-drawer-mode-pill {
+        border-radius: 999px;
+        padding: 3px 9px;
+        background: #f3f4f6;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+    .feature-drawer-mode-pill.editing {
+        background: rgba(20, 184, 166, 0.13);
+        color: #0f766e;
+    }
     .feature-drawer-system {
         display: grid;
         gap: 6px;
@@ -3461,9 +3475,58 @@
         font-size: 13px;
         line-height: 1.45;
     }
+    .feature-drawer-system summary {
+        cursor: pointer;
+        color: #374151;
+        font-weight: 800;
+        list-style-position: outside;
+        margin-bottom: 8px;
+    }
     .feature-drawer-system strong {
         color: #374151;
         font-weight: 700;
+    }
+    .feature-drawer-system-grid {
+        display: grid;
+        gap: 6px;
+    }
+    .feature-drawer-compact-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 8px 10px;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        background: #f9fafb;
+    }
+    .feature-drawer-compact-row span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .feature-drawer-inline-control {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: center;
+    }
+    .feature-drawer-icon-btn {
+        width: 40px;
+        height: 40px;
+        border-radius: 12px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #4b5563;
+        box-shadow: 0 5px 14px rgba(15, 23, 42, 0.1);
+        cursor: pointer;
+        font-weight: 800;
+    }
+    .feature-drawer-icon-btn:hover,
+    .feature-drawer-icon-btn:focus-visible {
+        background: #f3f4f6;
+        color: #374151;
     }
     .feature-drawer-close {
         border: 1px solid rgba(255,255,255,0.1);
@@ -3537,6 +3600,9 @@
     .feature-drawer-field textarea {
         min-height: 90px;
         resize: vertical;
+    }
+    .feature-drawer-field textarea.feature-notes-input {
+        min-height: 132px;
     }
     .feature-drawer-photo-btn {
         display: grid;
@@ -8164,23 +8230,34 @@
             const featureDate = attrs.Date || "";
             const featureTimeZone = attrs.TimeZone || getProjectTimeZone();
             const editable = editSessionActive && canEditAttributes() && !isArchiveView;
+            const latValue = attrs.Latitude ?? feature.geometry?.lat ?? "";
+            const lonValue = attrs.Longitude ?? feature.geometry?.lng ?? "";
+            const coordinateText = [latValue, lonValue].filter((value) => value !== "" && value !== null && value !== undefined).join(", ");
             featureDrawerMeta.innerHTML = `
                 <span class="workspace-badge">${escapeHtml(layer.name)}</span>
-                <span>Feature ID: ${escapeHtml(featureId)}</span>
+                <span class="feature-drawer-mode-pill ${editable ? "editing" : ""}">${editable ? "Editing" : "Read only"}</span>
             `;
             const systemDetails = `
-                <div class="feature-drawer-system">
-                    <div><strong>Feature ID:</strong> ${escapeHtml(featureId)}</div>
-                    <div><strong>Date:</strong> ${escapeHtml(formatFeatureDateTime(featureDate, featureTimeZone))}</div>
-                    ${featureTimeZone ? `<div><strong>Time zone:</strong> ${escapeHtml(featureTimeZone)}</div>` : ""}
-                    ${Number.isFinite(Number(attrs.Latitude ?? feature.geometry?.lat)) ? `<div><strong>Latitude:</strong> ${escapeHtml(String(attrs.Latitude ?? feature.geometry?.lat))}</div>` : ""}
-                    ${Number.isFinite(Number(attrs.Longitude ?? feature.geometry?.lng)) ? `<div><strong>Longitude:</strong> ${escapeHtml(String(attrs.Longitude ?? feature.geometry?.lng))}</div>` : ""}
-                </div>
+                <details class="feature-drawer-system">
+                    <summary>System details</summary>
+                    <div class="feature-drawer-system-grid">
+                        <div><strong>Feature ID:</strong> ${escapeHtml(featureId)}</div>
+                        <div><strong>Date:</strong> ${escapeHtml(formatFeatureDateTime(featureDate, featureTimeZone))}</div>
+                        ${featureTimeZone ? `<div><strong>Time zone:</strong> ${escapeHtml(featureTimeZone)}</div>` : ""}
+                        ${coordinateText ? `
+                            <div class="feature-drawer-compact-row">
+                                <span><strong>Coordinates:</strong> ${escapeHtml(coordinateText)}</span>
+                                <button id="featureDrawerCopyCoords" type="button" class="feature-drawer-icon-btn" aria-label="Copy coordinates" title="Copy coordinates">⧉</button>
+                            </div>
+                        ` : ""}
+                    </div>
+                </details>
             `;
             const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name) && !isSystemFieldName(field.name));
             const fields = attributeFields.map((field) => {
                 const value = feature.attributes?.[field.name] ?? "";
                 const isLocked = !editable || field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
+                const fieldKey = String(field.name || "").trim().toLowerCase();
                 if (field.type === "dropdown") {
                     return `
                         <div class="feature-drawer-field">
@@ -8192,11 +8269,34 @@
                         </div>
                     `;
                 }
-                if (field.name === "description") {
+                if (fieldKey === "notes" || fieldKey === "description") {
                     return `
                         <div class="feature-drawer-field">
                             <label>${escapeHtml(field.name)}</label>
-                            <textarea data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
+                            <textarea class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
+                        </div>
+                    `;
+                }
+                if (fieldKey === "phone") {
+                    const phoneHref = String(value || "").replace(/[^\d+]/g, "");
+                    return `
+                        <div class="feature-drawer-field">
+                            <label>${escapeHtml(field.name)}</label>
+                            <div class="feature-drawer-inline-control">
+                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <button type="button" class="feature-drawer-icon-btn" data-feature-action="phone" data-feature-value="${escapeHtml(phoneHref)}" aria-label="Call or copy phone number" title="Call phone number">☎</button>
+                            </div>
+                        </div>
+                    `;
+                }
+                if (fieldKey === "website") {
+                    return `
+                        <div class="feature-drawer-field">
+                            <label>${escapeHtml(field.name)}</label>
+                            <div class="feature-drawer-inline-control">
+                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <button type="button" class="feature-drawer-icon-btn" data-feature-action="website" data-feature-value="${escapeHtml(String(value))}" aria-label="Open website" title="Open website">↗</button>
+                            </div>
                         </div>
                     `;
                 }
@@ -8224,7 +8324,7 @@
                     <div class="feature-drawer-actions">
                         <div class="workspace-inline-actions">
                             <button id="featureDrawerDone" type="button" class="mini-btn primary">Done</button>
-                            <button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete" aria-label="Delete feature" ${editable ? "" : "disabled"}>🗑</button>
+                            ${editable ? `<button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete" aria-label="Delete feature" title="Delete feature">🗑</button>` : ""}
                         </div>
                         <span class="workspace-panel-muted">${editable ? "Changes autosave to your workspace." : "Turn on edit mode to edit attributes or delete this feature."}</span>
                     </div>
@@ -8236,6 +8336,27 @@
                 if (input.tagName === "INPUT" || input.tagName === "TEXTAREA") {
                     input.addEventListener("blur", commit);
                 }
+            });
+            featureDrawerBody.querySelector("#featureDrawerCopyCoords")?.addEventListener("click", () => {
+                navigator.clipboard?.writeText(coordinateText)
+                    .then(() => setProjectStatus("Coordinates copied.", "success"))
+                    .catch(() => setProjectStatus(coordinateText || "No coordinates to copy.", coordinateText ? "success" : "error"));
+            });
+            featureDrawerBody.querySelectorAll("[data-feature-action]").forEach((button) => {
+                button.addEventListener("click", () => {
+                    const action = button.getAttribute("data-feature-action");
+                    const value = button.getAttribute("data-feature-value") || "";
+                    if (!value) {
+                        setProjectStatus(`No ${action === "phone" ? "phone number" : "website"} available.`, "error");
+                        return;
+                    }
+                    if (action === "phone") {
+                        window.location.href = `tel:${value}`;
+                        return;
+                    }
+                    const url = /^https?:\/\//i.test(value) ? value : `https://${value}`;
+                    window.open(url, "_blank", "noopener,noreferrer");
+                });
             });
             featureDrawerBody.querySelector("#featureDrawerDelete")?.addEventListener("click", () => {
                 if (!editable) return;
