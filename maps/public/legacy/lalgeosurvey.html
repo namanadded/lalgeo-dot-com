@@ -5697,6 +5697,7 @@
         const WORKSPACE_UI_PREFS_KEY = "lalgeoWorkspaceUiPrefsV1";
         const WORKSPACE_REMEMBER_KEY = "lalgeoWorkspaceRememberSessionV1";
         const WORKSPACE_QUICK_ACTIONS_KEY = "lalgeoWorkspaceQuickActionsV1";
+        const WORKSPACE_LAST_LOCATION_KEY = "lalgeoWorkspaceLastLocationV1";
         const isMacPlatform = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || navigator.userAgent || "");
         const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation"];
         const QUICK_ACTION_BUTTONS = {
@@ -14407,6 +14408,70 @@ function setImportPanelVisibility(show) {
             map.addAnnotation(userLocationAnnotation);
         }
 
+        function saveLastKnownLocation(coord) {
+            if (!coord || !Number.isFinite(coord.latitude) || !Number.isFinite(coord.longitude)) return;
+            try {
+                localStorage.setItem(WORKSPACE_LAST_LOCATION_KEY, JSON.stringify({
+                    latitude: coord.latitude,
+                    longitude: coord.longitude,
+                    savedAt: new Date().toISOString()
+                }));
+            } catch (error) {
+                console.warn("Unable to save last known location", error);
+            }
+        }
+
+        function getSavedLastKnownLocation() {
+            try {
+                const raw = localStorage.getItem(WORKSPACE_LAST_LOCATION_KEY);
+                const saved = raw ? JSON.parse(raw) : null;
+                if (!Number.isFinite(saved?.latitude) || !Number.isFinite(saved?.longitude)) return null;
+                return new mapkit.Coordinate(saved.latitude, saved.longitude);
+            } catch {
+                return null;
+            }
+        }
+
+        function centerMapOnCoordinate(coord, spanSize = 0.02) {
+            if (!coord || !map) return;
+            map.region = new mapkit.CoordinateRegion(coord, new mapkit.CoordinateSpan(spanSize, spanSize));
+            showUserLocation(coord);
+        }
+
+        function requestStartupCurrentLocation() {
+            if (!rememberLastSession || activeProjectRecord || pendingStartupDropboxProjectId || !navigator.geolocation) {
+                return Promise.resolve(false);
+            }
+            return new Promise((resolve) => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        if (activeProjectRecord) {
+                            resolve(false);
+                            return;
+                        }
+                        const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
+                        myLocationCoord = coord;
+                        saveLastKnownLocation(coord);
+                        centerMapOnCoordinate(coord, 0.02);
+                        setProjectStatus("Centered on your current location.", "success");
+                        resolve(true);
+                    },
+                    () => {
+                        const savedCoord = getSavedLastKnownLocation();
+                        if (!activeProjectRecord && savedCoord) {
+                            myLocationCoord = savedCoord;
+                            centerMapOnCoordinate(savedCoord, 0.03);
+                            setProjectStatus("Centered on your last saved location.", "success");
+                            resolve(true);
+                            return;
+                        }
+                        resolve(false);
+                    },
+                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 300000 }
+                );
+            });
+        }
+
         let isZooming = false;
         document.getElementById("map").addEventListener("wheel", (e) => {
             e.preventDefault();
@@ -14468,30 +14533,17 @@ function setImportPanelVisibility(show) {
         );
         map.region = fallbackRegion;
         if (activeProjectRecord) {
-            setActiveProject(activeProjectRecord, { render: true, preserveRegion: true });
+            setActiveProject(activeProjectRecord, { render: true, preserveRegion: false });
         }
 
         const searchField = document.getElementById("searchInput");
         const search = new mapkit.Search({ region: map.region });
         setSearchExpanded(false);
-        fetch("https://ipapi.co/json/")
-          .then(res => res.json())
-          .then(data => {
-            if (data && data.latitude && data.longitude) {
-              const approxCoord = new mapkit.Coordinate(data.latitude, data.longitude);
-              const approxRegion = new mapkit.CoordinateRegion(
-                approxCoord,
-                new mapkit.CoordinateSpan(0.05, 0.05)
-              );
-              map.region = approxRegion;
-              search.region = approxRegion;
-            }
-          })
-          .catch(err => {
-            console.warn("IP-based geolocation failed:", err);
-            map.region = fallbackRegion;
-            search.region = fallbackRegion;
-          });
+        if (!activeProjectRecord && rememberLastSession) {
+            void requestStartupCurrentLocation().then((centered) => {
+                if (centered) search.region = map.region;
+            });
+        }
         const clearSearch = document.getElementById("clearSearch");
 
         searchField.addEventListener("input", () => {
@@ -15193,6 +15245,7 @@ function setImportPanelVisibility(show) {
                 (position) => {
                     const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
                     myLocationCoord = coord;
+                    saveLastKnownLocation(coord);
                     showUserLocation(coord);
                     if (!hasCenteredOnce) {
                         map.region = new mapkit.CoordinateRegion(coord, new mapkit.CoordinateSpan(0.01, 0.01));
