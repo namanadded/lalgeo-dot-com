@@ -5544,6 +5544,7 @@
         let pointGeometryEditMode = false;
         let pointGeometryDragState = null;
         let editSessionActive = false;
+        let suppressAnnotationDetailOpen = false;
         let selectedTableRows = new Set();
         let lastSelectedTableRow = null;
         let tableRowFilterMode = "all";
@@ -13603,10 +13604,13 @@
             setActiveTableRow(rowIndex);
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            suppressAnnotationDetailOpen = true;
+            surveyCallout.style.display = "none";
+            closeFeatureDrawer();
             refreshAnnotationStyles();
-            try {
-                annotation.selected = true; // hint for MapKit selection visuals
-            } catch {}
+            window.setTimeout(() => {
+                suppressAnnotationDetailOpen = false;
+            }, 250);
         }
 
         function focusAnnotationByRow(rowIndex) {
@@ -14303,6 +14307,17 @@ function setImportPanelVisibility(show) {
 
         map.addEventListener("select", (event) => {
             if (event?.annotation?.surveyPoint) {
+                if (suppressAnnotationDetailOpen) {
+                    activeSurveyAnnotation = event.annotation;
+                    activeFeatureId = event.annotation.surveyPoint.pointId || event.annotation.surveyPoint.rowIndex;
+                    surveyCallout.style.display = "none";
+                    closeFeatureDrawer();
+                    refreshAnnotationStyles();
+                    try {
+                        event.annotation.selected = false;
+                    } catch {}
+                    return;
+                }
                 if (pointGeometryEditMode) {
                     activeSurveyAnnotation = event.annotation;
                     activeFeatureId = event.annotation.surveyPoint.pointId || event.annotation.surveyPoint.rowIndex;
