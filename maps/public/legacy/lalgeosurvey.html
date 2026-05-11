@@ -4807,6 +4807,17 @@
         </label>
         <p class="settings-note">New features store the selected time zone with the project and each feature date.</p>
         <div class="settings-divider"></div>
+        <p class="settings-panel-title">Basemap</p>
+        <label class="settings-option">
+            <span>Map imagery</span>
+            <select id="projectMapTypeSelect" class="workspace-text-input">
+                <option value="standard">Standard</option>
+                <option value="satellite">Satellite / ortho photo</option>
+                <option value="hybrid">Hybrid satellite</option>
+            </select>
+        </label>
+        <p class="settings-note">Satellite and hybrid use Apple Maps imagery where available.</p>
+        <div class="settings-divider"></div>
         <p class="settings-panel-title">Quick actions</p>
         <p class="settings-note">Choose which frequently used actions appear on the right side of the menu bar.</p>
         <div class="quick-action-prefs">
@@ -4865,6 +4876,12 @@
                 <button id="menuToggleLayerToolbarBtn" type="button" class="menu-command"><span>Layer Tools</span></button>
             </div>
             <button id="menuShowBasemapPoisBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show POIs in Basemap</span></button>
+            <button id="menuMapTypeBtn" type="button" class="menu-command" aria-expanded="false"><span>Map Type</span><span>›</span></button>
+            <div id="menuMapTypeList" class="menu-nested-section" hidden>
+                <button type="button" class="menu-command" data-map-type="standard"><span>✓ Standard</span></button>
+                <button type="button" class="menu-command" data-map-type="satellite"><span>Satellite / Ortho Photo</span></button>
+                <button type="button" class="menu-command" data-map-type="hybrid"><span>Hybrid Satellite</span></button>
+            </div>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
@@ -5343,6 +5360,7 @@
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
         const rememberSessionOption = rememberSessionToggle?.closest(".settings-option");
         const projectTimeZoneSelect = document.getElementById("projectTimeZoneSelect");
+        const projectMapTypeSelect = document.getElementById("projectMapTypeSelect");
         const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
@@ -5459,6 +5477,8 @@
         const menuToggleEditToolbarBtn = document.getElementById("menuToggleEditToolbarBtn");
         const menuToggleLayerToolbarBtn = document.getElementById("menuToggleLayerToolbarBtn");
         const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
+        const menuMapTypeBtn = document.getElementById("menuMapTypeBtn");
+        const menuMapTypeList = document.getElementById("menuMapTypeList");
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
         const menuSettingsBtn = document.getElementById("menuSettingsBtn");
@@ -6233,6 +6253,7 @@
                 attachments,
                 mapOptions: {
                     showBasemapPOIs: true,
+                    mapType: "standard",
                     ...(mapOptions || {})
                 },
                 metadata: { createdAt: now, updatedAt: now },
@@ -6315,6 +6336,7 @@
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
+            updateMapTypeControls(activeProjectRecord);
         }
 
         function positionToolbarMenu(button) {
@@ -6706,6 +6728,27 @@
             return project?.mapOptions?.showBasemapPOIs !== false;
         }
 
+        function normalizeProjectMapType(value = "standard") {
+            const normalized = String(value || "standard").toLowerCase();
+            if (normalized === "satellite" || normalized === "hybrid") return normalized;
+            return "standard";
+        }
+
+        function getProjectMapType(project = activeProjectRecord) {
+            return normalizeProjectMapType(project?.mapOptions?.mapType || "standard");
+        }
+
+        function getMapKitMapType(mapType = getProjectMapType()) {
+            const mapTypes = mapkit?.Map?.MapTypes || {};
+            if (mapType === "satellite") {
+                return mapTypes.Satellite || "satellite";
+            }
+            if (mapType === "hybrid") {
+                return mapTypes.Hybrid || "hybrid";
+            }
+            return mapTypes.Standard || "standard";
+        }
+
         function updateBasemapPoisMenuState() {
             if (!menuShowBasemapPoisBtn) return;
             const visible = getProjectBasemapPoisVisible();
@@ -6714,12 +6757,35 @@
             if (label) label.textContent = `${visible ? "✓" : ""} Show POIs in Basemap`;
         }
 
+        function updateMapTypeControls(project = activeProjectRecord) {
+            const selectedType = getProjectMapType(project);
+            if (projectMapTypeSelect) projectMapTypeSelect.value = selectedType;
+            menuMapTypeList?.querySelectorAll("[data-map-type]").forEach((button) => {
+                const type = button.getAttribute("data-map-type");
+                const label = button.querySelector("span");
+                if (label) {
+                    const base = type === "satellite" ? "Satellite / Ortho Photo" : (type === "hybrid" ? "Hybrid Satellite" : "Standard");
+                    label.textContent = `${type === selectedType ? "✓ " : ""}${base}`;
+                }
+                button.classList.toggle("active", type === selectedType);
+            });
+        }
+
+        function applyProjectMapType(project = activeProjectRecord) {
+            const mapType = getProjectMapType(project);
+            if (map) {
+                map.mapType = getMapKitMapType(mapType);
+            }
+            updateMapTypeControls(project);
+        }
+
         function applyBasemapPoisPreference(project = activeProjectRecord) {
             const visible = getProjectBasemapPoisVisible(project);
             if (map) {
                 map.showsPointsOfInterest = visible;
             }
             updateBasemapPoisMenuState();
+            applyProjectMapType(project);
         }
 
         function setProjectBasemapPoisVisible(visible) {
@@ -6732,6 +6798,22 @@
             markActiveProjectUpdated();
             scheduleLocalAutosave();
             setProjectStatus(`${visible ? "Showing" : "Hiding"} basemap POIs.`, "success");
+        }
+
+        function setProjectMapType(mapType) {
+            const nextType = normalizeProjectMapType(mapType);
+            if (activeProjectRecord) {
+                activeProjectRecord.mapOptions = {
+                    ...(activeProjectRecord.mapOptions || {}),
+                    showBasemapPOIs: getProjectBasemapPoisVisible(),
+                    mapType: nextType
+                };
+                markActiveProjectUpdated();
+                scheduleLocalAutosave();
+            }
+            applyProjectMapType(activeProjectRecord || { mapOptions: { mapType: nextType } });
+            const label = nextType === "satellite" ? "Satellite / ortho photo" : (nextType === "hybrid" ? "Hybrid satellite" : "Standard");
+            setProjectStatus(`Map type set to ${label}.`, "success");
         }
 
         function getActiveLayerRecord() {
@@ -7653,6 +7735,7 @@
             if (activeProjectRecord) {
                 activeProjectRecord.mapOptions = {
                     showBasemapPOIs: true,
+                    mapType: "standard",
                     ...(activeProjectRecord.mapOptions || {})
                 };
                 ensureProjectTimeZone(activeProjectRecord);
@@ -9394,6 +9477,22 @@
                 menuToolbarsBtn?.setAttribute("aria-expanded", expanded ? "true" : "false");
                 return;
             }
+            if (event.target.closest("#menuMapTypeBtn")) {
+                event.preventDefault();
+                event.stopPropagation();
+                const expanded = Boolean(menuMapTypeList?.hidden);
+                if (menuMapTypeList) menuMapTypeList.hidden = !expanded;
+                menuMapTypeBtn?.setAttribute("aria-expanded", expanded ? "true" : "false");
+                updateMapTypeControls(activeProjectRecord);
+                return;
+            }
+            const mapTypeButton = event.target.closest("[data-map-type]");
+            if (mapTypeButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                setProjectMapType(mapTypeButton.getAttribute("data-map-type"));
+                return;
+            }
             if (event.target.closest(".menu-command")) {
                 setToolbarMenuVisibility(false);
             }
@@ -9430,6 +9529,9 @@
             renderFeatureDrawer();
             scheduleLocalAutosave();
             setProjectStatus(`Project time zone set to ${activeProjectRecord.metadata.timeZone}.`, "success");
+        });
+        projectMapTypeSelect?.addEventListener("change", () => {
+            setProjectMapType(projectMapTypeSelect.value);
         });
         quickActionToggles.forEach((toggle) => {
             toggle.addEventListener("change", () => {
@@ -13714,6 +13816,8 @@ function updateFloatingButtonLayer(panelOpen) {
             if (toolbarMenuTray) toolbarMenuTray.hidden = !toolbarMenuVisible;
             if (!toolbarMenuVisible) {
                 menuPaneEls.forEach((pane) => pane.hidden = true);
+                if (menuToolbarsList) menuToolbarsList.hidden = true;
+                if (menuMapTypeList) menuMapTypeList.hidden = true;
             }
             setTopMenuButtonStates();
         }
@@ -13726,6 +13830,7 @@ function updateFloatingButtonLayer(panelOpen) {
             settingsPanel.hidden = !show;
             if (show) {
                 populateProjectTimeZoneSelect();
+                updateMapTypeControls(activeProjectRecord);
                 positionSettingsPanel();
             }
             settingsBtn?.classList.toggle("active", Boolean(show));
@@ -14292,6 +14397,7 @@ function setImportPanelVisibility(show) {
             isZoomEnabled: true,
             isScrollEnabled: true,
             showsZoomControl: true,
+            mapType: getMapKitMapType(getProjectMapType()),
             showsPointsOfInterest: getProjectBasemapPoisVisible(),
             showsCompass: mapkit.FeatureVisibility.Visible
         });
