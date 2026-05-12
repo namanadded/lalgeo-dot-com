@@ -7942,7 +7942,9 @@
         function updateAnnotationVisualState(annotation) {
             if (!annotation?.surveyPoint) return;
             const featureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
-            const isSelected = featureId === activeFeatureId;
+            const rowIndex = annotation.surveyPoint.rowIndex;
+            const isTableSelected = Number.isInteger(rowIndex) && selectedTableRows.has(rowIndex);
+            const isSelected = isTableSelected || featureId === activeFeatureId;
             const isHovered = featureId === hoveredFeatureId;
             const isNew = Boolean(annotation.surveyPoint.isNew);
             const attrs = annotation.surveyPoint.attributes || {};
@@ -13182,7 +13184,7 @@
         }
 
         function setTableRowSelection(rowIndex, event = {}) {
-            if (!Number.isInteger(rowIndex)) return;
+            if (!Number.isInteger(rowIndex)) return false;
             const total = currentSurveyData?.records?.length || 0;
             if (event.shiftKey && Number.isInteger(lastSelectedTableRow)) {
                 const start = Math.max(0, Math.min(lastSelectedTableRow, rowIndex));
@@ -13196,7 +13198,20 @@
                 selectedTableRows = new Set([rowIndex]);
                 lastSelectedTableRow = rowIndex;
             }
+            const clickedRowSelected = selectedTableRows.has(rowIndex);
+            const activeRowIndex = Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
+                ? activeSurveyAnnotation.surveyPoint.rowIndex
+                : null;
+            if (activeRowIndex !== null && !selectedTableRows.has(activeRowIndex)) {
+                const nextRowIndex = selectedTableRows.size ? Array.from(selectedTableRows).sort((a, b) => a - b)[0] : null;
+                activeSurveyAnnotation = nextRowIndex !== null ? rowAnnotationMap.get(nextRowIndex) || null : null;
+                activeFeatureId = activeSurveyAnnotation?.surveyPoint
+                    ? activeSurveyAnnotation.surveyPoint.pointId || activeSurveyAnnotation.surveyPoint.rowIndex
+                    : null;
+            }
             updateSurveyTable();
+            refreshAnnotationStyles();
+            return clickedRowSelected;
         }
 
         function getSelectedTableCoordinates() {
@@ -13642,9 +13657,11 @@
             const row = event.target.closest("tr[data-row-index]");
             if (!row) return;
             const rowIndex = Number(row.dataset.rowIndex);
-            setTableRowSelection(rowIndex, event);
-            previewAnnotationByRow(rowIndex, { preserveSelectionView: selectedTableRows.size > 1 });
-            zoomToSelectedTableRows(rowIndex);
+            const rowSelected = setTableRowSelection(rowIndex, event);
+            if (rowSelected) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: selectedTableRows.size > 1 });
+            }
+            zoomToSelectedTableRows(rowSelected ? rowIndex : null);
         });
 
         surveyTable?.addEventListener("contextmenu", (event) => {
