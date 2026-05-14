@@ -1381,8 +1381,13 @@
     #surveyTableWrapper td {
         padding: 6px 8px;
         border-bottom: 1px solid #eceff3;
+        border-right: 1px solid #eceff3;
         text-align: left;
         white-space: nowrap;
+    }
+    #surveyTableWrapper th:last-child,
+    #surveyTableWrapper td:last-child {
+        border-right: none;
     }
     #surveyTableWrapper tbody tr:hover {
         background: #e1e8f7;
@@ -3826,6 +3831,11 @@
     #surveyTableWrapper th,
     #surveyTableWrapper td {
         border-bottom: 1px solid rgba(255,255,255,0.08);
+        border-right: 1px solid rgba(255,255,255,0.08);
+    }
+    #surveyTableWrapper th:last-child,
+    #surveyTableWrapper td:last-child {
+        border-right: none;
     }
     #surveyTableWrapper tbody tr:hover {
         background: rgba(92, 200, 192, 0.08);
@@ -4444,6 +4454,11 @@
     #surveyTableWrapper th,
     #surveyTableWrapper td {
         border-bottom: 1px solid #e5e7eb;
+        border-right: 1px solid #e5e7eb;
+    }
+    #surveyTableWrapper th:last-child,
+    #surveyTableWrapper td:last-child {
+        border-right: none;
     }
     #surveyTableWrapper tbody tr:hover {
         background: #f3f4f6;
@@ -5246,6 +5261,8 @@
             <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
             <div id="surveySelectionControls" hidden>
                 <span id="surveySelectionSummary">0 selected</span>
+                <button id="selectAllRowsBtn" type="button" class="panel-action-btn">Select all</button>
+                <button id="clearSelectedRowsBtn" type="button" class="panel-action-btn">Clear selection</button>
                 <button id="showSelectedRowsBtn" type="button" class="panel-action-btn">Show selected</button>
                 <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn">Show unselected</button>
                 <button id="showAllRowsBtn" type="button" class="panel-action-btn">Show all</button>
@@ -5513,6 +5530,8 @@
         const surveyTableContext = document.getElementById("surveyTableContext");
         const surveySelectionControls = document.getElementById("surveySelectionControls");
         const surveySelectionSummary = document.getElementById("surveySelectionSummary");
+        const selectAllRowsBtn = document.getElementById("selectAllRowsBtn");
+        const clearSelectedRowsBtn = document.getElementById("clearSelectedRowsBtn");
         const showSelectedRowsBtn = document.getElementById("showSelectedRowsBtn");
         const showUnselectedRowsBtn = document.getElementById("showUnselectedRowsBtn");
         const showAllRowsBtn = document.getElementById("showAllRowsBtn");
@@ -13176,11 +13195,38 @@
         function updateSurveySelectionControls() {
             if (!surveySelectionControls || !surveySelectionSummary) return;
             const count = selectedTableRows.size;
-            surveySelectionControls.hidden = count === 0 && tableRowFilterMode === "all";
+            const rowCount = (isArchiveView ? archiveData?.records : currentSurveyData?.records)?.length || 0;
+            surveySelectionControls.hidden = rowCount === 0 && tableRowFilterMode === "all";
             surveySelectionSummary.textContent = `${count} selected`;
+            if (clearSelectedRowsBtn) clearSelectedRowsBtn.disabled = count === 0;
+            if (selectAllRowsBtn) selectAllRowsBtn.disabled = rowCount === 0 || count === rowCount;
             showSelectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "selected");
             showUnselectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "unselected");
             showAllRowsBtn?.classList.toggle("active", tableRowFilterMode === "all");
+        }
+
+        function clearTableSelection({ update = true } = {}) {
+            selectedTableRows = new Set();
+            lastSelectedTableRow = null;
+            activeSurveyAnnotation = null;
+            activeFeatureId = null;
+            surveyCallout.style.display = "none";
+            closeFeatureDrawer();
+            refreshAnnotationStyles();
+            if (update) updateSurveyTable();
+        }
+
+        function selectAllTableRows() {
+            const rowCount = (isArchiveView ? archiveData?.records : currentSurveyData?.records)?.length || 0;
+            selectedTableRows = new Set(Array.from({ length: rowCount }, (_, index) => index));
+            lastSelectedTableRow = rowCount ? rowCount - 1 : null;
+            activeSurveyAnnotation = rowCount ? rowAnnotationMap.get(0) || null : null;
+            activeFeatureId = activeSurveyAnnotation?.surveyPoint
+                ? activeSurveyAnnotation.surveyPoint.pointId || activeSurveyAnnotation.surveyPoint.rowIndex
+                : null;
+            refreshAnnotationStyles();
+            updateSurveyTable();
+            if (!isArchiveView && rowCount) zoomToSelectedTableRows();
         }
 
         function setTableRowSelection(rowIndex, event = {}) {
@@ -13693,6 +13739,12 @@
         showSelectedRowsBtn?.addEventListener("click", () => {
             tableRowFilterMode = "selected";
             updateSurveyTable();
+        });
+        selectAllRowsBtn?.addEventListener("click", () => {
+            selectAllTableRows();
+        });
+        clearSelectedRowsBtn?.addEventListener("click", () => {
+            clearTableSelection();
         });
         showUnselectedRowsBtn?.addEventListener("click", () => {
             tableRowFilterMode = "unselected";
@@ -14694,6 +14746,8 @@ function setImportPanelVisibility(show) {
             });
         }
         const clearSearch = document.getElementById("clearSearch");
+        let searchInputTimer = null;
+        let latestSearchSequence = 0;
 
         searchField.addEventListener("input", () => {
             clearSearch.style.display = searchField.value ? "inline" : "none";
@@ -15293,40 +15347,125 @@ function setImportPanelVisibility(show) {
             currentAnnotation = createAnnotation(detailedPlace);
         }
 
-        searchField.addEventListener("input", () => {
-            const query = searchField.value;
-            if (!query) {
+        function getAutocompleteResults(data) {
+            if (Array.isArray(data)) return data;
+            return data?.results || data?.autocompleteResults || data?.places || [];
+        }
+
+        function getAutocompleteTitle(result) {
+            return result?.displayLines?.[0] || result?.name || result?.title || result?.query || "";
+        }
+
+        function getAutocompleteSubtitle(result) {
+            if (Array.isArray(result?.displayLines) && result.displayLines.length > 1) {
+                return result.displayLines.slice(1).join(", ");
+            }
+            return result?.formattedAddress || result?.address || result?.locality || "";
+        }
+
+        function createPlaceFromAutocomplete(result) {
+            if (!result?.coordinate) return null;
+            return {
+                name: getAutocompleteTitle(result),
+                formattedAddress: getAutocompleteSubtitle(result),
+                coordinate: result.coordinate,
+                identifier: result.id || result.identifier || result.placeID || result.placeId || null
+            };
+        }
+
+        function hideSearchResults() {
+            resultsList.innerHTML = "";
+            resultsList.style.display = "none";
+        }
+
+        function renderSearchSuggestions(results) {
+            resultsList.innerHTML = "";
+            if (!results.length) {
                 resultsList.style.display = "none";
                 return;
             }
-            search.search(query, (error, data) => {
-                if (error || !data.places) return;
-
-                resultsList.innerHTML = "";
-                data.places.forEach(place => {
-                    const li = document.createElement("li");
-                    li.style.padding = "10px 14px";
-                    li.style.cursor = "pointer";
-                    li.style.borderBottom = "1px solid rgba(15, 23, 42, 0.08)";
-                    li.style.backgroundColor = "#fff";
-                    li.style.color = "#0f172a";
-                    li.innerHTML = `<strong style="display:block;color:#020617;font-weight:700;line-height:1.25;">${place.name}</strong><small style="display:block;color:#334155;line-height:1.35;margin-top:2px;">${place.formattedAddress || ""}</small>`;
-                    li.addEventListener("click", async () => {
-                        resultsList.style.display = "none";
-                        searchField.value = place.name;
-                        await selectSearchPlace(place);
-                    });
-                    resultsList.appendChild(li);
+            results.forEach(result => {
+                const title = getAutocompleteTitle(result);
+                const subtitle = getAutocompleteSubtitle(result);
+                if (!title) return;
+                const li = document.createElement("li");
+                li.style.padding = "10px 14px";
+                li.style.cursor = "pointer";
+                li.style.borderBottom = "1px solid rgba(15, 23, 42, 0.08)";
+                li.style.backgroundColor = "#fff";
+                li.style.color = "#0f172a";
+                li.innerHTML = `<strong style="display:block;color:#020617;font-weight:700;line-height:1.25;">${escapeHtml(title)}</strong><small style="display:block;color:#334155;line-height:1.35;margin-top:2px;">${escapeHtml(subtitle)}</small>`;
+                li.addEventListener("click", async () => {
+                    resultsList.style.display = "none";
+                    searchField.value = title;
+                    await selectAutocompleteResult(result);
                 });
-                positionSearchSuggestions();
-                resultsList.style.display = "block";
+                resultsList.appendChild(li);
             });
-        });
+            if (!resultsList.children.length) {
+                resultsList.style.display = "none";
+                return;
+            }
+            positionSearchSuggestions();
+            resultsList.style.display = "block";
+        }
+
+        function searchPlaces(query) {
+            return new Promise((resolve) => {
+                search.search(query, (error, data) => {
+                    if (error) {
+                        console.warn("Map search failed:", error);
+                        resolve([]);
+                        return;
+                    }
+                    resolve(data?.places || []);
+                }, { region: map.region });
+            });
+        }
+
+        async function selectAutocompleteResult(result) {
+            const fallbackPlace = createPlaceFromAutocomplete(result);
+            const places = await searchPlaces(result);
+            const place = places[0] || fallbackPlace;
+            if (!place?.coordinate) return;
+            await selectSearchPlace(place);
+        }
+
+        function requestSearchSuggestions() {
+            const query = searchField.value.trim();
+            window.clearTimeout(searchInputTimer);
+            if (query.length < 2) {
+                latestSearchSequence += 1;
+                hideSearchResults();
+                return;
+            }
+            const sequence = latestSearchSequence + 1;
+            latestSearchSequence = sequence;
+            searchInputTimer = window.setTimeout(() => {
+                const callback = (error, data) => {
+                    if (sequence !== latestSearchSequence) return;
+                    if (error) {
+                        console.warn("Map search autocomplete failed:", error);
+                        hideSearchResults();
+                        return;
+                    }
+                    renderSearchSuggestions(getAutocompleteResults(data));
+                };
+                if (typeof search.autocomplete === "function") {
+                    search.autocomplete(query, callback, { region: map.region });
+                } else {
+                    search.search(query, callback, { region: map.region });
+                }
+            }, 180);
+        }
+
+        searchField.addEventListener("input", requestSearchSuggestions);
 
         clearSearch.addEventListener("click", () => {
             searchField.value = "";
             clearSearch.style.display = "none";
-            resultsList.style.display = "none";
+            latestSearchSequence += 1;
+            hideSearchResults();
             stopVoice(); // Stop voice navigation if active
             setSidebarVisibility(false); // Hide sidebar
             hideLookAroundPreview();
@@ -15346,11 +15485,11 @@ function setImportPanelVisibility(show) {
         searchField.addEventListener("keydown", function (e) {
             if (e.key === "Enter") {
                 search.search(searchField.value, async (error, data) => {
-                    if (error || data.places.length === 0) return;
+                    if (error || !data?.places?.length) return;
                     const place = data.places[0];
                     await selectSearchPlace(place);
-                    resultsList.style.display = "none";
-                });
+                    hideSearchResults();
+                }, { region: map.region });
             }
         });
 
