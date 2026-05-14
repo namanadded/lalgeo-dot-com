@@ -6036,14 +6036,122 @@
             return colorMap[normalized] || "#EA4335";
         }
 
-        function getTransparentHexColor(color, alphaHex = "66") {
+        function getTransparentColor(color, opacity = 0.42) {
             const value = String(color || "").trim();
-            if (/^#[0-9a-f]{6}$/i.test(value)) return `${value}${alphaHex}`;
-            if (/^#[0-9a-f]{3}$/i.test(value)) {
-                const hex = value.slice(1).split("").map((char) => `${char}${char}`).join("");
-                return `#${hex}${alphaHex}`;
+            let hex = "";
+            if (/^#[0-9a-f]{6}$/i.test(value)) {
+                hex = value.slice(1);
+            } else if (/^#[0-9a-f]{3}$/i.test(value)) {
+                hex = value.slice(1).split("").map((char) => `${char}${char}`).join("");
+            } else {
+                hex = getSymbolColorValue(value).slice(1);
             }
-            return `${getSymbolColorValue(value)}${alphaHex}`;
+            const red = parseInt(hex.slice(0, 2), 16);
+            const green = parseInt(hex.slice(2, 4), 16);
+            const blue = parseInt(hex.slice(4, 6), 16);
+            return `rgba(${red}, ${green}, ${blue}, ${opacity})`;
+        }
+
+        function getTransparentHexColor(color, alphaHex = "66") {
+            const alpha = Math.max(0, Math.min(1, parseInt(alphaHex, 16) / 255));
+            return getTransparentColor(color, alpha);
+        }
+
+        function getClosedPolygonCoordinates(coords = []) {
+            if (coords.length < 3) return coords;
+            const first = coords[0];
+            const last = coords[coords.length - 1];
+            if (coordinatesAreEqual(first, last)) return coords;
+            return [...coords, new mapkit.Coordinate(first.latitude, first.longitude)];
+        }
+
+        function isCoordinateInsidePolygon(coordinate, ring = []) {
+            if (!coordinate || ring.length < 3) return false;
+            const x = coordinate.longitude;
+            const y = coordinate.latitude;
+            let inside = false;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i, i += 1) {
+                const xi = ring[i].longitude;
+                const yi = ring[i].latitude;
+                const xj = ring[j].longitude;
+                const yj = ring[j].latitude;
+                const intersects = ((yi > y) !== (yj > y))
+                    && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+                if (intersects) inside = !inside;
+            }
+            return inside;
+        }
+
+        function getDistanceFromPointToSegment(point, start, end) {
+            const px = point.x;
+            const py = point.y;
+            const sx = start.x;
+            const sy = start.y;
+            const ex = end.x;
+            const ey = end.y;
+            const dx = ex - sx;
+            const dy = ey - sy;
+            if (dx === 0 && dy === 0) return Math.hypot(px - sx, py - sy);
+            const t = Math.max(0, Math.min(1, ((px - sx) * dx + (py - sy) * dy) / (dx * dx + dy * dy)));
+            return Math.hypot(px - (sx + t * dx), py - (sy + t * dy));
+        }
+
+        function getDistanceToLineFeature(clientPoint, coords = []) {
+            if (!map || coords.length < 2) return Infinity;
+            let best = Infinity;
+            for (let i = 1; i < coords.length; i += 1) {
+                const start = map.convertCoordinateToPointOnPage(coords[i - 1]);
+                const end = map.convertCoordinateToPointOnPage(coords[i]);
+                if (!start || !end) continue;
+                best = Math.min(best, getDistanceFromPointToSegment(clientPoint, start, end));
+            }
+            return best;
+        }
+
+        function getFeatureAnnotation(layer, rowIndex) {
+            const matched = surveyAnnotations.find((annotation) => (
+                annotation?.surveyPoint?.layerId === layer?.id
+                && annotation.surveyPoint.rowIndex === rowIndex
+            ));
+            if (matched) return matched;
+            const fallback = rowAnnotationMap.get(rowIndex) || null;
+            if (!fallback?.surveyPoint?.layerId || fallback.surveyPoint.layerId === layer?.id) return fallback;
+            return null;
+        }
+
+        function findFeatureAtMapPoint(clientX, clientY) {
+            if (!map || !activeProjectRecord?.layers?.length) return null;
+            const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(clientX, clientY));
+            if (!coordinate) return null;
+            const clientPoint = new DOMPoint(clientX, clientY);
+            const visibleLayers = (activeProjectRecord.layers || []).filter((layer) => layer.visible !== false);
+            for (let layerIndex = visibleLayers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+                const layer = ensureLayerStructure(visibleLayers[layerIndex]);
+                const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
+                const features = layer?.features || [];
+                for (let rowIndex = features.length - 1; rowIndex >= 0; rowIndex -= 1) {
+                    const feature = features[rowIndex];
+                    const coords = getGeometryCoordinates(feature);
+                    if (geometryType === "polygon" && isCoordinateInsidePolygon(coordinate, getClosedPolygonCoordinates(coords))) {
+                        return getFeatureAnnotation(layer, rowIndex);
+                    }
+                    if (geometryType === "line" && getDistanceToLineFeature(clientPoint, coords) <= 12) {
+                        return getFeatureAnnotation(layer, rowIndex);
+                    }
+                }
+            }
+            return null;
+        }
+
+        function selectFeatureFromMapPoint(clientX, clientY) {
+            const annotation = findFeatureAtMapPoint(clientX, clientY);
+            if (!annotation) return false;
+            suppressMapTapFor();
+            showSurveyCallout(annotation);
+            try {
+                annotation.selected = false;
+            } catch {}
+            return true;
         }
 
         function getSymbolGlyphValue(value) {
@@ -11053,8 +11161,8 @@
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: "#5cc8c0", lineCap: "round", lineJoin: "round" })
                 });
             } else if (geometryType === "polygon" && coords.length >= 3) {
-                drawingPreviewOverlay = new mapkit.PolygonOverlay([coords], {
-                    style: new mapkit.Style({ lineWidth: 3, strokeColor: "#5cc8c0", fillColor: getTransparentHexColor("#5cc8c0", "66") })
+                drawingPreviewOverlay = new mapkit.PolygonOverlay([getClosedPolygonCoordinates(coords)], {
+                    style: new mapkit.Style({ lineWidth: 3, strokeColor: "#5cc8c0", fillColor: getTransparentColor("#5cc8c0", 0.5) })
                 });
             }
             if (drawingPreviewOverlay) {
@@ -12725,8 +12833,8 @@
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
                 });
             } else if (geometryType === "polygon") {
-                overlay = new mapkit.PolygonOverlay([coords], {
-                    style: new mapkit.Style({ lineWidth: 3, strokeColor: overlayColor, fillColor: getTransparentHexColor(overlayColor, "66") })
+                overlay = new mapkit.PolygonOverlay([getClosedPolygonCoordinates(coords)], {
+                    style: new mapkit.Style({ lineWidth: 3, strokeColor: overlayColor, fillColor: getTransparentColor(overlayColor, 0.5) })
                 });
             }
             if (overlay) {
@@ -15713,7 +15821,13 @@ function setImportPanelVisibility(show) {
 
         mapElement.addEventListener("click", (event) => {
             if (shouldSuppressMapTap()) return;
-            if (!isAddingSurveyPoint) return;
+            if (!isAddingSurveyPoint) {
+                if (selectFeatureFromMapPoint(event.clientX, event.clientY)) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                return;
+            }
             event.preventDefault();
             const point = new DOMPoint(event.clientX, event.clientY);
             const coordinate = map.convertPointOnPageToCoordinate(point);
