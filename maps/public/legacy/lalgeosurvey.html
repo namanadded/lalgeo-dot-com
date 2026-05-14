@@ -7296,6 +7296,9 @@
                 }
                 hideWorkspaceHint();
                 setProjectStatus("Editing stopped.", "success");
+                if (!isDropboxSurvey() && (pendingChanges || surveyNeedsSave || workspaceDirty)) {
+                    void persistSurveyEditsIfNeeded(true);
+                }
             } else {
                 setProjectStatus("Editing started. Choose an edit action from the panel.", "success");
             }
@@ -11155,6 +11158,9 @@
             });
             exitAddSurveyPointMode();
             setActiveProject(activeProjectRecord, { preserveRegion: true });
+            if (!isDropboxSurvey()) {
+                scheduleLocalAutosave(0);
+            }
             const annotation = rowAnnotationMap.get(rowIndex);
             if (annotation) {
                 activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
