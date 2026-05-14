@@ -4330,6 +4330,30 @@
     #toolbar .quick-action-icon {
         color: #6b7280;
     }
+    #toolbar .toolbar-right,
+    #toolbar .toolbar-quick-actions,
+    #toolbar #toolbarSearchShell {
+        align-items: center;
+    }
+    #toolbar .menu-bar-btn.quick-action,
+    #toolbar .toolbar-btn.ghost.search-toggle-btn,
+    #toolbar #collapseSearchBtn,
+    #toolbar #clearSearch {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+    }
+    #toolbar .menu-bar-btn.quick-action,
+    #toolbar .toolbar-btn.ghost.search-toggle-btn {
+        width: 30px;
+        height: 30px;
+        padding: 0;
+    }
+    #toolbar #clearSearch {
+        min-width: 24px;
+        min-height: 24px;
+    }
     .toolbar-left.expanded .app-menubar,
     .toolbar-right.expanded .toolbar-quick-actions {
         background: rgba(255, 255, 255, 0.96);
