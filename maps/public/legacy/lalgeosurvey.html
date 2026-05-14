@@ -5849,12 +5849,42 @@
             ];
         }
 
-        function getDefaultLayerStyleDefaults(geometryType = "point") {
+        const LAYER_SYMBOL_COLORS = ["Red", "Blue", "Green", "Orange", "Purple"];
+
+        function getDefaultLayerStyleDefaults(geometryType = "point", overrides = {}) {
             const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             return {
                 symbol_color: "Red",
-                symbol_shape: normalizedGeometry === "point" ? "Dot" : (normalizedGeometry === "line" ? "Plus" : "Circle")
+                symbol_shape: normalizedGeometry === "point" ? "Dot" : (normalizedGeometry === "line" ? "Plus" : "Circle"),
+                ...overrides
             };
+        }
+
+        function normalizeSymbolColorName(value) {
+            const normalized = String(value || "").trim().toLowerCase();
+            return LAYER_SYMBOL_COLORS.find((color) => color.toLowerCase() === normalized) || "";
+        }
+
+        function collectProjectLayerColorUsage(project = activeProjectRecord) {
+            const usage = new Map(LAYER_SYMBOL_COLORS.map((color) => [color, 0]));
+            (project?.layers || []).forEach((layer) => {
+                const layerColor = normalizeSymbolColorName(layer?.styleDefaults?.symbol_color);
+                if (layerColor) usage.set(layerColor, (usage.get(layerColor) || 0) + 1);
+                (layer?.features || []).forEach((feature) => {
+                    const featureColor = normalizeSymbolColorName(feature?.attributes?.symbol_color);
+                    if (featureColor) usage.set(featureColor, (usage.get(featureColor) || 0) + 1);
+                });
+            });
+            return usage;
+        }
+
+        function getNextLayerSymbolColor(project = activeProjectRecord) {
+            const usage = collectProjectLayerColorUsage(project);
+            const unused = LAYER_SYMBOL_COLORS.find((color) => (usage.get(color) || 0) === 0);
+            if (unused) return unused;
+            return LAYER_SYMBOL_COLORS.reduce((best, color) => (
+                (usage.get(color) || 0) < (usage.get(best) || 0) ? color : best
+            ), LAYER_SYMBOL_COLORS[0]);
         }
 
         function isLayerStyleFieldName(name) {
@@ -6004,6 +6034,16 @@
                 purple: "#A142F4"
             };
             return colorMap[normalized] || "#EA4335";
+        }
+
+        function getTransparentHexColor(color, alphaHex = "66") {
+            const value = String(color || "").trim();
+            if (/^#[0-9a-f]{6}$/i.test(value)) return `${value}${alphaHex}`;
+            if (/^#[0-9a-f]{3}$/i.test(value)) {
+                const hex = value.slice(1).split("").map((char) => `${char}${char}`).join("");
+                return `#${hex}${alphaHex}`;
+            }
+            return `${getSymbolColorValue(value)}${alphaHex}`;
         }
 
         function getSymbolGlyphValue(value) {
@@ -6254,7 +6294,7 @@
             return parsed;
         }
 
-        function createLayerRecord({ name = "Field Points", geometryType = "point", parsed = null } = {}) {
+        function createLayerRecord({ name = "Field Points", geometryType = "point", parsed = null, styleDefaults = null } = {}) {
             const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             const sourceParsed = parsed || createEmptyParsedLayer(name, normalizedGeometry);
             sourceParsed.geometryType = normalizedGeometry;
@@ -6264,7 +6304,7 @@
                 name,
                 geometryType: normalizedGeometry,
                 visible: true,
-                styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry),
+                styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry, styleDefaults || {}),
                 schema,
                 fields: schema.map((field) => field.name),
                 features: buildLayerFeaturesFromParsed(sourceParsed, schema, normalizedGeometry),
@@ -8577,10 +8617,12 @@
                                 nameInput?.focus();
                                 return false;
                             }
+                            const geometryType = geometryInput?.value || "point";
                             const layer = createLayerRecord({
                                 name,
-                                geometryType: geometryInput?.value || "point",
-                                parsed: createEmptyParsedLayer(name, geometryInput?.value || "point")
+                                geometryType,
+                                parsed: createEmptyParsedLayer(name, geometryType),
+                                styleDefaults: { symbol_color: getNextLayerSymbolColor(activeProjectRecord) }
                             });
                             activeProjectRecord.layers.push(layer);
                             activeProjectRecord.activeLayerId = layer.id;
@@ -11012,7 +11054,7 @@
                 });
             } else if (geometryType === "polygon" && coords.length >= 3) {
                 drawingPreviewOverlay = new mapkit.PolygonOverlay([coords], {
-                    style: new mapkit.Style({ lineWidth: 3, strokeColor: "#5cc8c0", fillColor: "#5cc8c044" })
+                    style: new mapkit.Style({ lineWidth: 3, strokeColor: "#5cc8c0", fillColor: getTransparentHexColor("#5cc8c0", "66") })
                 });
             }
             if (drawingPreviewOverlay) {
@@ -12684,7 +12726,7 @@
                 });
             } else if (geometryType === "polygon") {
                 overlay = new mapkit.PolygonOverlay([coords], {
-                    style: new mapkit.Style({ lineWidth: 3, strokeColor: overlayColor, fillColor: `${overlayColor}44` })
+                    style: new mapkit.Style({ lineWidth: 3, strokeColor: overlayColor, fillColor: getTransparentHexColor(overlayColor, "66") })
                 });
             }
             if (overlay) {
