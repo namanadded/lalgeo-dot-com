@@ -14697,56 +14697,62 @@ function setImportPanelVisibility(show) {
             });
         }
 
-        let isZooming = false;
-        document.getElementById("map").addEventListener("wheel", (e) => {
-            e.preventDefault();
-            if (isZooming) return;
-            isZooming = true;
+        let wheelZoomFrame = null;
+        let wheelZoomAnchor = null;
+        let wheelZoomTargetScale = 1;
+        let wheelZoomLastEventAt = 0;
 
-            const mapElement = document.getElementById("map");
-            const zoomDirection = e.deltaY > 0 ? 1 : -1;
-            const zoomScale = 0.3;
-            const steps = 12;
-            let step = 0;
+        function isLikelyTrackpadWheel(event) {
+            return event.deltaMode === 0 && Math.abs(event.deltaY) < 24 && Math.abs(event.deltaX) < 24;
+        }
 
+        function clamp(value, min, max) {
+            return Math.min(Math.max(value, min), max);
+        }
+
+        document.getElementById("map").addEventListener("wheel", (event) => {
+            if (isLikelyTrackpadWheel(event)) return;
+            event.preventDefault();
+            if (!map?.region) return;
+
+            const now = performance.now();
             const rect = mapElement.getBoundingClientRect();
-            const domPoint = new DOMPoint(e.clientX - rect.left, e.clientY - rect.top);
-            const anchor = map.convertPointOnPageToCoordinate(domPoint);
+            wheelZoomAnchor = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX - rect.left, event.clientY - rect.top));
+            if (!wheelZoomAnchor) return;
 
-            const startRegion = map.region;
-            const targetSpan = new mapkit.CoordinateSpan(
-                startRegion.span.latitudeDelta * (1 + zoomScale * zoomDirection),
-                startRegion.span.longitudeDelta * (1 + zoomScale * zoomDirection)
-            );
-
-            function interpolate(a, b, t) {
-                return a + (b - a) * t;
+            if (now - wheelZoomLastEventAt > 220) {
+                wheelZoomTargetScale = 1;
             }
+            wheelZoomLastEventAt = now;
 
-            function animateZoom() {
-                step++;
-                const t = step / steps;
+            const normalizedDelta = event.deltaMode === 1 ? event.deltaY * 16 : event.deltaY;
+            wheelZoomTargetScale *= Math.exp(clamp(normalizedDelta, -240, 240) * 0.0018);
+            wheelZoomTargetScale = clamp(wheelZoomTargetScale, 0.25, 4);
 
-                const latDelta = interpolate(startRegion.span.latitudeDelta, targetSpan.latitudeDelta, t);
-                const lonDelta = interpolate(startRegion.span.longitudeDelta, targetSpan.longitudeDelta, t);
-                const zoomRatio = latDelta / startRegion.span.latitudeDelta;
+            if (wheelZoomFrame) return;
+            const animateWheelZoom = () => {
+                wheelZoomFrame = null;
+                if (!wheelZoomAnchor || Math.abs(wheelZoomTargetScale - 1) < 0.002) {
+                    wheelZoomTargetScale = 1;
+                    return;
+                }
 
-                // Adjust center based on anchor (cursor) position
-                const newCenterLat = anchor.latitude - (anchor.latitude - startRegion.center.latitude) * zoomRatio;
-                const newCenterLon = anchor.longitude - (anchor.longitude - startRegion.center.longitude) * zoomRatio;
+                const startRegion = map.region;
+                const stepScale = 1 + (wheelZoomTargetScale - 1) * 0.28;
+                wheelZoomTargetScale /= stepScale;
+                const latDelta = clamp(startRegion.span.latitudeDelta * stepScale, 0.000002, 170);
+                const lonDelta = clamp(startRegion.span.longitudeDelta * stepScale, 0.000002, 360);
+                const actualScale = latDelta / startRegion.span.latitudeDelta;
+                const newCenterLat = wheelZoomAnchor.latitude - (wheelZoomAnchor.latitude - startRegion.center.latitude) * actualScale;
+                const newCenterLon = wheelZoomAnchor.longitude - (wheelZoomAnchor.longitude - startRegion.center.longitude) * actualScale;
 
                 map.region = new mapkit.CoordinateRegion(
                     new mapkit.Coordinate(newCenterLat, newCenterLon),
                     new mapkit.CoordinateSpan(latDelta, lonDelta)
                 );
-
-                if (step < steps) {
-                    requestAnimationFrame(animateZoom);
-                } else {
-                    isZooming = false;
-                }
-            }
-            requestAnimationFrame(animateZoom);
+                wheelZoomFrame = requestAnimationFrame(animateWheelZoom);
+            };
+            wheelZoomFrame = requestAnimationFrame(animateWheelZoom);
         }, { passive: false });
 
         let myLocationCoord = null; // global variable to track your location
