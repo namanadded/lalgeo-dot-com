@@ -5743,6 +5743,7 @@
         let draggedFieldName = null;
         let isAddingSurveyPoint = false;
         let drawingVertices = [];
+        let drawingCursorCoordinate = null;
         let drawingPreviewOverlay = null;
         let isReorderingFields = false;
         let pendingNewAnnotation = null;
@@ -10326,10 +10327,19 @@
             mapAddHint.hidden = false;
             mapAddHint.style.left = `${event.clientX}px`;
             mapAddHint.style.top = `${event.clientY}px`;
+            if (getActiveLayerGeometryType() !== "point" && drawingVertices.length && map) {
+                const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX, event.clientY));
+                if (coordinate && !coordinatesAreEqual(coordinate, drawingCursorCoordinate)) {
+                    drawingCursorCoordinate = coordinate;
+                    updateDrawingPreviewOverlay();
+                }
+            }
         });
         mapElement?.addEventListener("pointermove", updatePointGeometryHoverCursor, true);
         document.addEventListener("pointermove", updatePointGeometryHoverCursor, true);
         mapElement?.addEventListener("pointerleave", () => {
+            drawingCursorCoordinate = null;
+            updateDrawingPreviewOverlay();
             if (!pointGeometryDragState) {
                 document.body.classList.remove("point-geometry-hover");
                 document.body.style.cursor = "";
@@ -10968,6 +10978,16 @@
             mapAddHint.textContent = getGeometryDrawingHint(geometryType);
         }
 
+        function coordinatesAreEqual(first, second) {
+            if (!first || !second) return false;
+            const firstLat = first.latitude ?? first.lat;
+            const firstLng = first.longitude ?? first.lng ?? first.lon;
+            const secondLat = second.latitude ?? second.lat;
+            const secondLng = second.longitude ?? second.lng ?? second.lon;
+            return Math.abs(Number(firstLat) - Number(secondLat)) < 0.0000001
+                && Math.abs(Number(firstLng) - Number(secondLng)) < 0.0000001;
+        }
+
         function updateDrawingPreviewOverlay() {
             if (!map || !drawingVertices.length) return;
             if (drawingPreviewOverlay) {
@@ -10976,7 +10996,14 @@
             }
             const geometryType = getActiveLayerGeometryType();
             const coords = drawingVertices.map((vertex) => new mapkit.Coordinate(vertex.lat, vertex.lng));
-            if (geometryType === "line" && coords.length >= 2) {
+            if (drawingCursorCoordinate && coords.length && !coordinatesAreEqual(coords[coords.length - 1], drawingCursorCoordinate)) {
+                coords.push(new mapkit.Coordinate(drawingCursorCoordinate.latitude, drawingCursorCoordinate.longitude));
+            }
+            if ((geometryType === "line" || geometryType === "polygon") && coords.length === 2) {
+                drawingPreviewOverlay = new mapkit.PolylineOverlay(coords, {
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: "#5cc8c0", lineCap: "round", lineJoin: "round" })
+                });
+            } else if (geometryType === "line" && coords.length >= 2) {
                 drawingPreviewOverlay = new mapkit.PolylineOverlay(coords, {
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: "#5cc8c0", lineCap: "round", lineJoin: "round" })
                 });
@@ -11146,6 +11173,7 @@
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             drawingVertices = [];
+            drawingCursorCoordinate = null;
             if (drawingPreviewOverlay) {
                 map.removeOverlay(drawingPreviewOverlay);
                 drawingPreviewOverlay = null;
@@ -11159,6 +11187,7 @@
             const geometryType = getActiveLayerGeometryType();
             if (geometryType !== "point") {
                 drawingVertices.push({ lat: coordinate.latitude, lng: coordinate.longitude });
+                drawingCursorCoordinate = null;
                 updateDrawingPreviewOverlay();
                 const hint = getGeometryDrawingHint(geometryType);
                 updateMapAddHintText(geometryType);
