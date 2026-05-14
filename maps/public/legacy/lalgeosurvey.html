@@ -9,7 +9,7 @@
     window.lalgeoMapkitToken = window.location.hostname.includes("lalgeo.ca")
         ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
         : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw";
-    document.write(`<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js" crossorigin data-token="${window.lalgeoMapkitToken}" data-libraries="map,annotations,services,look-around"><\/script>`);
+    document.write(`<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js" crossorigin data-token="${window.lalgeoMapkitToken}" data-libraries="map,annotations,overlays,services,look-around"><\/script>`);
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -6453,15 +6453,22 @@
             }
         }
 
+        function getQuickActionAvailability(key, hasEditingSession) {
+            if (key === "addNew") return hasEditingSession;
+            if (key === "undo") return undoStack.length > 0;
+            if (key === "redo") return redoStack.length > 0;
+            return true;
+        }
+
         function renderQuickActionButtons() {
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
             Object.entries(QUICK_ACTION_BUTTONS).forEach(([key, button]) => {
                 if (!button) return;
                 const selected = quickActions.includes(key);
-                const available = key === "addNew" ? hasEditingSession : true;
+                const available = getQuickActionAvailability(key, hasEditingSession);
                 button.hidden = !selected;
-                button.disabled = !available || button.disabled;
-                button.classList.toggle("is-disabled", !available || button.disabled);
+                button.disabled = !available;
+                button.classList.toggle("is-disabled", !available);
             });
         }
 
@@ -7189,10 +7196,25 @@
             if (layerToolsZoomBtn) layerToolsZoomBtn.disabled = !layer;
             if (editPanelSessionBtn) editPanelSessionBtn.disabled = !layer || !activeProjectRecord;
             editPanelAddFeatureBtn?.classList.toggle("active", isAddingSurveyPoint);
+            if (editPanelAddFeatureBtn) {
+                const geometryType = layer?.geometryType || getActiveLayerGeometryType();
+                const canFinishGeometry = isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
+                const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? `Add ${geometryType} vertex` : "Add feature";
+                editPanelAddFeatureBtn.dataset.tooltip = addLabel;
+                editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
+                editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span>`;
+                if (isAddingSurveyPoint) {
+                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : "Drawing");
+                } else {
+                    setAddNewButtonLabel("Add New");
+                }
+            }
             editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
             if (editPanelHelp) {
                 const geometryType = layer?.geometryType || getActiveLayerGeometryType();
-                editPanelHelp.textContent = editSessionActive
+                editPanelHelp.textContent = isAddingSurveyPoint
+                    ? getGeometryDrawingHint(geometryType)
+                    : editSessionActive
                     ? `${layer?.name || "Layer"} is ready. Add new ${geometryType} features, edit attributes, or drag point markers to adjust geometry.`
                     : "Choose a layer and start editing to add or modify features.";
             }
@@ -7309,7 +7331,17 @@
                 setProjectStatus("Open a layer before adding features.", "error");
                 return;
             }
-            if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+            const geometryType = getActiveLayerGeometryType();
+            if (isAddingSurveyPoint && geometryType !== "point") {
+                if (hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
+                    finalizeGeometryFeaturePlacement();
+                } else {
+                    showWorkspaceHint(getGeometryDrawingHint(geometryType));
+                    setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} needs ${geometryType === "line" ? "2" : "3"} vertices before it can be finished.`, "error");
+                }
+            } else if (!isAddingSurveyPoint) {
+                toggleAddSurveyPointMode();
+            }
             syncEditPanelState();
         }
 
@@ -8552,8 +8584,7 @@
                             markActiveProjectUpdated();
                             scheduleLocalAutosave();
                             setActiveProject(activeProjectRecord);
-                            setProjectStatus(`Created layer ${name}.`, "success");
-                            requestAnimationFrame(() => editLayerSchema(layer.id));
+                            setProjectStatus(`Created layer ${name}. Use Fields to edit the schema when needed.`, "success");
                             return true;
                         }
                     }
@@ -9151,10 +9182,6 @@
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
             setWorkspaceDirty(false);
-            const initialLayer = getActiveLayerRecord();
-            if (initialLayer) {
-                requestAnimationFrame(() => editLayerSchema(initialLayer.id));
-            }
             if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 showWorkspaceHint("Click on the map to place your first feature.");
@@ -9286,11 +9313,33 @@
             layerActionModalBackdrop.hidden = false;
             layerActionModalActions.querySelectorAll("[data-layer-action-modal]").forEach((button) => {
                 button.addEventListener("click", async () => {
+                    if (button.dataset.processing === "true") return;
                     const action = layerActionModalState?.actions?.[Number(button.dataset.layerActionModal)];
                     if (!action) return;
-                    const shouldClose = action.onClick ? await action.onClick() : true;
-                    if (shouldClose !== false) {
-                        closeLayerActionModal();
+                    const actionButtons = Array.from(layerActionModalActions.querySelectorAll("[data-layer-action-modal]"));
+                    const setModalActionsDisabled = (disabled) => {
+                        actionButtons.forEach((actionButton) => {
+                            actionButton.disabled = disabled;
+                            actionButton.classList.toggle("is-disabled", disabled);
+                        });
+                    };
+                    try {
+                        button.dataset.processing = "true";
+                        setModalActionsDisabled(true);
+                        const shouldClose = action.onClick ? await action.onClick() : true;
+                        if (shouldClose !== false) {
+                            closeLayerActionModal();
+                        } else {
+                            setModalActionsDisabled(false);
+                            layerActionModalBody.querySelector("#layerModalName")?.dispatchEvent(new Event("input", { bubbles: true }));
+                        }
+                    } catch (error) {
+                        console.error("Layer action failed:", error);
+                        setProjectStatus("Layer action failed. Please try again.", "error");
+                        setModalActionsDisabled(false);
+                        layerActionModalBody.querySelector("#layerModalName")?.dispatchEvent(new Event("input", { bubbles: true }));
+                    } finally {
+                        button.dataset.processing = "false";
                     }
                 });
             });
@@ -9884,10 +9933,6 @@
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
             setWorkspaceDirty(false);
-            const initialLayer = getActiveLayerRecord();
-            if (initialLayer) {
-                requestAnimationFrame(() => editLayerSchema(initialLayer.id));
-            }
             if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 showWorkspaceHint("Click on the map to place your first feature.");
@@ -10382,13 +10427,16 @@
             isAddingSurveyPoint = !isAddingSurveyPoint;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            setAddNewButtonLabel(isAddingSurveyPoint ? "Adding New" : "Add New");
+            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? "Drawing" : isAddingSurveyPoint ? "Adding New" : "Add New");
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
-            if (mapAddHint) mapAddHint.hidden = !isAddingSurveyPoint;
+            if (mapAddHint) {
+                updateMapAddHintText(geometryType);
+                mapAddHint.hidden = !isAddingSurveyPoint;
+            }
             if (isAddingSurveyPoint) {
                 showWorkspaceHint(geometryType === "point"
-                    ? "Click 'Add New' then click anywhere on the map to start collecting data."
-                    : `Click on the map to add ${geometryType === "line" ? "line" : "polygon"} vertices. Press Add New again or double-click to finish.`);
+                    ? "Click anywhere on the map to add a point."
+                    : getGeometryDrawingHint(geometryType));
                 setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} drawing`} active.`, "success");
             }
             if (!isAddingSurveyPoint) {
@@ -10896,6 +10944,30 @@
             return normalizeLayerGeometryType(getActiveLayerRecord()?.geometryType || currentSurveyData?.geometryType || "point");
         }
 
+        function getGeometryDisplayName(geometryType = getActiveLayerGeometryType()) {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            if (normalizedGeometry === "line") return "line";
+            if (normalizedGeometry === "polygon") return "polygon";
+            return "point";
+        }
+
+        function getGeometryDrawingHint(geometryType = getActiveLayerGeometryType()) {
+            const geometryName = getGeometryDisplayName(geometryType);
+            if (geometryName === "point") return "Click on the map to add a point.";
+            const minimumVertices = geometryName === "polygon" ? 3 : 2;
+            const currentCount = drawingVertices.length;
+            const remaining = Math.max(0, minimumVertices - currentCount);
+            if (remaining > 0) {
+                return `Click to add ${geometryName} vertices. ${remaining} more ${remaining === 1 ? "vertex" : "vertices"} needed.`;
+            }
+            return `${geometryName === "line" ? "Line" : "Polygon"} ready. Click Finish or double-click the map to save.`;
+        }
+
+        function updateMapAddHintText(geometryType = getActiveLayerGeometryType()) {
+            if (!mapAddHint) return;
+            mapAddHint.textContent = getGeometryDrawingHint(geometryType);
+        }
+
         function updateDrawingPreviewOverlay() {
             if (!map || !drawingVertices.length) return;
             if (drawingPreviewOverlay) {
@@ -11088,8 +11160,13 @@
             if (geometryType !== "point") {
                 drawingVertices.push({ lat: coordinate.latitude, lng: coordinate.longitude });
                 updateDrawingPreviewOverlay();
-                showWorkspaceHint(`Click to add ${geometryType === "line" ? "line" : "polygon"} vertices. Double-click or press Add New again to finish.`);
-                setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} drawing active. Add more vertices to finish.`, "success");
+                const hint = getGeometryDrawingHint(geometryType);
+                updateMapAddHintText(geometryType);
+                showWorkspaceHint(hint);
+                setProjectStatus(hasEnoughVerticesForGeometry(geometryType, drawingVertices)
+                    ? `${geometryType === "line" ? "Line" : "Polygon"} ready to finish.`
+                    : `${geometryType === "line" ? "Line" : "Polygon"} drawing active. Add more vertices to finish.`, "success");
+                syncEditPanelState();
                 return;
             }
             exitAddSurveyPointMode();
@@ -15107,7 +15184,7 @@ function setImportPanelVisibility(show) {
             window.lalgeoLookAroundCoreLoadPromise = new Promise((resolve) => {
                 const script = document.createElement("script");
                 script.src = "https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js";
-                script.dataset.libraries = "look-around,services";
+                script.dataset.libraries = "map,annotations,overlays,services,look-around";
                 script.dataset.token = token;
                 script.onload = () => resolve(hasLookAroundPreviewApi());
                 script.onerror = () => resolve(false);
