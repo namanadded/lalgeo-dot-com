@@ -12584,6 +12584,30 @@
             return coords;
         }
 
+        function computeBounds(coords) {
+            if (!Array.isArray(coords) || !coords.length) return null;
+            let minLat = coords[0].latitude, maxLat = coords[0].latitude;
+            let minLon = coords[0].longitude, maxLon = coords[0].longitude;
+
+            for (let i = 1; i < coords.length; i += 1) {
+                const pt = coords[i];
+                minLat = Math.min(minLat, pt.latitude);
+                maxLat = Math.max(maxLat, pt.latitude);
+                minLon = Math.min(minLon, pt.longitude);
+                maxLon = Math.max(maxLon, pt.longitude);
+            }
+
+            const centerLat = (minLat + maxLat) / 2;
+            const centerLon = (minLon + maxLon) / 2;
+            const latDelta = Math.max((maxLat - minLat) * 1.2, 0.01);
+            const lonDelta = Math.max((maxLon - minLon) * 1.2, 0.01);
+
+            return new mapkit.CoordinateRegion(
+                new mapkit.Coordinate(centerLat, centerLon),
+                new mapkit.CoordinateSpan(latDelta, lonDelta)
+            );
+        }
+
         function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
             clearSurveyLayers();
             rowAnnotationMap = new Map();
