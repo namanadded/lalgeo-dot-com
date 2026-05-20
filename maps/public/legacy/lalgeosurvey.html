@@ -4976,6 +4976,7 @@
                 <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
             </div>
             <div id="editPanelGeometryTools" class="geometry-tool-group" hidden>
+                <button id="editPanelTraceBtn" type="button" class="edit-tool-btn blue" data-tooltip="Trace visible outline" aria-label="Trace visible outline"><span class="edit-tool-icon" aria-hidden="true">⌁</span></button>
                 <button id="editPanelRectangleBtn" type="button" class="edit-tool-btn green" data-tooltip="Create rectangle" aria-label="Create rectangle"><span class="edit-tool-icon" aria-hidden="true">▭</span></button>
                 <button id="editPanelSquareBtn" type="button" class="edit-tool-btn green" data-tooltip="Create square" aria-label="Create square"><span class="edit-tool-icon" aria-hidden="true">□</span></button>
                 <button id="editPanelEditVerticesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Edit vertices" aria-label="Edit vertices"><span class="edit-tool-icon" aria-hidden="true">⌘</span></button>
@@ -5514,6 +5515,7 @@
         const editPanelEditExistingBtn = document.getElementById("editPanelEditExistingBtn");
         const editPanelGeometryBtn = document.getElementById("editPanelGeometryBtn");
         const editPanelGeometryTools = document.getElementById("editPanelGeometryTools");
+        const editPanelTraceBtn = document.getElementById("editPanelTraceBtn");
         const editPanelRectangleBtn = document.getElementById("editPanelRectangleBtn");
         const editPanelSquareBtn = document.getElementById("editPanelSquareBtn");
         const editPanelEditVerticesBtn = document.getElementById("editPanelEditVerticesBtn");
@@ -5778,6 +5780,7 @@
         let archiveRowAnnotationMap = new Map();
         let draggedFieldName = null;
         let isAddingSurveyPoint = false;
+        let geometryTraceMode = false;
         let drawingVertices = [];
         let drawingCursorCoordinate = null;
         let drawingPreviewOverlay = null;
@@ -7366,6 +7369,13 @@
                 editPanelSquareBtn.hidden = geometryType !== "polygon";
                 editPanelSquareBtn.disabled = !showGeometryTools;
             }
+            if (editPanelTraceBtn) {
+                editPanelTraceBtn.disabled = !showGeometryTools;
+                editPanelTraceBtn.classList.toggle("active", geometryTraceMode && isAddingSurveyPoint);
+                const traceLabel = geometryTraceMode && isAddingSurveyPoint ? "Stop tracing" : "Trace visible outline";
+                editPanelTraceBtn.dataset.tooltip = traceLabel;
+                editPanelTraceBtn.setAttribute("aria-label", traceLabel);
+            }
             if (editPanelEditVerticesBtn) editPanelEditVerticesBtn.disabled = !showGeometryTools || !hasSelectedFeature;
             if (editPanelSplitGeometryBtn) editPanelSplitGeometryBtn.disabled = !showGeometryTools || !hasSelectedFeature;
             if (editPanelGeometryBtn && geometryType !== "point") {
@@ -7383,12 +7393,12 @@
             editPanelAddFeatureBtn?.classList.toggle("active", isAddingSurveyPoint);
             if (editPanelAddFeatureBtn) {
                 const canFinishGeometry = isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
-                const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? `Add ${geometryType} vertex` : "Add feature";
+                const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? (geometryTraceMode ? `Trace ${geometryType} vertex` : `Add ${geometryType} vertex`) : "Add feature";
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
                 editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span>`;
                 if (isAddingSurveyPoint) {
-                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : "Drawing");
+                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : geometryTraceMode ? "Tracing" : "Drawing");
                 } else {
                     setAddNewButtonLabel("Add New");
                 }
@@ -7399,7 +7409,7 @@
                 editPanelHelp.textContent = isAddingSurveyPoint
                     ? getGeometryDrawingHint(geometryType)
                     : editSessionActive
-                    ? `${layer?.name || "Layer"} is ready. Add new ${geometryType} features, edit attributes, or drag point markers to adjust geometry.`
+                    ? `${layer?.name || "Layer"} is ready. Add new ${geometryType} features, trace visible outlines, edit attributes, or adjust geometry.`
                     : "Choose a layer and start editing to add or modify features.";
             }
             editFloatingPanel?.classList.toggle("compact", true);
@@ -7537,6 +7547,7 @@
             if (!layerId || !ensureEditSessionStarted()) return;
             if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
             const geometryType = getActiveLayerGeometryType();
+            geometryTraceMode = false;
             if (geometryType === "point") {
                 setPointGeometryEditMode(true);
                 setProjectStatus("Drag point markers on the map to edit geometry.", "success");
@@ -7546,6 +7557,35 @@
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} drawing is active.`, "success");
             }
+            syncEditPanelState();
+        }
+
+        function toggleTraceGeometryMode() {
+            const layerId = getEditPanelLayerId();
+            if (!layerId || !ensureEditSessionStarted()) return;
+            if (layerId !== activeLayerId) switchToLayer(layerId, { revealTable: false });
+            const geometryType = getActiveLayerGeometryType();
+            if (geometryType !== "line" && geometryType !== "polygon") {
+                setProjectStatus("Trace is available for line and polygon layers.", "error");
+                return;
+            }
+            if (geometryTraceMode && isAddingSurveyPoint) {
+                if (hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
+                    finalizeGeometryFeaturePlacement();
+                } else {
+                    geometryTraceMode = false;
+                    toggleAddSurveyPointMode();
+                }
+                syncEditPanelState();
+                return;
+            }
+            geometryTraceMode = true;
+            setPointGeometryEditMode(false);
+            if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+            const hint = getGeometryDrawingHint(geometryType);
+            showWorkspaceHint(hint);
+            updateMapAddHintText(geometryType);
+            setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} trace active. Click along the visible outline, then finish to save.`, "success");
             syncEditPanelState();
         }
 
@@ -9928,6 +9968,7 @@
         editPanelAddFeatureBtn?.addEventListener("click", startEditPanelAddFeature);
         editPanelEditExistingBtn?.addEventListener("click", openActiveLayerTableForEditing);
         editPanelGeometryBtn?.addEventListener("click", startEditPanelGeometryEdit);
+        editPanelTraceBtn?.addEventListener("click", toggleTraceGeometryMode);
         editPanelRectangleBtn?.addEventListener("click", () => createViewportPolygonShape("rectangle"));
         editPanelSquareBtn?.addEventListener("click", () => createViewportPolygonShape("square"));
         editPanelEditVerticesBtn?.addEventListener("click", editSelectedGeometryVertices);
@@ -10626,10 +10667,12 @@
                 finalizeGeometryFeaturePlacement();
                 return;
             }
+            const wasTracing = geometryTraceMode;
             isAddingSurveyPoint = !isAddingSurveyPoint;
+            if (!isAddingSurveyPoint) geometryTraceMode = false;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? "Drawing" : isAddingSurveyPoint ? "Adding New" : "Add New");
+            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding New" : "Add New");
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) {
                 updateMapAddHintText(geometryType);
@@ -10639,7 +10682,7 @@
                 showWorkspaceHint(geometryType === "point"
                     ? "Click anywhere on the map to add a point."
                     : getGeometryDrawingHint(geometryType));
-                setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} drawing`} active.`, "success");
+                setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} ${geometryTraceMode ? "trace" : "drawing"}`} active.`, "success");
             }
             if (!isAddingSurveyPoint) {
                 pendingNewAnnotation = null;
@@ -10649,7 +10692,7 @@
                     map.removeOverlay(drawingPreviewOverlay);
                     drawingPreviewOverlay = null;
                 }
-                setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} drawing`} cancelled.`, "success");
+                setProjectStatus(`${geometryType === "point" ? "Point placement" : `${geometryType === "line" ? "Line" : "Polygon"} ${wasTracing ? "trace" : "drawing"}`} cancelled.`, "success");
             }
             syncEditPanelState();
         }
@@ -11159,6 +11202,12 @@
             const minimumVertices = geometryName === "polygon" ? 3 : 2;
             const currentCount = drawingVertices.length;
             const remaining = Math.max(0, minimumVertices - currentCount);
+            if (geometryTraceMode) {
+                if (remaining > 0) {
+                    return `Trace ${geometryName}: click around the visible outline. ${remaining} more ${remaining === 1 ? "vertex" : "vertices"} needed.`;
+                }
+                return `Trace ${geometryName}: continue clicking around the outline, then click Finish or double-click to save.`;
+            }
             if (remaining > 0) {
                 return `Click to add ${geometryName} vertices. ${remaining} more ${remaining === 1 ? "vertex" : "vertices"} needed.`;
             }
@@ -11635,6 +11684,7 @@
         function exitAddSurveyPointMode() {
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
+            geometryTraceMode = false;
             addSurveyPointBtn.classList.remove("active");
             addSurveyPointBtn.setAttribute("aria-pressed", "false");
             setAddNewButtonLabel("Add New");
