@@ -702,6 +702,15 @@
         gap: 6px;
         flex-wrap: nowrap;
     }
+    .geometry-tool-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex-wrap: nowrap;
+    }
+    .geometry-tool-group[hidden] {
+        display: none;
+    }
     .edit-tool-btn {
         position: relative;
         width: 32px;
@@ -4966,6 +4975,12 @@
                 <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
                 <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
             </div>
+            <div id="editPanelGeometryTools" class="geometry-tool-group" hidden>
+                <button id="editPanelRectangleBtn" type="button" class="edit-tool-btn green" data-tooltip="Create rectangle" aria-label="Create rectangle"><span class="edit-tool-icon" aria-hidden="true">▭</span></button>
+                <button id="editPanelSquareBtn" type="button" class="edit-tool-btn green" data-tooltip="Create square" aria-label="Create square"><span class="edit-tool-icon" aria-hidden="true">□</span></button>
+                <button id="editPanelEditVerticesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Edit vertices" aria-label="Edit vertices"><span class="edit-tool-icon" aria-hidden="true">⌘</span></button>
+                <button id="editPanelSplitGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Split geometry" aria-label="Split geometry"><span class="edit-tool-icon" aria-hidden="true">✂</span></button>
+            </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
     </div>
@@ -5498,6 +5513,11 @@
         const editPanelAddFeatureBtn = document.getElementById("editPanelAddFeatureBtn");
         const editPanelEditExistingBtn = document.getElementById("editPanelEditExistingBtn");
         const editPanelGeometryBtn = document.getElementById("editPanelGeometryBtn");
+        const editPanelGeometryTools = document.getElementById("editPanelGeometryTools");
+        const editPanelRectangleBtn = document.getElementById("editPanelRectangleBtn");
+        const editPanelSquareBtn = document.getElementById("editPanelSquareBtn");
+        const editPanelEditVerticesBtn = document.getElementById("editPanelEditVerticesBtn");
+        const editPanelSplitGeometryBtn = document.getElementById("editPanelSplitGeometryBtn");
         const editPanelHelp = document.getElementById("editPanelHelp");
         const layerToolsPanel = document.getElementById("layerToolsPanel");
         const layerToolsDragHandle = document.getElementById("layerToolsDragHandle");
@@ -7334,6 +7354,27 @@
             if (editPanelEditExistingBtn) editPanelEditExistingBtn.disabled = !canEdit;
             if (editPanelGeometryBtn) editPanelGeometryBtn.disabled = !canEdit;
             if (editPanelGeometryBtn) editPanelGeometryBtn.classList.toggle("active", pointGeometryEditMode);
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || getActiveLayerGeometryType());
+            const hasSelectedFeature = Boolean(getSelectedEditableFeatureContext());
+            const showGeometryTools = canEdit && (geometryType === "line" || geometryType === "polygon");
+            if (editPanelGeometryTools) editPanelGeometryTools.hidden = !showGeometryTools;
+            if (editPanelRectangleBtn) {
+                editPanelRectangleBtn.hidden = geometryType !== "polygon";
+                editPanelRectangleBtn.disabled = !showGeometryTools;
+            }
+            if (editPanelSquareBtn) {
+                editPanelSquareBtn.hidden = geometryType !== "polygon";
+                editPanelSquareBtn.disabled = !showGeometryTools;
+            }
+            if (editPanelEditVerticesBtn) editPanelEditVerticesBtn.disabled = !showGeometryTools || !hasSelectedFeature;
+            if (editPanelSplitGeometryBtn) editPanelSplitGeometryBtn.disabled = !showGeometryTools || !hasSelectedFeature;
+            if (editPanelGeometryBtn && geometryType !== "point") {
+                editPanelGeometryBtn.dataset.tooltip = isAddingSurveyPoint ? `Drawing ${geometryType}` : `Draw ${geometryType}`;
+                editPanelGeometryBtn.setAttribute("aria-label", isAddingSurveyPoint ? `Drawing ${geometryType}` : `Draw ${geometryType}`);
+            } else if (editPanelGeometryBtn) {
+                editPanelGeometryBtn.dataset.tooltip = "Edit geometry";
+                editPanelGeometryBtn.setAttribute("aria-label", "Edit geometry");
+            }
             if (layerToolsAddLayerBtn) layerToolsAddLayerBtn.disabled = !activeProjectRecord;
             if (layerToolsPropertiesBtn) layerToolsPropertiesBtn.disabled = !layer;
             if (layerToolsFieldsBtn) layerToolsFieldsBtn.disabled = !layer;
@@ -7341,7 +7382,6 @@
             if (editPanelSessionBtn) editPanelSessionBtn.disabled = !layer || !activeProjectRecord;
             editPanelAddFeatureBtn?.classList.toggle("active", isAddingSurveyPoint);
             if (editPanelAddFeatureBtn) {
-                const geometryType = layer?.geometryType || getActiveLayerGeometryType();
                 const canFinishGeometry = isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
                 const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? `Add ${geometryType} vertex` : "Add feature";
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
@@ -9888,6 +9928,10 @@
         editPanelAddFeatureBtn?.addEventListener("click", startEditPanelAddFeature);
         editPanelEditExistingBtn?.addEventListener("click", openActiveLayerTableForEditing);
         editPanelGeometryBtn?.addEventListener("click", startEditPanelGeometryEdit);
+        editPanelRectangleBtn?.addEventListener("click", () => createViewportPolygonShape("rectangle"));
+        editPanelSquareBtn?.addEventListener("click", () => createViewportPolygonShape("square"));
+        editPanelEditVerticesBtn?.addEventListener("click", editSelectedGeometryVertices);
+        editPanelSplitGeometryBtn?.addEventListener("click", splitSelectedGeometry);
         layerToolsAddLayerBtn?.addEventListener("click", addLayerToActiveProject);
         layerToolsPropertiesBtn?.addEventListener("click", () => {
             const layerId = layerToolsLayerSelect?.value || getEditPanelLayerId();
@@ -11315,6 +11359,279 @@
             setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} added.`, "success");
         }
 
+        function getSelectedEditableFeatureContext() {
+            const layer = getActiveLayerRecord();
+            if (!layer?.features?.length || !currentSurveyData?.records?.length) return null;
+            let rowIndex = Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
+                && activeSurveyAnnotation.surveyPoint.layerId === layer.id
+                ? activeSurveyAnnotation.surveyPoint.rowIndex
+                : -1;
+            if (rowIndex < 0 && activeFeatureId) {
+                rowIndex = layer.features.findIndex((feature) => feature.id === activeFeatureId);
+            }
+            if (rowIndex < 0 && selectedTableRows?.size === 1) {
+                rowIndex = Array.from(selectedTableRows)[0];
+            }
+            const feature = layer.features[rowIndex];
+            if (!feature) return null;
+            return { layer, feature, rowIndex, geometryType: normalizeLayerGeometryType(layer.geometryType || "point") };
+        }
+
+        function applyGeometryToFeature(rowIndex, geometry, { recordHistory = true, status = "Geometry updated." } = {}) {
+            const layer = getActiveLayerRecord();
+            const feature = layer?.features?.[rowIndex];
+            if (!layer || !feature || !geometry) return false;
+            const before = cloneFeatureGeometry(feature.geometry);
+            const after = cloneFeatureGeometry(geometry);
+            feature.geometry = after;
+            if (Array.isArray(currentSurveyData?.pointMeta) && currentSurveyData.pointMeta[rowIndex]) {
+                currentSurveyData.pointMeta[rowIndex].geometry = cloneFeatureGeometry(after);
+            }
+            if (recordHistory && !isDropboxSurvey()) {
+                recordAction({
+                    type: "edit-geometry",
+                    rowIndex,
+                    featureId: feature.id,
+                    before,
+                    after
+                });
+            } else if (isDropboxSurvey()) {
+                markSurveyDirty();
+            } else {
+                scheduleLocalAutosave();
+            }
+            activeFeatureId = feature.id || activeFeatureId;
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation) {
+                activeSurveyAnnotation = annotation;
+                activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            }
+            updateSurveyTable();
+            syncEditPanelState();
+            if (status) setProjectStatus(status, "success");
+            return true;
+        }
+
+        function createViewportPolygonShape(shape = "rectangle") {
+            const layer = getActiveLayerRecord();
+            if (!layer || normalizeLayerGeometryType(layer.geometryType || "point") !== "polygon" || !map?.region) return;
+            if (!ensureEditSessionStarted()) return;
+            const center = map.region.center;
+            const span = map.region.span;
+            const height = Math.max((span.latitudeDelta || 0.01) * 0.22, 0.0002);
+            const width = shape === "square"
+                ? height / Math.max(Math.cos((center.latitude * Math.PI) / 180), 0.2)
+                : Math.max((span.longitudeDelta || 0.01) * 0.22, 0.0002);
+            const halfLat = height / 2;
+            const halfLng = width / 2;
+            const vertices = [
+                { lat: center.latitude - halfLat, lng: center.longitude - halfLng },
+                { lat: center.latitude - halfLat, lng: center.longitude + halfLng },
+                { lat: center.latitude + halfLat, lng: center.longitude + halfLng },
+                { lat: center.latitude + halfLat, lng: center.longitude - halfLng }
+            ];
+            const geometry = createPolygonGeometry(vertices);
+            const { newRecord, feature } = buildNewFeaturePayload(layer, geometry);
+            const rowIndex = currentSurveyData.records.length;
+            currentSurveyData.records.push(newRecord);
+            currentSurveyData.pointMeta = currentSurveyData.pointMeta || [];
+            currentSurveyData.pointMeta.push({
+                id: feature.id,
+                version: feature.version,
+                geometry: cloneFeatureGeometry(feature.geometry)
+            });
+            layer.features = layer.features || [];
+            layer.features.push(feature);
+            if (!isDropboxSurvey()) {
+                recordAction({
+                    type: "add",
+                    rowIndex,
+                    featureId: feature.id,
+                    entry: cloneLocalRowEntry(rowIndex)
+                });
+                scheduleLocalAutosave(0);
+            } else {
+                markSurveyDirty();
+            }
+            activeFeatureId = feature.id;
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            const annotation = rowAnnotationMap.get(rowIndex);
+            if (annotation) showSurveyCallout(annotation, { forceEdit: true });
+            setProjectStatus(`${shape === "square" ? "Square" : "Rectangle"} polygon added.`, "success");
+            syncEditPanelState();
+        }
+
+        function geometryToVertexText(feature) {
+            return getGeometryCoordinates(feature)
+                .filter((coord, index, coords) => index === 0 || !coordinatesAreEqual(coord, coords[0]) || index < coords.length - 1)
+                .map((coord) => `${Number(coord.latitude).toFixed(7)}, ${Number(coord.longitude).toFixed(7)}`)
+                .join("\n");
+        }
+
+        function parseVertexText(text) {
+            return String(text || "")
+                .split(/\r?\n/)
+                .map((line) => line.trim())
+                .filter(Boolean)
+                .map((line) => {
+                    const parts = line.split(/[,\s]+/).map(Number).filter(Number.isFinite);
+                    return parts.length >= 2 ? { lat: parts[0], lng: parts[1] } : null;
+                })
+                .filter(Boolean);
+        }
+
+        function editSelectedGeometryVertices() {
+            const context = getSelectedEditableFeatureContext();
+            if (!context || context.geometryType === "point") {
+                setProjectStatus("Select a line or polygon feature before editing vertices.", "error");
+                return;
+            }
+            if (!ensureEditSessionStarted()) return;
+            const currentText = geometryToVertexText(context.feature);
+            const nextText = window.prompt("Edit vertices as one latitude, longitude pair per line.", currentText);
+            if (nextText === null) return;
+            const vertices = parseVertexText(nextText);
+            if (!hasEnoughVerticesForGeometry(context.geometryType, vertices)) {
+                setProjectStatus(`${context.geometryType === "line" ? "Line" : "Polygon"} needs at least ${context.geometryType === "line" ? "2" : "3"} vertices.`, "error");
+                return;
+            }
+            const geometry = buildGeometryFromVertices(context.geometryType, vertices);
+            applyGeometryToFeature(context.rowIndex, geometry, { status: "Vertices updated." });
+        }
+
+        function plainCoordinatesFromFeature(feature) {
+            return getGeometryCoordinates(feature).map((coord) => ({ lat: coord.latitude, lng: coord.longitude }));
+        }
+
+        function splitLineVertices(vertices) {
+            if (vertices.length < 2) return null;
+            const segmentIndex = Math.max(0, Math.floor((vertices.length - 1) / 2));
+            const start = vertices[segmentIndex];
+            const end = vertices[segmentIndex + 1];
+            const midpoint = {
+                lat: (start.lat + end.lat) / 2,
+                lng: (start.lng + end.lng) / 2
+            };
+            return {
+                first: [...vertices.slice(0, segmentIndex + 1), midpoint],
+                second: [midpoint, ...vertices.slice(segmentIndex + 1)]
+            };
+        }
+
+        function clipPolygonByAxis(vertices, axis, threshold, keepLess) {
+            const input = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
+            if (input.length < 3) return [];
+            const valueFor = (vertex) => axis === "lng" ? vertex.lng : vertex.lat;
+            const inside = (vertex) => keepLess ? valueFor(vertex) <= threshold : valueFor(vertex) >= threshold;
+            const intersect = (a, b) => {
+                const av = valueFor(a);
+                const bv = valueFor(b);
+                const t = (threshold - av) / ((bv - av) || Number.EPSILON);
+                return {
+                    lat: a.lat + (b.lat - a.lat) * t,
+                    lng: a.lng + (b.lng - a.lng) * t
+                };
+            };
+            const output = [];
+            for (let i = 0; i < input.length; i += 1) {
+                const current = input[i];
+                const previous = input[(i + input.length - 1) % input.length];
+                const currentInside = inside(current);
+                const previousInside = inside(previous);
+                if (currentInside) {
+                    if (!previousInside) output.push(intersect(previous, current));
+                    output.push(current);
+                } else if (previousInside) {
+                    output.push(intersect(previous, current));
+                }
+            }
+            return output.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[index - 1]));
+        }
+
+        function splitPolygonVertices(vertices) {
+            if (vertices.length < 3) return null;
+            const lats = vertices.map((vertex) => vertex.lat);
+            const lngs = vertices.map((vertex) => vertex.lng);
+            const minLat = Math.min(...lats);
+            const maxLat = Math.max(...lats);
+            const minLng = Math.min(...lngs);
+            const maxLng = Math.max(...lngs);
+            const axis = (maxLng - minLng) >= (maxLat - minLat) ? "lng" : "lat";
+            const threshold = axis === "lng" ? (minLng + maxLng) / 2 : (minLat + maxLat) / 2;
+            const first = clipPolygonByAxis(vertices, axis, threshold, true);
+            const second = clipPolygonByAxis(vertices, axis, threshold, false);
+            if (first.length < 3 || second.length < 3) return null;
+            return { first, second };
+        }
+
+        function insertSplitFeature(context, secondGeometry) {
+            const sourceRecord = currentSurveyData.records[context.rowIndex] || {};
+            const sourceAttributes = { ...(context.feature.attributes || {}) };
+            delete sourceAttributes.ID;
+            const { newRecord, feature } = buildNewFeaturePayload(context.layer, secondGeometry, null, sourceAttributes);
+            Object.keys(newRecord).forEach((key) => {
+                if (key !== "ID" && key !== "Date" && key !== "TimeZone" && sourceRecord[key] !== undefined && newRecord[key] === "") {
+                    newRecord[key] = sourceRecord[key];
+                }
+            });
+            feature.attributes = {
+                ...(context.feature.attributes || {}),
+                ...feature.attributes,
+                ID: feature.id
+            };
+            const insertIndex = context.rowIndex + 1;
+            currentSurveyData.records.splice(insertIndex, 0, newRecord);
+            currentSurveyData.pointMeta = currentSurveyData.pointMeta || [];
+            currentSurveyData.pointMeta.splice(insertIndex, 0, {
+                id: feature.id,
+                version: feature.version,
+                geometry: cloneFeatureGeometry(feature.geometry)
+            });
+            context.layer.features.splice(insertIndex, 0, feature);
+            return { insertIndex, featureId: feature.id, entry: cloneLocalRowEntry(insertIndex) };
+        }
+
+        function splitSelectedGeometry() {
+            const context = getSelectedEditableFeatureContext();
+            if (!context || context.geometryType === "point") {
+                setProjectStatus("Select a line or polygon feature before splitting.", "error");
+                return;
+            }
+            if (!ensureEditSessionStarted()) return;
+            const vertices = plainCoordinatesFromFeature(context.feature);
+            const split = context.geometryType === "line" ? splitLineVertices(vertices) : splitPolygonVertices(vertices);
+            if (!split) {
+                setProjectStatus(`Unable to split this ${context.geometryType}. Try editing vertices first.`, "error");
+                return;
+            }
+            const before = cloneFeatureGeometry(context.feature.geometry);
+            const firstGeometry = buildGeometryFromVertices(context.geometryType, split.first);
+            const secondGeometry = buildGeometryFromVertices(context.geometryType, split.second);
+            context.feature.geometry = cloneFeatureGeometry(firstGeometry);
+            if (currentSurveyData.pointMeta?.[context.rowIndex]) {
+                currentSurveyData.pointMeta[context.rowIndex].geometry = cloneFeatureGeometry(firstGeometry);
+            }
+            const inserted = insertSplitFeature(context, secondGeometry);
+            if (!isDropboxSurvey()) {
+                recordAction({
+                    type: "split-geometry",
+                    rowIndex: context.rowIndex,
+                    featureId: context.feature.id,
+                    before,
+                    after: cloneFeatureGeometry(firstGeometry),
+                    inserted
+                });
+            } else {
+                markSurveyDirty();
+            }
+            activeFeatureId = context.feature.id;
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            updateSurveyTable();
+            syncEditPanelState();
+            setProjectStatus(`${context.geometryType === "line" ? "Line" : "Polygon"} split into two features.`, "success");
+        }
+
         function exitAddSurveyPointMode() {
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
@@ -11487,6 +11804,7 @@
             closeFeatureDrawer();
             refreshAnnotationStyles();
             renderSelectedFeatureInspector();
+            syncEditPanelState();
         }
 
         document.addEventListener("click", (event) => {
@@ -13015,6 +13333,7 @@
             }
             renderSelectedFeatureInspector();
             renderFeatureDrawer();
+            syncEditPanelState();
             if (!USE_INLINE_FEATURE_CALLOUT) {
                 surveyCallout.style.display = "none";
                 flushDeferredReload();
@@ -14307,6 +14626,18 @@ function setImportPanelVisibility(show) {
                 if (applyFeatureAttributesToRow(rowIndex === -1 ? action.rowIndex : rowIndex, action.before)) {
                     redoStack.push({ ...action });
                 }
+            } else if (action.type === "edit-geometry") {
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                if (applyGeometryToFeature(rowIndex === -1 ? action.rowIndex : rowIndex, action.before, { recordHistory: false, status: "" })) {
+                    redoStack.push({ ...action });
+                }
+            } else if (action.type === "split-geometry") {
+                const insertedIndex = findRowIndexByFeatureId(action.inserted?.featureId);
+                if (insertedIndex !== -1) removeRecordAt(insertedIndex);
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                if (applyGeometryToFeature(rowIndex === -1 ? action.rowIndex : rowIndex, action.before, { recordHistory: false, status: "" })) {
+                    redoStack.push({ ...action });
+                }
             } else if (action.type === "bulk-edit-attributes") {
                 action.changes.forEach((change) => {
                     const rowIndex = findRowIndexByFeatureId(change.featureId);
@@ -14347,6 +14678,15 @@ function setImportPanelVisibility(show) {
             if (action.type === "edit-attributes") {
                 const rowIndex = findRowIndexByFeatureId(action.featureId);
                 applyFeatureAttributesToRow(rowIndex === -1 ? action.rowIndex : rowIndex, action.after);
+            }
+            if (action.type === "edit-geometry") {
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                applyGeometryToFeature(rowIndex === -1 ? action.rowIndex : rowIndex, action.after, { recordHistory: false, status: "" });
+            }
+            if (action.type === "split-geometry") {
+                const rowIndex = findRowIndexByFeatureId(action.featureId);
+                applyGeometryToFeature(rowIndex === -1 ? action.rowIndex : rowIndex, action.after, { recordHistory: false, status: "" });
+                insertRecordAt(action.inserted?.insertIndex ?? (action.rowIndex + 1), action.inserted?.entry);
             }
             if (action.type === "bulk-edit-attributes") {
                 action.changes.forEach((change) => {
