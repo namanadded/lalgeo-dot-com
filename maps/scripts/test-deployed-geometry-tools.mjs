@@ -161,7 +161,7 @@ try {
   await waitFor(client, "document.readyState !== 'loading'", "document ready");
   await waitFor(client, "document.getElementById('editPanelTraceBtn') && typeof splitPolygonVertices === 'function'", "geometry toolbar scripts");
 
-  const result = await evaluate(client, `(() => {
+  const result = await evaluate(client, `(async () => {
     const results = [];
     const assert = (condition, message) => {
       if (!condition) throw new Error(message);
@@ -205,6 +205,38 @@ try {
       new mapkit.Coordinate(51, -114),
       new mapkit.CoordinateSpan(0.02, 0.02)
     );
+
+    const mixedGeoJsonPayload = buildGeoJsonPayload({
+      type: "FeatureCollection",
+      features: [
+        { type: "Feature", properties: { name: "point one", asset: "A" }, geometry: { type: "Point", coordinates: [-114, 51] } },
+        { type: "Feature", properties: { name: "line one" }, geometry: { type: "LineString", coordinates: [[-114, 51], [-113.999, 51.001]] } },
+        { type: "Feature", properties: { name: "poly one" }, geometry: { type: "Polygon", coordinates: [[[-114, 51], [-113.999, 51], [-113.999, 51.001], [-114, 51]]] } }
+      ]
+    }, { projectName: "Mixed GIS", fileName: "mixed.geojson", format: "GeoJSON" });
+    assert(mixedGeoJsonPayload.geospatialLayers.length === 3, "mixed GeoJSON splits into point line and polygon layers");
+    assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "point" && layer.features[0].attributes.asset === "A"), "GeoJSON properties become layer fields");
+    assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "polygon" && layer.features[0].geometry.type === "Polygon"), "GeoJSON polygon imports as polygon geometry");
+
+    const kmlPayload = buildGeoJsonPayload(parseKmlText('<kml><Document><Placemark><name>Building</name><Polygon><outerBoundaryIs><LinearRing><coordinates>-114,51 -113.999,51 -113.999,51.001 -114,51</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>'), {
+      projectName: "KML GIS",
+      fileName: "building.kml",
+      format: "KML"
+    });
+    assert(kmlPayload.geospatialLayers.length === 1 && kmlPayload.geospatialLayers[0].geometryType === "polygon", "KML polygon imports as polygon layer");
+
+    const gpxPayload = buildGeoJsonPayload(parseGpxText('<gpx><wpt lat="51" lon="-114"><name>Waypoint</name></wpt><trk><name>Track</name><trkseg><trkpt lat="51" lon="-114"/><trkpt lat="51.001" lon="-113.999"/></trkseg></trk></gpx>'), {
+      projectName: "GPX GIS",
+      fileName: "track.gpx",
+      format: "GPX"
+    });
+    assert(gpxPayload.geospatialLayers.length === 2, "GPX imports waypoint and track layers");
+
+    activeProjectRecord = createProjectRecord({ name: "Append Target", layers: [createLayerRecord({ name: "Points", geometryType: "point" })] });
+    activeLayerId = activeProjectRecord.activeLayerId;
+    await openImportedGeospatialLayers(mixedGeoJsonPayload);
+    assert(activeProjectRecord.layers.length === 4, "geospatial import appends layers to active project");
+
     activeProjectName = "Geometry Test";
     editSessionActive = true;
     isArchiveView = false;

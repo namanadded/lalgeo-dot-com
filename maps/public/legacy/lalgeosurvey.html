@@ -5157,7 +5157,7 @@
                 <div class="import-section-title section-header">From file</div>
                 <div class="import-stack">
                     <button id="projectPickerBtn" type="button" class="import-secondary-btn">Select files…</button>
-                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,image/*" multiple webkitdirectory style="display:none">
+                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,image/*" multiple webkitdirectory style="display:none">
                 </div>
             </div>
 
@@ -8358,6 +8358,44 @@
             });
             addProjectToWorkspace(project, { preserveRegion });
             await loadSurveyPayload(payload, { preserveRegion, targetProject: project });
+            setImportPanelVisibility(false);
+        }
+
+        async function openImportedGeospatialLayers(payload, { preserveRegion = true } = {}) {
+            const layers = (payload?.geospatialLayers || []).map((layer) => ensureLayerStructure(layer)).filter(Boolean);
+            if (!layers.length) throw new Error("No supported geospatial features found.");
+            const source = payload.source || { type: "local-import", format: payload.format || "geospatial" };
+            if (activeProjectRecord?.layers?.length) {
+                activeProjectRecord.layers.push(...layers);
+                activeProjectRecord.activeLayerId = layers[0].id;
+                activeLayerId = layers[0].id;
+                activeProjectRecord.source = activeProjectRecord.source || source;
+                activeProjectRecord.storageSource = activeProjectRecord.storageSource || "Web workspace";
+                activeProjectRecord.metadata = {
+                    ...(activeProjectRecord.metadata || {}),
+                    updatedAt: new Date().toISOString(),
+                    lastImport: {
+                        format: payload.format || "geospatial",
+                        fileName: payload.fileName || payload.projectName || "Imported geospatial layer",
+                        importedAt: new Date().toISOString()
+                    }
+                };
+                markActiveProjectUpdated();
+                scheduleLocalAutosave();
+                setActiveProject(activeProjectRecord, { preserveRegion });
+                setProjectStatus(`Imported ${layers.length} geospatial layer${layers.length === 1 ? "" : "s"} into ${activeProjectRecord.name}.`, "success");
+            } else {
+                const project = createProjectRecord({
+                    name: payload.projectName || "Imported GIS Project",
+                    description: "Imported GIS data normalized into LalGeo layers.",
+                    type: "GIS workspace",
+                    storageSource: "Imported",
+                    source,
+                    layers
+                });
+                addProjectToWorkspace(project, { preserveRegion: false });
+                setProjectStatus(`Created ${project.name} with ${layers.length} imported layer${layers.length === 1 ? "" : "s"}.`, "success");
+            }
             setImportPanelVisibility(false);
         }
 
@@ -12289,7 +12327,11 @@
             try {
                 setProjectStatus("Processing survey…");
                 const payload = await buildSurveyPayload(files);
-                payload.source = { type: "local-import" };
+                payload.source = payload.source || { type: "local-import" };
+                if (payload.geospatialLayers?.length) {
+                    await openImportedGeospatialLayers(payload);
+                    return;
+                }
                 await openImportedProject(payload);
             } catch (error) {
                 console.error(error);
@@ -12426,6 +12468,8 @@
 
         async function buildSurveyPayload(files) {
             if (!files || !files.length) throw new Error("No files provided.");
+            const geospatialPayload = await buildGeospatialPayload(files);
+            if (geospatialPayload) return geospatialPayload;
             const zipFile = files.find(file => isSurveyArchiveName(file.name));
             if (zipFile) {
                 return await extractZipPackage(zipFile, { projectName: stripExtension(zipFile.name) });
@@ -13037,12 +13081,336 @@
             };
         }
 
+        function isGeoJsonObject(value) {
+            return value && typeof value === "object" && ["FeatureCollection", "Feature", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"].includes(value.type);
+        }
+
+        async function buildGeospatialPayload(files) {
+            const fileList = Array.from(files || []);
+            const geoJsonFile = fileList.find((file) => /\.(geojson)$/i.test(file.name));
+            const jsonFile = fileList.find((file) => /\.json$/i.test(file.name));
+            const kmlFile = fileList.find((file) => /\.kml$/i.test(file.name));
+            const kmzFile = fileList.find((file) => /\.kmz$/i.test(file.name));
+            const gpxFile = fileList.find((file) => /\.gpx$/i.test(file.name));
+            const shapeZip = fileList.find((file) => /\.zip$/i.test(file.name));
+            const looseShapeFiles = fileList.filter((file) => /\.(shp|shx|dbf|prj)$/i.test(file.name));
+
+            if (geoJsonFile) {
+                return buildGeoJsonPayload(JSON.parse(await readFileAsText(geoJsonFile)), {
+                    projectName: stripExtension(geoJsonFile.name),
+                    fileName: geoJsonFile.name,
+                    format: "GeoJSON"
+                });
+            }
+            if (jsonFile) {
+                try {
+                    const parsed = JSON.parse(await readFileAsText(jsonFile));
+                    if (isGeoJsonObject(parsed)) {
+                        return buildGeoJsonPayload(parsed, {
+                            projectName: stripExtension(jsonFile.name),
+                            fileName: jsonFile.name,
+                            format: "GeoJSON"
+                        });
+                    }
+                } catch {}
+            }
+            if (kmlFile) {
+                return buildGeoJsonPayload(parseKmlText(await readFileAsText(kmlFile)), {
+                    projectName: stripExtension(kmlFile.name),
+                    fileName: kmlFile.name,
+                    format: "KML"
+                });
+            }
+            if (kmzFile) {
+                const zip = await JSZip.loadAsync(kmzFile);
+                const kmlEntryName = Object.keys(zip.files).find((path) => /\.kml$/i.test(path) && !zip.files[path].dir);
+                if (!kmlEntryName) throw new Error("KMZ file does not contain a KML document.");
+                return buildGeoJsonPayload(parseKmlText(await zip.files[kmlEntryName].async("string")), {
+                    projectName: stripExtension(kmzFile.name),
+                    fileName: kmzFile.name,
+                    format: "KMZ"
+                });
+            }
+            if (gpxFile) {
+                return buildGeoJsonPayload(parseGpxText(await readFileAsText(gpxFile)), {
+                    projectName: stripExtension(gpxFile.name),
+                    fileName: gpxFile.name,
+                    format: "GPX"
+                });
+            }
+            if (shapeZip && await zipContainsShapefile(shapeZip)) {
+                return buildGeoJsonPayload(await parseShapefileZip(shapeZip), {
+                    projectName: stripExtension(shapeZip.name),
+                    fileName: shapeZip.name,
+                    format: "Shapefile"
+                });
+            }
+            if (looseShapeFiles.length) {
+                throw new Error("Shapefile import requires a .zip containing .shp, .shx, .dbf, and optional .prj files.");
+            }
+            return null;
+        }
+
+        async function zipContainsShapefile(file) {
+            try {
+                const zip = await JSZip.loadAsync(file);
+                return Object.keys(zip.files).some((path) => /\.shp$/i.test(path));
+            } catch {
+                return false;
+            }
+        }
+
+        function loadScriptOnce(src, globalName) {
+            if (globalName && window[globalName]) return Promise.resolve(window[globalName]);
+            return new Promise((resolve, reject) => {
+                const existing = Array.from(document.scripts).find((script) => script.src === src);
+                if (existing) {
+                    if (existing.dataset.loaded === "true" || (globalName && window[globalName])) {
+                        resolve(globalName ? window[globalName] : true);
+                        return;
+                    }
+                    existing.addEventListener("load", () => resolve(globalName ? window[globalName] : true), { once: true });
+                    existing.addEventListener("error", reject, { once: true });
+                    return;
+                }
+                const script = document.createElement("script");
+                script.src = src;
+                script.async = true;
+                script.onload = () => {
+                    script.dataset.loaded = "true";
+                    resolve(globalName ? window[globalName] : true);
+                };
+                script.onerror = () => reject(new Error(`Unable to load ${src}`));
+                document.head.appendChild(script);
+            });
+        }
+
+        async function parseShapefileZip(file) {
+            const shp = await loadScriptOnce("https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js", "shp");
+            if (!shp) throw new Error("Shapefile parser unavailable.");
+            return await shp(await readFileAsArrayBuffer(file));
+        }
+
+        function normalizeFeatureCollection(input) {
+            if (!input) return { type: "FeatureCollection", features: [] };
+            if (Array.isArray(input)) {
+                return {
+                    type: "FeatureCollection",
+                    features: input.flatMap((item) => normalizeFeatureCollection(item).features)
+                };
+            }
+            if (input.type === "FeatureCollection") return input;
+            if (input.type === "Feature") return { type: "FeatureCollection", features: [input] };
+            if (isGeoJsonObject(input)) return { type: "FeatureCollection", features: [{ type: "Feature", properties: {}, geometry: input }] };
+            return { type: "FeatureCollection", features: [] };
+        }
+
+        function coordinatePairToVertex(pair) {
+            const lng = Number(pair?.[0]);
+            const lat = Number(pair?.[1]);
+            return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+        }
+
+        function geometryPartsFromGeoJson(geometry) {
+            if (!geometry) return [];
+            if (geometry.type === "GeometryCollection") {
+                return (geometry.geometries || []).flatMap(geometryPartsFromGeoJson);
+            }
+            if (geometry.type === "Point") {
+                const vertex = coordinatePairToVertex(geometry.coordinates);
+                return vertex ? [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng) }] : [];
+            }
+            if (geometry.type === "MultiPoint") {
+                return (geometry.coordinates || []).map(coordinatePairToVertex).filter(Boolean).map((vertex) => ({
+                    geometryType: "point",
+                    geometry: createPointGeometry(vertex.lat, vertex.lng)
+                }));
+            }
+            if (geometry.type === "LineString") {
+                const vertices = (geometry.coordinates || []).map(coordinatePairToVertex).filter(Boolean);
+                return vertices.length >= 2 ? [{ geometryType: "line", geometry: createLineGeometry(vertices) }] : [];
+            }
+            if (geometry.type === "MultiLineString") {
+                return (geometry.coordinates || []).flatMap((line) => {
+                    const vertices = (line || []).map(coordinatePairToVertex).filter(Boolean);
+                    return vertices.length >= 2 ? [{ geometryType: "line", geometry: createLineGeometry(vertices) }] : [];
+                });
+            }
+            if (geometry.type === "Polygon") {
+                const vertices = ((geometry.coordinates || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
+                const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
+                return ring.length >= 3 ? [{ geometryType: "polygon", geometry: createPolygonGeometry(ring) }] : [];
+            }
+            if (geometry.type === "MultiPolygon") {
+                return (geometry.coordinates || []).flatMap((polygon) => {
+                    const vertices = ((polygon || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
+                    const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
+                    return ring.length >= 3 ? [{ geometryType: "polygon", geometry: createPolygonGeometry(ring) }] : [];
+                });
+            }
+            return [];
+        }
+
+        function createGeospatialLayer(name, geometryType, sourceFeatures = []) {
+            const defaultSchema = getDefaultLayerSchema(geometryType);
+            const defaultNames = new Set(defaultSchema.map((field) => field.name));
+            const propertyNames = [];
+            sourceFeatures.forEach(({ properties = {} }) => {
+                Object.keys(properties).forEach((key) => {
+                    if (!key || defaultNames.has(key) || propertyNames.includes(key)) return;
+                    propertyNames.push(key);
+                });
+            });
+            const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
+            const features = sourceFeatures.map(({ geometry, properties = {} }, index) => {
+                const attributes = Object.fromEntries(schema.map((field) => [field.name, properties[field.name] ?? ""]));
+                attributes.ID = attributes.ID || generateSurveyPointId();
+                attributes.Date = attributes.Date || new Date().toISOString();
+                attributes.TimeZone = attributes.TimeZone || getProjectTimeZone();
+                attributes.symbol_color = attributes.symbol_color || getDefaultLayerStyleDefaults(geometryType).symbol_color;
+                attributes.symbol_shape = attributes.symbol_shape || getDefaultLayerStyleDefaults(geometryType).symbol_shape;
+                if (geometryType === "point") {
+                    attributes.Latitude = geometry.lat;
+                    attributes.Longitude = geometry.lng;
+                }
+                return {
+                    id: attributes.ID || generateWorkspaceId("feature"),
+                    geometry,
+                    attributes,
+                    version: 1,
+                    importIndex: index
+                };
+            });
+            const layer = {
+                id: generateWorkspaceId("layer"),
+                name,
+                geometryType,
+                visible: true,
+                styleDefaults: getDefaultLayerStyleDefaults(geometryType),
+                schema,
+                fields: schema.map((field) => field.name),
+                features
+            };
+            layer.parsed = buildParsedFromLayer(layer);
+            ensureLayerLabelSettings(layer);
+            return layer;
+        }
+
+        function buildGeoJsonPayload(input, { projectName = "Imported GIS Project", fileName = "", format = "GeoJSON" } = {}) {
+            const collection = normalizeFeatureCollection(input);
+            const grouped = { point: [], line: [], polygon: [] };
+            collection.features.forEach((feature) => {
+                const properties = { ...(feature.properties || {}) };
+                geometryPartsFromGeoJson(feature.geometry).forEach((part) => {
+                    grouped[part.geometryType].push({ geometry: part.geometry, properties });
+                });
+            });
+            const baseName = stripExtension(fileName || projectName || "Imported layer");
+            const layers = Object.entries(grouped)
+                .filter(([, features]) => features.length)
+                .map(([geometryType, features]) => createGeospatialLayer(`${baseName} ${geometryType === "point" ? "Points" : geometryType === "line" ? "Lines" : "Polygons"}`, geometryType, features));
+            if (!layers.length) throw new Error(`${format} file does not contain supported point, line, or polygon features.`);
+            return {
+                geospatialLayers: layers,
+                projectName,
+                fileName,
+                format,
+                source: { type: "local-import", format, fileName }
+            };
+        }
+
+        function parseKmlCoordinates(text = "") {
+            return text.trim().split(/\s+/).map((tuple) => {
+                const [lng, lat] = tuple.split(",").map(Number);
+                return Number.isFinite(lat) && Number.isFinite(lng) ? [lng, lat] : null;
+            }).filter(Boolean);
+        }
+
+        function parseKmlText(text) {
+            const doc = new DOMParser().parseFromString(text, "application/xml");
+            const placemarks = Array.from(doc.getElementsByTagName("Placemark"));
+            return {
+                type: "FeatureCollection",
+                features: placemarks.flatMap((placemark) => {
+                    const name = placemark.getElementsByTagName("name")[0]?.textContent?.trim() || "";
+                    const properties = name ? { name } : {};
+                    Array.from(placemark.getElementsByTagName("Data")).forEach((dataEl) => {
+                        const key = dataEl.getAttribute("name");
+                        const value = dataEl.getElementsByTagName("value")[0]?.textContent?.trim();
+                        if (key) properties[key] = value || "";
+                    });
+                    const features = [];
+                    Array.from(placemark.getElementsByTagName("Point")).forEach((pointEl) => {
+                        const coords = parseKmlCoordinates(pointEl.getElementsByTagName("coordinates")[0]?.textContent || "");
+                        if (coords[0]) features.push({ type: "Feature", properties, geometry: { type: "Point", coordinates: coords[0] } });
+                    });
+                    Array.from(placemark.getElementsByTagName("LineString")).forEach((lineEl) => {
+                        const coords = parseKmlCoordinates(lineEl.getElementsByTagName("coordinates")[0]?.textContent || "");
+                        if (coords.length >= 2) features.push({ type: "Feature", properties, geometry: { type: "LineString", coordinates: coords } });
+                    });
+                    Array.from(placemark.getElementsByTagName("Polygon")).forEach((polygonEl) => {
+                        const ringEl = polygonEl.getElementsByTagName("outerBoundaryIs")[0] || polygonEl;
+                        const coords = parseKmlCoordinates(ringEl.getElementsByTagName("coordinates")[0]?.textContent || "");
+                        if (coords.length >= 3) features.push({ type: "Feature", properties, geometry: { type: "Polygon", coordinates: [coords] } });
+                    });
+                    return features;
+                })
+            };
+        }
+
+        function parseGpxText(text) {
+            const doc = new DOMParser().parseFromString(text, "application/xml");
+            const features = [];
+            Array.from(doc.getElementsByTagName("wpt")).forEach((wpt) => {
+                const lat = Number(wpt.getAttribute("lat"));
+                const lon = Number(wpt.getAttribute("lon"));
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
+                const name = wpt.getElementsByTagName("name")[0]?.textContent?.trim() || "";
+                features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "Point", coordinates: [lon, lat] } });
+            });
+            const readTrack = (container, tagName) => {
+                Array.from(container.getElementsByTagName(tagName)).forEach((segment) => {
+                    const coords = Array.from(segment.getElementsByTagName("trkpt")).map((pt) => {
+                        const lat = Number(pt.getAttribute("lat"));
+                        const lon = Number(pt.getAttribute("lon"));
+                        return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : null;
+                    }).filter(Boolean);
+                    if (coords.length >= 2) {
+                        const name = container.getElementsByTagName("name")[0]?.textContent?.trim() || "";
+                        features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "LineString", coordinates: coords } });
+                    }
+                });
+            };
+            Array.from(doc.getElementsByTagName("trk")).forEach((track) => readTrack(track, "trkseg"));
+            Array.from(doc.getElementsByTagName("rte")).forEach((route) => {
+                const coords = Array.from(route.getElementsByTagName("rtept")).map((pt) => {
+                    const lat = Number(pt.getAttribute("lat"));
+                    const lon = Number(pt.getAttribute("lon"));
+                    return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : null;
+                }).filter(Boolean);
+                if (coords.length >= 2) {
+                    const name = route.getElementsByTagName("name")[0]?.textContent?.trim() || "";
+                    features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "LineString", coordinates: coords } });
+                }
+            });
+            return { type: "FeatureCollection", features };
+        }
+
         function readFileAsText(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.onload = () => resolve(reader.result);
                 reader.onerror = reject;
                 reader.readAsText(file);
+            });
+        }
+
+        function readFileAsArrayBuffer(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = () => resolve(reader.result);
+                reader.onerror = reject;
+                reader.readAsArrayBuffer(file);
             });
         }
 
