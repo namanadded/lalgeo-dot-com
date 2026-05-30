@@ -708,8 +708,37 @@
         gap: 6px;
         flex-wrap: nowrap;
     }
+    .geometry-tool-section {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        flex-wrap: nowrap;
+    }
+    .geometry-tool-section + .geometry-tool-section {
+        padding-left: 7px;
+        border-left: 1px solid #e5e7eb;
+    }
     .geometry-tool-group[hidden] {
         display: none;
+    }
+    .edit-selected-badge {
+        min-width: 28px;
+        height: 26px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid #e5e7eb;
+        background: #f9fafb;
+        color: #4b5563;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 24px;
+        text-align: center;
+        white-space: nowrap;
+    }
+    .edit-selected-badge.active {
+        border-color: rgba(20, 184, 166, 0.4);
+        background: #e6fffb;
+        color: #0f766e;
     }
     .edit-tool-btn {
         position: relative;
@@ -842,6 +871,11 @@
         display: block;
         transform: translateY(-0.5px);
     }
+    .edit-tool-btn.snap-active {
+        background: #eff6ff;
+        color: #1d4ed8;
+        border-color: rgba(37, 99, 235, 0.45);
+    }
     .edit-panel-separator {
         width: 1px;
         height: 24px;
@@ -894,10 +928,20 @@
             gap: 5px;
         }
         .edit-tool-btn {
-            width: 32px;
+            width: 40px;
+            height: 40px;
+            min-width: 40px;
+            min-height: 40px;
+        }
+        .edit-panel-body {
+            min-height: 50px;
+        }
+        .geometry-tool-section + .geometry-tool-section {
+            padding-left: 6px;
+        }
+        .edit-selected-badge {
             height: 32px;
-            min-width: 32px;
-            min-height: 32px;
+            line-height: 30px;
         }
     }
     .edit-panel-field .legacy-hidden,
@@ -4971,16 +5015,30 @@
                 <select id="editPanelLayerSelect" class="workspace-text-input toolbar-layer-select"></select>
             </div>
             <div class="edit-panel-grid">
+                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↶</span></button>
+                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↷</span></button>
                 <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span></button>
                 <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
                 <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
             </div>
             <div id="editPanelGeometryTools" class="geometry-tool-group" hidden>
-                <button id="editPanelTraceBtn" type="button" class="edit-tool-btn blue" data-tooltip="Trace visible outline" aria-label="Trace visible outline"><span class="edit-tool-icon" aria-hidden="true">⌁</span></button>
-                <button id="editPanelRectangleBtn" type="button" class="edit-tool-btn green" data-tooltip="Create rectangle" aria-label="Create rectangle"><span class="edit-tool-icon" aria-hidden="true">▭</span></button>
-                <button id="editPanelSquareBtn" type="button" class="edit-tool-btn green" data-tooltip="Create square" aria-label="Create square"><span class="edit-tool-icon" aria-hidden="true">□</span></button>
-                <button id="editPanelEditVerticesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Edit vertices" aria-label="Edit vertices"><span class="edit-tool-icon" aria-hidden="true">⌘</span></button>
-                <button id="editPanelSplitGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Split geometry" aria-label="Split geometry"><span class="edit-tool-icon" aria-hidden="true">✂</span></button>
+                <span id="editPanelSelectedBadge" class="edit-selected-badge" title="Selected editable features">0</span>
+                <span class="geometry-tool-section" data-tool-section="draw">
+                    <button id="editPanelTraceBtn" type="button" class="edit-tool-btn blue" data-tooltip="Trace visible outline" aria-label="Trace visible outline"><span class="edit-tool-icon" aria-hidden="true">⌁</span></button>
+                    <button id="editPanelFinishGeometryBtn" type="button" class="edit-tool-btn green" data-tooltip="Finish drawing" aria-label="Finish drawing" hidden><span class="edit-tool-icon" aria-hidden="true">✓</span></button>
+                    <button id="editPanelCancelGeometryBtn" type="button" class="edit-tool-btn danger" data-tooltip="Cancel drawing" aria-label="Cancel drawing" hidden><span class="edit-tool-icon" aria-hidden="true">×</span></button>
+                    <button id="editPanelSnapVerticesBtn" type="button" class="edit-tool-btn" data-tooltip="Snap to vertices" aria-label="Snap to vertices"><span class="edit-tool-icon" aria-hidden="true">•</span></button>
+                    <button id="editPanelSnapEdgesBtn" type="button" class="edit-tool-btn" data-tooltip="Snap to edges" aria-label="Snap to edges"><span class="edit-tool-icon" aria-hidden="true">╱</span></button>
+                    <button id="editPanelSnapPolygonEdgesBtn" type="button" class="edit-tool-btn" data-tooltip="Snap to polygon edges" aria-label="Snap to polygon edges"><span class="edit-tool-icon" aria-hidden="true">⬡</span></button>
+                </span>
+                <span class="geometry-tool-section" data-tool-section="polygon">
+                    <button id="editPanelRectangleBtn" type="button" class="edit-tool-btn green" data-tooltip="Create rectangle" aria-label="Create rectangle"><span class="edit-tool-icon" aria-hidden="true">▭</span></button>
+                    <button id="editPanelSquareBtn" type="button" class="edit-tool-btn green" data-tooltip="Create square" aria-label="Create square"><span class="edit-tool-icon" aria-hidden="true">□</span></button>
+                </span>
+                <span class="geometry-tool-section" data-tool-section="edit">
+                    <button id="editPanelEditVerticesBtn" type="button" class="edit-tool-btn orange" data-tooltip="Show vertex handles" aria-label="Show vertex handles"><span class="edit-tool-icon" aria-hidden="true">⌘</span></button>
+                    <button id="editPanelSplitGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Preview split" aria-label="Preview split"><span class="edit-tool-icon" aria-hidden="true">✂</span></button>
+                </span>
             </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
@@ -5511,11 +5569,19 @@
         const editPanelStatusText = document.getElementById("editPanelStatusText");
         const editPanelSessionBtn = document.getElementById("editPanelSessionBtn");
         const editPanelLayerSelect = document.getElementById("editPanelLayerSelect");
+        const editPanelUndoBtn = document.getElementById("editPanelUndoBtn");
+        const editPanelRedoBtn = document.getElementById("editPanelRedoBtn");
         const editPanelAddFeatureBtn = document.getElementById("editPanelAddFeatureBtn");
         const editPanelEditExistingBtn = document.getElementById("editPanelEditExistingBtn");
         const editPanelGeometryBtn = document.getElementById("editPanelGeometryBtn");
         const editPanelGeometryTools = document.getElementById("editPanelGeometryTools");
+        const editPanelSelectedBadge = document.getElementById("editPanelSelectedBadge");
         const editPanelTraceBtn = document.getElementById("editPanelTraceBtn");
+        const editPanelFinishGeometryBtn = document.getElementById("editPanelFinishGeometryBtn");
+        const editPanelCancelGeometryBtn = document.getElementById("editPanelCancelGeometryBtn");
+        const editPanelSnapVerticesBtn = document.getElementById("editPanelSnapVerticesBtn");
+        const editPanelSnapEdgesBtn = document.getElementById("editPanelSnapEdgesBtn");
+        const editPanelSnapPolygonEdgesBtn = document.getElementById("editPanelSnapPolygonEdgesBtn");
         const editPanelRectangleBtn = document.getElementById("editPanelRectangleBtn");
         const editPanelSquareBtn = document.getElementById("editPanelSquareBtn");
         const editPanelEditVerticesBtn = document.getElementById("editPanelEditVerticesBtn");
@@ -5784,6 +5850,16 @@
         let drawingVertices = [];
         let drawingCursorCoordinate = null;
         let drawingPreviewOverlay = null;
+        let geometryVertexEditMode = false;
+        let geometryVertexHandleAnnotations = [];
+        let geometryVertexDragState = null;
+        let splitPreviewState = null;
+        let splitPreviewOverlays = [];
+        let editSnapSettings = {
+            vertices: true,
+            edges: true,
+            polygonEdges: true
+        };
         let isReorderingFields = false;
         let pendingNewAnnotation = null;
         let isCalloutEditing = false;
@@ -7367,7 +7443,25 @@
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || getActiveLayerGeometryType());
             const hasSelectedFeature = Boolean(getSelectedEditableFeatureContext());
             const showGeometryTools = canEdit && (geometryType === "line" || geometryType === "polygon");
+            if (editPanelUndoBtn) {
+                editPanelUndoBtn.disabled = !undoStack.length;
+                editPanelUndoBtn.dataset.tooltip = undoStack.length ? "Undo" : "Nothing to undo";
+                editPanelUndoBtn.setAttribute("aria-label", editPanelUndoBtn.dataset.tooltip);
+            }
+            if (editPanelRedoBtn) {
+                editPanelRedoBtn.disabled = !redoStack.length;
+                editPanelRedoBtn.dataset.tooltip = redoStack.length ? "Redo" : "Nothing to redo";
+                editPanelRedoBtn.setAttribute("aria-label", editPanelRedoBtn.dataset.tooltip);
+            }
             if (editPanelGeometryTools) editPanelGeometryTools.hidden = !showGeometryTools;
+            if (editPanelSelectedBadge) {
+                const selectedCount = selectedTableRows?.size || (hasSelectedFeature ? 1 : 0);
+                editPanelSelectedBadge.textContent = `${selectedCount} selected`;
+                editPanelSelectedBadge.classList.toggle("active", selectedCount > 0);
+                editPanelSelectedBadge.title = selectedCount
+                    ? `${selectedCount} feature${selectedCount === 1 ? "" : "s"} selected`
+                    : "Select a feature to edit vertices or split geometry";
+            }
             if (editPanelRectangleBtn) {
                 editPanelRectangleBtn.hidden = geometryType !== "polygon";
                 editPanelRectangleBtn.disabled = !showGeometryTools;
@@ -7383,8 +7477,38 @@
                 editPanelTraceBtn.dataset.tooltip = traceLabel;
                 editPanelTraceBtn.setAttribute("aria-label", traceLabel);
             }
-            if (editPanelEditVerticesBtn) editPanelEditVerticesBtn.disabled = !showGeometryTools || !hasSelectedFeature;
-            if (editPanelSplitGeometryBtn) editPanelSplitGeometryBtn.disabled = !showGeometryTools || !hasSelectedFeature;
+            const canFinishGeometry = isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
+            if (editPanelFinishGeometryBtn) {
+                editPanelFinishGeometryBtn.hidden = !isAddingSurveyPoint || geometryType === "point";
+                editPanelFinishGeometryBtn.disabled = !canFinishGeometry;
+            }
+            if (editPanelCancelGeometryBtn) {
+                editPanelCancelGeometryBtn.hidden = !isAddingSurveyPoint && !splitPreviewState;
+                editPanelCancelGeometryBtn.dataset.tooltip = splitPreviewState ? "Cancel split preview" : "Cancel drawing";
+                editPanelCancelGeometryBtn.setAttribute("aria-label", editPanelCancelGeometryBtn.dataset.tooltip);
+            }
+            [[editPanelSnapVerticesBtn, "vertices"], [editPanelSnapEdgesBtn, "edges"], [editPanelSnapPolygonEdgesBtn, "polygonEdges"]].forEach(([button, key]) => {
+                if (!button) return;
+                button.disabled = !showGeometryTools;
+                button.classList.toggle("snap-active", Boolean(editSnapSettings[key]));
+                button.classList.toggle("active", Boolean(editSnapSettings[key]));
+                button.setAttribute("aria-pressed", editSnapSettings[key] ? "true" : "false");
+            });
+            if (editPanelSnapPolygonEdgesBtn) {
+                editPanelSnapPolygonEdgesBtn.hidden = geometryType !== "polygon";
+            }
+            if (editPanelEditVerticesBtn) {
+                editPanelEditVerticesBtn.disabled = !showGeometryTools || !hasSelectedFeature;
+                editPanelEditVerticesBtn.classList.toggle("active", geometryVertexEditMode);
+                editPanelEditVerticesBtn.dataset.tooltip = geometryVertexEditMode ? "Hide vertex handles" : "Show vertex handles";
+                editPanelEditVerticesBtn.setAttribute("aria-label", editPanelEditVerticesBtn.dataset.tooltip);
+            }
+            if (editPanelSplitGeometryBtn) {
+                editPanelSplitGeometryBtn.disabled = !showGeometryTools || !hasSelectedFeature;
+                editPanelSplitGeometryBtn.classList.toggle("active", Boolean(splitPreviewState));
+                editPanelSplitGeometryBtn.dataset.tooltip = splitPreviewState ? "Apply split" : "Preview split";
+                editPanelSplitGeometryBtn.setAttribute("aria-label", editPanelSplitGeometryBtn.dataset.tooltip);
+            }
             if (editPanelGeometryBtn && geometryType !== "point") {
                 editPanelGeometryBtn.dataset.tooltip = isAddingSurveyPoint ? `Drawing ${geometryType}` : `Draw ${geometryType}`;
                 editPanelGeometryBtn.setAttribute("aria-label", isAddingSurveyPoint ? `Drawing ${geometryType}` : `Draw ${geometryType}`);
@@ -7399,7 +7523,6 @@
             if (editPanelSessionBtn) editPanelSessionBtn.disabled = !layer || !activeProjectRecord;
             editPanelAddFeatureBtn?.classList.toggle("active", isAddingSurveyPoint);
             if (editPanelAddFeatureBtn) {
-                const canFinishGeometry = isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
                 const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? (geometryTraceMode ? `Trace ${geometryType} vertex` : `Add ${geometryType} vertex`) : "Add feature";
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
@@ -7488,6 +7611,8 @@
             if (!editSessionActive) {
                 if (isAddingSurveyPoint) toggleAddSurveyPointMode();
                 setPointGeometryEditMode(false);
+                setGeometryVertexEditMode(false);
+                clearSplitPreview();
                 if (tableEditMode) {
                     tableEditMode = false;
                     tableEditBtn?.classList.remove("active");
@@ -9972,10 +10097,38 @@
             syncEditPanelState();
         });
         editPanelSessionBtn?.addEventListener("click", () => setEditSessionActive(!editSessionActive));
+        editPanelUndoBtn?.addEventListener("click", () => performUndo());
+        editPanelRedoBtn?.addEventListener("click", () => performRedo());
         editPanelAddFeatureBtn?.addEventListener("click", startEditPanelAddFeature);
         editPanelEditExistingBtn?.addEventListener("click", openActiveLayerTableForEditing);
         editPanelGeometryBtn?.addEventListener("click", startEditPanelGeometryEdit);
         editPanelTraceBtn?.addEventListener("click", toggleTraceGeometryMode);
+        editPanelFinishGeometryBtn?.addEventListener("click", () => {
+            const geometryType = getActiveLayerGeometryType();
+            if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
+                finalizeGeometryFeaturePlacement();
+            }
+        });
+        editPanelCancelGeometryBtn?.addEventListener("click", () => {
+            if (splitPreviewState) {
+                clearSplitPreview();
+                setProjectStatus("Split preview cancelled.", "success");
+                return;
+            }
+            if (isAddingSurveyPoint) exitAddSurveyPointMode();
+        });
+        editPanelSnapVerticesBtn?.addEventListener("click", () => {
+            editSnapSettings.vertices = !editSnapSettings.vertices;
+            syncEditPanelState();
+        });
+        editPanelSnapEdgesBtn?.addEventListener("click", () => {
+            editSnapSettings.edges = !editSnapSettings.edges;
+            syncEditPanelState();
+        });
+        editPanelSnapPolygonEdgesBtn?.addEventListener("click", () => {
+            editSnapSettings.polygonEdges = !editSnapSettings.polygonEdges;
+            syncEditPanelState();
+        });
         editPanelRectangleBtn?.addEventListener("click", () => createViewportPolygonShape("rectangle"));
         editPanelSquareBtn?.addEventListener("click", () => createViewportPolygonShape("square"));
         editPanelEditVerticesBtn?.addEventListener("click", editSelectedGeometryVertices);
@@ -10570,7 +10723,7 @@
             if (getActiveLayerGeometryType() !== "point" && drawingVertices.length && map) {
                 const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(event.clientX, event.clientY));
                 if (coordinate && !coordinatesAreEqual(coordinate, drawingCursorCoordinate)) {
-                    drawingCursorCoordinate = coordinate;
+                    drawingCursorCoordinate = getSnappedCoordinate(coordinate);
                     updateDrawingPreviewOverlay();
                 }
             }
@@ -11469,6 +11622,220 @@
             return true;
         }
 
+        function coordinateToPlain(coordinate) {
+            if (!coordinate) return null;
+            const lat = coordinate.latitude ?? coordinate.lat;
+            const lng = coordinate.longitude ?? coordinate.lng ?? coordinate.lon;
+            return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
+        }
+
+        function plainToCoordinate(vertex) {
+            return vertex ? new mapkit.Coordinate(vertex.lat, vertex.lng) : null;
+        }
+
+        function clearSplitPreview() {
+            splitPreviewOverlays.forEach((overlay) => map?.removeOverlay?.(overlay));
+            splitPreviewOverlays = [];
+            splitPreviewState = null;
+            syncEditPanelState();
+        }
+
+        function clearGeometryVertexHandles() {
+            geometryVertexHandleAnnotations.forEach((annotation) => map?.removeAnnotation?.(annotation));
+            geometryVertexHandleAnnotations = [];
+            geometryVertexDragState = null;
+        }
+
+        function setGeometryVertexEditMode(active) {
+            geometryVertexEditMode = Boolean(active);
+            clearGeometryVertexHandles();
+            if (geometryVertexEditMode) {
+                renderGeometryVertexHandles();
+            }
+            syncEditPanelState();
+        }
+
+        function renderGeometryVertexHandles() {
+            clearGeometryVertexHandles();
+            if (!geometryVertexEditMode || !map) return;
+            const context = getSelectedEditableFeatureContext();
+            if (!context || context.geometryType === "point") return;
+            const vertices = plainCoordinatesFromFeature(context.feature)
+                .filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
+            vertices.forEach((vertex, vertexIndex) => {
+                const handle = new mapkit.MarkerAnnotation(plainToCoordinate(vertex), {
+                    color: "#5cc8c0",
+                    glyphText: String(vertexIndex + 1),
+                    title: `Vertex ${vertexIndex + 1}`
+                });
+                handle.draggable = true;
+                handle.geometryVertexHandle = {
+                    rowIndex: context.rowIndex,
+                    featureId: context.feature.id,
+                    vertexIndex,
+                    geometryType: context.geometryType,
+                    start: { ...vertex }
+                };
+                handle.addEventListener?.("dragstart", () => {
+                    geometryVertexDragState = {
+                        annotation: handle,
+                        start: { ...handle.geometryVertexHandle.start }
+                    };
+                    hideSurveyCallout();
+                    closeFeatureDrawer();
+                });
+                handle.addEventListener?.("dragend", (event) => {
+                    const coord = event?.annotation?.coordinate || handle.coordinate;
+                    commitGeometryVertexHandleMove(handle, coord);
+                });
+                geometryVertexHandleAnnotations.push(handle);
+                map.addAnnotation(handle);
+            });
+        }
+
+        function commitGeometryVertexHandleMove(handle, coordinate) {
+            const meta = handle?.geometryVertexHandle;
+            const next = coordinateToPlain(coordinate);
+            if (!meta || !next) return;
+            const context = getSelectedEditableFeatureContext();
+            if (!context || context.feature.id !== meta.featureId) return;
+            const vertices = plainCoordinatesFromFeature(context.feature)
+                .filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
+            if (!vertices[meta.vertexIndex]) return;
+            const snapped = getSnappedCoordinate(plainToCoordinate(next), { excludeFeatureId: context.feature.id }) || next;
+            vertices[meta.vertexIndex] = coordinateToPlain(snapped) || next;
+            if (!hasEnoughVerticesForGeometry(context.geometryType, vertices)) return;
+            const geometry = buildGeometryFromVertices(context.geometryType, vertices);
+            applyGeometryToFeature(context.rowIndex, geometry, { status: "Vertex moved." });
+            geometryVertexDragState = null;
+            if (geometryVertexEditMode) window.setTimeout(renderGeometryVertexHandles, 0);
+        }
+
+        function projectCoordinateToSegment(coordinate, start, end) {
+            if (!map || !coordinate || !start || !end) return null;
+            const point = map.convertCoordinateToPointOnPage(coordinate);
+            const startPoint = map.convertCoordinateToPointOnPage(start);
+            const endPoint = map.convertCoordinateToPointOnPage(end);
+            if (!point || !startPoint || !endPoint) return null;
+            const dx = endPoint.x - startPoint.x;
+            const dy = endPoint.y - startPoint.y;
+            const lengthSquared = dx * dx + dy * dy;
+            if (!lengthSquared) return null;
+            const t = Math.max(0, Math.min(1, ((point.x - startPoint.x) * dx + (point.y - startPoint.y) * dy) / lengthSquared));
+            const projectedPoint = new DOMPoint(startPoint.x + dx * t, startPoint.y + dy * t);
+            const projectedCoordinate = map.convertPointOnPageToCoordinate(projectedPoint);
+            if (!projectedCoordinate) return null;
+            return {
+                coordinate: projectedCoordinate,
+                distance: Math.hypot(point.x - projectedPoint.x, point.y - projectedPoint.y)
+            };
+        }
+
+        function getSnappedCoordinate(coordinate, { excludeFeatureId = null } = {}) {
+            if (!map || !coordinate || (!editSnapSettings.vertices && !editSnapSettings.edges && !editSnapSettings.polygonEdges)) return coordinate;
+            const point = map.convertCoordinateToPointOnPage(coordinate);
+            if (!point) return coordinate;
+            const snapRadius = window.innerWidth <= 700 ? 24 : 14;
+            let best = null;
+            const consider = (candidate, distance) => {
+                if (!candidate || distance > snapRadius) return;
+                if (!best || distance < best.distance) best = { coordinate: candidate, distance };
+            };
+            (activeProjectRecord?.layers || []).filter((layer) => layer.visible !== false).forEach((layer) => {
+                const geometryType = normalizeLayerGeometryType(layer.geometryType || "point");
+                (layer.features || []).forEach((feature) => {
+                    if (feature.id && feature.id === excludeFeatureId) return;
+                    const coords = getGeometryCoordinates(feature);
+                    if (editSnapSettings.vertices) {
+                        coords.forEach((candidate) => {
+                            const candidatePoint = map.convertCoordinateToPointOnPage(candidate);
+                            if (candidatePoint) consider(candidate, Math.hypot(point.x - candidatePoint.x, point.y - candidatePoint.y));
+                        });
+                    }
+                    const shouldSnapEdge = editSnapSettings.edges || (editSnapSettings.polygonEdges && geometryType === "polygon");
+                    if (shouldSnapEdge && coords.length >= 2) {
+                        const edgeCoords = geometryType === "polygon" ? getClosedPolygonCoordinates(coords) : coords;
+                        for (let index = 1; index < edgeCoords.length; index += 1) {
+                            const projected = projectCoordinateToSegment(coordinate, edgeCoords[index - 1], edgeCoords[index]);
+                            if (projected) consider(projected.coordinate, projected.distance);
+                        }
+                    }
+                });
+            });
+            return best?.coordinate || coordinate;
+        }
+
+        function renderSplitPreview(context, split) {
+            clearSplitPreview();
+            if (!map || !context || !split) return;
+            const firstGeometry = buildGeometryFromVertices(context.geometryType, split.first);
+            const secondGeometry = buildGeometryFromVertices(context.geometryType, split.second);
+            const makeOverlay = (geometry, color) => {
+                const coords = geometry?.type === "Polygon"
+                    ? getClosedPolygonCoordinates(getGeometryCoordinates({ geometry }))
+                    : getGeometryCoordinates({ geometry });
+                if (!coords.length) return null;
+                if (geometry.type === "Polygon") {
+                    return new mapkit.PolygonOverlay([coords], {
+                        style: new mapkit.Style({ lineWidth: 5, strokeColor: color, fillColor: color, fillOpacity: 0.25 })
+                    });
+                }
+                return new mapkit.PolylineOverlay(coords, {
+                    style: new mapkit.Style({ lineWidth: 5, strokeColor: color, lineCap: "round", lineJoin: "round" })
+                });
+            };
+            [makeOverlay(firstGeometry, "#2563eb"), makeOverlay(secondGeometry, "#f97316")].filter(Boolean).forEach((overlay) => {
+                splitPreviewOverlays.push(overlay);
+                map.addOverlay(overlay);
+            });
+            splitPreviewState = {
+                rowIndex: context.rowIndex,
+                featureId: context.feature.id,
+                geometryType: context.geometryType,
+                before: cloneFeatureGeometry(context.feature.geometry),
+                firstGeometry,
+                secondGeometry,
+                split
+            };
+            setProjectStatus("Split preview shown. Click scissors again to apply, or cancel.", "success");
+            syncEditPanelState();
+        }
+
+        function applySplitPreview() {
+            if (!splitPreviewState) return false;
+            const context = getSelectedEditableFeatureContext();
+            if (!context || context.feature.id !== splitPreviewState.featureId) {
+                clearSplitPreview();
+                setProjectStatus("Select the previewed feature before applying split.", "error");
+                return false;
+            }
+            const before = cloneFeatureGeometry(context.feature.geometry);
+            context.feature.geometry = cloneFeatureGeometry(splitPreviewState.firstGeometry);
+            if (currentSurveyData.pointMeta?.[context.rowIndex]) {
+                currentSurveyData.pointMeta[context.rowIndex].geometry = cloneFeatureGeometry(splitPreviewState.firstGeometry);
+            }
+            const inserted = insertSplitFeature(context, splitPreviewState.secondGeometry);
+            if (!isDropboxSurvey()) {
+                recordAction({
+                    type: "split-geometry",
+                    rowIndex: context.rowIndex,
+                    featureId: context.feature.id,
+                    before,
+                    after: cloneFeatureGeometry(splitPreviewState.firstGeometry),
+                    inserted
+                });
+            } else {
+                markSurveyDirty();
+            }
+            clearSplitPreview();
+            activeFeatureId = context.feature.id;
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            updateSurveyTable();
+            syncEditPanelState();
+            setProjectStatus(`${context.geometryType === "line" ? "Line" : "Polygon"} split into two features.`, "success");
+            return true;
+        }
+
         function createViewportPolygonShape(shape = "rectangle") {
             const layer = getActiveLayerRecord();
             if (!layer || normalizeLayerGeometryType(layer.geometryType || "point") !== "polygon" || !map?.region) return;
@@ -11544,16 +11911,10 @@
                 return;
             }
             if (!ensureEditSessionStarted()) return;
-            const currentText = geometryToVertexText(context.feature);
-            const nextText = window.prompt("Edit vertices as one latitude, longitude pair per line.", currentText);
-            if (nextText === null) return;
-            const vertices = parseVertexText(nextText);
-            if (!hasEnoughVerticesForGeometry(context.geometryType, vertices)) {
-                setProjectStatus(`${context.geometryType === "line" ? "Line" : "Polygon"} needs at least ${context.geometryType === "line" ? "2" : "3"} vertices.`, "error");
-                return;
-            }
-            const geometry = buildGeometryFromVertices(context.geometryType, vertices);
-            applyGeometryToFeature(context.rowIndex, geometry, { status: "Vertices updated." });
+            setGeometryVertexEditMode(!geometryVertexEditMode);
+            setProjectStatus(geometryVertexEditMode
+                ? "Vertex handles visible. Drag a numbered handle to reshape the feature."
+                : "Vertex handles hidden.", "success");
         }
 
         function plainCoordinatesFromFeature(feature) {
@@ -11649,6 +12010,10 @@
         }
 
         function splitSelectedGeometry() {
+            if (splitPreviewState) {
+                applySplitPreview();
+                return;
+            }
             const context = getSelectedEditableFeatureContext();
             if (!context || context.geometryType === "point") {
                 setProjectStatus("Select a line or polygon feature before splitting.", "error");
@@ -11661,31 +12026,7 @@
                 setProjectStatus(`Unable to split this ${context.geometryType}. Try editing vertices first.`, "error");
                 return;
             }
-            const before = cloneFeatureGeometry(context.feature.geometry);
-            const firstGeometry = buildGeometryFromVertices(context.geometryType, split.first);
-            const secondGeometry = buildGeometryFromVertices(context.geometryType, split.second);
-            context.feature.geometry = cloneFeatureGeometry(firstGeometry);
-            if (currentSurveyData.pointMeta?.[context.rowIndex]) {
-                currentSurveyData.pointMeta[context.rowIndex].geometry = cloneFeatureGeometry(firstGeometry);
-            }
-            const inserted = insertSplitFeature(context, secondGeometry);
-            if (!isDropboxSurvey()) {
-                recordAction({
-                    type: "split-geometry",
-                    rowIndex: context.rowIndex,
-                    featureId: context.feature.id,
-                    before,
-                    after: cloneFeatureGeometry(firstGeometry),
-                    inserted
-                });
-            } else {
-                markSurveyDirty();
-            }
-            activeFeatureId = context.feature.id;
-            setActiveProject(activeProjectRecord, { preserveRegion: true });
-            updateSurveyTable();
-            syncEditPanelState();
-            setProjectStatus(`${context.geometryType === "line" ? "Line" : "Polygon"} split into two features.`, "success");
+            renderSplitPreview(context, split);
         }
 
         function exitAddSurveyPointMode() {
@@ -11704,14 +12045,16 @@
                 drawingPreviewOverlay = null;
             }
             if (mapAddHint) mapAddHint.hidden = true;
+            syncEditPanelState();
         }
 
         async function handleNewSurveyPointPlacement(coordinate, options = {}) {
             if (!currentSurveyData || !coordinate) return;
             const activeLayer = getActiveLayerRecord();
             const geometryType = getActiveLayerGeometryType();
+            const placementCoordinate = geometryType === "point" ? coordinate : getSnappedCoordinate(coordinate);
             if (geometryType !== "point") {
-                drawingVertices.push({ lat: coordinate.latitude, lng: coordinate.longitude });
+                drawingVertices.push({ lat: placementCoordinate.latitude, lng: placementCoordinate.longitude });
                 drawingCursorCoordinate = null;
                 updateDrawingPreviewOverlay();
                 const hint = getGeometryDrawingHint(geometryType);
@@ -11730,9 +12073,9 @@
             }
             const dropboxMode = isDropboxSurvey();
             const layer = activeLayer;
-            const geometry = createPointGeometry(coordinate.latitude, coordinate.longitude);
+            const geometry = createPointGeometry(placementCoordinate.latitude, placementCoordinate.longitude);
             const initialAttributes = options.initialAttributes || {};
-            const { newRecord, feature: featurePayload } = buildNewFeaturePayload(layer, geometry, coordinate, initialAttributes);
+            const { newRecord, feature: featurePayload } = buildNewFeaturePayload(layer, geometry, placementCoordinate, initialAttributes);
             const rowIndex = currentSurveyData.records.length;
             currentSurveyData.records.push(newRecord);
             if (!currentSurveyData.pointMeta) currentSurveyData.pointMeta = [];
@@ -13311,6 +13654,8 @@
 
         function clearSurveyLayers() {
             hideSurveyCallout();
+            clearGeometryVertexHandles();
+            clearSplitPreview();
             surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyOverlays.forEach((overlay) => map.removeOverlay(overlay));
             if (drawingPreviewOverlay) {
@@ -13391,6 +13736,7 @@
             renderSelectedFeatureInspector();
             renderFeatureDrawer();
             syncEditPanelState();
+            if (geometryVertexEditMode) renderGeometryVertexHandles();
             if (!USE_INLINE_FEATURE_CALLOUT) {
                 surveyCallout.style.display = "none";
                 flushDeferredReload();
@@ -14966,6 +15312,8 @@ function setImportPanelVisibility(show) {
         function updateHistoryButtons() {
             if (undoBtn) undoBtn.disabled = !undoStack.length;
             if (redoBtn) redoBtn.disabled = !redoStack.length;
+            if (editPanelUndoBtn) editPanelUndoBtn.disabled = !undoStack.length;
+            if (editPanelRedoBtn) editPanelRedoBtn.disabled = !redoStack.length;
             if (undoBtn) undoBtn.title = undoStack.length ? "Undo the most recent local change." : "Undo becomes available after you add, move, delete, or edit a feature.";
             if (redoBtn) redoBtn.title = redoStack.length ? "Redo the last undone local change." : "Redo becomes available after you undo a local change.";
             if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);

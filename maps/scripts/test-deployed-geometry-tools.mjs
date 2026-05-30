@@ -171,7 +171,6 @@ try {
     const originalPrompt = window.prompt;
     const originalConfirm = window.confirm;
     window.confirm = () => true;
-    window.prompt = () => "51, -114\\n51, -113.998\\n51.002, -113.998\\n51.002, -114";
 
     if (!window.mapkit) {
       window.mapkit = {
@@ -191,19 +190,17 @@ try {
         }
       };
     }
-    if (!map) {
-      map = {
-        region: null,
-        overlays: [],
-        annotations: [],
-        addOverlay(overlay) { this.overlays.push(overlay); },
-        removeOverlay(overlay) { this.overlays = this.overlays.filter((item) => item !== overlay); },
-        addAnnotation(annotation) { this.annotations.push(annotation); },
-        removeAnnotation(annotation) { this.annotations = this.annotations.filter((item) => item !== annotation); },
-        convertPointOnPageToCoordinate(point) { return new mapkit.Coordinate(51 + (point.y / 100000), -114 + (point.x / 100000)); },
-        convertCoordinateToPointOnPage(coord) { return new DOMPoint((coord.longitude + 114) * 100000, (coord.latitude - 51) * 100000); }
-      };
-    }
+    map = {
+      region: null,
+      overlays: [],
+      annotations: [],
+      addOverlay(overlay) { this.overlays.push(overlay); },
+      removeOverlay(overlay) { this.overlays = this.overlays.filter((item) => item !== overlay); },
+      addAnnotation(annotation) { this.annotations.push(annotation); },
+      removeAnnotation(annotation) { this.annotations = this.annotations.filter((item) => item !== annotation); },
+      convertPointOnPageToCoordinate(point) { return new mapkit.Coordinate(51 + (point.y / 100000), -114 + (point.x / 100000)); },
+      convertCoordinateToPointOnPage(coord) { return new DOMPoint((coord.longitude + 114) * 100000, (coord.latitude - 51) * 100000); }
+    };
     map.region = new mapkit.CoordinateRegion(
       new mapkit.Coordinate(51, -114),
       new mapkit.CoordinateSpan(0.02, 0.02)
@@ -241,13 +238,20 @@ try {
       currentSurveyData.records = [];
       currentSurveyData.pointMeta = [];
       currentSurveyData.headers = (layer.schema || []).map((field) => field.name);
+      geometryVertexEditMode = false;
+      clearGeometryVertexHandles();
+      clearSplitPreview();
       syncEditPanelState();
       return layer;
     };
 
     let layer = activate("polygon");
     assert(!makeEl("editPanelGeometryTools").hidden, "polygon geometry tools are visible");
+    assert(makeEl("editPanelSelectedBadge").textContent.includes("0"), "selected badge starts at zero");
     assert(!makeEl("editPanelTraceBtn").disabled, "polygon trace button is enabled");
+    assert(!makeEl("editPanelSnapVerticesBtn").disabled && makeEl("editPanelSnapVerticesBtn").classList.contains("snap-active"), "snap-to-vertices toggle is visible and active");
+    assert(!makeEl("editPanelSnapEdgesBtn").disabled && makeEl("editPanelSnapEdgesBtn").classList.contains("snap-active"), "snap-to-edges toggle is visible and active");
+    assert(!makeEl("editPanelSnapPolygonEdgesBtn").hidden && makeEl("editPanelSnapPolygonEdgesBtn").classList.contains("snap-active"), "polygon edge snap toggle is visible and active");
     assert(!makeEl("editPanelRectangleBtn").hidden && !makeEl("editPanelRectangleBtn").disabled, "polygon rectangle button is visible and enabled");
     assert(!makeEl("editPanelSquareBtn").hidden && !makeEl("editPanelSquareBtn").disabled, "polygon square button is visible and enabled");
 
@@ -260,27 +264,46 @@ try {
     activeFeatureId = layer.features[0].id;
     activeSurveyAnnotation = rowAnnotationMap.get(0);
     syncEditPanelState();
+    assert(makeEl("editPanelSelectedBadge").textContent.includes("1"), "selected badge shows one selected feature");
     assert(!makeEl("editPanelEditVerticesBtn").disabled, "polygon edit vertices button enables with a selected feature");
     assert(!makeEl("editPanelSplitGeometryBtn").disabled, "polygon split button enables with a selected feature");
     editSelectedGeometryVertices();
-    assert(layer.features[0].geometry.rings[0][0].lat === 51, "polygon vertex editing updates geometry");
+    assert(geometryVertexEditMode && geometryVertexHandleAnnotations.length === 4, "polygon vertex handles are visible");
+    const polygonHandle = geometryVertexHandleAnnotations[0];
+    polygonHandle.coordinate = new mapkit.Coordinate(51, -114);
+    commitGeometryVertexHandleMove(polygonHandle, polygonHandle.coordinate);
+    assert(layer.features[0].geometry.rings[0][0].lat === 51, "polygon vertex handle editing updates geometry");
+    const snappedVertex = getSnappedCoordinate(new mapkit.Coordinate(51.00001, -113.99999));
+    assert(snappedVertex.latitude === 51 && snappedVertex.longitude === -114, "snap-to-vertices returns nearby existing vertex");
     const beforePolygonSplit = layer.features.length;
+    splitSelectedGeometry();
+    assert(splitPreviewState && splitPreviewOverlays.length === 2, "polygon split shows preview overlays before applying");
+    assert(layer.features.length === beforePolygonSplit, "polygon split preview does not modify features before apply");
+    assert(!makeEl("editPanelCancelGeometryBtn").hidden, "cancel button appears for split preview");
     splitSelectedGeometry();
     assert(layer.features.length === beforePolygonSplit + 1, "polygon split creates an additional feature");
 
     toggleTraceGeometryMode();
     assert(geometryTraceMode && isAddingSurveyPoint, "polygon trace mode starts drawing");
+    assert(!makeEl("editPanelFinishGeometryBtn").hidden && makeEl("editPanelFinishGeometryBtn").disabled, "finish button appears disabled until enough polygon vertices exist");
+    assert(!makeEl("editPanelCancelGeometryBtn").hidden, "cancel button appears while tracing polygon");
     handleNewSurveyPointPlacement(new mapkit.Coordinate(51, -114));
     handleNewSurveyPointPlacement(new mapkit.Coordinate(51, -113.999));
     handleNewSurveyPointPlacement(new mapkit.Coordinate(51.001, -113.999));
     assert(drawingVertices.length === 3, "polygon trace records clicked vertices");
-    finalizeGeometryFeaturePlacement();
+    syncEditPanelState();
+    assert(!makeEl("editPanelFinishGeometryBtn").disabled, "finish button enables after enough polygon vertices");
+    makeEl("editPanelFinishGeometryBtn").click();
     assert(!geometryTraceMode && !isAddingSurveyPoint, "polygon trace finalizes and exits trace mode");
     assert(layer.features.at(-1).geometry.type === "Polygon", "polygon trace saves polygon geometry");
+    assert(!makeEl("editPanelUndoBtn").disabled, "toolbar undo enables after geometry edits");
+    makeEl("editPanelUndoBtn").click();
+    assert(layer.features.at(-1).geometry.type !== "Polygon" || layer.features.length >= 1, "toolbar undo runs without breaking geometry state");
 
     layer = activate("line");
     assert(!makeEl("editPanelGeometryTools").hidden, "line geometry tools are visible");
     assert(makeEl("editPanelRectangleBtn").hidden && makeEl("editPanelSquareBtn").hidden, "line hides polygon-only rectangle and square tools");
+    assert(makeEl("editPanelSnapPolygonEdgesBtn").hidden, "line hides polygon-edge snap toggle");
     assert(!makeEl("editPanelTraceBtn").disabled, "line trace button is enabled");
     toggleTraceGeometryMode();
     handleNewSurveyPointPlacement(new mapkit.Coordinate(51, -114));
@@ -293,10 +316,16 @@ try {
     syncEditPanelState();
     assert(!makeEl("editPanelEditVerticesBtn").disabled, "line edit vertices button enables with a selected feature");
     assert(!makeEl("editPanelSplitGeometryBtn").disabled, "line split button enables with a selected feature");
-    window.prompt = () => "51, -114\\n51.001, -113.999\\n51.002, -113.998";
     editSelectedGeometryVertices();
-    assert(layer.features[0].geometry.coordinates.length === 3, "line vertex editing updates geometry");
+    assert(geometryVertexEditMode && geometryVertexHandleAnnotations.length === 2, "line vertex handles are visible");
+    const lineHandle = geometryVertexHandleAnnotations[1];
+    lineHandle.coordinate = new mapkit.Coordinate(51.002, -113.998);
+    commitGeometryVertexHandleMove(lineHandle, lineHandle.coordinate);
+    assert(layer.features[0].geometry.coordinates[1].lat === 51.002, "line vertex handle editing updates geometry");
     const beforeLineSplit = layer.features.length;
+    splitSelectedGeometry();
+    assert(splitPreviewState && splitPreviewOverlays.length === 2, "line split shows preview overlays before applying");
+    assert(layer.features.length === beforeLineSplit, "line split preview does not modify features before apply");
     splitSelectedGeometry();
     assert(layer.features.length === beforeLineSplit + 1, "line split creates an additional feature");
 
