@@ -7263,7 +7263,14 @@
         }
 
         function getEditPanelLayerId() {
-            return editPanelLayerSelect?.value || layerToolsLayerSelect?.value || activeLayerId || activeProjectRecord?.layers?.[0]?.id || "";
+            const layers = activeProjectRecord?.layers || [];
+            const candidates = [
+                editPanelLayerSelect?.value,
+                layerToolsLayerSelect?.value,
+                activeLayerId,
+                layers[0]?.id
+            ].filter(Boolean);
+            return candidates.find((layerId) => layers.some((layer) => layer.id === layerId)) || "";
         }
 
         function renderToolbarLayerSelect(selectEl, selectedLayerId = getEditPanelLayerId()) {
