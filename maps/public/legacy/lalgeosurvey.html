@@ -9559,19 +9559,17 @@
             const layer = activeProjectRecord?.layers?.find((item) => item.id === layerId);
             if (!layer) return;
             layer.visible = layer.visible === false ? true : false;
+            if (layer.visible === false && activeSurveyAnnotation?.surveyPoint?.layerId === layer.id) {
+                hideSurveyCallout();
+            }
+            if (layer.id === activeLayerId && layer.visible === false) {
+                const nextVisibleLayer = activeProjectRecord.layers.find((item) => item.visible !== false);
+                activeProjectRecord.activeLayerId = nextVisibleLayer?.id || activeProjectRecord.layers[0]?.id || null;
+                activeLayerId = activeProjectRecord.activeLayerId;
+            }
             markActiveProjectUpdated();
             scheduleLocalAutosave();
-            if (layer.id === activeLayerId && layer.visible === false) {
-                clearSurveyLayers();
-                setSurveyTableVisibility(true);
-                surveyTable.innerHTML = `<div style="padding:12px; color:#97aabd;">Open or create a project to view attributes.</div>`;
-                renderActiveProjectSidebar();
-            } else if (layer.id === activeLayerId) {
-                setActiveProject(activeProjectRecord, { preserveRegion: true });
-            } else {
-                renderWorkspaceCollections();
-                renderActiveProjectSidebar();
-            }
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
         }
 
         function reorderLayer(layerId, targetIndex) {
@@ -14345,17 +14343,18 @@
             clearSurveyLayers();
             rowAnnotationMap = new Map();
             const coords = [];
-            const visibleLayers = activeProjectRecord?.layers?.filter((layer) => layer.visible !== false) || [];
+            const projectLayers = activeProjectRecord?.layers || [];
+            const visibleLayers = projectLayers.filter((layer) => layer.visible !== false);
             activeProjectName = projectName;
-            const layersToRender = visibleLayers.length
+            const layersToRender = projectLayers.length
                 ? [...visibleLayers].reverse()
-                : [{
+                : parsed ? [{
                     id: activeLayerId || "temporary-layer",
                     name: parsed?.layerName || "Layer",
                     geometryType: parsed?.geometryType || "point",
                     styleDefaults: getDefaultLayerStyleDefaults(parsed?.geometryType || "point"),
                     features: buildLayerFeaturesFromParsed(parsed, createSchemaFromParsed(parsed, parsed?.geometryType || "point"), parsed?.geometryType || "point")
-                }];
+                }] : [];
             if (identifierField !== "__custom__") {
                 identifierField = (parsed?.headers || []).find((h) => h !== parsed?.latKey && h !== parsed?.lonKey) || parsed?.latKey || identifierField;
             }
