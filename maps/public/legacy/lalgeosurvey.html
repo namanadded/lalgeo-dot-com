@@ -6298,6 +6298,11 @@
                 .map((item) => new mapkit.Coordinate(item.lat, item.lng));
         }
 
+        function getFeaturePolygonArea(feature) {
+            const ring = feature?.geometry?.type === "Polygon" ? (feature.geometry.rings?.[0] || []) : [];
+            return getRingArea(ring);
+        }
+
         function hasEnoughVerticesForGeometry(geometryType, vertices = []) {
             const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             if (normalizedGeometry === "line") return vertices.length >= 2;
@@ -13885,7 +13890,7 @@
             });
         }
 
-        function renderFeatureGeometryOnMap(feature, layer, { interactive = false, rowIndex = null, projectName = activeProjectName } = {}) {
+        function renderFeatureGeometryOnMap(feature, layer, { interactive = false, rowIndex = null, projectName = activeProjectName, markerFeatureSet = null } = {}) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             const attributes = { ...(feature?.attributes || {}) };
             let imageSrc = null;
@@ -13952,7 +13957,8 @@
                 surveyOverlays.push(overlay);
                 map.addOverlay(overlay);
             }
-            const repCoord = feature.showRepresentativeMarker === false ? null : getFeatureRepresentativeCoordinate(feature);
+            const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
+            const repCoord = shouldShowMarker ? getFeatureRepresentativeCoordinate(feature) : null;
             if (repCoord) {
                 const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(repCoord, {
@@ -14005,6 +14011,52 @@
             );
         }
 
+        function getExplicitFeatureLabel(attributes = {}, layer = null, projectName = activeProjectName) {
+            const directName = attributes.name ?? attributes.Name ?? attributes.NAME;
+            if (directName !== undefined && directName !== null && String(directName).trim()) {
+                return String(directName).trim();
+            }
+            const label = computeLabelFromAttributes(attributes, "", layer);
+            const normalizedLabel = String(label || "").trim();
+            const fallbackNames = new Set([
+                "",
+                String(projectName || "").trim(),
+                String(layer?.name || "").trim()
+            ]);
+            return fallbackNames.has(normalizedLabel) ? "" : normalizedLabel;
+        }
+
+        function getRenderableMarkerFeatures(layer, projectName = activeProjectName) {
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
+            const features = layer?.features || [];
+            if (geometryType !== "polygon") {
+                return new Set(features.filter((feature) => feature.showRepresentativeMarker !== false));
+            }
+
+            const markerFeatures = new Set();
+            const groups = new Map();
+            features.forEach((feature) => {
+                if (feature.showRepresentativeMarker === false) return;
+                if (feature.showRepresentativeMarker === true) {
+                    markerFeatures.add(feature);
+                    return;
+                }
+                const label = getExplicitFeatureLabel(feature.attributes || {}, layer, projectName);
+                if (!label) {
+                    markerFeatures.add(feature);
+                    return;
+                }
+                const key = label.toLowerCase();
+                const existing = groups.get(key);
+                const area = getFeaturePolygonArea(feature);
+                if (!existing || area > existing.area) {
+                    groups.set(key, { feature, area });
+                }
+            });
+            groups.forEach(({ feature }) => markerFeatures.add(feature));
+            return markerFeatures;
+        }
+
         function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
             clearSurveyLayers();
             rowAnnotationMap = new Map();
@@ -14026,11 +14078,13 @@
             populateIdentifierOptions(parsed?.headers || [], parsed?.latKey, parsed?.lonKey);
             layersToRender.forEach((layer) => {
                 const interactive = layer.id === activeLayerId;
+                const markerFeatureSet = getRenderableMarkerFeatures(layer, projectName);
                 (layer.features || []).forEach((feature, index) => {
                     coords.push(...renderFeatureGeometryOnMap(feature, layer, {
                         interactive,
                         rowIndex: interactive ? index : null,
-                        projectName
+                        projectName,
+                        markerFeatureSet
                     }));
                 });
             });
