@@ -5177,7 +5177,7 @@
                 <div class="import-section-title section-header">From file</div>
                 <div class="import-stack">
                     <button id="projectPickerBtn" type="button" class="import-secondary-btn">Select files…</button>
-                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,image/*" multiple webkitdirectory style="display:none">
+                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple webkitdirectory style="display:none">
                 </div>
             </div>
 
@@ -13374,7 +13374,7 @@
             const kmzFile = fileList.find((file) => /\.kmz$/i.test(file.name));
             const gpxFile = fileList.find((file) => /\.gpx$/i.test(file.name));
             const shapeZip = fileList.find((file) => /\.zip$/i.test(file.name));
-            const looseShapeFiles = fileList.filter((file) => /\.(shp|shx|dbf|prj)$/i.test(file.name));
+            const looseShapeFiles = fileList.filter((file) => /\.(shp|shx|dbf|prj|cpg)$/i.test(file.name));
 
             if (geoJsonFile) {
                 return buildGeoJsonPayload(JSON.parse(await readFileAsText(geoJsonFile)), {
@@ -13441,7 +13441,7 @@
             const path = file?.webkitRelativePath || file?.name || "";
             const normalizedPath = path.replace(/\\/g, "/");
             const filename = normalizedPath.split("/").pop() || "";
-            const match = filename.match(/^(.+)\.(shp|shx|dbf|prj)$/i);
+            const match = filename.match(/^(.+)\.(shp|shx|dbf|prj|cpg)$/i);
             if (!match) return null;
             const folder = normalizedPath.includes("/") ? normalizedPath.slice(0, normalizedPath.lastIndexOf("/")) : "";
             return {
@@ -13471,7 +13471,7 @@
                 throw new Error(`Select the matching ${missing.map((extension) => `.${extension}`).join(" and ")} file${missing.length === 1 ? "" : "s"} with ${group.basename}.shp.`);
             }
             const zip = new JSZip();
-            for (const extension of ["shp", "shx", "dbf", "prj"]) {
+            for (const extension of ["shp", "shx", "dbf", "prj", "cpg"]) {
                 const file = group.files.get(extension);
                 if (file) {
                     zip.file(`${group.basename}.${extension}`, await readFileAsArrayBuffer(file));
@@ -13484,10 +13484,55 @@
         async function zipContainsShapefile(file) {
             try {
                 const zip = await JSZip.loadAsync(file);
-                return Object.keys(zip.files).some((path) => /\.shp$/i.test(path));
+                return Object.keys(zip.files).some((path) => !isIgnoredZipEntry(path) && /\.shp$/i.test(path));
             } catch {
                 return false;
             }
+        }
+
+        function isIgnoredZipEntry(path = "") {
+            const normalized = String(path).replace(/\\/g, "/");
+            const filename = normalized.split("/").pop() || "";
+            return normalized.startsWith("__MACOSX/") || filename.startsWith("._");
+        }
+
+        function getShapefileZipPartInfo(path = "") {
+            if (isIgnoredZipEntry(path)) return null;
+            const normalizedPath = String(path).replace(/\\/g, "/");
+            const filename = normalizedPath.split("/").pop() || "";
+            const match = filename.match(/^(.+)\.(shp|shx|dbf|prj|cpg)$/i);
+            if (!match) return null;
+            const folder = normalizedPath.includes("/") ? normalizedPath.slice(0, normalizedPath.lastIndexOf("/")) : "";
+            return {
+                folder,
+                basename: match[1],
+                extension: match[2].toLowerCase(),
+                key: `${folder}/${match[1]}`.toLowerCase()
+            };
+        }
+
+        async function normalizeShapefileZip(source) {
+            const zip = await JSZip.loadAsync(source);
+            const groups = new Map();
+            Object.keys(zip.files).forEach((path) => {
+                const entry = zip.files[path];
+                if (entry.dir) return;
+                const info = getShapefileZipPartInfo(path);
+                if (!info) return;
+                const group = groups.get(info.key) || { basename: info.basename, entries: new Map() };
+                group.entries.set(info.extension, entry);
+                groups.set(info.key, group);
+            });
+            const group = Array.from(groups.values()).find((item) => item.entries.has("shp"));
+            if (!group) return source;
+            const normalized = new JSZip();
+            for (const extension of ["shp", "shx", "dbf", "prj", "cpg"]) {
+                const entry = group.entries.get(extension);
+                if (entry) {
+                    normalized.file(`${group.basename}.${extension}`, await entry.async("arraybuffer"));
+                }
+            }
+            return await normalized.generateAsync({ type: "arraybuffer" });
         }
 
         function loadScriptOnce(src, globalName) {
@@ -13518,7 +13563,8 @@
         async function parseShapefileZip(file) {
             const shp = await loadScriptOnce("https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js", "shp");
             if (!shp) throw new Error("Shapefile parser unavailable.");
-            return await shp(await readFileAsArrayBuffer(file));
+            const buffer = await readFileAsArrayBuffer(file);
+            return await shp(await normalizeShapefileZip(buffer));
         }
 
         function normalizeFeatureCollection(input) {
