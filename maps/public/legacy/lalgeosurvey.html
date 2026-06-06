@@ -4983,7 +4983,7 @@
                 <button id="menuToggleEditToolbarBtn" type="button" class="menu-command"><span>✓ Edit Tools</span></button>
                 <button id="menuToggleLayerToolbarBtn" type="button" class="menu-command"><span>Layer Tools</span></button>
             </div>
-            <button id="menuTogglePolygonPopoutsBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show Polygon Popouts</span></button>
+            <button id="menuTogglePopoutsBtn" type="button" class="menu-command" aria-pressed="true"><span>Hide Popouts</span></button>
             <button id="menuShowBasemapPoisBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show POIs in Basemap</span></button>
             <button id="menuMapTypeBtn" type="button" class="menu-command" aria-expanded="false"><span>Map Type</span><span>›</span></button>
             <div id="menuMapTypeList" class="menu-nested-section" hidden>
@@ -5622,7 +5622,7 @@
         const menuToolbarsList = document.getElementById("menuToolbarsList");
         const menuToggleEditToolbarBtn = document.getElementById("menuToggleEditToolbarBtn");
         const menuToggleLayerToolbarBtn = document.getElementById("menuToggleLayerToolbarBtn");
-        const menuTogglePolygonPopoutsBtn = document.getElementById("menuTogglePolygonPopoutsBtn");
+        const menuTogglePopoutsBtn = document.getElementById("menuTogglePopoutsBtn");
         const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
         const menuMapTypeBtn = document.getElementById("menuMapTypeBtn");
         const menuMapTypeList = document.getElementById("menuMapTypeList");
@@ -5714,7 +5714,7 @@
         let pointGeometryDragState = null;
         let editSessionActive = false;
         let suppressAnnotationDetailOpen = false;
-        let polygonPopoutsVisible = true;
+        let popoutsVisible = true;
         let selectedTableRows = new Set();
         let lastSelectedTableRow = null;
         let tableRowFilterMode = "all";
@@ -6797,16 +6797,16 @@
             });
         }
 
-        function updatePolygonPopoutsMenuState() {
-            if (!menuTogglePolygonPopoutsBtn) return;
-            menuTogglePolygonPopoutsBtn.setAttribute("aria-pressed", polygonPopoutsVisible ? "true" : "false");
-            const label = menuTogglePolygonPopoutsBtn.querySelector("span");
-            if (label) label.textContent = `${polygonPopoutsVisible ? "✓ " : ""}Show Polygon Popouts`;
+        function updatePopoutsMenuState() {
+            if (!menuTogglePopoutsBtn) return;
+            menuTogglePopoutsBtn.setAttribute("aria-pressed", popoutsVisible ? "true" : "false");
+            const label = menuTogglePopoutsBtn.querySelector("span");
+            if (label) label.textContent = popoutsVisible ? "Hide Popouts" : "Show Popouts";
         }
 
-        function setPolygonPopoutsVisible(visible, { persist = true, render = true } = {}) {
-            polygonPopoutsVisible = Boolean(visible);
-            updatePolygonPopoutsMenuState();
+        function setPopoutsVisible(visible, { persist = true, render = true } = {}) {
+            popoutsVisible = Boolean(visible);
+            updatePopoutsMenuState();
             if (persist) saveWorkspaceUiPrefs();
             if (render && activeProjectRecord && mapReady && map) {
                 renderSurveyProject({
@@ -6831,7 +6831,7 @@
                 [menuToolbarsBtn, true],
                 [menuToggleEditToolbarBtn, hasProject],
                 [menuToggleLayerToolbarBtn, hasProject],
-                [menuTogglePolygonPopoutsBtn, hasProject],
+                [menuTogglePopoutsBtn, hasProject],
                 [menuShowBasemapPoisBtn, hasProject],
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
@@ -6855,7 +6855,7 @@
                 button.disabled = !enabled;
                 button.classList.toggle("is-disabled", !enabled);
             });
-            updatePolygonPopoutsMenuState();
+            updatePopoutsMenuState();
             renderQuickActionButtons();
             setTopMenuButtonStates();
         }
@@ -6869,7 +6869,7 @@
                 const prefs = raw ? JSON.parse(raw) : {};
                 rememberLastSession = rememberedValue === null ? prefs.rememberLastSession !== false : rememberedValue;
                 hideWorkspaceEmptyStateForever = prefs.hideWorkspaceEmptyStateForever === true;
-                polygonPopoutsVisible = prefs.polygonPopoutsVisible !== false;
+                popoutsVisible = prefs.popoutsVisible !== false && prefs.polygonPopoutsVisible !== false;
                 if (rememberLastSession) {
                     sidebarVisible = false;
                     dataPaneVisible = false;
@@ -6885,7 +6885,7 @@
                 sidebarVisible = false;
                 dataPaneVisible = false;
                 hideWorkspaceEmptyStateForever = false;
-                polygonPopoutsVisible = true;
+                popoutsVisible = true;
                 emptyStateDismissed = false;
             }
             logWorkspaceDebug("loadWorkspaceUiPrefs", {
@@ -6896,7 +6896,7 @@
                 dataPaneVisible,
                 emptyStateDismissed,
                 hideWorkspaceEmptyStateForever,
-                polygonPopoutsVisible
+                popoutsVisible
             });
             if (rememberSessionToggle) {
                 rememberSessionToggle.checked = rememberLastSession;
@@ -6910,7 +6910,7 @@
                 hideWorkspaceEmptyStateToggle.checked = hideWorkspaceEmptyStateForever;
             }
             syncQuickActionToggleState();
-            updatePolygonPopoutsMenuState();
+            updatePopoutsMenuState();
             renderQuickActionButtons();
         }
 
@@ -6922,7 +6922,7 @@
                     sidebarVisible,
                     dataPaneVisible,
                     hideWorkspaceEmptyStateForever,
-                    polygonPopoutsVisible,
+                    popoutsVisible,
                     emptyStateDismissed: rememberLastSession ? emptyStateDismissed : false
                 }));
                 logWorkspaceDebug("saveWorkspaceUiPrefs", {
@@ -6931,7 +6931,7 @@
                     dataPaneVisible,
                     emptyStateDismissed,
                     hideWorkspaceEmptyStateForever,
-                    polygonPopoutsVisible
+                    popoutsVisible
                 });
             } catch (error) {
                 console.warn("Unable to persist workspace UI prefs", error);
@@ -6998,7 +6998,7 @@
             dataPaneVisible = false;
             emptyStateDismissed = false;
             hideWorkspaceEmptyStateForever = false;
-            polygonPopoutsVisible = true;
+            popoutsVisible = true;
             pendingStartupDropboxProjectId = null;
             try {
                 localStorage.setItem(WORKSPACE_REMEMBER_KEY, "false");
@@ -7007,7 +7007,7 @@
                     sidebarVisible: false,
                     dataPaneVisible: false,
                     hideWorkspaceEmptyStateForever: false,
-                    polygonPopoutsVisible: true,
+                    popoutsVisible: true,
                     emptyStateDismissed: false
                 }));
                 localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
@@ -7020,7 +7020,7 @@
             }
             if (rememberSessionToggle) rememberSessionToggle.checked = false;
             if (hideWorkspaceEmptyStateToggle) hideWorkspaceEmptyStateToggle.checked = false;
-            updatePolygonPopoutsMenuState();
+            updatePopoutsMenuState();
         }
 
         function clearDisconnectedDropboxWorkspace(reason = "dropbox-disconnected") {
@@ -7065,7 +7065,7 @@
                 console.warn("Unable to load workspace projects", error);
                 workspaceProjects = [];
             }
-            updatePolygonPopoutsMenuState();
+            updatePopoutsMenuState();
         }
 
         function saveWorkspaceProjects() {
@@ -9340,6 +9340,7 @@
             const shapeField = (layer.schema || []).find((field) => field.name === "symbol_shape");
             const labelFields = getLabelCandidateFields(layer);
             const labelMode = labelSettings.mode === "expression" ? "expression" : "field";
+            const layerPopoutsVisible = layer.popoutsVisible !== false;
             openLayerActionModal({
                 title: "Layer Properties",
                 description: `Set symbol and label behavior for ${layer.name}.`,
@@ -9397,6 +9398,12 @@
                                 ${["Inter", "System", "Serif", "Mono"].map((font) => `<option value="${font}" ${font === (labelSettings.fontFamily || "Inter") ? "selected" : ""}>${font}</option>`).join("")}
                             </select>
                         </div>
+                        <div class="workspace-field full">
+                            <label class="settings-option">
+                                <input id="layerPopoutsVisible" type="checkbox" ${layerPopoutsVisible ? "checked" : ""}>
+                                <span>Show popouts for this layer</span>
+                            </label>
+                        </div>
                     </div>
                 `,
                 actions: [
@@ -9413,6 +9420,7 @@
                             const nextTextSize = Math.max(10, Math.min(32, Number(document.getElementById("layerLabelTextSize")?.value) || 14));
                             const nextTextColor = document.getElementById("layerLabelTextColor")?.value || "#1f2937";
                             const nextFontFamily = document.getElementById("layerLabelFontFamily")?.value || "Inter";
+                            const nextPopoutsVisible = document.getElementById("layerPopoutsVisible")?.checked !== false;
                             if (!nextColor || !nextShape) return false;
                             if (nextLabelMode === "expression" && !nextExpression) {
                                 document.getElementById("layerLabelExpression")?.focus();
@@ -9431,6 +9439,7 @@
                                 textColor: nextTextColor,
                                 fontFamily: nextFontFamily
                             };
+                            layer.popoutsVisible = nextPopoutsVisible;
                             (layer.features || []).forEach((feature) => {
                                 feature.attributes = feature.attributes || {};
                                 feature.attributes.symbol_color = nextColor;
@@ -10315,9 +10324,9 @@
             }
             syncEditPanelState();
         });
-        menuTogglePolygonPopoutsBtn?.addEventListener("click", () => {
-            setPolygonPopoutsVisible(!polygonPopoutsVisible);
-            setProjectStatus(`Polygon popouts ${polygonPopoutsVisible ? "shown" : "hidden"}.`, "success");
+        menuTogglePopoutsBtn?.addEventListener("click", () => {
+            setPopoutsVisible(!popoutsVisible);
+            setProjectStatus(`Popouts ${popoutsVisible ? "shown" : "hidden"}.`, "success");
         });
         function installToolbarTooltipEvents(panel) {
             panel?.addEventListener("pointerenter", () => setDocumentTitleTooltipSuppressed(true));
@@ -14017,6 +14026,9 @@
             if (geometryType === "point") {
                 const coord = getFeatureRepresentativeCoordinate(feature);
                 if (!coord) return [];
+                if (feature.showRepresentativeMarker === false || (markerFeatureSet && !markerFeatureSet.has(feature))) {
+                    return [coord];
+                }
                 const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(coord, {
                     color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
@@ -14142,7 +14154,7 @@
         function getRenderableMarkerFeatures(layer, projectName = activeProjectName) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             const features = layer?.features || [];
-            if (geometryType === "polygon" && !polygonPopoutsVisible) {
+            if (!popoutsVisible || layer?.popoutsVisible === false) {
                 return new Set();
             }
             if (geometryType !== "polygon") {
