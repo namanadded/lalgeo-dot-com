@@ -3296,7 +3296,13 @@
     .workspace-validation {
         margin-top: 8px;
         font-size: 12px;
-        color: #ffb5b5;
+        color: #64748b;
+    }
+    .workspace-validation.success {
+        color: #047857;
+    }
+    .workspace-validation.error {
+        color: #b91c1c;
     }
     .workspace-validation[hidden] {
         display: none;
@@ -5219,6 +5225,26 @@
             <span id="projectStatus">Create a project or open an existing one.</span>
         </div>
     </div>
+    <div id="layerImportModal" class="workspace-modal-backdrop" hidden>
+        <div class="workspace-modal">
+            <h3>Import Layer</h3>
+            <p class="workspace-panel-muted">Add GIS data to the open project. If no project is open, LalGeo creates one from the imported file.</p>
+            <div class="workspace-settings-card" style="margin-top:14px;">
+                <div class="import-section-title">Supported files</div>
+                <p class="workspace-panel-muted" style="margin-bottom:8px;">GeoJSON, JSON GeoJSON, KML, KMZ, GPX, CSV, LalGeo .lal packages, and shapefiles.</p>
+                <p class="workspace-panel-muted" style="margin-bottom:0;">For shapefiles, upload a .zip package or select the matching .shp, .dbf, .shx, .prj, and .cpg files together.</p>
+            </div>
+            <div class="workspace-settings-card" style="margin-top:12px;">
+                <div class="import-section-title">What happens on import</div>
+                <p class="workspace-panel-muted" style="margin-bottom:0;">GIS files become map layers with attributes. Existing projects keep their current layers and receive the imported layer. LalGeo project packages open as projects.</p>
+            </div>
+            <div id="layerImportStatus" class="workspace-validation" role="status">Choose a supported file to start.</div>
+            <div class="workspace-modal-actions">
+                <button id="layerImportCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
+                <button id="layerImportPickerBtn" type="button" class="workspace-primary-btn">Select files...</button>
+            </div>
+        </div>
+    </div>
     <div id="workspaceCreateModal" class="workspace-modal-backdrop" hidden>
         <div class="workspace-modal">
             <h3>Create Project</h3>
@@ -5701,6 +5727,10 @@
         const toggleImportBtn = document.getElementById("toggleImportBtn");
         const importPanelClose = document.getElementById("importPanelClose");
         const importPanel = document.getElementById("importPanel");
+        const layerImportModal = document.getElementById("layerImportModal");
+        const layerImportPickerBtn = document.getElementById("layerImportPickerBtn");
+        const layerImportCancelBtn = document.getElementById("layerImportCancelBtn");
+        const layerImportStatus = document.getElementById("layerImportStatus");
         const undoBtn = document.getElementById("undoBtn");
         const redoBtn = document.getElementById("redoBtn");
         const saveChangesBtn = document.getElementById("saveChangesBtn");
@@ -8493,6 +8523,7 @@
                 importedProject.metadata.updatedAt = new Date().toISOString();
                 addProjectToWorkspace(importedProject, { preserveRegion });
                 setImportPanelVisibility(false);
+                setLayerImportPanelVisibility(false);
                 setProjectStatus(`Opened ${importedProject.name}.`, "success");
                 return;
             }
@@ -8517,6 +8548,7 @@
             addProjectToWorkspace(project, { preserveRegion });
             await loadSurveyPayload(payload, { preserveRegion, targetProject: project });
             setImportPanelVisibility(false);
+            setLayerImportPanelVisibility(false);
         }
 
         async function openImportedGeospatialLayers(payload, { preserveRegion = true } = {}) {
@@ -8541,7 +8573,7 @@
                 markActiveProjectUpdated();
                 scheduleLocalAutosave();
                 setActiveProject(activeProjectRecord, { preserveRegion });
-                setProjectStatus(`Imported ${layers.length} geospatial layer${layers.length === 1 ? "" : "s"} into ${activeProjectRecord.name}.`, "success");
+                setProjectStatus(`Imported ${layers.length} layer${layers.length === 1 ? "" : "s"} into ${activeProjectRecord.name}.`, "success");
             } else {
                 const project = createProjectRecord({
                     name: payload.projectName || "Imported GIS Project",
@@ -8555,6 +8587,7 @@
                 setProjectStatus(`Created ${project.name} with ${layers.length} imported layer${layers.length === 1 ? "" : "s"}.`, "success");
             }
             setImportPanelVisibility(false);
+            setLayerImportPanelVisibility(false);
         }
 
         function renderSelectedFeatureInspector() {
@@ -9868,6 +9901,11 @@
                 openWorkspacePanelFallback();
                 return;
             }
+            if (button.id === "toggleImportBtn") {
+                event.preventDefault();
+                setLayerImportPanelVisibility(true);
+                return;
+            }
             if (button.id === "newProjectBtn" || button.id === "drawerNewProjectBtn" || button.id === "emptyCreateProjectBtn") {
                 event.preventDefault();
                 openCreateProjectModalFallback();
@@ -9881,6 +9919,16 @@
             if (button.id === "drawerImportProjectBtn" || button.id === "projectPickerBtn") {
                 event.preventDefault();
                 projectFileInput?.click();
+                return;
+            }
+            if (button.id === "layerImportPickerBtn") {
+                event.preventDefault();
+                projectFileInput?.click();
+                return;
+            }
+            if (button.id === "layerImportCancelBtn") {
+                event.preventDefault();
+                setLayerImportPanelVisibility(false);
                 return;
             }
             if (button.id === "importPanelClose") {
@@ -9925,6 +9973,11 @@
             projectStatus.classList.remove("success", "error");
             if (state) {
                 projectStatus.classList.add(state);
+            }
+            if (layerImportStatus) {
+                layerImportStatus.textContent = message;
+                layerImportStatus.classList.remove("success", "error");
+                if (state) layerImportStatus.classList.add(state);
             }
             if (workspaceLiveRegion) {
                 workspaceLiveRegion.textContent = message;
@@ -10042,6 +10095,8 @@
         });
 
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
+        layerImportPickerBtn?.addEventListener("click", () => projectFileInput.click());
+        layerImportCancelBtn?.addEventListener("click", () => setLayerImportPanelVisibility(false));
 
         projectFileInput.addEventListener("change", async (event) => {
             if (!event.target.files.length) return;
@@ -11064,13 +11119,18 @@
         mapElement?.addEventListener("pointercancel", stopPointGeometryDrag, true);
 
         toggleImportBtn?.addEventListener("click", () => {
-            setImportPanelVisibility(!isImportPanelVisible);
+            setLayerImportPanelVisibility(layerImportModal?.hidden !== false);
         });
 
         importPanelClose?.addEventListener("click", () => setImportPanelVisibility(false));
         importPanel?.addEventListener("click", (event) => {
             if (event.target === importPanel) {
                 setImportPanelVisibility(false);
+            }
+        });
+        layerImportModal?.addEventListener("click", (event) => {
+            if (event.target === layerImportModal) {
+                setLayerImportPanelVisibility(false);
             }
         });
 
@@ -12606,7 +12666,7 @@
 
         async function handleSurveyFiles(files) {
             try {
-                setProjectStatus("Processing survey…");
+                setProjectStatus(getImportStartMessage(files));
                 const payload = await buildSurveyPayload(files);
                 payload.source = payload.source || { type: "local-import" };
                 if (payload.geospatialLayers?.length) {
@@ -12618,6 +12678,17 @@
                 console.error(error);
                 setProjectStatus(error.message || "Unable to load survey.", "error");
             }
+        }
+
+        function getImportStartMessage(files) {
+            const names = Array.from(files || []).map((file) => file.name || "").join(" ");
+            if (/\.(shp|shx|dbf|prj|cpg)\b/i.test(names)) return "Reading shapefile parts and building a map layer...";
+            if (/\.zip\b/i.test(names)) return "Reading zip package and checking for shapefile or LalGeo project data...";
+            if (/\.(geojson|json)\b/i.test(names)) return "Reading GeoJSON and creating map layers...";
+            if (/\.(kml|kmz)\b/i.test(names)) return "Reading KML data and creating map layers...";
+            if (/\.gpx\b/i.test(names)) return "Reading GPX data and creating map layers...";
+            if (/\.csv\b/i.test(names)) return "Reading CSV rows and looking for coordinates...";
+            return "Reading selected files...";
         }
 
         async function loadSurveyPayload(payload, { preserveRegion = false, targetProject = null } = {}) {
@@ -13511,8 +13582,8 @@
             };
         }
 
-        async function normalizeShapefileZip(source) {
-            const zip = await JSZip.loadAsync(source);
+        async function normalizeShapefileZip(zipSource) {
+            const zip = await JSZip.loadAsync(zipSource);
             const groups = new Map();
             Object.keys(zip.files).forEach((path) => {
                 const entry = zip.files[path];
@@ -13524,7 +13595,7 @@
                 groups.set(info.key, group);
             });
             const group = Array.from(groups.values()).find((item) => item.entries.has("shp"));
-            if (!group) return source;
+            if (!group) return zipSource;
             const normalized = new JSZip();
             for (const extension of ["shp", "shx", "dbf", "prj", "cpg"]) {
                 const entry = group.entries.get(extension);
@@ -15818,7 +15889,22 @@ function setImportPanelVisibility(show) {
             toggleImportBtn?.classList.toggle("active", show);
             workspacePanelBtn?.classList.toggle("active", show);
             if (show) {
+                setLayerImportPanelVisibility(false);
                 setToolbarMenuVisibility(true);
+            }
+        }
+
+        function setLayerImportPanelVisibility(show) {
+            if (!layerImportModal) return;
+            if (show) {
+                setImportPanelVisibility(false);
+            }
+            layerImportModal.hidden = !show;
+            toggleImportBtn?.classList.toggle("active", show);
+            if (show) {
+                setToolbarMenuVisibility(true);
+                setProjectStatus("Choose a supported file to import.");
+                layerImportPickerBtn?.focus();
             }
         }
 
