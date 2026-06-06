@@ -57,6 +57,14 @@ async function getJobRow(db: D1Database, id: string, orgId: string) {
   `).bind(id, orgId).first<Record<string, unknown>>();
 }
 
+async function getAssetRow(db: D1Database, id: string, orgId: string) {
+  return db.prepare(`
+    SELECT id,asset_id,name,type,status,condition,address,latitude,longitude,notes,attributes_json,organization_id,created_at,updated_at
+    FROM assets
+    WHERE id = ?1 AND organization_id = ?2
+  `).bind(id, orgId).first<Record<string, unknown>>();
+}
+
 async function getQuoteRow(db: D1Database, id: string, orgId: string) {
   return db.prepare(`
     SELECT id,quote_number,status,sent_at,notes,subtotal_cents,tax_rate_bps,tax_cents,total_cents,client_id,job_id,created_at,updated_at
@@ -259,6 +267,153 @@ export default {
         const countRow = await env.DB.prepare(`SELECT COUNT(*) as c FROM ${table} WHERE organization_id = ?1`).bind(orgId).first<{ c: number }>();
         const next = `${prefix}${String((countRow?.c || 0) + 1).padStart(4, "0")}`;
         return json({ next });
+      }
+
+      if (path === "/v1/assets" && req.method === "GET") {
+        const orgId = requiredOrg(url);
+        const rows = await env.DB.prepare(`
+          SELECT a.id,a.asset_id,a.name,a.type,a.status,a.condition,a.address,a.latitude,a.longitude,a.created_at,a.updated_at,
+                 COALESCE(aa.activities_count, 0) as activities_count
+          FROM assets a
+          LEFT JOIN (
+            SELECT asset_id, organization_id, COUNT(*) as activities_count
+            FROM asset_activities
+            WHERE organization_id = ?1
+            GROUP BY asset_id, organization_id
+          ) aa ON aa.asset_id = a.id AND aa.organization_id = a.organization_id
+          WHERE a.organization_id = ?1
+          ORDER BY datetime(a.updated_at) DESC, datetime(a.created_at) DESC
+        `).bind(orgId).all<Record<string, unknown>>();
+        return json({ assets: rows.results || [] });
+      }
+
+      if (path === "/v1/assets/summary" && req.method === "GET") {
+        const orgId = requiredOrg(url);
+        const [total, active, needsAttention, inactive, byCondition, recent] = await Promise.all([
+          env.DB.prepare(`SELECT COUNT(*) as c FROM assets WHERE organization_id=?1`).bind(orgId).first<{ c: number }>(),
+          env.DB.prepare(`SELECT COUNT(*) as c FROM assets WHERE organization_id=?1 AND status='active'`).bind(orgId).first<{ c: number }>(),
+          env.DB.prepare(`SELECT COUNT(*) as c FROM assets WHERE organization_id=?1 AND status='needs_attention'`).bind(orgId).first<{ c: number }>(),
+          env.DB.prepare(`SELECT COUNT(*) as c FROM assets WHERE organization_id=?1 AND status='inactive'`).bind(orgId).first<{ c: number }>(),
+          env.DB.prepare(`
+            SELECT condition, COUNT(*) as count
+            FROM assets
+            WHERE organization_id=?1
+            GROUP BY condition
+            ORDER BY count DESC
+            LIMIT 5
+          `).bind(orgId).all<Record<string, unknown>>(),
+          env.DB.prepare(`
+            SELECT id,asset_id,name,status,condition,updated_at
+            FROM assets
+            WHERE organization_id=?1
+            ORDER BY datetime(updated_at) DESC
+            LIMIT 5
+          `).bind(orgId).all<Record<string, unknown>>(),
+        ]);
+        return json({
+          total: total?.c || 0,
+          active: active?.c || 0,
+          needs_attention: needsAttention?.c || 0,
+          inactive: inactive?.c || 0,
+          by_condition: byCondition.results || [],
+          recent: recent.results || [],
+        });
+      }
+
+      if (path === "/v1/assets" && req.method === "POST") {
+        const body = await parseBody<Record<string, unknown>>(req);
+        const orgId = String(body.organization_id || "").trim();
+        const assetId = String(body.asset_id || "").trim();
+        const name = String(body.name || "").trim();
+        if (!orgId || !assetId || !name) return json({ error: "organization_id, asset_id, and name required" }, 400);
+        const id = newId();
+        const ts = nowIso();
+        await env.DB.prepare(`
+          INSERT INTO assets (id,asset_id,name,type,status,condition,address,latitude,longitude,notes,attributes_json,organization_id,created_at,updated_at)
+          VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?12,?13,?13)
+        `).bind(
+          id,
+          assetId,
+          name,
+          body.type ?? null,
+          body.status ?? "active",
+          body.condition ?? null,
+          body.address ?? null,
+          body.latitude ?? null,
+          body.longitude ?? null,
+          body.notes ?? null,
+          body.attributes_json ?? null,
+          orgId,
+          ts,
+        ).run();
+        await env.DB.prepare(`
+          INSERT INTO asset_activities (id,asset_id,organization_id,action,message,created_at)
+          VALUES (?1,?2,?3,?4,?5,?6)
+        `).bind(newId(), id, orgId, "asset_created", `Asset ${assetId} created.`, ts).run();
+        const asset = await getAssetRow(env.DB, id, orgId);
+        return json({ asset }, 201);
+      }
+
+      if (path.startsWith("/v1/assets/") && req.method === "GET") {
+        const id = decodeURIComponent(path.split("/").pop() || "");
+        const orgId = requiredOrg(url);
+        const asset = await getAssetRow(env.DB, id, orgId);
+        if (!asset) return json({ error: "Not found" }, 404);
+        const activities = await env.DB.prepare(`
+          SELECT id,action,message,created_at
+          FROM asset_activities
+          WHERE asset_id=?1 AND organization_id=?2
+          ORDER BY datetime(created_at) DESC
+          LIMIT 12
+        `).bind(id, orgId).all<Record<string, unknown>>();
+        return json({ asset: { ...asset, activities: activities.results || [] } });
+      }
+
+      if (path.startsWith("/v1/assets/") && req.method === "PATCH") {
+        const id = decodeURIComponent(path.split("/").pop() || "");
+        const body = await parseBody<Record<string, unknown>>(req);
+        const orgId = String(body.organization_id || "").trim();
+        if (!orgId) return json({ error: "organization_id required" }, 400);
+        const assetId = String(body.asset_id || "").trim();
+        const name = String(body.name || "").trim();
+        if (!assetId || !name) return json({ error: "asset_id and name required" }, 400);
+        const existing = await getAssetRow(env.DB, id, orgId);
+        if (!existing) return json({ error: "Not found" }, 404);
+        const ts = nowIso();
+        await env.DB.prepare(`
+          UPDATE assets
+          SET asset_id=?1,name=?2,type=?3,status=?4,condition=?5,address=?6,latitude=?7,longitude=?8,notes=?9,attributes_json=?10,updated_at=?11
+          WHERE id=?12 AND organization_id=?13
+        `).bind(
+          assetId,
+          name,
+          body.type ?? null,
+          body.status ?? "active",
+          body.condition ?? null,
+          body.address ?? null,
+          body.latitude ?? null,
+          body.longitude ?? null,
+          body.notes ?? null,
+          body.attributes_json ?? null,
+          ts,
+          id,
+          orgId,
+        ).run();
+        await env.DB.prepare(`
+          INSERT INTO asset_activities (id,asset_id,organization_id,action,message,created_at)
+          VALUES (?1,?2,?3,?4,?5,?6)
+        `).bind(newId(), id, orgId, "asset_updated", `Asset ${assetId} updated.`, ts).run();
+        const asset = await getAssetRow(env.DB, id, orgId);
+        return json({ asset });
+      }
+
+      if (path.startsWith("/v1/assets/") && req.method === "DELETE") {
+        const id = decodeURIComponent(path.split("/").pop() || "");
+        const orgId = requiredOrg(url);
+        const asset = await getAssetRow(env.DB, id, orgId);
+        if (!asset) return json({ error: "Not found" }, 404);
+        await env.DB.prepare(`DELETE FROM assets WHERE id=?1 AND organization_id=?2`).bind(id, orgId).run();
+        return json({ ok: true });
       }
 
       if (path === "/v1/clients" && req.method === "GET") {

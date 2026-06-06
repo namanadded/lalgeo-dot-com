@@ -8,7 +8,7 @@ import {
   startOfDay,
   startOfMonth,
 } from "@/lib/dashboard-utils";
-import { listInvoices, listJobs, listQuotes, listRecentActivities } from "@/lib/saas-store";
+import { getAssetSummary, listInvoices, listJobs, listQuotes, listRecentActivities } from "@/lib/saas-store";
 import { Sparkline } from "@/components/Sparkline";
 
 export const dynamic = "force-dynamic";
@@ -83,11 +83,12 @@ export default async function AppDashboardPage() {
   const todayEnd = endOfDay(now);
   const next7End = endOfDay(addDays(now, 7));
 
-  const [invoices, quotes, queueRows, activityRows] = await Promise.all([
+  const [invoices, quotes, queueRows, activityRows, assetSummary] = await Promise.all([
     listInvoices(DEV_ORG_ID).catch(() => []),
     listQuotes(DEV_ORG_ID).catch(() => []),
     listJobs(DEV_ORG_ID).catch(() => []),
     listRecentActivities(DEV_ORG_ID, 10).catch(() => []),
+    getAssetSummary(DEV_ORG_ID).catch(() => ({ total: 0, active: 0, needsAttention: 0, inactive: 0, byCondition: [], recent: [] })),
   ]);
 
   const queueSorted = (queueRows as QueueRow[]).sort((a, b) => {
@@ -144,7 +145,7 @@ export default async function AppDashboardPage() {
     (quote) => (quote.status === "sent" || quote.status === "accepted" ? 1 : 0),
   );
 
-  const noData = invoices.length === 0 && quotes.length === 0 && queueRows.length === 0;
+  const noData = invoices.length === 0 && quotes.length === 0 && queueRows.length === 0 && assetSummary.total === 0;
 
   return (
     <div className="saas-page-card">
@@ -165,13 +166,19 @@ export default async function AppDashboardPage() {
         <Link href="/jobs/new" className="button secondary">
           Schedule Job
         </Link>
+        <Link href="/assets/new" className="button secondary">
+          New Asset
+        </Link>
       </div>
 
       {noData ? (
         <div className="saas-empty-state saas-empty-state-cta">
-          <div className="saas-empty-title">Your business workspace is ready.</div>
-          <div>Add your first client and create your first quote to unlock sales and pipeline metrics.</div>
+          <div className="saas-empty-title">Your asset workspace is ready.</div>
+          <div>Add your first asset record or client to unlock operational metrics.</div>
           <div className="saas-empty-actions">
+            <Link href="/assets/new" className="button">
+              Add First Asset
+            </Link>
             <Link href="/clients/new" className="button">
               Add First Client
             </Link>
@@ -226,6 +233,14 @@ export default async function AppDashboardPage() {
           <div className="muted">
             {acceptedQuotesCount} accepted / {sentQuotesCount} sent
           </div>
+        </div>
+
+        <div className="dashboard-kpi-card">
+          <div className="dashboard-kpi-header">
+            <div className="dashboard-kpi-label">Assets</div>
+          </div>
+          <div className="dashboard-kpi-value">{assetSummary.total}</div>
+          <div className="muted">{assetSummary.needsAttention} need attention</div>
         </div>
       </div>
 

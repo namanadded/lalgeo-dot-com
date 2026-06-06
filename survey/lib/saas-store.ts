@@ -19,6 +19,10 @@ async function apiGet<T>(path: string) {
   return (await res.json()) as T;
 }
 
+function isApiNotFound(error: unknown) {
+  return error instanceof Error && error.message.includes("failed (404)");
+}
+
 async function apiPost<T>(path: string, body: unknown) {
   const res = await fetch(`${API_BASE}${path}`, {
     method: "POST",
@@ -1643,4 +1647,319 @@ export async function updateEmailConnectionTokens(
       ...(data.scopes !== undefined ? { scopes: data.scopes } : {}),
     },
   });
+}
+
+export async function listAssets(orgId: string) {
+  if (useApi()) {
+    const response = await apiGet<{ assets: Array<Record<string, unknown>> }>(`/v1/assets?orgId=${encodeURIComponent(orgId)}`).catch((error) => {
+      if (isApiNotFound(error)) return { assets: [] };
+      throw error;
+    });
+    return response.assets.map((a) => ({
+      id: String(a.id),
+      assetId: String(a.asset_id),
+      name: String(a.name),
+      type: (a.type as string | null) ?? null,
+      status: String(a.status || "active"),
+      condition: (a.condition as string | null) ?? null,
+      address: (a.address as string | null) ?? null,
+      latitude: typeof a.latitude === "number" ? a.latitude : a.latitude === null || a.latitude === undefined ? null : Number(a.latitude),
+      longitude: typeof a.longitude === "number" ? a.longitude : a.longitude === null || a.longitude === undefined ? null : Number(a.longitude),
+      createdAt: asDate(a.created_at)!,
+      updatedAt: asDate(a.updated_at)!,
+      _count: { activities: Number(a.activities_count || 0) },
+    }));
+  }
+  return prisma.asset.findMany({
+    where: { organizationId: orgId },
+    orderBy: [{ updatedAt: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      assetId: true,
+      name: true,
+      type: true,
+      status: true,
+      condition: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: { select: { activities: true } },
+    },
+  });
+}
+
+export async function getAssetDetail(orgId: string, id: string) {
+  if (useApi()) {
+    const response = await apiGet<{ asset: Record<string, unknown> }>(`/v1/assets/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`).catch((error) => {
+      if (isApiNotFound(error)) return null;
+      throw error;
+    });
+    if (!response) return null;
+    const a = response.asset;
+    return {
+      id: String(a.id),
+      assetId: String(a.asset_id),
+      name: String(a.name),
+      type: (a.type as string | null) ?? null,
+      status: String(a.status || "active"),
+      condition: (a.condition as string | null) ?? null,
+      address: (a.address as string | null) ?? null,
+      latitude: typeof a.latitude === "number" ? a.latitude : a.latitude === null || a.latitude === undefined ? null : Number(a.latitude),
+      longitude: typeof a.longitude === "number" ? a.longitude : a.longitude === null || a.longitude === undefined ? null : Number(a.longitude),
+      notes: (a.notes as string | null) ?? null,
+      attributesJson: (a.attributes_json as string | null) ?? null,
+      createdAt: asDate(a.created_at)!,
+      updatedAt: asDate(a.updated_at)!,
+      activities: Array.isArray(a.activities)
+        ? (a.activities as Array<Record<string, unknown>>).map((activity) => ({
+            id: String(activity.id),
+            action: String(activity.action || ""),
+            message: String(activity.message || ""),
+            createdAt: asDate(activity.created_at)!,
+          }))
+        : [],
+    };
+  }
+  return prisma.asset.findFirst({
+    where: { id, organizationId: orgId },
+    select: {
+      id: true,
+      assetId: true,
+      name: true,
+      type: true,
+      status: true,
+      condition: true,
+      address: true,
+      latitude: true,
+      longitude: true,
+      notes: true,
+      attributesJson: true,
+      createdAt: true,
+      updatedAt: true,
+      activities: {
+        orderBy: { createdAt: "desc" },
+        take: 12,
+        select: {
+          id: true,
+          action: true,
+          message: true,
+          createdAt: true,
+        },
+      },
+    },
+  });
+}
+
+export async function createAsset(data: {
+  organizationId: string;
+  assetId: string;
+  name: string;
+  type?: string | null;
+  status: string;
+  condition?: string | null;
+  address?: string | null;
+  latitude?: number | null;
+  longitude?: number | null;
+  notes?: string | null;
+  attributesJson?: string | null;
+}) {
+  if (useApi()) {
+    return apiPost("/v1/assets", {
+      organization_id: data.organizationId,
+      asset_id: data.assetId,
+      name: data.name,
+      type: data.type ?? null,
+      status: data.status,
+      condition: data.condition ?? null,
+      address: data.address ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      notes: data.notes ?? null,
+      attributes_json: data.attributesJson ?? null,
+    });
+  }
+  const asset = await prisma.asset.create({
+    data: {
+      organizationId: data.organizationId,
+      assetId: data.assetId,
+      name: data.name,
+      type: data.type ?? null,
+      status: data.status,
+      condition: data.condition ?? null,
+      address: data.address ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      notes: data.notes ?? null,
+      attributesJson: data.attributesJson ?? null,
+    },
+    select: { id: true, assetId: true, name: true },
+  });
+  await Promise.all([
+    createActivity({
+      organizationId: data.organizationId,
+      entityType: "asset",
+      entityId: asset.id,
+      action: "asset_created",
+      message: `Asset ${asset.assetId} created.`,
+    }),
+    prisma.assetActivity.create({
+      data: {
+        organizationId: data.organizationId,
+        assetId: asset.id,
+        action: "asset_created",
+        message: `Asset ${asset.assetId} created.`,
+      },
+    }),
+  ]);
+  return asset;
+}
+
+export async function updateAsset(
+  orgId: string,
+  id: string,
+  data: {
+    assetId: string;
+    name: string;
+    type?: string | null;
+    status: string;
+    condition?: string | null;
+    address?: string | null;
+    latitude?: number | null;
+    longitude?: number | null;
+    notes?: string | null;
+    attributesJson?: string | null;
+  },
+) {
+  if (useApi()) {
+    return apiPatch(`/v1/assets/${encodeURIComponent(id)}`, {
+      organization_id: orgId,
+      asset_id: data.assetId,
+      name: data.name,
+      type: data.type ?? null,
+      status: data.status,
+      condition: data.condition ?? null,
+      address: data.address ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      notes: data.notes ?? null,
+      attributes_json: data.attributesJson ?? null,
+    });
+  }
+  const existing = await prisma.asset.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, assetId: true },
+  });
+  if (!existing) throw new Error("Asset not found");
+
+  const asset = await prisma.asset.update({
+    where: { id: existing.id },
+    data: {
+      assetId: data.assetId,
+      name: data.name,
+      type: data.type ?? null,
+      status: data.status,
+      condition: data.condition ?? null,
+      address: data.address ?? null,
+      latitude: data.latitude ?? null,
+      longitude: data.longitude ?? null,
+      notes: data.notes ?? null,
+      attributesJson: data.attributesJson ?? null,
+    },
+    select: { id: true, assetId: true, name: true },
+  });
+  await Promise.all([
+    createActivity({
+      organizationId: orgId,
+      entityType: "asset",
+      entityId: asset.id,
+      action: "asset_updated",
+      message: `Asset ${asset.assetId} updated.`,
+    }),
+    prisma.assetActivity.create({
+      data: {
+        organizationId: orgId,
+        assetId: asset.id,
+        action: "asset_updated",
+        message: `Asset ${asset.assetId} updated.`,
+      },
+    }),
+  ]);
+  return asset;
+}
+
+export async function deleteAsset(orgId: string, id: string) {
+  if (useApi()) {
+    return apiDelete(`/v1/assets/${encodeURIComponent(id)}?orgId=${encodeURIComponent(orgId)}`);
+  }
+  const existing = await prisma.asset.findFirst({
+    where: { id, organizationId: orgId },
+    select: { id: true, assetId: true },
+  });
+  if (!existing) throw new Error("Asset not found");
+  await prisma.asset.delete({ where: { id: existing.id } });
+  await createActivity({
+    organizationId: orgId,
+    entityType: "asset",
+    entityId: existing.id,
+    action: "asset_deleted",
+    message: `Asset ${existing.assetId} deleted.`,
+  });
+}
+
+export async function getAssetSummary(orgId: string) {
+  if (useApi()) {
+    const response = await apiGet<{
+      total: number;
+      active: number;
+      needs_attention: number;
+      inactive: number;
+      by_condition: Array<Record<string, unknown>>;
+      recent: Array<Record<string, unknown>>;
+    }>(`/v1/assets/summary?orgId=${encodeURIComponent(orgId)}`).catch((error) => {
+      if (isApiNotFound(error)) {
+        return { total: 0, active: 0, needs_attention: 0, inactive: 0, by_condition: [], recent: [] };
+      }
+      throw error;
+    });
+    return {
+      total: Number(response.total || 0),
+      active: Number(response.active || 0),
+      needsAttention: Number(response.needs_attention || 0),
+      inactive: Number(response.inactive || 0),
+      byCondition: response.by_condition.map((row) => ({
+        condition: (row.condition as string | null) ?? null,
+        _count: { condition: Number(row.count || 0) },
+      })),
+      recent: response.recent.map((row) => ({
+        id: String(row.id),
+        assetId: String(row.asset_id),
+        name: String(row.name),
+        status: String(row.status || "active"),
+        condition: (row.condition as string | null) ?? null,
+        updatedAt: asDate(row.updated_at)!,
+      })),
+    };
+  }
+  const [total, active, needsAttention, inactive, byCondition, recent] = await Promise.all([
+    prisma.asset.count({ where: { organizationId: orgId } }),
+    prisma.asset.count({ where: { organizationId: orgId, status: "active" } }),
+    prisma.asset.count({ where: { organizationId: orgId, status: "needs_attention" } }),
+    prisma.asset.count({ where: { organizationId: orgId, status: "inactive" } }),
+    prisma.asset.groupBy({
+      by: ["condition"],
+      where: { organizationId: orgId },
+      _count: { condition: true },
+      orderBy: { _count: { condition: "desc" } },
+      take: 5,
+    }),
+    prisma.asset.findMany({
+      where: { organizationId: orgId },
+      orderBy: { updatedAt: "desc" },
+      take: 5,
+      select: { id: true, assetId: true, name: true, status: true, condition: true, updatedAt: true },
+    }),
+  ]);
+  return { total, active, needsAttention, inactive, byCondition, recent };
 }

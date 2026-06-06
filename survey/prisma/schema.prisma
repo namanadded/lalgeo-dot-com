@@ -36,9 +36,11 @@ model Organization {
   users     User[]
   clients   Client[]
   jobs      Job[]
+  assets    Asset[]
   quotes    Quote[]
   invoices  Invoice[]
   activities Activity[]
+  assetActivities AssetActivity[]
   emailConnections EmailConnection[]
   emailLogs       EmailLog[]
 }
@@ -87,6 +89,44 @@ model Job {
   quotes         Quote[]
   invoices       Invoice[]
   createdAt      DateTime @default(now())
+}
+
+model Asset {
+  id             String   @id @default(cuid())
+  assetId        String
+  name           String
+  type           String?
+  status         String   @default("active")
+  condition      String?
+  address        String?
+  latitude       Float?
+  longitude      Float?
+  notes          String?
+  attributesJson String?
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  activities     AssetActivity[]
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([organizationId, assetId])
+  @@index([organizationId, status])
+  @@index([organizationId, type])
+  @@index([organizationId, condition])
+}
+
+model AssetActivity {
+  id             String   @id @default(cuid())
+  asset          Asset    @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  assetId        String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  organizationId String
+  action         String
+  message        String
+  createdAt      DateTime @default(now())
+
+  @@index([organizationId, createdAt])
+  @@index([assetId, createdAt])
 }
 
 model Quote {

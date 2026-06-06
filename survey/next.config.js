@@ -35,6 +35,8 @@ const nextConfig = {
     return {
       beforeFiles: [
         { source: "/dashboard", destination: "/app/dashboard" },
+        { source: "/assets", destination: "/app/assets" },
+        { source: "/assets/:path*", destination: "/app/assets/:path*" },
         { source: "/clients", destination: "/app/clients" },
         { source: "/clients/:path*", destination: "/app/clients/:path*" },
         { source: "/jobs", destination: "/app/jobs" },

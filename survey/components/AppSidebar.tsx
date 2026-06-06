@@ -22,6 +22,7 @@ const groups: NavGroup[] = [
   {
     title: "Operations",
     items: [
+      { href: "/assets", label: "Assets", icon: "◎" },
       { href: "/clients", label: "Clients", icon: "◉" },
       { href: "/jobs", label: "Jobs", icon: "◌" },
     ],

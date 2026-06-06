@@ -3037,6 +3037,25 @@
         background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.03));
         border: 1px solid rgba(255,255,255,0.06);
     }
+    .workspace-layer-card[draggable="true"],
+    .layer-pane-row[draggable="true"] {
+        cursor: grab;
+    }
+    .workspace-layer-card.layer-dragging,
+    .layer-pane-row.layer-dragging {
+        opacity: 0.58;
+        cursor: grabbing;
+    }
+    .workspace-layer-card.layer-drop-before,
+    .layer-pane-row.layer-drop-before {
+        border-top-color: rgba(92, 200, 192, 0.85);
+        box-shadow: inset 0 3px 0 rgba(92, 200, 192, 0.85);
+    }
+    .workspace-layer-card.layer-drop-after,
+    .layer-pane-row.layer-drop-after {
+        border-bottom-color: rgba(92, 200, 192, 0.85);
+        box-shadow: inset 0 -3px 0 rgba(92, 200, 192, 0.85);
+    }
     .workspace-record-card.active,
     .workspace-layer-card.active {
         border-color: rgba(92, 200, 192, 0.45);
@@ -5301,6 +5320,10 @@
         <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer properties</button>
+        <button id="layerContextMoveUpBtn" type="button" class="context-menu-btn" data-layer-context-action="move-up">Move up</button>
+        <button id="layerContextMoveDownBtn" type="button" class="context-menu-btn" data-layer-context-action="move-down">Move down</button>
+        <button id="layerContextMoveTopBtn" type="button" class="context-menu-btn" data-layer-context-action="move-top">Move to top</button>
+        <button id="layerContextMoveBottomBtn" type="button" class="context-menu-btn" data-layer-context-action="move-bottom">Move to bottom</button>
         <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
@@ -5606,6 +5629,10 @@
         const contextAddToMapBtn = document.getElementById("contextAddToMapBtn");
         const layerContextMenu = document.getElementById("layerContextMenu");
         const layerContextToggleBtn = document.getElementById("layerContextToggleBtn");
+        const layerContextMoveUpBtn = document.getElementById("layerContextMoveUpBtn");
+        const layerContextMoveDownBtn = document.getElementById("layerContextMoveDownBtn");
+        const layerContextMoveTopBtn = document.getElementById("layerContextMoveTopBtn");
+        const layerContextMoveBottomBtn = document.getElementById("layerContextMoveBottomBtn");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
         const projectStatus = document.getElementById("projectStatus");
@@ -6222,7 +6249,7 @@
             if (!coordinate) return null;
             const clientPoint = new DOMPoint(clientX, clientY);
             const visibleLayers = (activeProjectRecord.layers || []).filter((layer) => layer.visible !== false);
-            for (let layerIndex = visibleLayers.length - 1; layerIndex >= 0; layerIndex -= 1) {
+            for (let layerIndex = 0; layerIndex < visibleLayers.length; layerIndex += 1) {
                 const layer = ensureLayerStructure(visibleLayers[layerIndex]);
                 const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
                 const features = layer?.features || [];
@@ -7347,7 +7374,7 @@
                     layerList.innerHTML = `<div class="workspace-settings-card">Create or open a project to manage layers.</div>`;
                 } else {
                     layerList.innerHTML = activeProjectRecord.layers.map((item) => `
-                        <div class="workspace-layer-card ${item.id === layer?.id ? "active" : ""}" data-layer-id="${escapeHtml(item.id)}">
+                        <div class="workspace-layer-card ${item.id === layer?.id ? "active" : ""}" data-layer-id="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <div class="workspace-layer-header">
                                 <div>
                                     <div class="workspace-layer-title">${escapeHtml(item.name)}</div>
@@ -7387,7 +7414,7 @@
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
                     ${(activeProjectRecord.layers || []).map((item) => `
-                        <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}">
+                        <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
                             <div class="layer-pane-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
                             <div class="layer-pane-actions">
@@ -7434,12 +7461,28 @@
             if (layerContextMenu) layerContextMenu.hidden = true;
         }
 
+        function getLayerOrderIndex(layerId) {
+            return (activeProjectRecord?.layers || []).findIndex((layer) => layer.id === layerId);
+        }
+
+        function updateLayerContextMoveButtons(layerId) {
+            const index = getLayerOrderIndex(layerId);
+            const count = activeProjectRecord?.layers?.length || 0;
+            const canMoveUp = index > 0;
+            const canMoveDown = index >= 0 && index < count - 1;
+            if (layerContextMoveUpBtn) layerContextMoveUpBtn.disabled = !canMoveUp;
+            if (layerContextMoveTopBtn) layerContextMoveTopBtn.disabled = !canMoveUp;
+            if (layerContextMoveDownBtn) layerContextMoveDownBtn.disabled = !canMoveDown;
+            if (layerContextMoveBottomBtn) layerContextMoveBottomBtn.disabled = !canMoveDown;
+        }
+
         function showLayerContextMenu(layerId, event) {
             contextLayerId = layerId || null;
             const layer = contextLayerId ? getLayerById(contextLayerId) : null;
             if (layerContextToggleBtn && layer) {
                 layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
             }
+            updateLayerContextMoveButtons(contextLayerId);
             positionContextMenu(layerContextMenu, event);
         }
 
@@ -7449,6 +7492,7 @@
             if (layerContextToggleBtn && layer) {
                 layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
             }
+            updateLayerContextMoveButtons(contextLayerId);
             positionContextMenuNearElement(layerContextMenu, element);
         }
 
@@ -9530,6 +9574,112 @@
             }
         }
 
+        function reorderLayer(layerId, targetIndex) {
+            if (!activeProjectRecord?.layers?.length) return false;
+            const layers = activeProjectRecord.layers;
+            const fromIndex = layers.findIndex((item) => item.id === layerId);
+            if (fromIndex < 0) return false;
+            const boundedTarget = Math.max(0, Math.min(targetIndex, layers.length - 1));
+            if (fromIndex === boundedTarget) return false;
+            const [layer] = layers.splice(fromIndex, 1);
+            layers.splice(boundedTarget, 0, layer);
+            markActiveProjectUpdated();
+            scheduleLocalAutosave();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            setProjectStatus(`Moved ${layer.name || "layer"}.`, "success");
+            return true;
+        }
+
+        function moveLayerByAction(layerId, action) {
+            const index = getLayerOrderIndex(layerId);
+            const count = activeProjectRecord?.layers?.length || 0;
+            if (index < 0) return false;
+            if (action === "move-up") return reorderLayer(layerId, index - 1);
+            if (action === "move-down") return reorderLayer(layerId, index + 1);
+            if (action === "move-top") return reorderLayer(layerId, 0);
+            if (action === "move-bottom") return reorderLayer(layerId, count - 1);
+            return false;
+        }
+
+        let draggingLayerId = null;
+
+        function clearLayerDropMarkers({ includeDragging = false } = {}) {
+            const selector = includeDragging
+                ? ".layer-dragging, .layer-drop-before, .layer-drop-after"
+                : ".layer-drop-before, .layer-drop-after";
+            document.querySelectorAll(selector).forEach((row) => {
+                row.classList.remove("layer-drop-before", "layer-drop-after");
+                if (includeDragging) {
+                    row.classList.remove("layer-dragging");
+                    row.setAttribute("aria-grabbed", "false");
+                }
+            });
+        }
+
+        function getLayerDragRow(target) {
+            return target?.closest?.("[data-layer-id], [data-sidebar-layer]") || null;
+        }
+
+        function getLayerIdFromDragRow(row) {
+            return row?.dataset?.layerId || row?.dataset?.sidebarLayer || "";
+        }
+
+        function bindLayerReorderList(listElement) {
+            listElement?.addEventListener("dragstart", (event) => {
+                const row = getLayerDragRow(event.target);
+                const layerId = getLayerIdFromDragRow(row);
+                if (!row || !layerId) return;
+                draggingLayerId = layerId;
+                row.classList.add("layer-dragging");
+                row.setAttribute("aria-grabbed", "true");
+                event.dataTransfer.effectAllowed = "move";
+                event.dataTransfer.setData("text/lalgeo-layer-id", layerId);
+            });
+            listElement?.addEventListener("dragover", (event) => {
+                if (!draggingLayerId) return;
+                const row = getLayerDragRow(event.target);
+                const targetLayerId = getLayerIdFromDragRow(row);
+                if (!row || !targetLayerId || targetLayerId === draggingLayerId) return;
+                event.preventDefault();
+                const rect = row.getBoundingClientRect();
+                const before = event.clientY < rect.top + rect.height / 2;
+                clearLayerDropMarkers();
+                row.classList.add(before ? "layer-drop-before" : "layer-drop-after");
+                event.dataTransfer.dropEffect = "move";
+            });
+            listElement?.addEventListener("drop", (event) => {
+                if (!draggingLayerId) return;
+                const row = getLayerDragRow(event.target);
+                const targetLayerId = getLayerIdFromDragRow(row);
+                clearLayerDropMarkers({ includeDragging: true });
+                if (!row || !targetLayerId || targetLayerId === draggingLayerId) {
+                    draggingLayerId = null;
+                    return;
+                }
+                event.preventDefault();
+                const rect = row.getBoundingClientRect();
+                const dropBefore = event.clientY < rect.top + rect.height / 2;
+                const layers = activeProjectRecord?.layers || [];
+                const fromIndex = layers.findIndex((item) => item.id === draggingLayerId);
+                const targetIndex = layers.findIndex((item) => item.id === targetLayerId);
+                if (fromIndex < 0 || targetIndex < 0) {
+                    draggingLayerId = null;
+                    return;
+                }
+                let nextIndex = targetIndex + (dropBefore ? 0 : 1);
+                if (fromIndex < nextIndex) nextIndex -= 1;
+                reorderLayer(draggingLayerId, nextIndex);
+                draggingLayerId = null;
+            });
+            listElement?.addEventListener("dragend", () => {
+                draggingLayerId = null;
+                clearLayerDropMarkers({ includeDragging: true });
+            });
+            listElement?.addEventListener("dragleave", (event) => {
+                if (!listElement.contains(event.relatedTarget)) clearLayerDropMarkers();
+            });
+        }
+
         function zoomToLayer(layerId) {
             const layer = getLayerById(layerId);
             if (!layer) return;
@@ -10584,10 +10734,16 @@
                 toggleLayerVisibility(layerId);
                 return;
             }
+            if (action === "move-up" || action === "move-down" || action === "move-top" || action === "move-bottom") {
+                moveLayerByAction(layerId, action);
+                return;
+            }
             if (action === "remove") {
                 deleteLayer(layerId);
             }
         });
+        bindLayerReorderList(layerList);
+        bindLayerReorderList(sidebarContent);
         sidebarContent?.addEventListener("click", (event) => {
             const layerActionButton = event.target.closest("[data-layer-actions]");
             if (layerActionButton) {
@@ -14192,7 +14348,7 @@
             const visibleLayers = activeProjectRecord?.layers?.filter((layer) => layer.visible !== false) || [];
             activeProjectName = projectName;
             const layersToRender = visibleLayers.length
-                ? visibleLayers
+                ? [...visibleLayers].reverse()
                 : [{
                     id: activeLayerId || "temporary-layer",
                     name: parsed?.layerName || "Layer",

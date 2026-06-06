@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { listClients, listInvoices, listJobs, listQuotes } from "@/lib/saas-store";
+import { listAssets, listClients, listInvoices, listJobs, listQuotes } from "@/lib/saas-store";
 import { DEV_ORG_ID } from "@/lib/saas";
 import { getSessionUser } from "@/lib/auth";
 
@@ -10,7 +10,7 @@ type SearchItem = {
   label: string;
   subtitle: string;
   href: string;
-  type: "client" | "job" | "quote" | "invoice";
+  type: "asset" | "client" | "job" | "quote" | "invoice";
 };
 
 export async function GET(request: Request) {
@@ -25,7 +25,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ results: [] });
   }
 
-  const [clients, jobs, quotes, invoices] = await Promise.all([
+  const [assets, clients, jobs, quotes, invoices] = await Promise.all([
+    listAssets(DEV_ORG_ID).catch(() => []),
     listClients(DEV_ORG_ID).catch(() => []),
     listJobs(DEV_ORG_ID).catch(() => []),
     listQuotes(DEV_ORG_ID).catch(() => []),
@@ -33,6 +34,19 @@ export async function GET(request: Request) {
   ]);
 
   const results: SearchItem[] = [];
+
+  for (const asset of assets) {
+    const haystack = [asset.assetId, asset.name, asset.type, asset.status, asset.condition, asset.address].filter(Boolean).join(" ").toLowerCase();
+    if (haystack.includes(q)) {
+      results.push({
+        id: asset.id,
+        type: "asset",
+        label: `${asset.assetId} · ${asset.name}`,
+        subtitle: [asset.type || "Asset", asset.status, asset.condition || ""].filter(Boolean).join(" · "),
+        href: `/assets/${asset.id}`,
+      });
+    }
+  }
 
   for (const client of clients) {
     const haystack = [client.name, client.companyName, client.email, client.phone].filter(Boolean).join(" ").toLowerCase();
