@@ -4983,6 +4983,7 @@
                 <button id="menuToggleEditToolbarBtn" type="button" class="menu-command"><span>✓ Edit Tools</span></button>
                 <button id="menuToggleLayerToolbarBtn" type="button" class="menu-command"><span>Layer Tools</span></button>
             </div>
+            <button id="menuTogglePolygonPopoutsBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show Polygon Popouts</span></button>
             <button id="menuShowBasemapPoisBtn" type="button" class="menu-command" aria-pressed="true"><span>✓ Show POIs in Basemap</span></button>
             <button id="menuMapTypeBtn" type="button" class="menu-command" aria-expanded="false"><span>Map Type</span><span>›</span></button>
             <div id="menuMapTypeList" class="menu-nested-section" hidden>
@@ -5621,6 +5622,7 @@
         const menuToolbarsList = document.getElementById("menuToolbarsList");
         const menuToggleEditToolbarBtn = document.getElementById("menuToggleEditToolbarBtn");
         const menuToggleLayerToolbarBtn = document.getElementById("menuToggleLayerToolbarBtn");
+        const menuTogglePolygonPopoutsBtn = document.getElementById("menuTogglePolygonPopoutsBtn");
         const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
         const menuMapTypeBtn = document.getElementById("menuMapTypeBtn");
         const menuMapTypeList = document.getElementById("menuMapTypeList");
@@ -5712,6 +5714,7 @@
         let pointGeometryDragState = null;
         let editSessionActive = false;
         let suppressAnnotationDetailOpen = false;
+        let polygonPopoutsVisible = true;
         let selectedTableRows = new Set();
         let lastSelectedTableRow = null;
         let tableRowFilterMode = "all";
@@ -6274,6 +6277,10 @@
             if (geometry.type === "Point" && Number.isFinite(geometry.lat) && Number.isFinite(geometry.lng)) {
                 return new mapkit.Coordinate(geometry.lat, geometry.lng);
             }
+            if (geometry.type === "Polygon") {
+                const center = getPolygonCenterVertex(geometry.rings?.[0] || []);
+                return center ? new mapkit.Coordinate(center.lat, center.lng) : null;
+            }
             const coords = geometry.type === "Polygon"
                 ? (geometry.rings?.[0] || [])
                 : (geometry.coordinates || []);
@@ -6296,6 +6303,76 @@
             return raw
                 .filter((item) => Number.isFinite(item?.lat) && Number.isFinite(item?.lng))
                 .map((item) => new mapkit.Coordinate(item.lat, item.lng));
+        }
+
+        function isVertexInsideRing(vertex, ring = []) {
+            if (!vertex || !Array.isArray(ring) || ring.length < 3) return false;
+            const x = Number(vertex.lng);
+            const y = Number(vertex.lat);
+            if (!Number.isFinite(x) || !Number.isFinite(y)) return false;
+            let inside = false;
+            for (let i = 0, j = ring.length - 1; i < ring.length; j = i++) {
+                const xi = Number(ring[i]?.lng);
+                const yi = Number(ring[i]?.lat);
+                const xj = Number(ring[j]?.lng);
+                const yj = Number(ring[j]?.lat);
+                if (![xi, yi, xj, yj].every(Number.isFinite)) continue;
+                const intersects = ((yi > y) !== (yj > y)) && (x < ((xj - xi) * (y - yi)) / ((yj - yi) || Number.EPSILON) + xi);
+                if (intersects) inside = !inside;
+            }
+            return inside;
+        }
+
+        function getRingBounds(vertices = []) {
+            const valid = vertices.filter((vertex) => Number.isFinite(vertex?.lat) && Number.isFinite(vertex?.lng));
+            if (!valid.length) return null;
+            return valid.reduce((bounds, vertex) => ({
+                minLat: Math.min(bounds.minLat, vertex.lat),
+                maxLat: Math.max(bounds.maxLat, vertex.lat),
+                minLng: Math.min(bounds.minLng, vertex.lng),
+                maxLng: Math.max(bounds.maxLng, vertex.lng)
+            }), {
+                minLat: valid[0].lat,
+                maxLat: valid[0].lat,
+                minLng: valid[0].lng,
+                maxLng: valid[0].lng
+            });
+        }
+
+        function getPolygonCentroidVertex(vertices = []) {
+            const ring = vertices.filter((vertex) => Number.isFinite(vertex?.lat) && Number.isFinite(vertex?.lng));
+            if (ring.length < 3) return null;
+            let twiceArea = 0;
+            let centroidLat = 0;
+            let centroidLng = 0;
+            ring.forEach((vertex, index) => {
+                const next = ring[(index + 1) % ring.length];
+                const cross = (vertex.lng * next.lat) - (next.lng * vertex.lat);
+                twiceArea += cross;
+                centroidLng += (vertex.lng + next.lng) * cross;
+                centroidLat += (vertex.lat + next.lat) * cross;
+            });
+            if (Math.abs(twiceArea) < Number.EPSILON) return null;
+            return {
+                lat: centroidLat / (3 * twiceArea),
+                lng: centroidLng / (3 * twiceArea)
+            };
+        }
+
+        function getPolygonCenterVertex(vertices = []) {
+            const ring = vertices.filter((vertex) => Number.isFinite(vertex?.lat) && Number.isFinite(vertex?.lng));
+            if (!ring.length) return null;
+            const centroid = getPolygonCentroidVertex(ring);
+            if (centroid && isVertexInsideRing(centroid, ring)) return centroid;
+            const bounds = getRingBounds(ring);
+            if (bounds) {
+                const bboxCenter = {
+                    lat: (bounds.minLat + bounds.maxLat) / 2,
+                    lng: (bounds.minLng + bounds.maxLng) / 2
+                };
+                if (isVertexInsideRing(bboxCenter, ring)) return bboxCenter;
+            }
+            return centroid || ring[Math.max(0, Math.floor(ring.length / 2) - 1)] || ring[0];
         }
 
         function getFeaturePolygonArea(feature) {
@@ -6720,6 +6797,26 @@
             });
         }
 
+        function updatePolygonPopoutsMenuState() {
+            if (!menuTogglePolygonPopoutsBtn) return;
+            menuTogglePolygonPopoutsBtn.setAttribute("aria-pressed", polygonPopoutsVisible ? "true" : "false");
+            const label = menuTogglePolygonPopoutsBtn.querySelector("span");
+            if (label) label.textContent = `${polygonPopoutsVisible ? "✓ " : ""}Show Polygon Popouts`;
+        }
+
+        function setPolygonPopoutsVisible(visible, { persist = true, render = true } = {}) {
+            polygonPopoutsVisible = Boolean(visible);
+            updatePolygonPopoutsMenuState();
+            if (persist) saveWorkspaceUiPrefs();
+            if (render && activeProjectRecord && mapReady && map) {
+                renderSurveyProject({
+                    parsed: currentSurveyData,
+                    projectName: activeProjectName,
+                    preserveRegion: true
+                });
+            }
+        }
+
         function updateCommandAvailability() {
             const hasProject = Boolean(activeProjectRecord);
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
@@ -6734,6 +6831,7 @@
                 [menuToolbarsBtn, true],
                 [menuToggleEditToolbarBtn, hasProject],
                 [menuToggleLayerToolbarBtn, hasProject],
+                [menuTogglePolygonPopoutsBtn, hasProject],
                 [menuShowBasemapPoisBtn, hasProject],
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
@@ -6757,6 +6855,7 @@
                 button.disabled = !enabled;
                 button.classList.toggle("is-disabled", !enabled);
             });
+            updatePolygonPopoutsMenuState();
             renderQuickActionButtons();
             setTopMenuButtonStates();
         }
@@ -6770,6 +6869,7 @@
                 const prefs = raw ? JSON.parse(raw) : {};
                 rememberLastSession = rememberedValue === null ? prefs.rememberLastSession !== false : rememberedValue;
                 hideWorkspaceEmptyStateForever = prefs.hideWorkspaceEmptyStateForever === true;
+                polygonPopoutsVisible = prefs.polygonPopoutsVisible !== false;
                 if (rememberLastSession) {
                     sidebarVisible = false;
                     dataPaneVisible = false;
@@ -6785,6 +6885,7 @@
                 sidebarVisible = false;
                 dataPaneVisible = false;
                 hideWorkspaceEmptyStateForever = false;
+                polygonPopoutsVisible = true;
                 emptyStateDismissed = false;
             }
             logWorkspaceDebug("loadWorkspaceUiPrefs", {
@@ -6794,7 +6895,8 @@
                 sidebarVisible,
                 dataPaneVisible,
                 emptyStateDismissed,
-                hideWorkspaceEmptyStateForever
+                hideWorkspaceEmptyStateForever,
+                polygonPopoutsVisible
             });
             if (rememberSessionToggle) {
                 rememberSessionToggle.checked = rememberLastSession;
@@ -6808,6 +6910,7 @@
                 hideWorkspaceEmptyStateToggle.checked = hideWorkspaceEmptyStateForever;
             }
             syncQuickActionToggleState();
+            updatePolygonPopoutsMenuState();
             renderQuickActionButtons();
         }
 
@@ -6819,6 +6922,7 @@
                     sidebarVisible,
                     dataPaneVisible,
                     hideWorkspaceEmptyStateForever,
+                    polygonPopoutsVisible,
                     emptyStateDismissed: rememberLastSession ? emptyStateDismissed : false
                 }));
                 logWorkspaceDebug("saveWorkspaceUiPrefs", {
@@ -6826,7 +6930,8 @@
                     sidebarVisible,
                     dataPaneVisible,
                     emptyStateDismissed,
-                    hideWorkspaceEmptyStateForever
+                    hideWorkspaceEmptyStateForever,
+                    polygonPopoutsVisible
                 });
             } catch (error) {
                 console.warn("Unable to persist workspace UI prefs", error);
@@ -6893,6 +6998,7 @@
             dataPaneVisible = false;
             emptyStateDismissed = false;
             hideWorkspaceEmptyStateForever = false;
+            polygonPopoutsVisible = true;
             pendingStartupDropboxProjectId = null;
             try {
                 localStorage.setItem(WORKSPACE_REMEMBER_KEY, "false");
@@ -6901,6 +7007,7 @@
                     sidebarVisible: false,
                     dataPaneVisible: false,
                     hideWorkspaceEmptyStateForever: false,
+                    polygonPopoutsVisible: true,
                     emptyStateDismissed: false
                 }));
                 localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
@@ -6913,6 +7020,7 @@
             }
             if (rememberSessionToggle) rememberSessionToggle.checked = false;
             if (hideWorkspaceEmptyStateToggle) hideWorkspaceEmptyStateToggle.checked = false;
+            updatePolygonPopoutsMenuState();
         }
 
         function clearDisconnectedDropboxWorkspace(reason = "dropbox-disconnected") {
@@ -6957,6 +7065,7 @@
                 console.warn("Unable to load workspace projects", error);
                 workspaceProjects = [];
             }
+            updatePolygonPopoutsMenuState();
         }
 
         function saveWorkspaceProjects() {
@@ -10205,6 +10314,10 @@
                 dockLayerToolsPanel();
             }
             syncEditPanelState();
+        });
+        menuTogglePolygonPopoutsBtn?.addEventListener("click", () => {
+            setPolygonPopoutsVisible(!polygonPopoutsVisible);
+            setProjectStatus(`Polygon popouts ${polygonPopoutsVisible ? "shown" : "hidden"}.`, "success");
         });
         function installToolbarTooltipEvents(panel) {
             panel?.addEventListener("pointerenter", () => setDocumentTitleTooltipSuppressed(true));
@@ -14029,6 +14142,9 @@
         function getRenderableMarkerFeatures(layer, projectName = activeProjectName) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             const features = layer?.features || [];
+            if (geometryType === "polygon" && !polygonPopoutsVisible) {
+                return new Set();
+            }
             if (geometryType !== "polygon") {
                 return new Set(features.filter((feature) => feature.showRepresentativeMarker !== false));
             }
