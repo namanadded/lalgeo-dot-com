@@ -13211,6 +13211,16 @@
             return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
         }
 
+        function getRingArea(vertices = []) {
+            if (!Array.isArray(vertices) || vertices.length < 3) return 0;
+            let area = 0;
+            vertices.forEach((vertex, index) => {
+                const next = vertices[(index + 1) % vertices.length];
+                area += (vertex.lng * next.lat) - (next.lng * vertex.lat);
+            });
+            return Math.abs(area / 2);
+        }
+
         function geometryPartsFromGeoJson(geometry) {
             if (!geometry) return [];
             if (geometry.type === "GeometryCollection") {
@@ -13242,11 +13252,26 @@
                 return ring.length >= 3 ? [{ geometryType: "polygon", geometry: createPolygonGeometry(ring) }] : [];
             }
             if (geometry.type === "MultiPolygon") {
-                return (geometry.coordinates || []).flatMap((polygon) => {
+                const parts = (geometry.coordinates || []).flatMap((polygon) => {
                     const vertices = ((polygon || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
                     const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
-                    return ring.length >= 3 ? [{ geometryType: "polygon", geometry: createPolygonGeometry(ring) }] : [];
+                    return ring.length >= 3 ? [{
+                        geometryType: "polygon",
+                        geometry: createPolygonGeometry(ring),
+                        representativeArea: getRingArea(ring)
+                    }] : [];
                 });
+                let representativeIndex = 0;
+                parts.forEach((part, index) => {
+                    if ((part.representativeArea || 0) > (parts[representativeIndex]?.representativeArea || 0)) {
+                        representativeIndex = index;
+                    }
+                });
+                return parts.map((part, index) => ({
+                    geometryType: part.geometryType,
+                    geometry: part.geometry,
+                    showRepresentativeMarker: index === representativeIndex
+                }));
             }
             return [];
         }
@@ -13276,6 +13301,7 @@
                 return {
                     id: attributes.ID || generateWorkspaceId("feature"),
                     geometry,
+                    showRepresentativeMarker: source.showRepresentativeMarker,
                     attributes,
                     version: 1,
                     importIndex: index
@@ -13302,7 +13328,11 @@
             collection.features.forEach((feature) => {
                 const properties = { ...(feature.properties || {}) };
                 geometryPartsFromGeoJson(feature.geometry).forEach((part) => {
-                    grouped[part.geometryType].push({ geometry: part.geometry, properties });
+                    grouped[part.geometryType].push({
+                        geometry: part.geometry,
+                        properties,
+                        showRepresentativeMarker: part.showRepresentativeMarker
+                    });
                 });
             });
             const baseName = stripExtension(fileName || projectName || "Imported layer");
@@ -13922,7 +13952,7 @@
                 surveyOverlays.push(overlay);
                 map.addOverlay(overlay);
             }
-            const repCoord = getFeatureRepresentativeCoordinate(feature);
+            const repCoord = feature.showRepresentativeMarker === false ? null : getFeatureRepresentativeCoordinate(feature);
             if (repCoord) {
                 const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(repCoord, {
