@@ -13427,9 +13427,58 @@
                 });
             }
             if (looseShapeFiles.length) {
-                throw new Error("Shapefile import requires a .zip containing .shp, .shx, .dbf, and optional .prj files.");
+                const looseShapePackage = await buildLooseShapefileZip(looseShapeFiles);
+                return buildGeoJsonPayload(await parseShapefileZip(looseShapePackage.blob), {
+                    projectName: looseShapePackage.name,
+                    fileName: `${looseShapePackage.name}.shp`,
+                    format: "Shapefile"
+                });
             }
             return null;
+        }
+
+        function getShapefilePartInfo(file) {
+            const path = file?.webkitRelativePath || file?.name || "";
+            const normalizedPath = path.replace(/\\/g, "/");
+            const filename = normalizedPath.split("/").pop() || "";
+            const match = filename.match(/^(.+)\.(shp|shx|dbf|prj)$/i);
+            if (!match) return null;
+            const folder = normalizedPath.includes("/") ? normalizedPath.slice(0, normalizedPath.lastIndexOf("/")) : "";
+            return {
+                folder,
+                basename: match[1],
+                extension: match[2].toLowerCase(),
+                key: `${folder}/${match[1]}`.toLowerCase()
+            };
+        }
+
+        async function buildLooseShapefileZip(files) {
+            const groups = new Map();
+            Array.from(files || []).forEach((file) => {
+                const info = getShapefilePartInfo(file);
+                if (!info) return;
+                const group = groups.get(info.key) || { folder: info.folder, basename: info.basename, files: new Map() };
+                group.files.set(info.extension, file);
+                groups.set(info.key, group);
+            });
+            const group = Array.from(groups.values()).find((item) => item.files.has("shp"));
+            if (!group) {
+                throw new Error("Select the .shp file with its matching .dbf, .shx, and optional .prj files.");
+            }
+            const required = ["shp", "dbf"];
+            const missing = required.filter((extension) => !group.files.has(extension));
+            if (missing.length) {
+                throw new Error(`Select the matching ${missing.map((extension) => `.${extension}`).join(" and ")} file${missing.length === 1 ? "" : "s"} with ${group.basename}.shp.`);
+            }
+            const zip = new JSZip();
+            for (const extension of ["shp", "shx", "dbf", "prj"]) {
+                const file = group.files.get(extension);
+                if (file) {
+                    zip.file(`${group.basename}.${extension}`, await readFileAsArrayBuffer(file));
+                }
+            }
+            const blob = await zip.generateAsync({ type: "blob" });
+            return { blob, name: group.basename };
         }
 
         async function zipContainsShapefile(file) {
