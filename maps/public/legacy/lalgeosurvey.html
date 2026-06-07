@@ -13734,7 +13734,7 @@
                 });
             });
             const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
-            const features = sourceFeatures.map(({ geometry, properties = {} }, index) => {
+            const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker }, index) => {
                 const attributes = Object.fromEntries(schema.map((field) => [field.name, properties[field.name] ?? ""]));
                 attributes.ID = attributes.ID || generateSurveyPointId();
                 attributes.Date = attributes.Date || new Date().toISOString();
@@ -13748,7 +13748,7 @@
                 return {
                     id: attributes.ID || generateWorkspaceId("feature"),
                     geometry,
-                    showRepresentativeMarker: source.showRepresentativeMarker,
+                    showRepresentativeMarker,
                     attributes,
                     version: 1,
                     importIndex: index
