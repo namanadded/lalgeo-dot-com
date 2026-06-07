@@ -3304,6 +3304,56 @@
     .workspace-validation.error {
         color: #b91c1c;
     }
+    .help-modal {
+        width: min(760px, 100%);
+        max-height: min(82vh, 760px);
+        overflow: auto;
+    }
+    .help-search-row {
+        display: flex;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .help-search-row input {
+        flex: 1;
+    }
+    .help-topic-list {
+        display: grid;
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .help-topic-card {
+        padding: 14px;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        border-radius: 12px;
+        background: #fff;
+        color: #374151;
+    }
+    .help-topic-card h4 {
+        margin: 0 0 6px;
+        color: #1f2937;
+        font-size: 16px;
+    }
+    .help-topic-card p {
+        margin: 0;
+        color: #6b7280;
+        line-height: 1.45;
+    }
+    .help-topic-card .help-keywords {
+        display: block;
+        margin-top: 8px;
+        color: #64748b;
+        font-size: 12px;
+    }
+    .help-ai-note {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 12px;
+        background: #eff6ff;
+        color: #1e3a8a;
+        font-size: 13px;
+        line-height: 1.45;
+    }
     .workspace-validation[hidden] {
         display: none;
     }
@@ -4908,6 +4958,10 @@
                     <span class="quick-action-icon" aria-hidden="true">⌖</span>
                     <span class="quick-action-label">My Location</span>
                 </button>
+                <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
+                    <span class="quick-action-icon" aria-hidden="true">?</span>
+                    <span class="quick-action-label">Help</span>
+                </button>
             </div>
             <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-expanded="false">&lt;</button>
             <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
@@ -4970,6 +5024,10 @@
                 <input type="checkbox" class="quick-action-toggle" data-action="myLocation">
                 <span>My Location</span>
             </label>
+            <label class="settings-option">
+                <input type="checkbox" class="quick-action-toggle" data-action="help">
+                <span>Help</span>
+            </label>
         </div>
     </div>
     <div id="toolbarMenuTray" hidden>
@@ -4988,6 +5046,7 @@
             <button id="shareMapBtn" type="button" class="menu-command"><span>Share Map</span><span class="menu-shortcut" data-shortcut="share"></span></button>
             <button id="menuExportPdfBtn" type="button" class="menu-command"><span>Export as PDF</span><span class="menu-shortcut" data-shortcut="exportPdf"></span></button>
             <button id="printButton" type="button" class="menu-command"><span>Print Map</span><span class="menu-shortcut" data-shortcut="print"></span></button>
+            <button id="menuFileHelpBtn" type="button" class="menu-command"><span>Help and Documentation</span></button>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="edit" hidden>
             <button id="menuOpenEditPanelBtn" type="button" class="menu-command"><span>Open Edit Panel</span></button>
@@ -5020,7 +5079,9 @@
         </div>
         <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
         <div class="menu-dropdown-section" data-menu-pane="window" hidden></div>
-        <div class="menu-dropdown-section" data-menu-pane="help" hidden></div>
+        <div class="menu-dropdown-section" data-menu-pane="help" hidden>
+            <button id="menuHelpCenterBtn" type="button" class="menu-command"><span>Help Center</span></button>
+        </div>
     </div>
     <div class="map-controls"></div>
     <div id="editFloatingPanel" class="floating-toolbar" hidden aria-label="Edit toolbar">
@@ -5260,6 +5321,25 @@
             <div class="workspace-modal-actions">
                 <button id="layerImportCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
                 <button id="layerImportPickerBtn" type="button" class="workspace-primary-btn">Select files...</button>
+            </div>
+        </div>
+    </div>
+    <div id="helpCenterModal" class="workspace-modal-backdrop" hidden>
+        <div class="workspace-modal help-modal">
+            <h3>Help Center</h3>
+            <p class="workspace-panel-muted">Search the map documentation or ask a question about a tool.</p>
+            <div class="help-search-row">
+                <input id="helpSearchInput" class="workspace-text-input" type="search" placeholder="Search layers, import, editing, reports, API endpoints...">
+                <button id="helpSearchClearBtn" type="button" class="workspace-secondary-btn">Clear</button>
+            </div>
+            <div class="help-search-row">
+                <input id="helpAskInput" class="workspace-text-input" type="text" placeholder="Ask help, for example: how do I import a shapefile?">
+                <button id="helpAskBtn" type="button" class="workspace-primary-btn">Ask</button>
+            </div>
+            <div class="help-ai-note">This help search runs locally inside the browser. It can be upgraded later to use Ollama on your Mac mini or the existing ai-search pattern for natural-language answers over these docs.</div>
+            <div id="helpResults" class="help-topic-list"></div>
+            <div class="workspace-modal-actions">
+                <button id="helpCenterCloseBtn" type="button" class="workspace-secondary-btn">Close</button>
             </div>
         </div>
     </div>
@@ -5752,6 +5832,16 @@
         const layerImportApiUrl = document.getElementById("layerImportApiUrl");
         const layerImportApiFormat = document.getElementById("layerImportApiFormat");
         const layerImportApiBtn = document.getElementById("layerImportApiBtn");
+        const helpCenterBtn = document.getElementById("helpCenterBtn");
+        const menuFileHelpBtn = document.getElementById("menuFileHelpBtn");
+        const menuHelpCenterBtn = document.getElementById("menuHelpCenterBtn");
+        const helpCenterModal = document.getElementById("helpCenterModal");
+        const helpCenterCloseBtn = document.getElementById("helpCenterCloseBtn");
+        const helpSearchInput = document.getElementById("helpSearchInput");
+        const helpSearchClearBtn = document.getElementById("helpSearchClearBtn");
+        const helpAskInput = document.getElementById("helpAskInput");
+        const helpAskBtn = document.getElementById("helpAskBtn");
+        const helpResults = document.getElementById("helpResults");
         const undoBtn = document.getElementById("undoBtn");
         const redoBtn = document.getElementById("redoBtn");
         const saveChangesBtn = document.getElementById("saveChangesBtn");
@@ -5936,6 +6026,78 @@
         let geometryVertexDragState = null;
         let splitPreviewState = null;
         let splitPreviewOverlays = [];
+        const HELP_TOPICS = [
+            {
+                title: "Projects and workspace",
+                keywords: "project workspace recent open create save autosave package dropbox",
+                body: "Create a browser project from File > New Project, reopen recent work from Recent, or import a LalGeo package. Projects store layers, attributes, styles, attachments, map settings, and local autosave metadata."
+            },
+            {
+                title: "Layer list and layer order",
+                keywords: "layers visibility reorder drag move up down top bottom popouts",
+                body: "Open the layer list from View > Layer List. Toggle each layer independently, drag layers to change draw order, or use the three-dot layer menu to move a layer up, down, to top, or to bottom."
+            },
+            {
+                title: "Import layer",
+                keywords: "import shapefile zip shp geojson csv kml kmz gpx api endpoint socrata",
+                body: "Use File > Import Layer to add GIS data. Supported sources include GeoJSON, JSON GeoJSON, KML, KMZ, GPX, CSV, zipped shapefiles, loose shapefile parts selected together, and public API endpoints returning GeoJSON, JSON rows, geometry rows, or CSV."
+            },
+            {
+                title: "API endpoint import",
+                keywords: "api endpoint json geojson csv data calgary socrata cors",
+                body: "Paste a public endpoint in Import Layer. LalGeo fetches the endpoint in the browser, detects GeoJSON, CSV, JSON rows with latitude and longitude, or JSON rows with embedded geometry. The endpoint must allow browser access with CORS."
+            },
+            {
+                title: "Edit tools",
+                keywords: "edit add feature attributes geometry vertices undo redo trace snap split rectangle square",
+                body: "Open Edit Tools from Edit > Open Edit Panel. Start editing, choose a layer, add features, edit attributes, edit geometry, trace visible outlines, snap to vertices or edges, draw rectangles or squares, split geometry, and use undo or redo while editing."
+            },
+            {
+                title: "Feature details and popouts",
+                keywords: "feature details callout popout attributes photos notes read only edit mode",
+                body: "Click a map feature to open Feature Details. Editable layers let you update attributes when edit mode is active. Read-only imported layers show attributes without changing the source geometry."
+            },
+            {
+                title: "Table and fields",
+                keywords: "table fields attributes hide archive selected rows field calculator",
+                body: "Open the table to inspect layer attributes, select rows, show selected or unselected rows, edit table values, manage fields, view archived records, and use field tools where available."
+            },
+            {
+                title: "Layer tools",
+                keywords: "layer tools new layer properties fields zoom style labels color symbol",
+                body: "Open Layer Tools from View > Toolbars. Create layers, edit layer properties, manage fields, zoom to a layer, adjust styles, and configure labels for map features."
+            },
+            {
+                title: "Map search and location",
+                keywords: "search places address my location directions look around street view",
+                body: "Use the search control to find places and addresses. My Location recenters the map on your device location when permission is allowed. Look Around can preview supported streets using Apple Maps coverage."
+            },
+            {
+                title: "Basemap and workspace settings",
+                keywords: "settings basemap standard satellite hybrid time zone remember session quick actions pois",
+                body: "Use View > Settings to change map imagery, show or hide basemap points of interest, choose a time zone, remember your last session, and customize quick actions in the toolbar."
+            },
+            {
+                title: "Share, print, and export",
+                keywords: "share print pdf export copy link report package",
+                body: "Use File > Share Map to copy a share link, Export as PDF for a printable output, Print Map for browser printing, and Download LalGeo project package from the workspace panel to save a portable project archive."
+            },
+            {
+                title: "Dropbox and Data Manager",
+                keywords: "dropbox data manager sync catalog files account projects",
+                body: "The workspace panel can connect Dropbox, open Dropbox projects, and browse project files. Data Manager opens the external data manager route for broader data workflows."
+            },
+            {
+                title: "Mobile and field workflows",
+                keywords: "mobile field inspection survey photos notes work orders forms",
+                body: "LalGeo is designed for field-friendly asset work: collect location updates, inspect assets, attach photos and notes, and keep map records connected to field activity."
+            },
+            {
+                title: "AI help option",
+                keywords: "ai ollama mac mini ai-search chat live agent assistant",
+                body: "The current help center searches local documentation. A next step is to connect it to Ollama on your Mac mini or reuse the existing ai-search approach so the Ask box can generate answers from these docs and project context."
+            }
+        ];
         let editSnapSettings = {
             vertices: true,
             edges: true,
@@ -5959,12 +6121,13 @@
         const WORKSPACE_QUICK_ACTIONS_KEY = "lalgeoWorkspaceQuickActionsV1";
         const WORKSPACE_LAST_LOCATION_KEY = "lalgeoWorkspaceLastLocationV1";
         const isMacPlatform = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || navigator.userAgent || "");
-        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation"];
+        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation", "help"];
         const QUICK_ACTION_BUTTONS = {
             addNew: addSurveyPointBtn,
             undo: undoBtn,
             redo: redoBtn,
-            myLocation: myLocationBtn
+            myLocation: myLocationBtn,
+            help: helpCenterBtn
         };
         let workspaceProjects = [];
         let sidebarVisible = false;
@@ -9846,6 +10009,55 @@
             setProjectStatus("Project package downloaded.", "success");
         }
 
+        function getHelpMatches(query = "") {
+            const terms = String(query || "").toLowerCase().split(/\s+/).filter(Boolean);
+            if (!terms.length) return HELP_TOPICS;
+            return HELP_TOPICS
+                .map((topic) => {
+                    const haystack = `${topic.title} ${topic.keywords} ${topic.body}`.toLowerCase();
+                    const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), 0);
+                    return { topic, score };
+                })
+                .filter((item) => item.score > 0)
+                .sort((a, b) => b.score - a.score)
+                .map((item) => item.topic);
+        }
+
+        function renderHelpTopics(query = "") {
+            if (!helpResults) return;
+            const matches = getHelpMatches(query);
+            helpResults.innerHTML = matches.length
+                ? matches.map((topic) => `
+                    <article class="help-topic-card">
+                        <h4>${escapeHtml(topic.title)}</h4>
+                        <p>${escapeHtml(topic.body)}</p>
+                        <span class="help-keywords">${escapeHtml(topic.keywords)}</span>
+                    </article>
+                `).join("")
+                : `<article class="help-topic-card"><h4>No matching help found</h4><p>Try terms like import, shapefile, layers, editing, API, table, or Dropbox.</p></article>`;
+        }
+
+        function setHelpCenterVisibility(show, query = "") {
+            if (!helpCenterModal) return;
+            helpCenterModal.hidden = !show;
+            if (show) {
+                setToolbarMenuVisibility(false);
+                const nextQuery = query || helpSearchInput?.value || "";
+                if (helpSearchInput) helpSearchInput.value = nextQuery;
+                renderHelpTopics(nextQuery);
+                setTimeout(() => helpSearchInput?.focus(), 20);
+            }
+        }
+
+        function askHelpCenter() {
+            const question = helpAskInput?.value?.trim() || helpSearchInput?.value?.trim() || "";
+            if (helpSearchInput) helpSearchInput.value = question;
+            renderHelpTopics(question);
+            if (question) {
+                setProjectStatus(`Showing help for "${question}".`, "success");
+            }
+        }
+
         function isCalloutOpen() {
             return surveyCallout && surveyCallout.style.display === "block";
         }
@@ -9925,6 +10137,28 @@
             if (button.id === "toggleImportBtn") {
                 event.preventDefault();
                 setLayerImportPanelVisibility(true);
+                return;
+            }
+            if (button.id === "helpCenterBtn" || button.id === "menuFileHelpBtn" || button.id === "menuHelpCenterBtn") {
+                event.preventDefault();
+                setHelpCenterVisibility(true);
+                return;
+            }
+            if (button.id === "helpCenterCloseBtn") {
+                event.preventDefault();
+                setHelpCenterVisibility(false);
+                return;
+            }
+            if (button.id === "helpAskBtn") {
+                event.preventDefault();
+                askHelpCenter();
+                return;
+            }
+            if (button.id === "helpSearchClearBtn") {
+                event.preventDefault();
+                if (helpSearchInput) helpSearchInput.value = "";
+                if (helpAskInput) helpAskInput.value = "";
+                renderHelpTopics("");
                 return;
             }
             if (button.id === "newProjectBtn" || button.id === "drawerNewProjectBtn" || button.id === "emptyCreateProjectBtn") {
@@ -10124,6 +10358,26 @@
                 event.preventDefault();
                 handleApiEndpointImport();
             }
+        });
+        helpCenterBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        menuFileHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        menuHelpCenterBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        helpCenterCloseBtn?.addEventListener("click", () => setHelpCenterVisibility(false));
+        helpSearchInput?.addEventListener("input", () => renderHelpTopics(helpSearchInput.value));
+        helpSearchClearBtn?.addEventListener("click", () => {
+            if (helpSearchInput) helpSearchInput.value = "";
+            if (helpAskInput) helpAskInput.value = "";
+            renderHelpTopics("");
+        });
+        helpAskBtn?.addEventListener("click", askHelpCenter);
+        helpAskInput?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                askHelpCenter();
+            }
+        });
+        helpCenterModal?.addEventListener("click", (event) => {
+            if (event.target === helpCenterModal) setHelpCenterVisibility(false);
         });
 
         projectFileInput.addEventListener("change", async (event) => {
