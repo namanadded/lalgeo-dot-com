@@ -5231,8 +5231,26 @@
             <p class="workspace-panel-muted">Add GIS data to the open project. If no project is open, LalGeo creates one from the imported file.</p>
             <div class="workspace-settings-card" style="margin-top:14px;">
                 <div class="import-section-title">Supported files</div>
-                <p class="workspace-panel-muted" style="margin-bottom:8px;">GeoJSON, JSON GeoJSON, KML, KMZ, GPX, CSV, LalGeo .lal packages, and shapefiles.</p>
+                <p class="workspace-panel-muted" style="margin-bottom:8px;">GeoJSON, JSON GeoJSON, KML, KMZ, GPX, CSV, LalGeo .lal packages, shapefiles, and API endpoints.</p>
                 <p class="workspace-panel-muted" style="margin-bottom:0;">For shapefiles, upload a .zip package or select the matching .shp, .dbf, .shx, .prj, and .cpg files together.</p>
+            </div>
+            <div class="workspace-settings-card" style="margin-top:12px;">
+                <div class="import-section-title">From API endpoint</div>
+                <p class="workspace-panel-muted" style="margin-bottom:10px;">Paste a public endpoint that returns GeoJSON, JSON rows, or CSV. The endpoint must allow browser access.</p>
+                <div class="workspace-field">
+                    <label for="layerImportApiUrl">Endpoint URL</label>
+                    <input id="layerImportApiUrl" class="workspace-text-input" type="url" placeholder="https://data.example.com/api/views/example/query.json">
+                </div>
+                <div class="workspace-field" style="margin-top:10px;">
+                    <label for="layerImportApiFormat">Data format</label>
+                    <select id="layerImportApiFormat" class="workspace-text-input">
+                        <option value="auto">Auto detect</option>
+                        <option value="geojson">GeoJSON</option>
+                        <option value="json">JSON rows</option>
+                        <option value="csv">CSV</option>
+                    </select>
+                </div>
+                <button id="layerImportApiBtn" type="button" class="workspace-secondary-btn" style="margin-top:12px;">Import from endpoint</button>
             </div>
             <div class="workspace-settings-card" style="margin-top:12px;">
                 <div class="import-section-title">What happens on import</div>
@@ -5731,6 +5749,9 @@
         const layerImportPickerBtn = document.getElementById("layerImportPickerBtn");
         const layerImportCancelBtn = document.getElementById("layerImportCancelBtn");
         const layerImportStatus = document.getElementById("layerImportStatus");
+        const layerImportApiUrl = document.getElementById("layerImportApiUrl");
+        const layerImportApiFormat = document.getElementById("layerImportApiFormat");
+        const layerImportApiBtn = document.getElementById("layerImportApiBtn");
         const undoBtn = document.getElementById("undoBtn");
         const redoBtn = document.getElementById("redoBtn");
         const saveChangesBtn = document.getElementById("saveChangesBtn");
@@ -10097,6 +10118,13 @@
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
         layerImportPickerBtn?.addEventListener("click", () => projectFileInput.click());
         layerImportCancelBtn?.addEventListener("click", () => setLayerImportPanelVisibility(false));
+        layerImportApiBtn?.addEventListener("click", handleApiEndpointImport);
+        layerImportApiUrl?.addEventListener("keydown", (event) => {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                handleApiEndpointImport();
+            }
+        });
 
         projectFileInput.addEventListener("change", async (event) => {
             if (!event.target.files.length) return;
@@ -12680,6 +12708,38 @@
             }
         }
 
+        async function handleApiEndpointImport() {
+            const url = layerImportApiUrl?.value?.trim();
+            const format = layerImportApiFormat?.value || "auto";
+            if (!url) {
+                setProjectStatus("Enter an API endpoint URL first.", "error");
+                layerImportApiUrl?.focus();
+                return;
+            }
+            try {
+                new URL(url);
+            } catch {
+                setProjectStatus("Enter a valid API endpoint URL.", "error");
+                layerImportApiUrl?.focus();
+                return;
+            }
+            try {
+                setProjectStatus("Fetching API endpoint...");
+                layerImportApiBtn.disabled = true;
+                const payload = await buildApiEndpointPayload(url, format);
+                if (payload.geospatialLayers?.length) {
+                    await openImportedGeospatialLayers(payload);
+                } else {
+                    await openImportedProject(payload);
+                }
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Unable to import API endpoint.", "error");
+            } finally {
+                layerImportApiBtn.disabled = false;
+            }
+        }
+
         function getImportStartMessage(files) {
             const names = Array.from(files || []).map((file) => file.name || "").join(" ");
             if (/\.(shp|shx|dbf|prj|cpg)\b/i.test(names)) return "Reading shapefile parts and building a map layer...";
@@ -13794,6 +13854,132 @@
                 format,
                 source: { type: "local-import", format, fileName }
             };
+        }
+
+        function guessApiEndpointName(url) {
+            try {
+                const parsed = new URL(url);
+                const parts = parsed.pathname.split("/").filter(Boolean);
+                const last = parts[parts.length - 1] || parsed.hostname;
+                const candidate = /^query\./i.test(last) && parts.length > 1 ? parts[parts.length - 2] : last;
+                return stripExtension(decodeURIComponent(candidate)) || parsed.hostname;
+            } catch {
+                return "API Endpoint";
+            }
+        }
+
+        function detectApiEndpointFormat(url, contentType = "", preferred = "auto") {
+            if (preferred && preferred !== "auto") return preferred;
+            const target = `${url} ${contentType}`.toLowerCase();
+            if (target.includes("geojson") || target.endsWith(".geojson")) return "geojson";
+            if (target.includes("csv") || /\.csv(\?|$)/i.test(url)) return "csv";
+            return "json";
+        }
+
+        function normalizeApiJsonRows(input) {
+            if (Array.isArray(input)) return input;
+            if (Array.isArray(input?.data) && Array.isArray(input?.meta?.view?.columns)) {
+                const columns = input.meta.view.columns.map((column) => column.fieldName || column.name).filter(Boolean);
+                return input.data.map((row) => {
+                    const record = {};
+                    columns.forEach((name, index) => {
+                        record[name] = row?.[index] ?? "";
+                    });
+                    return record;
+                });
+            }
+            if (Array.isArray(input?.features)) {
+                return input.features.map((feature) => ({ ...(feature.properties || {}) }));
+            }
+            if (Array.isArray(input?.results)) return input.results;
+            if (Array.isArray(input?.records)) return input.records;
+            if (Array.isArray(input?.items)) return input.items;
+            return [];
+        }
+
+        function buildCsvPayloadFromRows(rows, { projectName = "API Endpoint", url = "" } = {}) {
+            const records = normalizeApiJsonRows(rows).filter((row) => row && typeof row === "object");
+            if (!records.length) throw new Error("API endpoint returned JSON, but no rows were found.");
+            const headers = Array.from(records.reduce((set, record) => {
+                Object.keys(record || {}).forEach((key) => set.add(key));
+                return set;
+            }, new Set()));
+            const { latKey, lonKey } = findLatLonKeys(records);
+            if (!latKey || !lonKey) {
+                throw new Error("JSON endpoint imported rows, but no latitude/longitude fields were found.");
+            }
+            return {
+                csvText: Papa.unparse({ fields: headers, data: records.map((record) => headers.map((header) => record?.[header] ?? "")) }),
+                projectName,
+                layerName: projectName,
+                images: {},
+                source: { type: "api-endpoint", format: "JSON", url }
+            };
+        }
+
+        function findEmbeddedGeoJsonGeometry(record = {}) {
+            return Object.entries(record || {}).find(([, value]) => isGeoJsonObject(value) && value.type !== "Feature" && value.type !== "FeatureCollection");
+        }
+
+        function buildGeoJsonFromJsonRows(input) {
+            const records = normalizeApiJsonRows(input).filter((row) => row && typeof row === "object");
+            const features = records.flatMap((record) => {
+                const geometryEntry = findEmbeddedGeoJsonGeometry(record);
+                if (!geometryEntry) return [];
+                const [geometryKey, geometry] = geometryEntry;
+                const properties = { ...record };
+                delete properties[geometryKey];
+                return [{ type: "Feature", properties, geometry }];
+            });
+            return features.length ? { type: "FeatureCollection", features } : null;
+        }
+
+        async function buildApiEndpointPayload(url, preferredFormat = "auto") {
+            const response = await fetch(url, { headers: { Accept: "application/geo+json, application/json, text/csv, */*" } });
+            if (!response.ok) {
+                throw new Error(`API endpoint returned ${response.status}.`);
+            }
+            const contentType = response.headers.get("content-type") || "";
+            const format = detectApiEndpointFormat(url, contentType, preferredFormat);
+            const projectName = guessApiEndpointName(url);
+            const text = await response.text();
+            if (!text.trim()) throw new Error("API endpoint returned no data.");
+            if (format === "csv") {
+                return {
+                    csvText: text,
+                    projectName,
+                    layerName: projectName,
+                    images: {},
+                    source: { type: "api-endpoint", format: "CSV", url }
+                };
+            }
+            let parsed;
+            try {
+                parsed = JSON.parse(text);
+            } catch {
+                if (preferredFormat === "auto" && text.includes(",")) {
+                    return {
+                        csvText: text,
+                        projectName,
+                        layerName: projectName,
+                        images: {},
+                        source: { type: "api-endpoint", format: "CSV", url }
+                    };
+                }
+                throw new Error("API endpoint did not return valid JSON or CSV.");
+            }
+            if (format === "geojson" || isGeoJsonObject(parsed)) {
+                const payload = buildGeoJsonPayload(parsed, { projectName, fileName: projectName, format: "API GeoJSON" });
+                payload.source = { type: "api-endpoint", format: "GeoJSON", url };
+                return payload;
+            }
+            const embeddedGeoJson = buildGeoJsonFromJsonRows(parsed);
+            if (embeddedGeoJson) {
+                const payload = buildGeoJsonPayload(embeddedGeoJson, { projectName, fileName: projectName, format: "API JSON geometry" });
+                payload.source = { type: "api-endpoint", format: "JSON geometry", url };
+                return payload;
+            }
+            return buildCsvPayloadFromRows(parsed, { projectName, url });
         }
 
         function parseKmlCoordinates(text = "") {
