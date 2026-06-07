@@ -3471,9 +3471,9 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        min-height: 42px;
-        padding: 0 14px;
-        border-radius: 999px;
+        min-height: 48px;
+        padding: 6px 10px 6px 6px;
+        border-radius: 14px;
         border: 1px solid rgba(255,255,255,0.1);
         background: rgba(255,255,255,0.05);
         color: #eef6fb;
@@ -3481,11 +3481,42 @@
         font-size: 13px;
         font-weight: 600;
     }
+    .style-swatch.active {
+        border-color: #5cc8c0;
+        box-shadow: 0 0 0 2px rgba(92, 200, 192, 0.2);
+    }
     .style-swatch-dot {
-        width: 12px;
-        height: 12px;
+        width: 34px;
+        height: 34px;
         border-radius: 999px;
         box-shadow: 0 0 0 1px rgba(255,255,255,0.18);
+        flex: 0 0 auto;
+    }
+    .style-swatch-text {
+        display: grid;
+        gap: 2px;
+        line-height: 1.15;
+    }
+    .style-swatch-rgb {
+        color: #94a3b8;
+        font-size: 11px;
+        font-weight: 600;
+    }
+    .polygon-opacity-row {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 12px;
+        align-items: center;
+    }
+    .polygon-opacity-row input[type="range"] {
+        width: 100%;
+        accent-color: #5cc8c0;
+    }
+    .polygon-opacity-value {
+        min-width: 54px;
+        text-align: right;
+        color: #64748b;
+        font-weight: 700;
     }
     .workspace-inline-actions {
         display: flex;
@@ -6215,6 +6246,7 @@
             return {
                 symbol_color: "Red",
                 symbol_shape: normalizedGeometry === "point" ? "Dot" : (normalizedGeometry === "line" ? "Plus" : "Circle"),
+                fillOpacity: normalizedGeometry === "polygon" ? 0.6 : undefined,
                 ...overrides
             };
         }
@@ -6393,6 +6425,25 @@
                 purple: "#A142F4"
             };
             return colorMap[normalized] || "#EA4335";
+        }
+
+        function hexToRgbParts(hex = "#EA4335") {
+            const normalized = String(hex || "").replace("#", "").trim();
+            const full = normalized.length === 3
+                ? normalized.split("").map((char) => char + char).join("")
+                : normalized;
+            const value = Number.parseInt(full, 16);
+            if (!Number.isFinite(value)) return { r: 234, g: 67, b: 53 };
+            return {
+                r: (value >> 16) & 255,
+                g: (value >> 8) & 255,
+                b: value & 255
+            };
+        }
+
+        function getSymbolColorRgbLabel(value) {
+            const { r, g, b } = hexToRgbParts(getSymbolColorValue(value));
+            return `RGB ${r}, ${g}, ${b}`;
         }
 
         function getClosedPolygonCoordinates(coords = []) {
@@ -9602,6 +9653,9 @@
             const labelFields = getLabelCandidateFields(layer);
             const labelMode = labelSettings.mode === "expression" ? "expression" : "field";
             const layerPopoutsVisible = layer.popoutsVisible !== false;
+            const isPolygonLayer = normalizeLayerGeometryType(layer.geometryType) === "polygon";
+            const fillOpacity = Math.max(0, Math.min(1, Number(currentDefaults.fillOpacity ?? 0.6)));
+            const transparency = Math.round((1 - fillOpacity) * 100);
             openLayerActionModal({
                 title: "Layer Properties",
                 description: `Set symbol and label behavior for ${layer.name}.`,
@@ -9622,9 +9676,18 @@
                         <div class="workspace-field full">
                             <label>Colour preview</label>
                             <div class="style-swatch-row">
-                                ${(colorField?.options || []).map((option) => `<button type="button" class="style-swatch" data-style-swatch="${escapeHtml(option)}"><span class="style-swatch-dot" style="background:${getSymbolColorValue(option)}"></span>${escapeHtml(option)}</button>`).join("")}
+                                ${(colorField?.options || []).map((option) => `<button type="button" class="style-swatch ${option === currentDefaults.symbol_color ? "active" : ""}" data-style-swatch="${escapeHtml(option)}"><span class="style-swatch-dot" style="background:${getSymbolColorValue(option)}"></span><span class="style-swatch-text"><span>${escapeHtml(option)}</span><span class="style-swatch-rgb">${escapeHtml(getSymbolColorRgbLabel(option))}</span></span></button>`).join("")}
                             </div>
                         </div>
+                        ${isPolygonLayer ? `
+                        <div class="workspace-field full">
+                            <label for="layerPolygonFillOpacity">Polygon transparency</label>
+                            <div class="polygon-opacity-row">
+                                <input id="layerPolygonFillOpacity" class="workspace-text-input" type="range" min="0" max="100" step="1" value="${escapeHtml(String(transparency))}">
+                                <span id="layerPolygonFillOpacityValue" class="polygon-opacity-value">${escapeHtml(String(transparency))}%</span>
+                            </div>
+                        </div>
+                        ` : ""}
                         <div class="workspace-field full">
                             <label for="layerLabelMode">Label type</label>
                             <select id="layerLabelMode" class="workspace-text-input">
@@ -9675,6 +9738,8 @@
                         onClick: () => {
                             const nextColor = document.getElementById("layerStyleColor")?.value?.trim();
                             const nextShape = document.getElementById("layerStyleShape")?.value?.trim();
+                            const nextTransparency = Math.max(0, Math.min(100, Number(document.getElementById("layerPolygonFillOpacity")?.value) || 0));
+                            const nextFillOpacity = 1 - (nextTransparency / 100);
                             const nextLabelMode = document.getElementById("layerLabelMode")?.value === "expression" ? "expression" : "field";
                             const nextLabelField = document.getElementById("layerLabelField")?.value || getDefaultLabelFieldForLayer(layer);
                             const nextExpression = document.getElementById("layerLabelExpression")?.value?.trim() || "";
@@ -9690,7 +9755,8 @@
                             }
                             layer.styleDefaults = {
                                 symbol_color: nextColor,
-                                symbol_shape: nextShape
+                                symbol_shape: nextShape,
+                                ...(isPolygonLayer ? { fillOpacity: nextFillOpacity } : {})
                             };
                             layer.labelSettings = {
                                 mode: nextLabelMode,
@@ -9734,7 +9800,19 @@
                             const color = button.getAttribute("data-style-swatch");
                             const select = document.getElementById("layerStyleColor");
                             if (select && color) select.value = color;
+                            document.querySelectorAll("[data-style-swatch]").forEach((item) => item.classList.toggle("active", item === button));
                         });
+                    });
+                    document.getElementById("layerStyleColor")?.addEventListener("change", (event) => {
+                        const selected = event.target?.value || "";
+                        document.querySelectorAll("[data-style-swatch]").forEach((button) => {
+                            button.classList.toggle("active", button.getAttribute("data-style-swatch") === selected);
+                        });
+                    });
+                    const opacityInput = document.getElementById("layerPolygonFillOpacity");
+                    const opacityValue = document.getElementById("layerPolygonFillOpacityValue");
+                    opacityInput?.addEventListener("input", () => {
+                        if (opacityValue) opacityValue.textContent = `${opacityInput.value}%`;
                     });
                 }
             });
@@ -14834,8 +14912,9 @@
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
                 });
             } else if (geometryType === "polygon") {
+                const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
                 overlay = new mapkit.PolygonOverlay([getClosedPolygonCoordinates(coords)], {
-                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity: 0.6 })
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
                 });
             }
             if (overlay) {
