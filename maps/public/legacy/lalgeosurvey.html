@@ -2891,9 +2891,10 @@
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        gap: 4px;
         align-self: center;
         flex: 0 0 auto;
-        height: 24px;
+        height: auto;
         margin-bottom: 0;
     }
     .data-row-name-cell {
@@ -3039,7 +3040,46 @@
     }
     .workspace-layer-card[draggable="true"],
     .layer-pane-row[draggable="true"] {
+        cursor: default;
+    }
+    .layer-drag-handle {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 30px;
+        min-width: 30px;
+        height: 34px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        border-radius: 10px;
+        background: rgba(255,255,255,0.7);
+        color: #64748b;
         cursor: grab;
+        font-weight: 800;
+        line-height: 1;
+        user-select: none;
+        touch-action: none;
+    }
+    .layer-drag-handle:active {
+        cursor: grabbing;
+    }
+    .layer-order-controls {
+        display: inline-flex;
+        gap: 4px;
+    }
+    .layer-order-btn {
+        width: 30px;
+        min-width: 30px;
+        height: 30px;
+        border-radius: 999px;
+        border: 1px solid rgba(148, 163, 184, 0.35);
+        background: #fff;
+        color: #475569;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .layer-order-btn:disabled {
+        opacity: 0.38;
+        cursor: not-allowed;
     }
     .workspace-layer-card.layer-dragging,
     .layer-pane-row.layer-dragging {
@@ -5532,8 +5572,8 @@
     </div>
     <div id="dropZone" class="drop-zone">
         <div class="drop-zone-inner">
-            <h2>Drop a project file to import</h2>
-            <p>Drop a LalGeo project .zip/.lal file or folder to load layers, photos, and responses.</p>
+            <h2>Drop files to add map layers</h2>
+            <p>Import GeoJSON, CSV, KML, GPX, shapefile zips, LalGeo packages, or folders. To change map draw order, open Layers and drag the handle or use ↑ / ↓.</p>
         </div>
     </div>
     <div id="imageModal">
@@ -7638,9 +7678,10 @@
                 if (!activeProjectRecord?.layers?.length) {
                     layerList.innerHTML = `<div class="workspace-settings-card">Create or open a project to manage layers.</div>`;
                 } else {
-                    layerList.innerHTML = activeProjectRecord.layers.map((item) => `
+                    layerList.innerHTML = activeProjectRecord.layers.map((item, index, list) => `
                         <div class="workspace-layer-card ${item.id === layer?.id ? "active" : ""}" data-layer-id="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <div class="workspace-layer-header">
+                                <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
                                 <div>
                                     <div class="workspace-layer-title">${escapeHtml(item.name)}</div>
                                     <div class="workspace-layer-meta">
@@ -7653,6 +7694,10 @@
                             <div class="workspace-inline-actions">
                                 <button type="button" class="mini-btn primary" data-open-layer="${escapeHtml(item.id)}" aria-label="${escapeHtml(getLayerTableActionLabel(item))} for ${escapeHtml(item.name)}">${escapeHtml(getLayerTableActionLabel(item))}</button>
                                 <button type="button" class="mini-btn" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer">${item.visible === false ? "Show" : "Hide"}</button>
+                                <span class="layer-order-controls" aria-label="Layer order controls">
+                                    <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
+                                    <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-down" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} down">↓</button>
+                                </span>
                                 <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
                             </div>
                         </div>
@@ -7678,11 +7723,15 @@
             const layer = getActiveLayerRecord();
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
-                    ${(activeProjectRecord.layers || []).map((item) => `
+                    <p class="layer-pane-helper">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
+                    ${(activeProjectRecord.layers || []).map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
+                            <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
                             <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
                             <div class="layer-pane-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
                             <div class="layer-pane-actions">
+                                <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
+                                <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-down" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} down">↓</button>
                                 <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
                             </div>
                         </div>
@@ -9921,6 +9970,10 @@
             listElement?.addEventListener("dragstart", (event) => {
                 const row = getLayerDragRow(event.target);
                 const layerId = getLayerIdFromDragRow(row);
+                if (!event.target?.closest?.("[data-layer-drag-handle]")) {
+                    event.preventDefault();
+                    return;
+                }
                 if (!row || !layerId) return;
                 draggingLayerId = layerId;
                 row.classList.add("layer-dragging");
@@ -11082,6 +11135,13 @@
             }
         });
         layerList?.addEventListener("click", (event) => {
+            const moveButton = event.target.closest("[data-layer-move]");
+            if (moveButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                moveLayerByAction(moveButton.dataset.layerMove, moveButton.dataset.layerMoveAction);
+                return;
+            }
             const actionButton = event.target.closest("[data-layer-actions]");
             if (actionButton) {
                 event.preventDefault();
@@ -11158,6 +11218,13 @@
         bindLayerReorderList(layerList);
         bindLayerReorderList(sidebarContent);
         sidebarContent?.addEventListener("click", (event) => {
+            const moveLayerButton = event.target.closest("[data-layer-move]");
+            if (moveLayerButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                moveLayerByAction(moveLayerButton.dataset.layerMove, moveLayerButton.dataset.layerMoveAction);
+                return;
+            }
             const layerActionButton = event.target.closest("[data-layer-actions]");
             if (layerActionButton) {
                 event.preventDefault();
@@ -11371,7 +11438,7 @@
 
         ["dragenter", "dragover"].forEach(evt =>
             document.addEventListener(evt, (e) => {
-                if (isReorderingFields) return;
+                if (isReorderingFields || draggingLayerId) return;
                 e.preventDefault();
                 dropZone.classList.add("visible");
             })
@@ -11379,7 +11446,7 @@
 
         ["dragleave", "drop"].forEach(evt =>
             document.addEventListener(evt, (e) => {
-                if (isReorderingFields) return;
+                if (isReorderingFields || draggingLayerId) return;
                 if (e.target === dropZone || e.target === document) {
                     dropZone.classList.remove("visible");
                 }
