@@ -544,7 +544,8 @@
     #toolbarDockStrip[hidden] {
         display: none;
     }
-    .measurement-panel {
+    .measurement-panel,
+    .advanced-gis-panel {
         position: absolute;
         right: 18px;
         top: 108px;
@@ -557,7 +558,14 @@
         color: #374151;
         box-shadow: 0 18px 46px rgba(15, 23, 42, 0.22);
     }
-    .measurement-panel[hidden] {
+    .advanced-gis-panel {
+        left: auto;
+        width: min(420px, calc(100vw - 28px));
+        max-height: min(680px, calc(100vh - 128px));
+        overflow: auto;
+    }
+    .measurement-panel[hidden],
+    .advanced-gis-panel[hidden] {
         display: none;
     }
     .measurement-panel-header,
@@ -575,6 +583,80 @@
         font-size: 13px;
         font-weight: 900;
         color: #111827;
+    }
+    .advanced-gis-panel .measurement-panel-title {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+    .advanced-gis-badge {
+        display: inline-flex;
+        align-items: center;
+        height: 22px;
+        padding: 0 8px;
+        border-radius: 999px;
+        border: 1px solid #d1d5db;
+        background: #f9fafb;
+        color: #4b5563;
+        font-size: 11px;
+        font-weight: 800;
+    }
+    .advanced-gis-section {
+        padding: 10px 0;
+        border-top: 1px solid #e5e7eb;
+    }
+    .advanced-gis-section:first-of-type {
+        border-top: 0;
+        padding-top: 0;
+    }
+    .advanced-gis-section h4 {
+        margin: 0 0 8px;
+        color: #111827;
+        font-size: 12px;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+    }
+    .advanced-gis-grid {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .advanced-gis-grid button {
+        min-height: 42px;
+        border-radius: 8px;
+        border: 1px solid #d1d5db;
+        background: #fff;
+        color: #374151;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 2px;
+        cursor: pointer;
+        font-size: 11px;
+        font-weight: 800;
+    }
+    .advanced-gis-grid button:hover,
+    .advanced-gis-grid button:focus-visible {
+        outline: none;
+        border-color: rgba(20, 184, 166, 0.55);
+        background: #f0fdfa;
+        color: #0f766e;
+    }
+    .advanced-gis-grid button:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+    .advanced-gis-icon {
+        font-size: 16px;
+        line-height: 1;
+    }
+    .advanced-gis-note {
+        margin: 8px 0 0;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
     }
     .measurement-panel-row {
         margin-bottom: 10px;
@@ -1049,6 +1131,17 @@
         .edit-selected-badge {
             height: 32px;
             line-height: 30px;
+        }
+        .advanced-gis-panel {
+            top: 88px;
+            right: 10px;
+            width: calc(100vw - 20px);
+        }
+        .advanced-gis-grid {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+        .advanced-gis-grid button {
+            min-height: 48px;
         }
     }
     .edit-panel-field .legacy-hidden,
@@ -5140,6 +5233,10 @@
                     <span class="quick-action-icon" aria-hidden="true">▱</span>
                     <span class="quick-action-label">Measure</span>
                 </button>
+                <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" title="Advanced GIS">
+                    <span class="quick-action-icon" aria-hidden="true">⌬</span>
+                    <span class="quick-action-label">GIS</span>
+                </button>
                 <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
                     <span class="quick-action-icon" aria-hidden="true">?</span>
                     <span class="quick-action-label">Help</span>
@@ -5181,6 +5278,60 @@
             <button id="measurementUndoPointBtn" type="button">Undo point</button>
             <button id="measurementFinishBtn" type="button" class="primary">Finish</button>
             <button id="measurementClearBtn" type="button">Clear</button>
+        </div>
+    </div>
+    <div id="advancedGisPanel" class="advanced-gis-panel" hidden aria-label="Advanced GIS tools">
+        <div class="measurement-panel-header">
+            <span class="measurement-panel-title">Advanced GIS <span id="advancedGisLayerBadge" class="advanced-gis-badge">No layer</span></span>
+            <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close advanced GIS tools">×</button>
+        </div>
+        <div class="advanced-gis-section">
+            <h4>Export</h4>
+            <div class="advanced-gis-grid">
+                <button type="button" data-gis-tool="export-layer"><span class="advanced-gis-icon">⇩</span><span>Layer GeoJSON</span></button>
+                <button type="button" data-gis-tool="export-selected"><span class="advanced-gis-icon">◫</span><span>Selected</span></button>
+                <button type="button" data-gis-tool="export-csv"><span class="advanced-gis-icon">▤</span><span>Layer CSV</span></button>
+            </div>
+        </div>
+        <div class="advanced-gis-section">
+            <h4>Selection</h4>
+            <div class="advanced-gis-grid">
+                <button type="button" data-gis-tool="select-all"><span class="advanced-gis-icon">☑</span><span>All</span></button>
+                <button type="button" data-gis-tool="select-visible"><span class="advanced-gis-icon">▣</span><span>Visible</span></button>
+                <button type="button" data-gis-tool="select-attribute"><span class="advanced-gis-icon">ƒ</span><span>By Field</span></button>
+                <button type="button" data-gis-tool="select-invert"><span class="advanced-gis-icon">⇄</span><span>Invert</span></button>
+                <button type="button" data-gis-tool="select-clear"><span class="advanced-gis-icon">⊘</span><span>Clear</span></button>
+                <button type="button" data-gis-tool="copy-geometry"><span class="advanced-gis-icon">⧉</span><span>Copy Coords</span></button>
+            </div>
+        </div>
+        <div class="advanced-gis-section">
+            <h4>Geometry</h4>
+            <div class="advanced-gis-grid">
+                <button type="button" data-gis-tool="buffer"><span class="advanced-gis-icon">◎</span><span>Buffer</span></button>
+                <button type="button" data-gis-tool="merge"><span class="advanced-gis-icon">⧓</span><span>Merge</span></button>
+                <button type="button" data-gis-tool="duplicate"><span class="advanced-gis-icon">⧉</span><span>Duplicate</span></button>
+                <button type="button" data-gis-tool="move-layer"><span class="advanced-gis-icon">⇢</span><span>Move Layer</span></button>
+                <button type="button" data-gis-tool="simplify"><span class="advanced-gis-icon">⌁</span><span>Simplify</span></button>
+                <button type="button" data-gis-tool="densify"><span class="advanced-gis-icon">••</span><span>Densify</span></button>
+            </div>
+        </div>
+        <div class="advanced-gis-section">
+            <h4>Precision</h4>
+            <div class="advanced-gis-grid">
+                <button type="button" data-gis-tool="snap-settings"><span class="advanced-gis-icon">⌖</span><span>Snapping</span></button>
+                <button type="button" data-gis-tool="bearing"><span class="advanced-gis-icon">⎋</span><span>Bearing</span></button>
+                <button type="button" data-gis-tool="topology"><span class="advanced-gis-icon">△</span><span>Validate</span></button>
+            </div>
+        </div>
+        <div class="advanced-gis-section">
+            <h4>Presentation</h4>
+            <div class="advanced-gis-grid">
+                <button type="button" data-gis-tool="style-field"><span class="advanced-gis-icon">◐</span><span>Style Field</span></button>
+                <button type="button" data-gis-tool="labels"><span class="advanced-gis-icon">Aa</span><span>Labels</span></button>
+                <button type="button" data-gis-tool="photo-report"><span class="advanced-gis-icon">⌑</span><span>Photo QA</span></button>
+                <button type="button" data-gis-tool="offline-report"><span class="advanced-gis-icon">▧</span><span>Offline QA</span></button>
+            </div>
+            <p class="advanced-gis-note">Tools apply to the active layer and selected table rows where selection is relevant.</p>
         </div>
     </div>
     <div id="settingsPanel" hidden>
@@ -5870,6 +6021,10 @@
         const measurementUndoPointBtn = document.getElementById("measurementUndoPointBtn");
         const measurementFinishBtn = document.getElementById("measurementFinishBtn");
         const measurementClearBtn = document.getElementById("measurementClearBtn");
+        const advancedGisBtn = document.getElementById("advancedGisBtn");
+        const advancedGisPanel = document.getElementById("advancedGisPanel");
+        const advancedGisCloseBtn = document.getElementById("advancedGisCloseBtn");
+        const advancedGisLayerBadge = document.getElementById("advancedGisLayerBadge");
         const newProjectBtn = document.getElementById("newProjectBtn");
         const openProjectBtn = document.getElementById("openProjectBtn");
         const exportProjectBtn = document.getElementById("exportProjectBtn");
@@ -6326,7 +6481,9 @@
         let editSnapSettings = {
             vertices: true,
             edges: true,
-            polygonEdges: true
+            polygonEdges: true,
+            activeLayerOnly: false,
+            tolerancePx: 14
         };
         let isReorderingFields = false;
         let pendingNewAnnotation = null;
@@ -8171,6 +8328,7 @@
             editFloatingPanel?.classList.toggle("compact", true);
             menuToggleEditToolbarBtn?.querySelector("span") && (menuToggleEditToolbarBtn.querySelector("span").textContent = `${editFloatingPanel && !editFloatingPanel.hidden ? "✓ " : ""}Edit Tools`);
             menuToggleLayerToolbarBtn?.querySelector("span") && (menuToggleLayerToolbarBtn.querySelector("span").textContent = `${layerToolsPanel && !layerToolsPanel.hidden ? "✓ " : ""}Layer Tools`);
+            updateAdvancedGisPanelState();
         }
 
         function setEditPanelVisibility(show, { layerId = null } = {}) {
@@ -10294,6 +10452,618 @@
             setProjectStatus("Project package downloaded.", "success");
         }
 
+        function setAdvancedGisVisible(show) {
+            if (!advancedGisPanel) return;
+            advancedGisPanel.hidden = !show;
+            advancedGisBtn?.classList.toggle("active", Boolean(show));
+            advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
+            updateAdvancedGisPanelState();
+        }
+
+        function updateAdvancedGisPanelState() {
+            const layer = getActiveLayerRecord();
+            if (advancedGisLayerBadge) {
+                const count = selectedTableRows?.size || 0;
+                advancedGisLayerBadge.textContent = layer
+                    ? `${layer.name} · ${normalizeLayerGeometryType(layer.geometryType)} · ${count} selected`
+                    : "No layer";
+            }
+            const hasLayer = Boolean(layer);
+            advancedGisPanel?.querySelectorAll("[data-gis-tool]").forEach((button) => {
+                button.disabled = !hasLayer && !["offline-report"].includes(button.dataset.gisTool);
+            });
+        }
+
+        function downloadTextFile(filename, text, type = "application/json") {
+            const blob = new Blob([text], { type });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+        }
+
+        function plainCoordsFromGeometry(geometry) {
+            if (!geometry) return [];
+            if (geometry.type === "Point") return [{ lat: geometry.lat, lng: geometry.lng }].filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng));
+            const raw = geometry.type === "Polygon" ? (geometry.rings?.[0] || []) : (geometry.coordinates || []);
+            return raw.filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng)).map((coord) => ({ lat: coord.lat, lng: coord.lng }));
+        }
+
+        function geometryToGeoJson(geometry) {
+            if (!geometry) return null;
+            if (geometry.type === "Point") return { type: "Point", coordinates: [geometry.lng, geometry.lat] };
+            if (geometry.type === "LineString") {
+                return { type: "LineString", coordinates: plainCoordsFromGeometry(geometry).map((coord) => [coord.lng, coord.lat]) };
+            }
+            if (geometry.type === "Polygon") {
+                const ring = plainCoordsFromGeometry(geometry);
+                if (ring.length && (ring[0].lat !== ring[ring.length - 1].lat || ring[0].lng !== ring[ring.length - 1].lng)) {
+                    ring.push({ ...ring[0] });
+                }
+                return { type: "Polygon", coordinates: [ring.map((coord) => [coord.lng, coord.lat])] };
+            }
+            return null;
+        }
+
+        function featureToGeoJsonFeature(feature) {
+            return {
+                type: "Feature",
+                id: feature.id,
+                properties: { ...(feature.attributes || {}) },
+                geometry: geometryToGeoJson(feature.geometry)
+            };
+        }
+
+        function layerToGeoJson(layer, indexes = null) {
+            const selected = Array.isArray(indexes) ? new Set(indexes) : null;
+            return {
+                type: "FeatureCollection",
+                name: layer?.name || "Layer",
+                features: (layer?.features || [])
+                    .filter((feature, index) => !selected || selected.has(index))
+                    .map(featureToGeoJsonFeature)
+                    .filter((feature) => feature.geometry)
+            };
+        }
+
+        function getActiveSelectionIndexes({ fallbackAll = false } = {}) {
+            const layer = getActiveLayerRecord();
+            const total = layer?.features?.length || 0;
+            const selected = Array.from(selectedTableRows || []).filter((index) => index >= 0 && index < total).sort((a, b) => a - b);
+            if (selected.length || !fallbackAll) return selected;
+            return Array.from({ length: total }, (_, index) => index);
+        }
+
+        function exportActiveLayerGeoJson() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return setProjectStatus("Open a layer before exporting.", "error");
+            downloadTextFile(`${layer.name || "layer"}.geojson`, JSON.stringify(layerToGeoJson(layer), null, 2));
+            setProjectStatus(`Exported ${layer.name} as GeoJSON.`, "success");
+        }
+
+        function exportSelectedGeoJson() {
+            const layer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes();
+            if (!layer || !indexes.length) return setProjectStatus("Select features before exporting selected GeoJSON.", "error");
+            downloadTextFile(`${layer.name || "layer"}-selected.geojson`, JSON.stringify(layerToGeoJson(layer, indexes), null, 2));
+            setProjectStatus(`Exported ${indexes.length} selected feature${indexes.length === 1 ? "" : "s"}.`, "success");
+        }
+
+        function exportActiveLayerCsv() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return setProjectStatus("Open a layer before exporting CSV.", "error");
+            const parsed = buildParsedFromLayer(layer);
+            const rows = (parsed.records || []).map((record) => parsed.headers.map((header) => record?.[header] ?? ""));
+            downloadTextFile(`${layer.name || "layer"}.csv`, Papa.unparse({ fields: parsed.headers, data: rows }), "text/csv");
+            setProjectStatus(`Exported ${layer.name} as CSV.`, "success");
+        }
+
+        function openGeospatialImportReview(payload) {
+            const layers = payload?.geospatialLayers || [];
+            if (!layers.length) return openImportedProject(payload);
+            openLayerActionModal({
+                title: "Review Import",
+                description: "Confirm the layers before adding them to the project.",
+                bodyHtml: `
+                    <div class="layer-modal-message">${escapeHtml(layers.length)} geospatial layer${layers.length === 1 ? "" : "s"} detected.</div>
+                    <div class="workspace-settings-card">
+                        ${layers.map((layer) => `
+                            <div class="workspace-sidebar-row">
+                                <div>
+                                    <h5>${escapeHtml(layer.name || "Imported layer")}</h5>
+                                    <p>${escapeHtml(normalizeLayerGeometryType(layer.geometryType || "point"))} · ${(layer.features || []).length} features · ${(layer.schema || []).length} fields</p>
+                                </div>
+                            </div>
+                        `).join("")}
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Import",
+                        primary: true,
+                        onClick: async () => {
+                            await openImportedGeospatialLayers(payload);
+                            return true;
+                        }
+                    }
+                ]
+            });
+        }
+
+        function selectVisibleFeatures() {
+            const layer = getActiveLayerRecord();
+            if (!layer || !map?.region) return setProjectStatus("Open a map layer before selecting visible features.", "error");
+            const center = map.region.center;
+            const span = map.region.span;
+            const minLat = center.latitude - (span.latitudeDelta || 0) / 2;
+            const maxLat = center.latitude + (span.latitudeDelta || 0) / 2;
+            const minLng = center.longitude - (span.longitudeDelta || 0) / 2;
+            const maxLng = center.longitude + (span.longitudeDelta || 0) / 2;
+            selectedTableRows = new Set((layer.features || []).map((feature, index) => {
+                const coord = getFeatureRepresentativeCoordinate(feature);
+                if (!coord) return null;
+                return coord.latitude >= minLat && coord.latitude <= maxLat && coord.longitude >= minLng && coord.longitude <= maxLng ? index : null;
+            }).filter(Number.isInteger));
+            lastSelectedTableRow = selectedTableRows.size ? Math.max(...selectedTableRows) : null;
+            updateSurveyTable();
+            refreshAnnotationStyles();
+            updateAdvancedGisPanelState();
+            setProjectStatus(`Selected ${selectedTableRows.size} visible feature${selectedTableRows.size === 1 ? "" : "s"}.`, "success");
+        }
+
+        function invertFeatureSelection() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return;
+            selectedTableRows = new Set((layer.features || []).map((_, index) => index).filter((index) => !selectedTableRows.has(index)));
+            lastSelectedTableRow = selectedTableRows.size ? Math.max(...selectedTableRows) : null;
+            updateSurveyTable();
+            refreshAnnotationStyles();
+            updateAdvancedGisPanelState();
+            setProjectStatus(`Inverted selection: ${selectedTableRows.size} selected.`, "success");
+        }
+
+        function selectFeaturesByAttribute() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return;
+            const fields = (layer.schema || []).map((field) => field.name).filter(Boolean);
+            const field = prompt(`Field to search:\n${fields.join(", ")}`, fields[0] || "");
+            if (!field) return;
+            const value = prompt(`Value to match in ${field}:`, "");
+            if (value === null) return;
+            const needle = String(value).toLowerCase();
+            selectedTableRows = new Set((layer.features || []).map((feature, index) => (
+                String(feature.attributes?.[field] ?? "").toLowerCase().includes(needle) ? index : null
+            )).filter(Number.isInteger));
+            lastSelectedTableRow = selectedTableRows.size ? Math.max(...selectedTableRows) : null;
+            updateSurveyTable();
+            refreshAnnotationStyles();
+            updateAdvancedGisPanelState();
+            setProjectStatus(`Selected ${selectedTableRows.size} feature${selectedTableRows.size === 1 ? "" : "s"} by ${field}.`, "success");
+        }
+
+        function commitLayerFeatureChanges(layer, message = "Layer updated.") {
+            if (!layer) return;
+            layer.parsed = buildParsedFromLayer(layer);
+            layer.fields = [...layer.parsed.headers];
+            if (layer.id === activeLayerId) {
+                currentSurveyData = layer.parsed;
+                rebuildPointIndexes(currentSurveyData);
+            }
+            markActiveProjectUpdated();
+            scheduleLocalAutosave();
+            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            updateSurveyTable();
+            updateAdvancedGisPanelState();
+            setProjectStatus(message, "success");
+        }
+
+        function createBufferGeometry(feature, radiusMeters = 10, segments = 48) {
+            const center = getFeatureRepresentativeCoordinate(feature);
+            if (!center) return null;
+            const latRad = center.latitude * Math.PI / 180;
+            const metersPerDegreeLat = 111320;
+            const metersPerDegreeLng = Math.max(1, 111320 * Math.cos(latRad));
+            const vertices = Array.from({ length: segments }, (_, index) => {
+                const angle = (Math.PI * 2 * index) / segments;
+                return {
+                    lat: center.latitude + (Math.sin(angle) * radiusMeters) / metersPerDegreeLat,
+                    lng: center.longitude + (Math.cos(angle) * radiusMeters) / metersPerDegreeLng
+                };
+            });
+            return createPolygonGeometry(vertices);
+        }
+
+        function bufferSelectedFeatures() {
+            const sourceLayer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes();
+            if (!sourceLayer || !indexes.length) return setProjectStatus("Select features before creating buffers.", "error");
+            const radius = Number(prompt("Buffer radius in meters:", "10"));
+            if (!Number.isFinite(radius) || radius <= 0) return;
+            const bufferLayer = ensureLayerStructure({
+                id: generateWorkspaceId("layer"),
+                name: `${sourceLayer.name || "Layer"} buffers`,
+                geometryType: "polygon",
+                schema: getDefaultLayerSchema("polygon"),
+                styleDefaults: getDefaultLayerStyleDefaults("polygon", { symbol_color: getNextLayerSymbolColor() }),
+                visible: true,
+                features: []
+            });
+            indexes.forEach((index) => {
+                const source = sourceLayer.features[index];
+                const geometry = createBufferGeometry(source, radius);
+                if (!geometry) return;
+                const featureId = generateSurveyPointId();
+                bufferLayer.features.push({
+                    id: featureId,
+                    geometry,
+                    attributes: {
+                        ID: featureId,
+                        Date: new Date().toISOString(),
+                        TimeZone: getProjectTimeZone(),
+                        symbol_color: bufferLayer.styleDefaults.symbol_color,
+                        symbol_shape: "Circle"
+                    },
+                    version: 1
+                });
+            });
+            bufferLayer.parsed = buildParsedFromLayer(bufferLayer);
+            bufferLayer.fields = [...bufferLayer.parsed.headers];
+            activeProjectRecord.layers.push(bufferLayer);
+            activeProjectRecord.activeLayerId = bufferLayer.id;
+            activeLayerId = bufferLayer.id;
+            commitLayerFeatureChanges(bufferLayer, `Created ${bufferLayer.features.length} buffer polygon${bufferLayer.features.length === 1 ? "" : "s"}.`);
+        }
+
+        function convexHull(vertices = []) {
+            const points = vertices
+                .filter((vertex) => Number.isFinite(vertex?.lat) && Number.isFinite(vertex?.lng))
+                .sort((a, b) => a.lng === b.lng ? a.lat - b.lat : a.lng - b.lng);
+            if (points.length <= 3) return points;
+            const cross = (o, a, b) => (a.lng - o.lng) * (b.lat - o.lat) - (a.lat - o.lat) * (b.lng - o.lng);
+            const lower = [];
+            points.forEach((point) => {
+                while (lower.length >= 2 && cross(lower[lower.length - 2], lower[lower.length - 1], point) <= 0) lower.pop();
+                lower.push(point);
+            });
+            const upper = [];
+            [...points].reverse().forEach((point) => {
+                while (upper.length >= 2 && cross(upper[upper.length - 2], upper[upper.length - 1], point) <= 0) upper.pop();
+                upper.push(point);
+            });
+            upper.pop();
+            lower.pop();
+            return lower.concat(upper);
+        }
+
+        function mergeSelectedFeatures() {
+            const layer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes();
+            if (!layer || indexes.length < 2) return setProjectStatus("Select at least two features to merge.", "error");
+            const geometryType = normalizeLayerGeometryType(layer.geometryType || "point");
+            if (geometryType === "point") return setProjectStatus("Merge is available for lines and polygons.", "error");
+            const selected = indexes.map((index) => layer.features[index]).filter(Boolean);
+            const mergedGeometry = geometryType === "line"
+                ? createLineGeometry(selected.flatMap((feature) => plainCoordsFromGeometry(feature.geometry)))
+                : createPolygonGeometry(convexHull(selected.flatMap((feature) => plainCoordsFromGeometry(feature.geometry))));
+            if (!mergedGeometry) return;
+            const keepIndex = indexes[0];
+            layer.features[keepIndex].geometry = mergedGeometry;
+            layer.features[keepIndex].attributes = { ...layer.features[keepIndex].attributes, Merged_Count: selected.length };
+            if (!layer.schema.some((field) => field.name === "Merged_Count")) layer.schema.push({ name: "Merged_Count", type: "number" });
+            layer.features = layer.features.filter((_, index) => !indexes.slice(1).includes(index));
+            selectedTableRows = new Set([keepIndex]);
+            commitLayerFeatureChanges(layer, `Merged ${selected.length} ${geometryType} features.`);
+        }
+
+        function duplicateSelectedFeatures() {
+            const layer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes();
+            if (!layer || !indexes.length) return setProjectStatus("Select features to duplicate.", "error");
+            indexes.forEach((index) => {
+                const source = layer.features[index];
+                if (!source) return;
+                const cloneId = generateSurveyPointId();
+                const clone = {
+                    id: cloneId,
+                    geometry: cloneFeatureGeometry(source.geometry),
+                    attributes: { ...(source.attributes || {}), ID: cloneId },
+                    version: 1
+                };
+                const coords = plainCoordsFromGeometry(clone.geometry);
+                const offset = 0.00002;
+                if (clone.geometry.type === "Point") {
+                    clone.geometry.lat += offset;
+                    clone.geometry.lng += offset;
+                } else if (clone.geometry.type === "LineString") {
+                    clone.geometry.coordinates = coords.map((coord) => ({ lat: coord.lat + offset, lng: coord.lng + offset }));
+                } else if (clone.geometry.type === "Polygon") {
+                    clone.geometry.rings = [coords.map((coord) => ({ lat: coord.lat + offset, lng: coord.lng + offset }))];
+                }
+                layer.features.push(clone);
+            });
+            selectedTableRows = new Set(layer.features.map((_, index) => index).slice(-indexes.length));
+            commitLayerFeatureChanges(layer, `Duplicated ${indexes.length} feature${indexes.length === 1 ? "" : "s"}.`);
+        }
+
+        function moveSelectedFeaturesToLayer() {
+            const sourceLayer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes();
+            if (!sourceLayer || !indexes.length) return setProjectStatus("Select features to move.", "error");
+            const compatible = (activeProjectRecord.layers || []).filter((layer) => layer.id !== sourceLayer.id && normalizeLayerGeometryType(layer.geometryType) === normalizeLayerGeometryType(sourceLayer.geometryType));
+            if (!compatible.length) return setProjectStatus("Create another layer with the same geometry type first.", "error");
+            const names = compatible.map((layer, index) => `${index + 1}. ${layer.name}`).join("\n");
+            const choice = Number(prompt(`Move selected features to:\n${names}`, "1"));
+            const targetLayer = compatible[choice - 1];
+            if (!targetLayer) return;
+            const moving = indexes.map((index) => sourceLayer.features[index]).filter(Boolean);
+            targetLayer.features = targetLayer.features || [];
+            targetLayer.features.push(...moving);
+            sourceLayer.features = sourceLayer.features.filter((_, index) => !indexes.includes(index));
+            selectedTableRows = new Set();
+            targetLayer.parsed = buildParsedFromLayer(targetLayer);
+            targetLayer.fields = [...targetLayer.parsed.headers];
+            commitLayerFeatureChanges(sourceLayer, `Moved ${moving.length} feature${moving.length === 1 ? "" : "s"} to ${targetLayer.name}.`);
+        }
+
+        function configureSnapSettings() {
+            const tolerance = Number(prompt("Snap tolerance in screen pixels:", String(editSnapSettings.tolerancePx || 14)));
+            if (!Number.isFinite(tolerance) || tolerance <= 0) return;
+            editSnapSettings.tolerancePx = Math.max(4, Math.min(64, tolerance));
+            editSnapSettings.activeLayerOnly = confirm("Snap only to the active layer? Choose Cancel to snap to all visible layers.");
+            syncEditPanelState();
+            setProjectStatus(`Snapping set to ${editSnapSettings.tolerancePx}px, ${editSnapSettings.activeLayerOnly ? "active layer only" : "all visible layers"}.`, "success");
+        }
+
+        function copySelectedGeometryCoordinates() {
+            const layer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes();
+            if (!layer || !indexes.length) return setProjectStatus("Select features before copying coordinates.", "error");
+            const text = indexes.map((index) => {
+                const feature = layer.features[index];
+                return `# ${feature?.id || index}\n${plainCoordsFromGeometry(feature?.geometry).map((coord) => `${coord.lat.toFixed(7)}, ${coord.lng.toFixed(7)}`).join("\n")}`;
+            }).join("\n\n");
+            navigator.clipboard?.writeText(text).then(() => {
+                setProjectStatus("Copied selected geometry coordinates.", "success");
+            }).catch(() => {
+                downloadTextFile("selected-coordinates.txt", text, "text/plain");
+                setProjectStatus("Clipboard unavailable. Downloaded coordinates instead.", "success");
+            });
+        }
+
+        function destinationCoordinate(start, bearingDegrees, distanceMeters) {
+            const radius = 6371008.8;
+            const bearing = bearingDegrees * Math.PI / 180;
+            const angular = distanceMeters / radius;
+            const lat1 = start.latitude * Math.PI / 180;
+            const lon1 = start.longitude * Math.PI / 180;
+            const lat2 = Math.asin(Math.sin(lat1) * Math.cos(angular) + Math.cos(lat1) * Math.sin(angular) * Math.cos(bearing));
+            const lon2 = lon1 + Math.atan2(Math.sin(bearing) * Math.sin(angular) * Math.cos(lat1), Math.cos(angular) - Math.sin(lat1) * Math.sin(lat2));
+            return new mapkit.Coordinate(lat2 * 180 / Math.PI, lon2 * 180 / Math.PI);
+        }
+
+        function createBearingLine() {
+            const layer = getActiveLayerRecord();
+            if (!layer || normalizeLayerGeometryType(layer.geometryType) !== "line") return setProjectStatus("Switch to a line layer to create a bearing line.", "error");
+            const sourceIndex = getActiveSelectionIndexes()[0];
+            const start = Number.isInteger(sourceIndex) ? getFeatureRepresentativeCoordinate(layer.features[sourceIndex]) : map?.region?.center;
+            if (!start) return;
+            const bearing = Number(prompt("Bearing in degrees clockwise from north:", "0"));
+            const distance = Number(prompt("Distance in meters:", "100"));
+            if (!Number.isFinite(bearing) || !Number.isFinite(distance) || distance <= 0) return;
+            const end = destinationCoordinate(start, bearing, distance);
+            const featureId = generateSurveyPointId();
+            layer.features.push({
+                id: featureId,
+                geometry: createLineGeometry([{ lat: start.latitude, lng: start.longitude }, { lat: end.latitude, lng: end.longitude }]),
+                attributes: {
+                    ID: featureId,
+                    Date: new Date().toISOString(),
+                    TimeZone: getProjectTimeZone(),
+                    Bearing: bearing,
+                    Distance_m: distance,
+                    symbol_color: layer.styleDefaults?.symbol_color || "Blue",
+                    symbol_shape: "Plus"
+                },
+                version: 1
+            });
+            ["Bearing", "Distance_m"].forEach((name) => {
+                if (!layer.schema.some((field) => field.name === name)) layer.schema.push({ name, type: "number" });
+            });
+            commitLayerFeatureChanges(layer, "Bearing line created.");
+        }
+
+        function styleLayerByAttribute() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return;
+            const fields = (layer.schema || []).map((field) => field.name).filter((name) => !isLayerStyleFieldName(name));
+            const field = prompt(`Field for categorized colors:\n${fields.join(", ")}`, fields[0] || "");
+            if (!field) return;
+            const values = Array.from(new Set((layer.features || []).map((feature) => String(feature.attributes?.[field] ?? "")))).filter(Boolean);
+            values.forEach((value, index) => {
+                const color = LAYER_SYMBOL_COLORS[index % LAYER_SYMBOL_COLORS.length];
+                layer.features.forEach((feature) => {
+                    if (String(feature.attributes?.[field] ?? "") === value) feature.attributes.symbol_color = color;
+                });
+            });
+            commitLayerFeatureChanges(layer, `Styled ${values.length} ${field} categor${values.length === 1 ? "y" : "ies"}.`);
+        }
+
+        function configureLayerLabelsFromAdvancedTools() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return;
+            const fields = getLabelCandidateFields(layer);
+            const field = prompt(`Label field:\n${fields.join(", ")}`, ensureLayerLabelSettings(layer).field || fields[0] || "");
+            if (!field) return;
+            layer.labelSettings = {
+                ...ensureLayerLabelSettings(layer),
+                mode: "field",
+                field
+            };
+            applyFeatureLabelStyleSettings(layer);
+            commitLayerFeatureChanges(layer, `Labels now use ${field}.`);
+        }
+
+        function segmentsIntersect(a, b, c, d) {
+            const orient = (p, q, r) => Math.sign((q.lng - p.lng) * (r.lat - p.lat) - (q.lat - p.lat) * (r.lng - p.lng));
+            const o1 = orient(a, b, c);
+            const o2 = orient(a, b, d);
+            const o3 = orient(c, d, a);
+            const o4 = orient(c, d, b);
+            return o1 !== o2 && o3 !== o4;
+        }
+
+        function validateActiveLayerTopology() {
+            const layer = getActiveLayerRecord();
+            if (!layer) return;
+            const issues = [];
+            const geometryType = normalizeLayerGeometryType(layer.geometryType);
+            (layer.features || []).forEach((feature, featureIndex) => {
+                const coords = plainCoordsFromGeometry(feature.geometry);
+                if ((geometryType === "line" && coords.length < 2) || (geometryType === "polygon" && coords.length < 3)) issues.push(`Feature ${featureIndex + 1}: too few vertices.`);
+                coords.forEach((coord, index) => {
+                    const next = coords[index + 1];
+                    if (next && measurementDistanceMeters(coord, next) < 0.02) issues.push(`Feature ${featureIndex + 1}: duplicate or near-duplicate vertex ${index + 1}.`);
+                });
+                if (geometryType === "polygon" && coords.length >= 4) {
+                    const ring = [...coords, coords[0]];
+                    for (let i = 1; i < ring.length; i += 1) {
+                        for (let j = i + 2; j < ring.length; j += 1) {
+                            if (j === ring.length - 1 && i === 1) continue;
+                            if (segmentsIntersect(ring[i - 1], ring[i], ring[j - 1], ring[j])) issues.push(`Feature ${featureIndex + 1}: possible self-intersection.`);
+                        }
+                    }
+                }
+            });
+            showLayerActionInfo("Topology Validation", issues.length ? issues.slice(0, 25).join("\n") : "No obvious topology issues found in the active layer.");
+            setProjectStatus(issues.length ? `${issues.length} topology issue${issues.length === 1 ? "" : "s"} found.` : "Topology validation passed.", issues.length ? "error" : "success");
+        }
+
+        function perpendicularDistance(point, start, end) {
+            const x0 = point.lng;
+            const y0 = point.lat;
+            const x1 = start.lng;
+            const y1 = start.lat;
+            const x2 = end.lng;
+            const y2 = end.lat;
+            const denominator = Math.hypot(x2 - x1, y2 - y1);
+            if (!denominator) return Math.hypot(x0 - x1, y0 - y1);
+            return Math.abs((x2 - x1) * (y1 - y0) - (x1 - x0) * (y2 - y1)) / denominator;
+        }
+
+        function simplifyVertices(vertices, toleranceDegrees) {
+            if (vertices.length <= 2) return vertices;
+            let maxDistance = 0;
+            let splitIndex = 0;
+            for (let index = 1; index < vertices.length - 1; index += 1) {
+                const distance = perpendicularDistance(vertices[index], vertices[0], vertices[vertices.length - 1]);
+                if (distance > maxDistance) {
+                    maxDistance = distance;
+                    splitIndex = index;
+                }
+            }
+            if (maxDistance <= toleranceDegrees) return [vertices[0], vertices[vertices.length - 1]];
+            return [
+                ...simplifyVertices(vertices.slice(0, splitIndex + 1), toleranceDegrees).slice(0, -1),
+                ...simplifyVertices(vertices.slice(splitIndex), toleranceDegrees)
+            ];
+        }
+
+        function simplifySelectedGeometries() {
+            const layer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes({ fallbackAll: true });
+            if (!layer || !indexes.length) return;
+            const geometryType = normalizeLayerGeometryType(layer.geometryType);
+            if (geometryType === "point") return setProjectStatus("Simplify is available for lines and polygons.", "error");
+            const toleranceMeters = Number(prompt("Simplify tolerance in meters:", "1"));
+            if (!Number.isFinite(toleranceMeters) || toleranceMeters <= 0) return;
+            const toleranceDegrees = toleranceMeters / 111320;
+            indexes.forEach((index) => {
+                const feature = layer.features[index];
+                const vertices = plainCoordsFromGeometry(feature.geometry);
+                const simplified = simplifyVertices(vertices, toleranceDegrees);
+                if (hasEnoughVerticesForGeometry(geometryType, simplified)) feature.geometry = buildGeometryFromVertices(geometryType, simplified);
+            });
+            commitLayerFeatureChanges(layer, `Simplified ${indexes.length} feature${indexes.length === 1 ? "" : "s"}.`);
+        }
+
+        function densifySelectedGeometries() {
+            const layer = getActiveLayerRecord();
+            const indexes = getActiveSelectionIndexes({ fallbackAll: true });
+            if (!layer || !indexes.length) return;
+            const geometryType = normalizeLayerGeometryType(layer.geometryType);
+            if (geometryType === "point") return setProjectStatus("Densify is available for lines and polygons.", "error");
+            const maxDistance = Number(prompt("Maximum segment length in meters:", "10"));
+            if (!Number.isFinite(maxDistance) || maxDistance <= 0) return;
+            indexes.forEach((index) => {
+                const feature = layer.features[index];
+                const source = plainCoordsFromGeometry(feature.geometry);
+                const target = [];
+                const path = geometryType === "polygon" ? [...source, source[0]] : source;
+                path.forEach((coord, coordIndex) => {
+                    if (coordIndex === 0) target.push(coord);
+                    const next = path[coordIndex + 1];
+                    if (!next) return;
+                    const distance = measurementDistanceMeters(coord, next);
+                    const steps = Math.max(1, Math.ceil(distance / maxDistance));
+                    for (let step = 1; step <= steps; step += 1) {
+                        if (geometryType === "polygon" && coordIndex === path.length - 2 && step === steps) continue;
+                        target.push({
+                            lat: coord.lat + ((next.lat - coord.lat) * step) / steps,
+                            lng: coord.lng + ((next.lng - coord.lng) * step) / steps
+                        });
+                    }
+                });
+                if (hasEnoughVerticesForGeometry(geometryType, target)) feature.geometry = buildGeometryFromVertices(geometryType, target);
+            });
+            commitLayerFeatureChanges(layer, `Densified ${indexes.length} feature${indexes.length === 1 ? "" : "s"}.`);
+        }
+
+        function showPhotoGeotagReport() {
+            const attachments = activeProjectRecord?.attachments || [];
+            const imageCount = attachments.filter((file) => /image/i.test(file.type || file.name || "")).length;
+            showLayerActionInfo("Geotagged Photo QA", imageCount
+                ? `${imageCount} image attachment${imageCount === 1 ? "" : "s"} found. EXIF coordinate extraction is not enabled in this browser build yet; imported geotagged photos should be converted to points during the import pipeline next.`
+                : "No image attachments found in this project.");
+        }
+
+        function showOfflineBasemapReport() {
+            showLayerActionInfo("Offline Basemap QA", "Apple MapKit does not expose offline tile packaging for web apps. LalGeo project data is saved in .lal/local storage, but offline basemap support needs a separate tile provider or packaged raster/vector tiles.");
+        }
+
+        function handleAdvancedGisTool(tool) {
+            const handlers = {
+                "export-layer": exportActiveLayerGeoJson,
+                "export-selected": exportSelectedGeoJson,
+                "export-csv": exportActiveLayerCsv,
+                "select-all": selectAllTableRows,
+                "select-visible": selectVisibleFeatures,
+                "select-attribute": selectFeaturesByAttribute,
+                "select-invert": invertFeatureSelection,
+                "select-clear": clearTableSelection,
+                "copy-geometry": copySelectedGeometryCoordinates,
+                buffer: bufferSelectedFeatures,
+                merge: mergeSelectedFeatures,
+                duplicate: duplicateSelectedFeatures,
+                "move-layer": moveSelectedFeaturesToLayer,
+                simplify: simplifySelectedGeometries,
+                densify: densifySelectedGeometries,
+                "snap-settings": configureSnapSettings,
+                bearing: createBearingLine,
+                topology: validateActiveLayerTopology,
+                "style-field": styleLayerByAttribute,
+                labels: configureLayerLabelsFromAdvancedTools,
+                "photo-report": showPhotoGeotagReport,
+                "offline-report": showOfflineBasemapReport
+            };
+            handlers[tool]?.();
+            updateAdvancedGisPanelState();
+        }
+
         function getHelpMatches(query = "") {
             const terms = String(query || "").toLowerCase().split(/\s+/).filter(Boolean);
             if (!terms.length) return HELP_TOPICS;
@@ -10646,6 +11416,13 @@
         });
         helpCenterBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
+        advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
+        advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
+        advancedGisPanel?.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-gis-tool]");
+            if (!button || button.disabled) return;
+            handleAdvancedGisTool(button.dataset.gisTool);
+        });
         measurementCloseBtn?.addEventListener("click", () => setMeasurementActive(false));
         measurementDistanceModeBtn?.addEventListener("click", () => setMeasurementMode("distance"));
         measurementAreaModeBtn?.addEventListener("click", () => setMeasurementMode("area"));
@@ -12717,13 +13494,17 @@
             if (!map || !coordinate || (!editSnapSettings.vertices && !editSnapSettings.edges && !editSnapSettings.polygonEdges)) return coordinate;
             const point = map.convertCoordinateToPointOnPage(coordinate);
             if (!point) return coordinate;
-            const snapRadius = window.innerWidth <= 700 ? 24 : 14;
+            const baseSnapRadius = Math.max(4, Math.min(64, Number(editSnapSettings.tolerancePx) || 14));
+            const snapRadius = window.innerWidth <= 700 ? Math.max(24, baseSnapRadius) : baseSnapRadius;
             let best = null;
             const consider = (candidate, distance) => {
                 if (!candidate || distance > snapRadius) return;
                 if (!best || distance < best.distance) best = { coordinate: candidate, distance };
             };
-            (activeProjectRecord?.layers || []).filter((layer) => layer.visible !== false).forEach((layer) => {
+            (activeProjectRecord?.layers || [])
+                .filter((layer) => layer.visible !== false)
+                .filter((layer) => !editSnapSettings.activeLayerOnly || layer.id === activeLayerId)
+                .forEach((layer) => {
                 const geometryType = normalizeLayerGeometryType(layer.geometryType || "point");
                 (layer.features || []).forEach((feature) => {
                     if (feature.id && feature.id === excludeFeatureId) return;
@@ -13502,7 +14283,7 @@
                 const payload = await buildSurveyPayload(files);
                 payload.source = payload.source || { type: "local-import" };
                 if (payload.geospatialLayers?.length) {
-                    await openImportedGeospatialLayers(payload);
+                    openGeospatialImportReview(payload);
                     return;
                 }
                 await openImportedProject(payload);
@@ -13532,7 +14313,7 @@
                 layerImportApiBtn.disabled = true;
                 const payload = await buildApiEndpointPayload(url, format);
                 if (payload.geospatialLayers?.length) {
-                    await openImportedGeospatialLayers(payload);
+                    openGeospatialImportReview(payload);
                 } else {
                     await openImportedProject(payload);
                 }

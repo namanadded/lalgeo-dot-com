@@ -300,6 +300,11 @@ try {
     };
 
     let layer = activate("polygon");
+    setAdvancedGisVisible(true);
+    const advancedTools = [...document.querySelectorAll("[data-gis-tool]")].map((button) => button.dataset.gisTool);
+    assert(!makeEl("advancedGisPanel").hidden, "advanced GIS toolbar opens panel");
+    assert(["export-layer", "select-attribute", "buffer", "merge", "snap-settings", "topology", "style-field", "labels"].every((tool) => advancedTools.includes(tool)), "advanced GIS toolbar exposes core GIS tools");
+    assert(makeEl("advancedGisLayerBadge").textContent.includes("polygon layer"), "advanced GIS toolbar shows active layer badge");
     assert(!makeEl("editPanelGeometryTools").hidden, "polygon geometry tools are visible");
     assert(makeEl("editPanelSelectedBadge").textContent.includes("0"), "selected badge starts at zero");
     assert(!makeEl("editPanelTraceBtn").disabled, "polygon trace button is enabled");
@@ -314,6 +319,8 @@ try {
     assert(layer.features[0].geometry.rings[0].length === 4, "rectangle has four vertices");
     createViewportPolygonShape("square");
     assert(layer.features.length === 2, "square creates a second polygon feature");
+    selectedTableRows = new Set([0]);
+    assert(layerToGeoJson(layer, [0]).features.length === 1, "advanced GIS selected GeoJSON export scopes features");
 
     activeFeatureId = layer.features[0].id;
     activeSurveyAnnotation = rowAnnotationMap.get(0);
