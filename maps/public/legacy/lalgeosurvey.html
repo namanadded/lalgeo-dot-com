@@ -5309,6 +5309,7 @@
             <div class="advanced-gis-grid">
                 <button type="button" data-gis-tool="buffer"><span class="advanced-gis-icon">◎</span><span>Buffer</span></button>
                 <button type="button" data-gis-tool="merge"><span class="advanced-gis-icon">⧓</span><span>Merge</span></button>
+                <button type="button" data-gis-tool="cut-hole"><span class="advanced-gis-icon">▢</span><span>Cut Hole</span></button>
                 <button type="button" data-gis-tool="duplicate"><span class="advanced-gis-icon">⧉</span><span>Duplicate</span></button>
                 <button type="button" data-gis-tool="move-layer"><span class="advanced-gis-icon">⇢</span><span>Move Layer</span></button>
                 <button type="button" data-gis-tool="simplify"><span class="advanced-gis-icon">⌁</span><span>Simplify</span></button>
@@ -5328,8 +5329,8 @@
             <div class="advanced-gis-grid">
                 <button type="button" data-gis-tool="style-field"><span class="advanced-gis-icon">◐</span><span>Style Field</span></button>
                 <button type="button" data-gis-tool="labels"><span class="advanced-gis-icon">Aa</span><span>Labels</span></button>
-                <button type="button" data-gis-tool="photo-report"><span class="advanced-gis-icon">⌑</span><span>Photo QA</span></button>
-                <button type="button" data-gis-tool="offline-report"><span class="advanced-gis-icon">▧</span><span>Offline QA</span></button>
+                <button type="button" data-gis-tool="photo-import"><span class="advanced-gis-icon">⌑</span><span>Import Photos</span></button>
+                <button type="button" data-gis-tool="offline-pack"><span class="advanced-gis-icon">▧</span><span>Offline Pack</span></button>
             </div>
             <p class="advanced-gis-note">Tools apply to the active layer and selected table rows where selection is relevant.</p>
         </div>
@@ -6946,6 +6947,16 @@
             return raw
                 .filter((item) => Number.isFinite(item?.lat) && Number.isFinite(item?.lng))
                 .map((item) => new mapkit.Coordinate(item.lat, item.lng));
+        }
+
+        function getGeometryRingsCoordinates(feature) {
+            const geometry = feature?.geometry;
+            if (!geometry || geometry.type !== "Polygon") return [];
+            return (geometry.rings || [])
+                .map((ring) => (ring || [])
+                    .filter((item) => Number.isFinite(item?.lat) && Number.isFinite(item?.lng))
+                    .map((item) => new mapkit.Coordinate(item.lat, item.lng)))
+                .filter((ring) => ring.length >= 3);
         }
 
         function isVertexInsideRing(vertex, ring = []) {
@@ -10493,6 +10504,15 @@
             return raw.filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng)).map((coord) => ({ lat: coord.lat, lng: coord.lng }));
         }
 
+        function plainRingsFromGeometry(geometry) {
+            if (!geometry || geometry.type !== "Polygon") return [];
+            return (geometry.rings || [])
+                .map((ring) => (ring || [])
+                    .filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng))
+                    .map((coord) => ({ lat: coord.lat, lng: coord.lng })))
+                .filter((ring) => ring.length >= 3);
+        }
+
         function geometryToGeoJson(geometry) {
             if (!geometry) return null;
             if (geometry.type === "Point") return { type: "Point", coordinates: [geometry.lng, geometry.lat] };
@@ -10500,11 +10520,14 @@
                 return { type: "LineString", coordinates: plainCoordsFromGeometry(geometry).map((coord) => [coord.lng, coord.lat]) };
             }
             if (geometry.type === "Polygon") {
-                const ring = plainCoordsFromGeometry(geometry);
-                if (ring.length && (ring[0].lat !== ring[ring.length - 1].lat || ring[0].lng !== ring[ring.length - 1].lng)) {
-                    ring.push({ ...ring[0] });
-                }
-                return { type: "Polygon", coordinates: [ring.map((coord) => [coord.lng, coord.lat])] };
+                const rings = plainRingsFromGeometry(geometry).map((sourceRing) => {
+                    const ring = [...sourceRing];
+                    if (ring.length && (ring[0].lat !== ring[ring.length - 1].lat || ring[0].lng !== ring[ring.length - 1].lng)) {
+                        ring.push({ ...ring[0] });
+                    }
+                    return ring.map((coord) => [coord.lng, coord.lat]);
+                });
+                return { type: "Polygon", coordinates: rings };
             }
             return null;
         }
@@ -10758,6 +10781,40 @@
             layer.features = layer.features.filter((_, index) => !indexes.slice(1).includes(index));
             selectedTableRows = new Set([keepIndex]);
             commitLayerFeatureChanges(layer, `Merged ${selected.length} ${geometryType} features.`);
+        }
+
+        function cutCenteredHoleInSelectedPolygon() {
+            const context = getSelectedEditableFeatureContext();
+            if (!context || context.geometryType !== "polygon") return setProjectStatus("Select one polygon before cutting a hole.", "error");
+            const outerRing = plainCoordsFromGeometry(context.feature.geometry);
+            const bounds = getRingBounds(outerRing);
+            if (!bounds) return setProjectStatus("Selected polygon has no valid outer ring.", "error");
+            const percent = Number(prompt("Hole size as percent of polygon bounds:", "35"));
+            if (!Number.isFinite(percent) || percent <= 0 || percent >= 95) return;
+            const scale = Math.max(0.05, Math.min(0.95, percent / 100));
+            const centerLat = (bounds.minLat + bounds.maxLat) / 2;
+            const centerLng = (bounds.minLng + bounds.maxLng) / 2;
+            const halfLat = ((bounds.maxLat - bounds.minLat) * scale) / 2;
+            const halfLng = ((bounds.maxLng - bounds.minLng) * scale) / 2;
+            const hole = [
+                { lat: centerLat - halfLat, lng: centerLng - halfLng },
+                { lat: centerLat + halfLat, lng: centerLng - halfLng },
+                { lat: centerLat + halfLat, lng: centerLng + halfLng },
+                { lat: centerLat - halfLat, lng: centerLng + halfLng }
+            ];
+            if (!hole.every((vertex) => isVertexInsideRing(vertex, outerRing))) {
+                setProjectStatus("The generated hole would leave the selected polygon. Try a smaller percent.", "error");
+                return;
+            }
+            const rings = plainRingsFromGeometry(context.feature.geometry);
+            const geometry = {
+                type: "Polygon",
+                rings: [
+                    ...(rings.length ? rings : [outerRing]),
+                    hole
+                ]
+            };
+            applyGeometryToFeature(context.rowIndex, geometry, { status: "Polygon hole cut." });
         }
 
         function duplicateSelectedFeatures() {
@@ -11023,16 +11080,209 @@
             commitLayerFeatureChanges(layer, `Densified ${indexes.length} feature${indexes.length === 1 ? "" : "s"}.`);
         }
 
-        function showPhotoGeotagReport() {
-            const attachments = activeProjectRecord?.attachments || [];
-            const imageCount = attachments.filter((file) => /image/i.test(file.type || file.name || "")).length;
-            showLayerActionInfo("Geotagged Photo QA", imageCount
-                ? `${imageCount} image attachment${imageCount === 1 ? "" : "s"} found. EXIF coordinate extraction is not enabled in this browser build yet; imported geotagged photos should be converted to points during the import pipeline next.`
-                : "No image attachments found in this project.");
+        function parseExifAscii(view, tiffOffset, entryOffset, littleEndian) {
+            const count = view.getUint32(entryOffset + 4, littleEndian);
+            const valueOffset = count <= 4 ? entryOffset + 8 : tiffOffset + view.getUint32(entryOffset + 8, littleEndian);
+            let text = "";
+            for (let index = 0; index < count; index += 1) {
+                const code = view.getUint8(valueOffset + index);
+                if (!code) break;
+                text += String.fromCharCode(code);
+            }
+            return text.trim();
         }
 
-        function showOfflineBasemapReport() {
-            showLayerActionInfo("Offline Basemap QA", "Apple MapKit does not expose offline tile packaging for web apps. LalGeo project data is saved in .lal/local storage, but offline basemap support needs a separate tile provider or packaged raster/vector tiles.");
+        function parseExifRationalValues(view, tiffOffset, entryOffset, littleEndian) {
+            const count = view.getUint32(entryOffset + 4, littleEndian);
+            const valueOffset = count <= 1 ? entryOffset + 8 : tiffOffset + view.getUint32(entryOffset + 8, littleEndian);
+            const values = [];
+            for (let index = 0; index < count; index += 1) {
+                const numerator = view.getUint32(valueOffset + index * 8, littleEndian);
+                const denominator = view.getUint32(valueOffset + index * 8 + 4, littleEndian) || 1;
+                values.push(numerator / denominator);
+            }
+            return values;
+        }
+
+        function getExifIfdEntries(view, tiffOffset, ifdOffset, littleEndian) {
+            if (!ifdOffset || tiffOffset + ifdOffset + 2 >= view.byteLength) return new Map();
+            const absoluteOffset = tiffOffset + ifdOffset;
+            const count = view.getUint16(absoluteOffset, littleEndian);
+            const entries = new Map();
+            for (let index = 0; index < count; index += 1) {
+                const entryOffset = absoluteOffset + 2 + index * 12;
+                if (entryOffset + 12 > view.byteLength) break;
+                entries.set(view.getUint16(entryOffset, littleEndian), entryOffset);
+            }
+            return entries;
+        }
+
+        function readExifGpsFromArrayBuffer(buffer) {
+            const view = new DataView(buffer);
+            if (view.byteLength < 4 || view.getUint16(0) !== 0xffd8) return null;
+            let offset = 2;
+            while (offset + 4 < view.byteLength) {
+                if (view.getUint8(offset) !== 0xff) break;
+                const marker = view.getUint8(offset + 1);
+                const length = view.getUint16(offset + 2);
+                if (marker === 0xe1) {
+                    const exifHeader = String.fromCharCode(...new Uint8Array(buffer, offset + 4, 6));
+                    if (exifHeader !== "Exif\0\0") return null;
+                    const tiffOffset = offset + 10;
+                    const endian = String.fromCharCode(view.getUint8(tiffOffset), view.getUint8(tiffOffset + 1));
+                    const littleEndian = endian === "II";
+                    const firstIfdOffset = view.getUint32(tiffOffset + 4, littleEndian);
+                    const ifd0 = getExifIfdEntries(view, tiffOffset, firstIfdOffset, littleEndian);
+                    const gpsEntry = ifd0.get(0x8825);
+                    if (!gpsEntry) return null;
+                    const gpsIfdOffset = view.getUint32(gpsEntry + 8, littleEndian);
+                    const gps = getExifIfdEntries(view, tiffOffset, gpsIfdOffset, littleEndian);
+                    const latRefEntry = gps.get(1);
+                    const latEntry = gps.get(2);
+                    const lonRefEntry = gps.get(3);
+                    const lonEntry = gps.get(4);
+                    if (!latRefEntry || !latEntry || !lonRefEntry || !lonEntry) return null;
+                    const latValues = parseExifRationalValues(view, tiffOffset, latEntry, littleEndian);
+                    const lonValues = parseExifRationalValues(view, tiffOffset, lonEntry, littleEndian);
+                    const toDecimal = (values, ref) => {
+                        const decimal = (values[0] || 0) + ((values[1] || 0) / 60) + ((values[2] || 0) / 3600);
+                        return /[SW]/i.test(ref) ? -decimal : decimal;
+                    };
+                    const altitudeEntry = gps.get(6);
+                    const exifEntry = ifd0.get(0x8769);
+                    const exifIfd = exifEntry ? getExifIfdEntries(view, tiffOffset, view.getUint32(exifEntry + 8, littleEndian), littleEndian) : new Map();
+                    const takenEntry = exifIfd.get(0x9003) || exifIfd.get(0x9004);
+                    return {
+                        lat: toDecimal(latValues, parseExifAscii(view, tiffOffset, latRefEntry, littleEndian)),
+                        lng: toDecimal(lonValues, parseExifAscii(view, tiffOffset, lonRefEntry, littleEndian)),
+                        altitude: altitudeEntry ? parseExifRationalValues(view, tiffOffset, altitudeEntry, littleEndian)[0] : "",
+                        takenAt: takenEntry ? parseExifAscii(view, tiffOffset, takenEntry, littleEndian) : ""
+                    };
+                }
+                offset += 2 + length;
+            }
+            return null;
+        }
+
+        async function importGeotaggedPhotos() {
+            if (!activeProjectRecord) {
+                setProjectStatus("Create or open a project before importing photos.", "error");
+                return;
+            }
+            const input = document.createElement("input");
+            input.type = "file";
+            input.accept = "image/jpeg,image/jpg";
+            input.multiple = true;
+            input.addEventListener("change", async () => {
+                const files = Array.from(input.files || []);
+                if (!files.length) return;
+                const photoLayer = ensureLayerStructure({
+                    id: generateWorkspaceId("layer"),
+                    name: "Geotagged photos",
+                    geometryType: "point",
+                    visible: true,
+                    schema: [
+                        ...getDefaultLayerSchema("point"),
+                        { name: "FileName", type: "text" },
+                        { name: "Photo", type: "text" },
+                        { name: "Altitude_m", type: "number" },
+                        { name: "TakenAt", type: "text" }
+                    ],
+                    styleDefaults: getDefaultLayerStyleDefaults("point", { symbol_color: getNextLayerSymbolColor(), symbol_shape: "Pin" }),
+                    features: []
+                });
+                const skipped = [];
+                for (const file of files) {
+                    const gps = readExifGpsFromArrayBuffer(await file.arrayBuffer());
+                    if (!gps || !Number.isFinite(gps.lat) || !Number.isFinite(gps.lng)) {
+                        skipped.push(file.name);
+                        continue;
+                    }
+                    const fileName = normalizeFileName(file.name);
+                    const imageSrc = await readFileAsDataURL(file);
+                    activeProjectRecord.images = activeProjectRecord.images || {};
+                    activeProjectRecord.images[fileName] = imageSrc;
+                    currentSurveyImages.set(fileName, imageSrc);
+                    const featureId = generateSurveyPointId();
+                    photoLayer.features.push({
+                        id: featureId,
+                        geometry: createPointGeometry(gps.lat, gps.lng),
+                        attributes: {
+                            ID: featureId,
+                            Date: new Date().toISOString(),
+                            TimeZone: getProjectTimeZone(),
+                            Latitude: gps.lat,
+                            Longitude: gps.lng,
+                            FileName: fileName,
+                            Photo: fileName,
+                            Altitude_m: gps.altitude,
+                            TakenAt: gps.takenAt,
+                            symbol_color: photoLayer.styleDefaults.symbol_color,
+                            symbol_shape: "Pin"
+                        },
+                        version: 1
+                    });
+                }
+                if (!photoLayer.features.length) {
+                    setProjectStatus("No GPS EXIF coordinates found in the selected photos.", "error");
+                    return;
+                }
+                photoLayer.parsed = buildParsedFromLayer(photoLayer);
+                photoLayer.fields = [...photoLayer.parsed.headers];
+                activeProjectRecord.layers.push(photoLayer);
+                activeProjectRecord.attachments = Object.keys(activeProjectRecord.images || {}).map((name) => ({ id: `file-${name}`, name, type: "image" }));
+                activeProjectRecord.activeLayerId = photoLayer.id;
+                activeLayerId = photoLayer.id;
+                commitLayerFeatureChanges(photoLayer, `Imported ${photoLayer.features.length} geotagged photo${photoLayer.features.length === 1 ? "" : "s"}${skipped.length ? `; skipped ${skipped.length} without GPS` : ""}.`);
+            }, { once: true });
+            input.click();
+        }
+
+        function addDataUrlToZip(zip, path, dataUrl) {
+            const match = String(dataUrl || "").match(/^data:([^;]+);base64,(.+)$/);
+            if (!match) return;
+            zip.file(path, match[2], { base64: true });
+        }
+
+        async function downloadOfflineFieldPackage() {
+            if (!activeProjectRecord) {
+                setProjectStatus("Create or open a project before exporting an offline package.", "error");
+                return;
+            }
+            if (!window.JSZip) {
+                downloadActiveProjectPackage();
+                setProjectStatus("JSZip unavailable. Downloaded the .lal package instead.", "success");
+                return;
+            }
+            const zip = new JSZip();
+            const baseName = (activeProjectRecord.name || "lalgeo-project").replace(/\s+/g, "-").toLowerCase();
+            const lalPayload = {
+                project: activeProjectRecord,
+                activeLayerId,
+                survey: currentSurveyData ? buildSurveyDocumentFromParsed(currentSurveyData) : null
+            };
+            zip.file(`${baseName}.lal`, JSON.stringify(lalPayload, null, 2));
+            zip.file("manifest.json", JSON.stringify({
+                name: activeProjectRecord.name || "LalGeo project",
+                createdAt: new Date().toISOString(),
+                layerCount: activeProjectRecord.layers?.length || 0,
+                attachmentCount: Object.keys(activeProjectRecord.images || {}).length,
+                note: "MapKit basemap tiles are not included; project data, GeoJSON layers, and image attachments are packaged for offline transfer."
+            }, null, 2));
+            (activeProjectRecord.layers || []).forEach((layer) => {
+                zip.file(`layers/${layer.name || layer.id}.geojson`, JSON.stringify(layerToGeoJson(layer), null, 2));
+            });
+            Object.entries(activeProjectRecord.images || {}).forEach(([name, src]) => addDataUrlToZip(zip, `attachments/${name}`, src));
+            const blob = await zip.generateAsync({ type: "blob" });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = `${baseName}-offline.zip`;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(url);
+            setProjectStatus("Offline field package downloaded.", "success");
         }
 
         function handleAdvancedGisTool(tool) {
@@ -11048,6 +11298,7 @@
                 "copy-geometry": copySelectedGeometryCoordinates,
                 buffer: bufferSelectedFeatures,
                 merge: mergeSelectedFeatures,
+                "cut-hole": cutCenteredHoleInSelectedPolygon,
                 duplicate: duplicateSelectedFeatures,
                 "move-layer": moveSelectedFeaturesToLayer,
                 simplify: simplifySelectedGeometries,
@@ -11057,8 +11308,8 @@
                 topology: validateActiveLayerTopology,
                 "style-field": styleLayerByAttribute,
                 labels: configureLayerLabelsFromAdvancedTools,
-                "photo-report": showPhotoGeotagReport,
-                "offline-report": showOfflineBasemapReport
+                "photo-import": importGeotaggedPhotos,
+                "offline-pack": downloadOfflineFieldPackage
             };
             handlers[tool]?.();
             updateAdvancedGisPanelState();
@@ -16166,7 +16417,8 @@
                 });
             } else if (geometryType === "polygon") {
                 const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
-                overlay = new mapkit.PolygonOverlay([getClosedPolygonCoordinates(coords)], {
+                const rings = getGeometryRingsCoordinates(feature).map((ring) => getClosedPolygonCoordinates(ring));
+                overlay = new mapkit.PolygonOverlay(rings.length ? rings : [getClosedPolygonCoordinates(coords)], {
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
                 });
             }
