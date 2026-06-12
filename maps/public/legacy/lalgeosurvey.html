@@ -3544,6 +3544,47 @@
     .workspace-validation.error {
         color: #b91c1c;
     }
+    .sample-map-modal {
+        width: min(680px, 100%);
+    }
+    .sample-map-source-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 16px;
+    }
+    .sample-map-source {
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        padding: 12px;
+        background: rgba(255,255,255,0.045);
+    }
+    .sample-map-source strong {
+        display: block;
+        font-size: 13px;
+        color: #f5fbff;
+        margin-bottom: 5px;
+    }
+    .sample-map-source span {
+        display: block;
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .sample-map-delete-btn {
+        color: #fee2e2 !important;
+        border-color: rgba(248,113,113,0.35) !important;
+        background: rgba(127,29,29,0.24) !important;
+    }
+    .sample-map-delete-btn:hover,
+    .sample-map-delete-btn:focus-visible {
+        background: rgba(185,28,28,0.36) !important;
+    }
+    @media (max-width: 640px) {
+        .sample-map-source-grid {
+            grid-template-columns: 1fr;
+        }
+    }
     .help-modal {
         width: min(760px, 100%);
         max-height: min(82vh, 760px);
@@ -5701,6 +5742,27 @@
             </div>
         </div>
     </div>
+    <div id="sampleMapModal" class="workspace-modal-backdrop" hidden>
+        <div class="workspace-modal sample-map-modal">
+            <h3>Sample Map Project</h3>
+            <p class="workspace-panel-muted">This is a sample map project for first-time visitors. It has multiple GeoJSON-style layers using Calgary open-data sources for someone visiting Canada, plus U.S. open-data examples for someone planning outside Canada.</p>
+            <div class="sample-map-source-grid">
+                <div class="sample-map-source">
+                    <strong>Canada visitor layers</strong>
+                    <span>Calgary landmarks, a downtown walk route, and visitor areas. Source notes point to Open Calgary datasets at data.calgary.ca.</span>
+                </div>
+                <div class="sample-map-source">
+                    <strong>U.S. visitor layers</strong>
+                    <span>National park stops and a west-coast sample route. Source notes point to U.S. open-data portals such as data.gov and NPS open data.</span>
+                </div>
+            </div>
+            <div class="workspace-modal-actions">
+                <button id="sampleMapDeleteBtn" type="button" class="workspace-secondary-btn sample-map-delete-btn">Delete sample map</button>
+                <button id="sampleMapOwnProjectBtn" type="button" class="workspace-secondary-btn">Start my own project</button>
+                <button id="sampleMapKeepBtn" type="button" class="workspace-primary-btn">Explore sample</button>
+            </div>
+        </div>
+    </div>
     <div id="workspaceCreateModal" class="workspace-modal-backdrop" hidden>
         <div class="workspace-modal">
             <h3>Create Project</h3>
@@ -6223,6 +6285,10 @@
         const helpAskInput = document.getElementById("helpAskInput");
         const helpAskBtn = document.getElementById("helpAskBtn");
         const helpResults = document.getElementById("helpResults");
+        const sampleMapModal = document.getElementById("sampleMapModal");
+        const sampleMapKeepBtn = document.getElementById("sampleMapKeepBtn");
+        const sampleMapDeleteBtn = document.getElementById("sampleMapDeleteBtn");
+        const sampleMapOwnProjectBtn = document.getElementById("sampleMapOwnProjectBtn");
         const undoBtn = document.getElementById("undoBtn");
         const redoBtn = document.getElementById("redoBtn");
         const saveChangesBtn = document.getElementById("saveChangesBtn");
@@ -6503,6 +6569,9 @@
         const WORKSPACE_REMEMBER_KEY = "lalgeoWorkspaceRememberSessionV1";
         const WORKSPACE_QUICK_ACTIONS_KEY = "lalgeoWorkspaceQuickActionsV1";
         const WORKSPACE_LAST_LOCATION_KEY = "lalgeoWorkspaceLastLocationV1";
+        const SAMPLE_PROJECT_SOURCE_TYPE = "visitor-sample-open-data";
+        const SAMPLE_PROJECT_SLUG = "canada-us-first-visit-open-data";
+        const SAMPLE_PROJECT_DISMISSED_KEY = "lalgeoSampleProjectPromptDismissedV1";
         const isMacPlatform = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || navigator.userAgent || "");
         const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation", "help"];
         const QUICK_ACTION_BUTTONS = {
@@ -7252,6 +7321,82 @@
             return layer;
         }
 
+        function createSampleFeature(layer, item, index) {
+            const featureId = item.id || generateWorkspaceId("sample-feature");
+            const geometryType = normalizeLayerGeometryType(layer.geometryType);
+            const geometry = item.geometry || (
+                geometryType === "line"
+                    ? createLineGeometry(item.coordinates || [])
+                    : geometryType === "polygon"
+                        ? createPolygonGeometry(item.coordinates || [])
+                        : createPointGeometry(item.lat, item.lng)
+            );
+            const attributes = {
+                ID: featureId,
+                Date: item.date || "2026-06-01T16:00:00.000Z",
+                TimeZone: item.timeZone || "America/Edmonton",
+                symbol_color: item.symbol_color || layer.styleDefaults.symbol_color,
+                symbol_shape: item.symbol_shape || layer.styleDefaults.symbol_shape,
+                Name: item.name || `${layer.name} ${index + 1}`,
+                Category: item.category || "",
+                Country: item.country || "",
+                City: item.city || "",
+                Source: item.source || "",
+                Source_URL: item.sourceUrl || "",
+                Visitor_Tip: item.tip || "",
+                Notes: item.notes || ""
+            };
+            if (geometryType === "point") {
+                attributes.Latitude = geometry.lat;
+                attributes.Longitude = geometry.lng;
+            }
+            return {
+                id: featureId,
+                geometry,
+                attributes,
+                version: 1
+            };
+        }
+
+        function createSampleLayer({ name, geometryType, items, styleDefaults = {}, labelField = "Name" }) {
+            const normalizedGeometry = normalizeLayerGeometryType(geometryType);
+            const defaultSchema = getDefaultLayerSchema(normalizedGeometry);
+            const extraSchema = [
+                { name: "Name", type: "text" },
+                { name: "Category", type: "text" },
+                { name: "Country", type: "text" },
+                { name: "City", type: "text" },
+                { name: "Source", type: "text" },
+                { name: "Source_URL", type: "text" },
+                { name: "Visitor_Tip", type: "text" },
+                { name: "Notes", type: "text" }
+            ];
+            const layer = {
+                id: generateWorkspaceId("layer"),
+                name,
+                geometryType: normalizedGeometry,
+                visible: true,
+                styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry, styleDefaults),
+                schema: [
+                    ...defaultSchema,
+                    ...extraSchema.filter((field) => !defaultSchema.some((existing) => existing.name === field.name))
+                ],
+                fields: [],
+                features: []
+            };
+            layer.features = (items || []).map((item, index) => createSampleFeature(layer, item, index));
+            layer.labelSettings = {
+                mode: "field",
+                field: labelField,
+                expression: "",
+                textSize: normalizedGeometry === "polygon" ? 13 : 14,
+                textColor: "#1f2937",
+                fontFamily: "Inter"
+            };
+            ensureLayerStructure(layer);
+            return layer;
+        }
+
         function createProjectRecord({
             name,
             description = "",
@@ -7285,30 +7430,141 @@
         }
 
         function buildDemoProject() {
-            const mainLayer = createLayerRecord({
-                name: "Inspection Points",
-                geometryType: "point",
-                parsed: createDemoParsedLayer("Inspection Points", [
-                    { name: "Valve 12A", lat: 51.0447, lon: -114.0719, date: "2026-04-11T09:15:00.000Z" },
-                    { name: "Valve 14C", lat: 51.0489, lon: -114.0621, date: "2026-04-11T10:20:00.000Z" },
-                    { name: "Hydrant B7", lat: 51.0415, lon: -114.0814, date: "2026-04-11T11:05:00.000Z" }
-                ])
-            });
-            const secondaryLayer = createLayerRecord({
-                name: "Follow-up Points",
-                geometryType: "point",
-                parsed: createDemoParsedLayer("Follow-up Points", [
-                    { name: "Repair Needed", lat: 51.0395, lon: -114.0678, date: "2026-04-12T08:30:00.000Z" }
-                ])
-            });
+            const calgarySource = "Open Calgary";
+            const calgarySourceUrl = "https://data.calgary.ca";
+            const usSource = "U.S. Open Data";
+            const layers = [
+                createSampleLayer({
+                    name: "Calgary first-day stops",
+                    geometryType: "point",
+                    styleDefaults: { symbol_color: "Blue", symbol_shape: "Pin" },
+                    items: [
+                        { name: "Central Library", category: "Library / architecture", country: "Canada", city: "Calgary", lat: 51.0453, lng: -114.0510, source: calgarySource, sourceUrl: calgarySourceUrl, tip: "Start here for orientation, transit access, and East Village.", notes: "Sample point based on Calgary visitor landmarks." },
+                        { name: "Calgary Tower", category: "Viewpoint", country: "Canada", city: "Calgary", lat: 51.0443, lng: -114.0631, source: calgarySource, sourceUrl: calgarySourceUrl, tip: "Good first skyline stop after arriving downtown.", notes: "Use as a central meeting point." },
+                        { name: "Peace Bridge", category: "Walking / cycling", country: "Canada", city: "Calgary", lat: 51.0542, lng: -114.0781, source: calgarySource, sourceUrl: calgarySourceUrl, tip: "Easy Bow River photo stop; connects to the pathway network.", notes: "Pairs well with Eau Claire and Prince's Island Park." },
+                        { name: "Prince's Island Park", category: "Park", country: "Canada", city: "Calgary", lat: 51.0556, lng: -114.0708, source: calgarySource, sourceUrl: calgarySourceUrl, tip: "Low-stress green space for a first afternoon in Canada.", notes: "Public park sample feature." },
+                        { name: "Studio Bell", category: "Museum", country: "Canada", city: "Calgary", lat: 51.0446, lng: -114.0520, source: calgarySource, sourceUrl: calgarySourceUrl, tip: "Indoor stop near transit and restaurants.", notes: "Culture layer example." }
+                    ]
+                }),
+                createSampleLayer({
+                    name: "Calgary visitor walk",
+                    geometryType: "line",
+                    styleDefaults: { symbol_color: "Green", symbol_shape: "Plus" },
+                    items: [
+                        {
+                            name: "Downtown welcome walk",
+                            category: "Walking route",
+                            country: "Canada",
+                            city: "Calgary",
+                            source: calgarySource,
+                            sourceUrl: calgarySourceUrl,
+                            tip: "A compact route linking transit, library, river pathway, and classic views.",
+                            notes: "Line layer sample for route planning.",
+                            coordinates: [
+                                { lat: 51.0443, lng: -114.0631 },
+                                { lat: 51.0446, lng: -114.0520 },
+                                { lat: 51.0453, lng: -114.0510 },
+                                { lat: 51.0556, lng: -114.0708 },
+                                { lat: 51.0542, lng: -114.0781 }
+                            ]
+                        }
+                    ]
+                }),
+                createSampleLayer({
+                    name: "Calgary visitor areas",
+                    geometryType: "polygon",
+                    styleDefaults: { symbol_color: "Orange", symbol_shape: "Circle", fillOpacity: 0.38 },
+                    items: [
+                        {
+                            name: "Downtown orientation zone",
+                            category: "Visitor area",
+                            country: "Canada",
+                            city: "Calgary",
+                            source: calgarySource,
+                            sourceUrl: calgarySourceUrl,
+                            tip: "Good base area for a first-time visitor without a car.",
+                            notes: "Polygon layer showing a planning area.",
+                            coordinates: [
+                                { lat: 51.0496, lng: -114.0825 },
+                                { lat: 51.0496, lng: -114.0485 },
+                                { lat: 51.0388, lng: -114.0485 },
+                                { lat: 51.0388, lng: -114.0825 }
+                            ]
+                        },
+                        {
+                            name: "Bow River easy-walk zone",
+                            category: "Outdoor area",
+                            country: "Canada",
+                            city: "Calgary",
+                            source: calgarySource,
+                            sourceUrl: calgarySourceUrl,
+                            tip: "Use this area for a simple river walk, photos, and parks.",
+                            notes: "Sample polygon from open-data planning context.",
+                            coordinates: [
+                                { lat: 51.0612, lng: -114.0870 },
+                                { lat: 51.0612, lng: -114.0580 },
+                                { lat: 51.0520, lng: -114.0580 },
+                                { lat: 51.0520, lng: -114.0870 }
+                            ]
+                        }
+                    ]
+                }),
+                createSampleLayer({
+                    name: "U.S. first-trip open-data stops",
+                    geometryType: "point",
+                    styleDefaults: { symbol_color: "Purple", symbol_shape: "Pin" },
+                    items: [
+                        { name: "Golden Gate National Recreation Area", category: "National park unit", country: "United States", city: "San Francisco", lat: 37.8077, lng: -122.4750, source: usSource, sourceUrl: "https://catalog.data.gov/dataset/national-parks", tip: "A recognizable first U.S. outdoors stop near a major city.", notes: "Sample U.S. open-data point." },
+                        { name: "Yosemite Valley", category: "National park", country: "United States", city: "Yosemite", lat: 37.7456, lng: -119.5936, source: usSource, sourceUrl: "https://www.nps.gov/subjects/developer/api-documentation.htm", tip: "Classic national park example for route and POI planning.", notes: "National Park Service open-data sample." },
+                        { name: "Seattle Waterfront", category: "City visitor area", country: "United States", city: "Seattle", lat: 47.6061, lng: -122.3425, source: usSource, sourceUrl: "https://data.seattle.gov", tip: "Urban waterfront example for visitors outside Canada.", notes: "City open-data style sample." }
+                    ]
+                }),
+                createSampleLayer({
+                    name: "U.S. west-coast sample route",
+                    geometryType: "line",
+                    styleDefaults: { symbol_color: "Red", symbol_shape: "Plus" },
+                    items: [
+                        {
+                            name: "San Francisco to Yosemite planning route",
+                            category: "Travel route",
+                            country: "United States",
+                            city: "California",
+                            source: usSource,
+                            sourceUrl: "https://catalog.data.gov",
+                            tip: "A line layer example for turning open-data destinations into a trip plan.",
+                            notes: "Simplified route for demo purposes; not turn-by-turn navigation.",
+                            coordinates: [
+                                { lat: 37.8077, lng: -122.4750 },
+                                { lat: 37.7749, lng: -122.4194 },
+                                { lat: 37.6879, lng: -121.7680 },
+                                { lat: 37.6391, lng: -120.9969 },
+                                { lat: 37.7456, lng: -119.5936 }
+                            ]
+                        }
+                    ]
+                })
+            ];
             return createProjectRecord({
-                name: "Water Inspections Demo",
-                description: "Demo workspace showing project-first editing, layers, and attribute management.",
+                name: "First Visit Canada + U.S. Open Data Sample",
+                description: "Sample workspace with point, line, and polygon layers for first-time visitors. Canada layers reference Open Calgary; U.S. layers reference U.S. open-data sources.",
                 type: "GIS workspace",
                 storageSource: "Web workspace",
-                source: { type: "demo" },
-                layers: [mainLayer, secondaryLayer]
+                source: {
+                    type: SAMPLE_PROJECT_SOURCE_TYPE,
+                    slug: SAMPLE_PROJECT_SLUG,
+                    sources: [
+                        { name: "Open Calgary", url: calgarySourceUrl },
+                        { name: "Data.gov", url: "https://catalog.data.gov" },
+                        { name: "National Park Service API", url: "https://www.nps.gov/subjects/developer/api-documentation.htm" }
+                    ]
+                },
+                mapOptions: { mapType: "hybrid", showBasemapPOIs: true },
+                layers
             });
+        }
+
+        function isSampleProject(project) {
+            return project?.source?.type === SAMPLE_PROJECT_SOURCE_TYPE || project?.source?.type === "demo";
         }
 
         function getStorageLabel(project = activeProjectRecord) {
@@ -7705,14 +7961,32 @@
             return false;
         }
 
+        function ensureVisitorSampleProject() {
+            const sampleIndex = workspaceProjects.findIndex((project) => project?.source?.type === SAMPLE_PROJECT_SOURCE_TYPE);
+            const legacyDemoIndex = workspaceProjects.findIndex((project) => project?.source?.type === "demo");
+            if (sampleIndex >= 0) return workspaceProjects[sampleIndex];
+            if (legacyDemoIndex >= 0) {
+                const replacement = buildDemoProject();
+                replacement.id = workspaceProjects[legacyDemoIndex].id;
+                workspaceProjects.splice(legacyDemoIndex, 1, replacement);
+                return replacement;
+            }
+            if (!workspaceProjects.length && !localStorage.getItem(WORKSPACE_SEEDED_KEY)) {
+                const sample = buildDemoProject();
+                workspaceProjects = [sample];
+                localStorage.setItem(WORKSPACE_SEEDED_KEY, "1");
+                return sample;
+            }
+            return null;
+        }
+
         function loadWorkspaceProjects() {
             try {
                 const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
                 const parsed = raw ? JSON.parse(raw) : [];
                 workspaceProjects = Array.isArray(parsed) ? parsed : [];
-                if (!workspaceProjects.length && !localStorage.getItem(WORKSPACE_SEEDED_KEY)) {
-                    workspaceProjects = [buildDemoProject()];
-                    localStorage.setItem(WORKSPACE_SEEDED_KEY, "1");
+                const sample = ensureVisitorSampleProject();
+                if (sample) {
                     saveWorkspaceProjects();
                 }
             } catch (error) {
@@ -9034,6 +9308,7 @@
             renderWorkspaceCollections();
             updateToolbarDockState();
             applyBasemapPoisPreference(activeProjectRecord);
+            maybeShowSampleMapModal();
         }
 
         function addProjectToWorkspace(project, options = {}) {
@@ -11355,6 +11630,48 @@
             }
         }
 
+        function setSampleMapModalVisibility(show) {
+            if (!sampleMapModal) return;
+            sampleMapModal.hidden = !show;
+            if (show) {
+                setToolbarMenuVisibility(false);
+                setSettingsPanelVisibility(false);
+            }
+        }
+
+        function maybeShowSampleMapModal() {
+            if (!activeProjectRecord || !isSampleProject(activeProjectRecord)) return;
+            if (localStorage.getItem(SAMPLE_PROJECT_DISMISSED_KEY) === "1") return;
+            window.setTimeout(() => setSampleMapModalVisibility(true), 650);
+        }
+
+        function dismissSampleMapModal() {
+            try {
+                localStorage.setItem(SAMPLE_PROJECT_DISMISSED_KEY, "1");
+            } catch {}
+            setSampleMapModalVisibility(false);
+        }
+
+        function deleteSampleProjectAndStartFresh() {
+            if (!activeProjectRecord || !isSampleProject(activeProjectRecord)) {
+                dismissSampleMapModal();
+                return;
+            }
+            const sampleId = activeProjectRecord.id;
+            workspaceProjects = workspaceProjects.filter((project) => project.id !== sampleId);
+            setActiveProject(workspaceProjects[0] || null, { preserveRegion: true });
+            try {
+                localStorage.setItem(SAMPLE_PROJECT_DISMISSED_KEY, "1");
+                localStorage.setItem(WORKSPACE_SEEDED_KEY, "1");
+            } catch {}
+            saveWorkspaceProjects();
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
+            updateWorkspaceContext();
+            setSampleMapModalVisibility(false);
+            setProjectStatus("Sample map deleted. Create a project or import your own data to start.", "success");
+        }
+
         function askHelpCenter() {
             const question = helpAskInput?.value?.trim() || helpSearchInput?.value?.trim() || "";
             if (helpSearchInput) helpSearchInput.value = question;
@@ -12007,6 +12324,15 @@
             setImportPanelVisibility(true);
             connectDropboxBtn?.click();
         });
+        sampleMapKeepBtn?.addEventListener("click", dismissSampleMapModal);
+        sampleMapDeleteBtn?.addEventListener("click", deleteSampleProjectAndStartFresh);
+        sampleMapOwnProjectBtn?.addEventListener("click", () => {
+            deleteSampleProjectAndStartFresh();
+            openCreateProjectModal();
+        });
+        sampleMapModal?.addEventListener("click", (event) => {
+            if (event.target === sampleMapModal) dismissSampleMapModal();
+        });
         workspaceEmptyCloseBtn?.addEventListener("click", () => {
             hideWorkspaceEmptyStateForever = Boolean(hideWorkspaceEmptyStateToggle?.checked);
             emptyStateDismissed = true;
@@ -12475,6 +12801,10 @@
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
+                if (sampleMapModal && !sampleMapModal.hidden) {
+                    dismissSampleMapModal();
+                    return;
+                }
                 if (!layerActionModalBackdrop.hidden) {
                     closeLayerActionModal();
                     return;
@@ -12616,6 +12946,7 @@
             document.getElementById("toolbar"),
             importPanel,
             createProjectModal,
+            sampleMapModal,
             layerActionModalBackdrop,
             sidebar,
             sidebarBackdrop,
