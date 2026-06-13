@@ -12007,7 +12007,7 @@
 
         createProjectForm?.addEventListener("submit", handleCreateProjectSubmitFallback, true);
 
-        const setProjectStatus = (message, state = "") => {
+        function setProjectStatus(message, state = "") {
             projectStatus.textContent = message;
             projectStatus.classList.remove("success", "error");
             if (state) {
@@ -12021,7 +12021,7 @@
             if (workspaceLiveRegion) {
                 workspaceLiveRegion.textContent = message;
             }
-        };
+        }
 
         function trapLayerActionModalFocus(event) {
             if (event.key !== "Tab" || layerActionModalBackdrop?.hidden) return;
