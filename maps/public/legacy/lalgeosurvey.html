@@ -20477,6 +20477,14 @@ function setImportPanelVisibility(show) {
 
         }
 
+        function hasMapKitMapConstructor() {
+            try {
+                return typeof mapkit !== "undefined" && typeof mapkit.Map === "function";
+            } catch {
+                return false;
+            }
+        }
+
         function initializeMapRuntimeWithRetry(attempt = 0) {
             const maxAttempts = 4;
             const retryDelay = Math.min(4000, 500 * Math.pow(2, attempt));
@@ -20489,14 +20497,14 @@ function setImportPanelVisibility(show) {
                 window.setTimeout(() => initializeMapRuntimeWithRetry(attempt + 1), retryDelay);
             };
             try {
-                if (mapkit?.Map) {
+                if (hasMapKitMapConstructor()) {
                     initializeMapRuntime();
                     return;
                 }
                 if (typeof mapkit?.load === "function") {
                     mapkit.load(["map"], () => {
                         try {
-                            if (!mapkit.Map) {
+                            if (!hasMapKitMapConstructor()) {
                                 retry(new Error("MapKit map library unavailable after load."));
                                 return;
                             }
