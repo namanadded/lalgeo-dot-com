@@ -6423,6 +6423,8 @@
                 updateAnnotationLabels();
             }
         });
+        const MAX_RENDERED_MAP_FEATURES = 2000;
+        const MAX_RENDERED_TABLE_ROWS = 500;
         let surveyAnnotations = [];
         let surveyOverlays = [];
         let activeSurveyAnnotation = null;
@@ -9565,6 +9567,8 @@
         }
 
         async function openImportedGeospatialLayers(payload, { preserveRegion = true } = {}) {
+            setProjectStatus("Adding imported map layer...");
+            await new Promise((resolve) => window.setTimeout(resolve, 0));
             const source = payload.source || { type: "local-import", format: payload.format || "geospatial" };
             const layers = (payload?.geospatialLayers || []).map((layer, index) => {
                 const nextLayer = ensureLayerStructure(layer);
@@ -9581,6 +9585,10 @@
                 return nextLayer;
             }).filter(Boolean);
             if (!layers.length) throw new Error("No supported geospatial features found.");
+            const totalFeatureCount = layers.reduce((sum, layer) => sum + (layer.features?.length || 0), 0);
+            const renderLimitNote = totalFeatureCount > MAX_RENDERED_MAP_FEATURES
+                ? ` Map/table rendering is limited for performance; the full ${totalFeatureCount.toLocaleString()}-feature layer remains loaded.`
+                : "";
             if (activeProjectRecord?.layers?.length) {
                 activeProjectRecord.layers.push(...layers);
                 activeProjectRecord.activeLayerId = layers[0].id;
@@ -9599,7 +9607,7 @@
                 markActiveProjectUpdated();
                 scheduleLocalAutosave();
                 setActiveProject(activeProjectRecord, { preserveRegion });
-                setProjectStatus(`Imported ${layers.length} layer${layers.length === 1 ? "" : "s"} into ${activeProjectRecord.name}.`, "success");
+                setProjectStatus(`Imported ${layers.length} layer${layers.length === 1 ? "" : "s"} into ${activeProjectRecord.name}.${renderLimitNote}`, "success");
             } else {
                 const project = createProjectRecord({
                     name: payload.projectName || "Imported GIS Project",
@@ -9610,7 +9618,7 @@
                     layers
                 });
                 addProjectToWorkspace(project, { preserveRegion: false });
-                setProjectStatus(`Created ${project.name} with ${layers.length} imported layer${layers.length === 1 ? "" : "s"}.`, "success");
+                setProjectStatus(`Created ${project.name} with ${layers.length} imported layer${layers.length === 1 ? "" : "s"}.${renderLimitNote}`, "success");
             }
             setImportPanelVisibility(false);
             setLayerImportPanelVisibility(false);
@@ -17156,6 +17164,18 @@
             return fallbackNames.has(normalizedLabel) ? "" : normalizedLabel;
         }
 
+        function limitRenderableFeatureSet(features = [], maxFeatures = MAX_RENDERED_MAP_FEATURES) {
+            const candidates = features.filter((feature) => feature?.showRepresentativeMarker !== false);
+            if (candidates.length <= maxFeatures) return new Set(candidates);
+            const selected = new Set();
+            const step = candidates.length / maxFeatures;
+            for (let i = 0; i < maxFeatures; i += 1) {
+                const feature = candidates[Math.floor(i * step)];
+                if (feature) selected.add(feature);
+            }
+            return selected;
+        }
+
         function getRenderableMarkerFeatures(layer, projectName = activeProjectName) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             const features = layer?.features || [];
@@ -17163,7 +17183,7 @@
                 return new Set();
             }
             if (geometryType !== "polygon") {
-                return new Set(features.filter((feature) => feature.showRepresentativeMarker !== false));
+                return limitRenderableFeatureSet(features);
             }
 
             const markerFeatures = new Set();
@@ -17187,7 +17207,9 @@
                 }
             });
             groups.forEach(({ feature }) => markerFeatures.add(feature));
-            return markerFeatures;
+            return markerFeatures.size > MAX_RENDERED_MAP_FEATURES
+                ? limitRenderableFeatureSet(Array.from(markerFeatures))
+                : markerFeatures;
         }
 
         function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
@@ -18094,7 +18116,9 @@
                     if (tableRowFilterMode === "unselected") return !selectedTableRows.has(index);
                     return true;
                 });
-            const bodyRows = filteredRecords.map(({ record, index }) => {
+            const renderedRecords = filteredRecords.slice(0, MAX_RENDERED_TABLE_ROWS);
+            const hiddenRowCount = Math.max(0, filteredRecords.length - renderedRecords.length);
+            const bodyRows = renderedRecords.map(({ record, index }) => {
                 const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
                 const cells = visibleHeaders.map(header => {
@@ -18111,7 +18135,11 @@
                 const rowClass = rowClasses ? ` class="${rowClasses}"` : "";
                 return `<tr data-row-index="${index}"${rowClass}>${cells}${actionCell}</tr>`;
             }).join("");
+            const limitNotice = hiddenRowCount
+                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows. The full layer remains loaded.</div>`
+                : "";
             surveyTable.innerHTML = `
+                ${limitNotice}
                 <table>
                     <thead><tr>${headerRow}</tr></thead>
                     <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">No features yet in this layer.</td></tr>`}</tbody>
