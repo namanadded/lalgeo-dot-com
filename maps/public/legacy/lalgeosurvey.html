@@ -3377,7 +3377,7 @@
     .workspace-empty-state {
         position: fixed;
         inset: 0;
-        z-index: 1100;
+        z-index: 1300;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -12265,36 +12265,46 @@
             dropboxLinkParam,
             shareParam
         });
-        if (rememberLastSession && storedActiveProjectId) {
-            const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
-            if (storedProject) {
-                if (isDropboxBackedProject(storedProject)) {
-                    pendingStartupDropboxProjectId = storedProject.id;
-                    logWorkspaceDebug("startupRestoreAction", {
-                        mode: "pending-dropbox-project",
-                        projectId: storedProject.id,
-                        projectName: storedProject.name
-                    });
-                    setActiveProject(null, { render: false });
-                } else {
-                    logWorkspaceDebug("startupRestoreAction", { mode: "stored-active-project", projectId: storedProject.id, projectName: storedProject.name });
-                    setActiveProject(storedProject, { render: false });
-                }
-            }
-        } else if (rememberLastSession && workspaceProjects[0]) {
-            if (isDropboxBackedProject(workspaceProjects[0])) {
-                pendingStartupDropboxProjectId = workspaceProjects[0].id;
+        const restoreStartupProject = (project, mode) => {
+            if (!project) return false;
+            if (isDropboxBackedProject(project)) {
+                pendingStartupDropboxProjectId = project.id;
                 logWorkspaceDebug("startupRestoreAction", {
-                    mode: "pending-first-dropbox-project",
-                    projectId: workspaceProjects[0].id,
-                    projectName: workspaceProjects[0].name
+                    mode,
+                    projectId: project.id,
+                    projectName: project.name
                 });
                 setActiveProject(null, { render: false });
-            } else {
-                logWorkspaceDebug("startupRestoreAction", { mode: "first-workspace-project", projectId: workspaceProjects[0].id, projectName: workspaceProjects[0].name });
-                setActiveProject(workspaceProjects[0], { render: false });
+                return true;
             }
-        } else {
+            logWorkspaceDebug("startupRestoreAction", {
+                mode,
+                projectId: project.id,
+                projectName: project.name
+            });
+            setActiveProject(project, { render: false });
+            return true;
+        };
+        let restoredStartupProject = false;
+        if (storedActiveProjectId) {
+            const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
+            if (storedProject) {
+                restoredStartupProject = restoreStartupProject(storedProject, "stored-active-project");
+            } else {
+                localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
+                logWorkspaceDebug("startupRestoreAction", {
+                    mode: "stale-active-project-id",
+                    projectId: storedActiveProjectId
+                });
+            }
+        }
+        if (!restoredStartupProject && workspaceProjects[0]) {
+            restoredStartupProject = restoreStartupProject(
+                workspaceProjects[0],
+                rememberLastSession ? "first-workspace-project" : "first-available-project"
+            );
+        }
+        if (!restoredStartupProject) {
             logWorkspaceDebug("startupRestoreAction", { mode: "clear-active-project" });
             setActiveProject(null, { render: false });
         }
