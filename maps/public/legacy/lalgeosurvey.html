@@ -6590,6 +6590,7 @@
         let quickActions = [...DEFAULT_QUICK_ACTIONS];
         let pendingStartupDropboxProjectId = null;
         let suppressMapTapUntil = 0;
+        const apiLayerRefreshInFlight = new Set();
         updateHistoryButtons();
 
         function logWorkspaceDebug(event, details = {}) {
@@ -7689,7 +7690,7 @@
         }
 
         function getQuickActionAvailability(key, hasEditingSession) {
-            if (key === "addNew") return hasEditingSession;
+            if (key === "addNew") return hasEditingSession && canEditLayer(getActiveLayerRecord());
             if (key === "undo") return undoStack.length > 0;
             if (key === "redo") return redoStack.length > 0;
             return true;
@@ -7961,6 +7962,108 @@
             return false;
         }
 
+        function isApiEndpointSource(source = {}) {
+            return source?.type === "api-endpoint";
+        }
+
+        function isApiReferenceLayer(layer) {
+            return isApiEndpointSource(layer?.source) || layer?.readOnly === true && isApiEndpointSource(layer?.source);
+        }
+
+        function canEditLayer(layer = getActiveLayerRecord()) {
+            return Boolean(layer) && !isApiReferenceLayer(layer);
+        }
+
+        function summarizeLayerSource(source = {}) {
+            if (!source || !source.type) {
+                return { label: "Created in LalGeo", detail: "Editable browser workspace layer.", mode: "Embedded editable layer" };
+            }
+            if (source.type === "api-endpoint") {
+                return {
+                    label: "API endpoint",
+                    detail: source.url || "API URL unavailable",
+                    mode: "Live reference. Features are fetched from the source when the project opens and are not saved into the project."
+                };
+            }
+            if (source.type === "local-import") {
+                return {
+                    label: source.format || "Imported file",
+                    detail: source.fileName || "Local browser file import",
+                    mode: "Embedded copy from imported file"
+                };
+            }
+            if (source.type === "dropbox" || source.type === "dropbox-link") {
+                return {
+                    label: "Dropbox",
+                    detail: source.path || source.url || "Dropbox project",
+                    mode: "Cloud-backed project source"
+                };
+            }
+            return {
+                label: source.type,
+                detail: source.url || source.path || source.fileName || "Source details unavailable",
+                mode: source.storageMode || "Embedded layer"
+            };
+        }
+
+        function layerSourceDetailsHtml(layer) {
+            const source = layer?.source || activeProjectRecord?.source || {};
+            const info = summarizeLayerSource(source);
+            const rows = [
+                ["Source", info.label],
+                ["Mode", info.mode],
+                ["Format", source.format || ""],
+                ["URL", source.url || ""],
+                ["File", source.fileName || ""],
+                ["Path", source.path || ""],
+                ["Layer key", source.apiLayerName || source.apiLayerGeometryType || ""],
+                ["Last loaded", source.loadedAt ? formatProjectDate(source.loadedAt) : ""]
+            ].filter(([, value]) => value !== "" && value !== null && value !== undefined);
+            return `
+                <div class="workspace-field full">
+                    <label>Layer source</label>
+                    <div class="workspace-settings-card">
+                        ${rows.map(([label, value]) => `
+                            <div class="workspace-sidebar-row">
+                                <div>
+                                    <h5>${escapeHtml(label)}</h5>
+                                    <p>${escapeHtml(String(value))}</p>
+                                </div>
+                            </div>
+                        `).join("")}
+                    </div>
+                </div>
+            `;
+        }
+
+        function serializeLayerForStorage(layer) {
+            if (!isApiReferenceLayer(layer)) return layer;
+            return {
+                ...layer,
+                readOnly: true,
+                features: [],
+                parsed: {
+                    ...(layer.parsed || {}),
+                    records: [],
+                    pointMeta: [],
+                    archiveRecords: [],
+                    archivePointMeta: []
+                }
+            };
+        }
+
+        function serializeProjectForStorage(project) {
+            if (!project?.layers?.length) return project;
+            return {
+                ...project,
+                layers: project.layers.map(serializeLayerForStorage)
+            };
+        }
+
+        function serializeWorkspaceProjectsForStorage() {
+            return workspaceProjects.map(serializeProjectForStorage);
+        }
+
         function ensureVisitorSampleProject() {
             const sampleIndex = workspaceProjects.findIndex((project) => project?.source?.type === SAMPLE_PROJECT_SOURCE_TYPE);
             const legacyDemoIndex = workspaceProjects.findIndex((project) => project?.source?.type === "demo");
@@ -7998,7 +8101,7 @@
 
         function saveWorkspaceProjects() {
             try {
-                localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspaceProjects));
+                localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(serializeWorkspaceProjectsForStorage()));
                 if (rememberLastSession && activeProjectRecord?.id) {
                     localStorage.setItem(WORKSPACE_ACTIVE_KEY, activeProjectRecord.id);
                 } else {
@@ -8160,6 +8263,7 @@
         function syncActiveLayerFromSurveyState() {
             const layer = getActiveLayerRecord();
             if (!layer || !currentSurveyData) return;
+            if (!canEditLayer(layer)) return;
             layer.schema = createSchemaFromParsed(currentSurveyData);
             layer.parsed = currentSurveyData;
             layer.fields = layer.schema.map((field) => field.name);
@@ -8480,7 +8584,7 @@
         function syncEditPanelState() {
             const layerId = getEditPanelLayerId();
             const layer = layerId ? getLayerById(layerId) : null;
-            const canEdit = Boolean(activeProjectRecord && layer && currentSurveyData && !isArchiveView);
+            const canEdit = Boolean(activeProjectRecord && layer && currentSurveyData && !isArchiveView && canEditLayer(layer));
             renderEditPanelLayerOptions(layerId);
             editPanelToggleBtn?.classList.toggle("active", Boolean(editFloatingPanel && !editFloatingPanel.hidden));
             editPanelToggleBtn?.setAttribute("aria-expanded", editFloatingPanel && !editFloatingPanel.hidden ? "true" : "false");
@@ -8675,6 +8779,12 @@
             const layerId = getEditPanelLayerId();
             if (layerId && layerId !== activeLayerId) {
                 switchToLayer(layerId, { revealTable: false });
+            }
+            if (nextActive && !canEditLayer(getLayerById(layerId))) {
+                editSessionActive = false;
+                setProjectStatus("This layer is a live API reference. Add or edit features in your source API, or create a new editable layer.", "error");
+                syncEditPanelState();
+                return;
             }
             editSessionActive = Boolean(nextActive);
             if (!editSessionActive) {
@@ -9225,7 +9335,7 @@
             renderQuickActionButtons();
         }
 
-        function setActiveProject(project, { render = true, preserveRegion = false } = {}) {
+        function setActiveProject(project, { render = true, preserveRegion = false, refreshApi = true } = {}) {
             if (localAutosaveTimer) {
                 clearTimeout(localAutosaveTimer);
                 localAutosaveTimer = null;
@@ -9309,6 +9419,7 @@
             updateToolbarDockState();
             applyBasemapPoisPreference(activeProjectRecord);
             maybeShowSampleMapModal();
+            if (refreshApi) void refreshApiReferenceLayers(activeProjectRecord);
         }
 
         function addProjectToWorkspace(project, options = {}) {
@@ -9417,6 +9528,21 @@
                 name: payload.layerName || "Imported Layer",
                 parsed
             });
+            layer.source = {
+                ...(payload.source || { type: "local-import" }),
+                storageMode: isApiEndpointSource(payload.source) ? "reference" : "embedded",
+                loadedAt: new Date().toISOString()
+            };
+            if (isApiEndpointSource(layer.source)) {
+                layer.readOnly = true;
+                layer.source = {
+                    ...layer.source,
+                    storageMode: "reference",
+                    apiLayerGeometryType: normalizeLayerGeometryType(layer.geometryType),
+                    apiLayerName: layer.name,
+                    loadedAt: new Date().toISOString()
+                };
+            }
             const project = createProjectRecord({
                 name: projectName,
                 description: "Imported into LalGeo Survey workspace",
@@ -9434,9 +9560,22 @@
         }
 
         async function openImportedGeospatialLayers(payload, { preserveRegion = true } = {}) {
-            const layers = (payload?.geospatialLayers || []).map((layer) => ensureLayerStructure(layer)).filter(Boolean);
-            if (!layers.length) throw new Error("No supported geospatial features found.");
             const source = payload.source || { type: "local-import", format: payload.format || "geospatial" };
+            const layers = (payload?.geospatialLayers || []).map((layer, index) => {
+                const nextLayer = ensureLayerStructure(layer);
+                if (!nextLayer) return null;
+                nextLayer.source = {
+                    ...source,
+                    storageMode: isApiEndpointSource(source) ? "reference" : "embedded",
+                    apiLayerIndex: index,
+                    apiLayerGeometryType: normalizeLayerGeometryType(nextLayer.geometryType),
+                    apiLayerName: nextLayer.name,
+                    loadedAt: new Date().toISOString()
+                };
+                if (isApiEndpointSource(source)) nextLayer.readOnly = true;
+                return nextLayer;
+            }).filter(Boolean);
+            if (!layers.length) throw new Error("No supported geospatial features found.");
             if (activeProjectRecord?.layers?.length) {
                 activeProjectRecord.layers.push(...layers);
                 activeProjectRecord.activeLayerId = layers[0].id;
@@ -10079,6 +10218,10 @@
         function editLayerSchema(layerId) {
             const layer = getLayerById(layerId);
             if (!layer) return;
+            if (!canEditLayer(layer)) {
+                showLayerActionInfo("Read-only source layer", "This layer is loaded from an API endpoint. Its schema comes from the live source, so it cannot be edited inside the map project.");
+                return;
+            }
             ensureLayerStructure(layer);
             const rows = (layer.schema || []).map((field, index) => {
                 const isLocked = field.locked === true;
@@ -10308,6 +10451,7 @@
                 description: `Set symbol and label behavior for ${layer.name}.`,
                 bodyHtml: `
                     <div class="layer-modal-grid">
+                        ${layerSourceDetailsHtml(layer)}
                         <div class="workspace-field full">
                             <label for="layerStyleColor">Colour</label>
                             <select id="layerStyleColor" class="workspace-text-input">
@@ -10722,9 +10866,9 @@
                 return;
             }
             const payload = {
-                project: activeProjectRecord,
+                project: serializeProjectForStorage(activeProjectRecord),
                 activeLayerId,
-                survey: buildSurveyDocumentFromParsed(currentSurveyData)
+                survey: isApiReferenceLayer(getActiveLayerRecord()) ? null : buildSurveyDocumentFromParsed(currentSurveyData)
             };
             const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
             const url = URL.createObjectURL(blob);
@@ -10946,6 +11090,10 @@
 
         function commitLayerFeatureChanges(layer, message = "Layer updated.") {
             if (!layer) return;
+            if (!canEditLayer(layer)) {
+                setProjectStatus("This layer is loaded from a live API reference and cannot be edited in the map project.", "error");
+                return;
+            }
             layer.parsed = buildParsedFromLayer(layer);
             layer.fields = [...layer.parsed.headers];
             if (layer.id === activeLayerId) {
@@ -10978,6 +11126,7 @@
 
         function bufferSelectedFeatures() {
             const sourceLayer = getActiveLayerRecord();
+            if (!canEditLayer(sourceLayer)) return setProjectStatus("Create an editable layer before generating buffers from this live API reference.", "error");
             const indexes = getActiveSelectionIndexes();
             if (!sourceLayer || !indexes.length) return setProjectStatus("Select features before creating buffers.", "error");
             const radius = Number(prompt("Buffer radius in meters:", "10"));
@@ -11040,6 +11189,7 @@
 
         function mergeSelectedFeatures() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("This live API reference layer cannot be merged or edited.", "error");
             const indexes = getActiveSelectionIndexes();
             if (!layer || indexes.length < 2) return setProjectStatus("Select at least two features to merge.", "error");
             const geometryType = normalizeLayerGeometryType(layer.geometryType || "point");
@@ -11094,6 +11244,7 @@
 
         function duplicateSelectedFeatures() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("This live API reference layer cannot be duplicated into itself.", "error");
             const indexes = getActiveSelectionIndexes();
             if (!layer || !indexes.length) return setProjectStatus("Select features to duplicate.", "error");
             indexes.forEach((index) => {
@@ -11124,6 +11275,7 @@
 
         function moveSelectedFeaturesToLayer() {
             const sourceLayer = getActiveLayerRecord();
+            if (!canEditLayer(sourceLayer)) return setProjectStatus("This live API reference layer cannot have features moved out of it.", "error");
             const indexes = getActiveSelectionIndexes();
             if (!sourceLayer || !indexes.length) return setProjectStatus("Select features to move.", "error");
             const compatible = (activeProjectRecord.layers || []).filter((layer) => layer.id !== sourceLayer.id && normalizeLayerGeometryType(layer.geometryType) === normalizeLayerGeometryType(sourceLayer.geometryType));
@@ -11180,6 +11332,7 @@
 
         function createBearingLine() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("Create an editable line layer before adding bearing lines.", "error");
             if (!layer || normalizeLayerGeometryType(layer.geometryType) !== "line") return setProjectStatus("Switch to a line layer to create a bearing line.", "error");
             const sourceIndex = getActiveSelectionIndexes()[0];
             const start = Number.isInteger(sourceIndex) ? getFeatureRepresentativeCoordinate(layer.features[sourceIndex]) : map?.region?.center;
@@ -11211,6 +11364,7 @@
 
         function styleLayerByAttribute() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("Live API reference layers cannot be restyled by rewriting feature attributes. Use Layer Properties for display styling.", "error");
             if (!layer) return;
             const fields = (layer.schema || []).map((field) => field.name).filter((name) => !isLayerStyleFieldName(name));
             const field = prompt(`Field for categorized colors:\n${fields.join(", ")}`, fields[0] || "");
@@ -11307,6 +11461,7 @@
 
         function simplifySelectedGeometries() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("This live API reference layer cannot be simplified inside the map project.", "error");
             const indexes = getActiveSelectionIndexes({ fallbackAll: true });
             if (!layer || !indexes.length) return;
             const geometryType = normalizeLayerGeometryType(layer.geometryType);
@@ -11325,6 +11480,7 @@
 
         function densifySelectedGeometries() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("This live API reference layer cannot be densified inside the map project.", "error");
             const indexes = getActiveSelectionIndexes({ fallbackAll: true });
             if (!layer || !indexes.length) return;
             const geometryType = normalizeLayerGeometryType(layer.geometryType);
@@ -11532,9 +11688,9 @@
             const zip = new JSZip();
             const baseName = (activeProjectRecord.name || "lalgeo-project").replace(/\s+/g, "-").toLowerCase();
             const lalPayload = {
-                project: activeProjectRecord,
+                project: serializeProjectForStorage(activeProjectRecord),
                 activeLayerId,
-                survey: currentSurveyData ? buildSurveyDocumentFromParsed(currentSurveyData) : null
+                survey: currentSurveyData && !isApiReferenceLayer(getActiveLayerRecord()) ? buildSurveyDocumentFromParsed(currentSurveyData) : null
             };
             zip.file(`${baseName}.lal`, JSON.stringify(lalPayload, null, 2));
             zip.file("manifest.json", JSON.stringify({
@@ -13129,6 +13285,10 @@
                 setProjectStatus("Start edit mode before editing table attributes.", "error");
                 return;
             }
+            if (!canEditAttributes()) {
+                setProjectStatus("This layer is read-only because it is loaded from a source reference.", "error");
+                return;
+            }
             tableEditMode = !tableEditMode;
             tableEditBtn.classList.toggle("active", tableEditMode);
             tableEditBtn.textContent = tableEditMode ? "Done editing" : "Edit";
@@ -13163,6 +13323,12 @@
         window.__lalgeoPrimaryBindingsReady = true;
 
         function toggleAddSurveyPointMode() {
+            const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) {
+                setProjectStatus("This layer is a live API reference. Create an editable layer before adding new features.", "error");
+                syncEditPanelState();
+                return;
+            }
             const geometryType = getActiveLayerGeometryType();
             if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
                 finalizeGeometryFeaturePlacement();
@@ -13874,6 +14040,11 @@
         function finalizeGeometryFeaturePlacement() {
             const layer = getActiveLayerRecord();
             const geometryType = getActiveLayerGeometryType();
+            if (!canEditLayer(layer)) {
+                exitAddSurveyPointMode();
+                setProjectStatus("Cannot add features to a live API reference layer.", "error");
+                return;
+            }
             if (!layer || geometryType === "point" || !hasEnoughVerticesForGeometry(geometryType, drawingVertices)) return;
             const geometry = buildGeometryFromVertices(geometryType, drawingVertices);
             if (!geometry) return;
@@ -13911,6 +14082,10 @@
 
         function getSelectedEditableFeatureContext() {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) {
+                setProjectStatus("This layer is a live API reference and cannot be edited in the map project.", "error");
+                return null;
+            }
             if (!layer?.features?.length || !currentSurveyData?.records?.length) return null;
             let rowIndex = Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
                 && activeSurveyAnnotation.surveyPoint.layerId === layer.id
@@ -13930,6 +14105,10 @@
         function applyGeometryToFeature(rowIndex, geometry, { recordHistory = true, status = "Geometry updated." } = {}) {
             const layer = getActiveLayerRecord();
             const feature = layer?.features?.[rowIndex];
+            if (!canEditLayer(layer)) {
+                setProjectStatus("This live API reference layer cannot be reshaped inside the map project.", "error");
+                return false;
+            }
             if (!layer || !feature || !geometry) return false;
             const before = cloneFeatureGeometry(feature.geometry);
             const after = cloneFeatureGeometry(geometry);
@@ -14183,6 +14362,7 @@
 
         function createViewportPolygonShape(shape = "rectangle") {
             const layer = getActiveLayerRecord();
+            if (!canEditLayer(layer)) return setProjectStatus("Cannot add polygons to a live API reference layer.", "error");
             if (!layer || normalizeLayerGeometryType(layer.geometryType || "point") !== "polygon" || !map?.region) return;
             if (!ensureEditSessionStarted()) return;
             const center = map.region.center;
@@ -14396,6 +14576,11 @@
         async function handleNewSurveyPointPlacement(coordinate, options = {}) {
             if (!currentSurveyData || !coordinate) return;
             const activeLayer = getActiveLayerRecord();
+            if (!canEditLayer(activeLayer)) {
+                exitAddSurveyPointMode();
+                setProjectStatus("Cannot add features to a live API reference layer.", "error");
+                return;
+            }
             const geometryType = getActiveLayerGeometryType();
             const placementCoordinate = geometryType === "point" ? coordinate : getSnappedCoordinate(coordinate);
             if (geometryType !== "point") {
@@ -16036,7 +16221,13 @@
         }
 
         function detectApiEndpointFormat(url, contentType = "", preferred = "auto") {
-            if (preferred && preferred !== "auto") return preferred;
+            const normalizedPreferred = String(preferred || "auto").trim().toLowerCase();
+            if (normalizedPreferred && normalizedPreferred !== "auto") {
+                if (normalizedPreferred.includes("geojson")) return "geojson";
+                if (normalizedPreferred.includes("csv")) return "csv";
+                if (normalizedPreferred.includes("json")) return "json";
+                return normalizedPreferred;
+            }
             const target = `${url} ${contentType}`.toLowerCase();
             if (target.includes("geojson") || target.endsWith(".geojson")) return "geojson";
             if (target.includes("csv") || /\.csv(\?|$)/i.test(url)) return "csv";
@@ -16147,6 +16338,99 @@
                 return payload;
             }
             return buildCsvPayloadFromRows(parsed, { projectName, url });
+        }
+
+        function findMatchingApiLayerPayload(referenceLayer, payload) {
+            const geometryType = normalizeLayerGeometryType(referenceLayer?.source?.apiLayerGeometryType || referenceLayer?.geometryType || "point");
+            const sourceIndex = Number(referenceLayer?.source?.apiLayerIndex);
+            const geospatialLayers = (payload?.geospatialLayers || []).filter((layer) => normalizeLayerGeometryType(layer.geometryType) === geometryType);
+            if (geospatialLayers.length) {
+                if (Number.isInteger(sourceIndex) && sourceIndex >= 0) {
+                    const exact = payload.geospatialLayers?.[sourceIndex];
+                    if (exact && normalizeLayerGeometryType(exact.geometryType) === geometryType) return exact;
+                }
+                const sourceName = referenceLayer?.source?.apiLayerName || referenceLayer?.name || "";
+                return geospatialLayers.find((layer) => layer.name === sourceName) || geospatialLayers[0];
+            }
+            if (payload?.csvText && geometryType === "point") {
+                const parsed = ensureParsedCoordinates(parseSurveyCSV(payload.csvText || ""));
+                return createLayerRecord({
+                    name: referenceLayer?.name || payload.layerName || payload.projectName || "API layer",
+                    geometryType: "point",
+                    parsed
+                });
+            }
+            return null;
+        }
+
+        function applyApiPayloadToReferenceLayer(referenceLayer, payloadLayer) {
+            if (!referenceLayer || !payloadLayer) return false;
+            const source = {
+                ...(referenceLayer.source || {}),
+                storageMode: "reference",
+                loadedAt: new Date().toISOString()
+            };
+            referenceLayer.geometryType = normalizeLayerGeometryType(payloadLayer.geometryType || referenceLayer.geometryType || "point");
+            referenceLayer.schema = cloneLayerSchema(payloadLayer.schema || referenceLayer.schema || getDefaultLayerSchema(referenceLayer.geometryType));
+            referenceLayer.fields = referenceLayer.schema.map((field) => field.name);
+            referenceLayer.features = (payloadLayer.features || []).map((feature) => ({
+                ...feature,
+                geometry: cloneFeatureGeometry(feature.geometry),
+                attributes: { ...(feature.attributes || {}) }
+            }));
+            const defaults = {
+                ...getDefaultLayerStyleDefaults(referenceLayer.geometryType),
+                ...(referenceLayer.styleDefaults || {})
+            };
+            referenceLayer.features.forEach((feature) => {
+                feature.attributes = feature.attributes || {};
+                feature.attributes.symbol_color = defaults.symbol_color;
+                feature.attributes.symbol_shape = defaults.symbol_shape;
+            });
+            referenceLayer.parsed = buildParsedFromLayer(referenceLayer);
+            referenceLayer.source = source;
+            referenceLayer.readOnly = true;
+            ensureLayerLabelSettings(referenceLayer);
+            return true;
+        }
+
+        async function refreshApiReferenceLayers(project = activeProjectRecord) {
+            if (!project?.layers?.some(isApiReferenceLayer)) return;
+            if (apiLayerRefreshInFlight.has(project.id)) return;
+            apiLayerRefreshInFlight.add(project.id);
+            try {
+                const grouped = new Map();
+                (project.layers || []).filter(isApiReferenceLayer).forEach((layer) => {
+                    const url = layer.source?.url || "";
+                    if (!url) return;
+                    const key = `${url}::${layer.source?.format || "auto"}`;
+                    if (!grouped.has(key)) grouped.set(key, { url, format: layer.source?.format || "auto", layers: [] });
+                    grouped.get(key).layers.push(layer);
+                });
+                for (const group of grouped.values()) {
+                    const payload = await buildApiEndpointPayload(group.url, group.format || "auto");
+                    group.layers.forEach((layer) => {
+                        const freshLayer = findMatchingApiLayerPayload(layer, payload);
+                        applyApiPayloadToReferenceLayer(layer, freshLayer);
+                    });
+                }
+                if (activeProjectRecord?.id === project.id) {
+                    const activeLayer = getActiveLayerRecord();
+                    currentSurveyData = activeLayer?.parsed || currentSurveyData;
+                    if (currentSurveyData) {
+                        analyzeSurveySchema(currentSurveyData);
+                        rebuildPointIndexes(currentSurveyData);
+                    }
+                    setActiveProject(project, { preserveRegion: true, refreshApi: false });
+                    setProjectStatus("Live API layer data refreshed from source.", "success");
+                }
+                saveWorkspaceProjects();
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error.message || "Unable to refresh live API layer.", "error");
+            } finally {
+                apiLayerRefreshInFlight.delete(project.id);
+            }
         }
 
         function parseKmlCoordinates(text = "") {
@@ -17851,7 +18135,7 @@
         }
 
         function canEditAttributes() {
-            return !isDropboxLinkSource();
+            return !isDropboxLinkSource() && canEditLayer(getActiveLayerRecord());
         }
 
         function getCurrentDropboxLink() {
@@ -19559,7 +19843,7 @@ function setImportPanelVisibility(show) {
         function getPlaceAddableLayers() {
             return (activeProjectRecord?.layers || [])
                 .map((layer) => ensureLayerStructure(layer))
-                .filter((layer) => layer.visible !== false && normalizeLayerGeometryType(layer.geometryType) === "point");
+                .filter((layer) => layer.visible !== false && normalizeLayerGeometryType(layer.geometryType) === "point" && canEditLayer(layer));
         }
 
         async function addSearchPlaceToLayer(place, layerId) {
@@ -19567,6 +19851,10 @@ function setImportPanelVisibility(show) {
             const layer = getLayerById(layerId);
             if (!layer) {
                 setProjectStatus("Choose a valid point layer before adding this place.", "error");
+                return;
+            }
+            if (!canEditLayer(layer)) {
+                setProjectStatus("This point layer is loaded from a live API reference. Choose an editable layer instead.", "error");
                 return;
             }
             activeProjectRecord.activeLayerId = layer.id;
