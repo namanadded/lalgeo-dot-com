@@ -8618,7 +8618,7 @@
             if (editPanelGeometryBtn) editPanelGeometryBtn.disabled = !canEdit;
             if (editPanelGeometryBtn) editPanelGeometryBtn.classList.toggle("active", pointGeometryEditMode);
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || getActiveLayerGeometryType());
-            const hasSelectedFeature = Boolean(getSelectedEditableFeatureContext());
+            const hasSelectedFeature = canEdit && Boolean(getSelectedEditableFeatureContext());
             const showGeometryTools = canEdit && (geometryType === "line" || geometryType === "polygon");
             if (editPanelUndoBtn) {
                 editPanelUndoBtn.disabled = !undoStack.length;
@@ -14097,10 +14097,7 @@
 
         function getSelectedEditableFeatureContext() {
             const layer = getActiveLayerRecord();
-            if (!canEditLayer(layer)) {
-                setProjectStatus("This layer is a live API reference and cannot be edited in the map project.", "error");
-                return null;
-            }
+            if (!canEditLayer(layer)) return null;
             if (!layer?.features?.length || !currentSurveyData?.records?.length) return null;
             let rowIndex = Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
                 && activeSurveyAnnotation.surveyPoint.layerId === layer.id
