@@ -8074,7 +8074,7 @@
                 workspaceProjects.splice(legacyDemoIndex, 1, replacement);
                 return replacement;
             }
-            if (!workspaceProjects.length && !localStorage.getItem(WORKSPACE_SEEDED_KEY)) {
+            if (!workspaceProjects.length && localStorage.getItem(SAMPLE_PROJECT_DISMISSED_KEY) !== "1") {
                 const sample = buildDemoProject();
                 workspaceProjects = [sample];
                 localStorage.setItem(WORKSPACE_SEEDED_KEY, "1");
@@ -8330,8 +8330,13 @@
                     surveyTableContext.innerHTML = `<span class="workspace-badge">${escapeHtml(storage)}</span>${escapeHtml(activeProjectRecord.name)} · ${escapeHtml(layer ? layer.name : "No active layer")}`;
                 }
             }
-            if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject || hideWorkspaceEmptyStateForever || emptyStateDismissed;
-            if (!hasProject) setSidebarVisibility(false);
+            if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
+            if (!hasProject) {
+                setSidebarVisibility(false);
+                setDataPaneVisibility(false);
+                setToolbarMenuVisibility(false);
+                setSettingsPanelVisibility(false);
+            }
             if (hasProject) {
                 renderActiveProjectSidebar();
                 const featureCount = (layer?.parsed?.records || []).length;
