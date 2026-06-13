@@ -16304,6 +16304,40 @@
             return features.length ? { type: "FeatureCollection", features } : null;
         }
 
+        function buildGeoJsonPayloadFromJsonRows(input, { projectName = "API Endpoint", url = "" } = {}) {
+            const records = normalizeApiJsonRows(input).filter((row) => row && typeof row === "object");
+            if (!records.length) throw new Error("API endpoint returned JSON, but no rows were found.");
+            const { latKey, lonKey } = findLatLonKeys(records);
+            if (!latKey || !lonKey) {
+                throw new Error("JSON endpoint imported rows, but no latitude/longitude fields were found.");
+            }
+            const features = records.flatMap((record) => {
+                const lat = parseNumber(record?.[latKey]);
+                const lon = parseNumber(record?.[lonKey]);
+                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+                return [{
+                    type: "Feature",
+                    properties: { ...record },
+                    geometry: { type: "Point", coordinates: [lon, lat] }
+                }];
+            });
+            if (!features.length) throw new Error("JSON endpoint rows did not contain valid coordinates.");
+            const payload = buildGeoJsonPayload({ type: "FeatureCollection", features }, {
+                projectName,
+                fileName: projectName,
+                format: "API JSON rows"
+            });
+            payload.source = {
+                type: "api-endpoint",
+                format: "JSON",
+                url,
+                geometrySource: "latitude-longitude",
+                latitudeField: latKey,
+                longitudeField: lonKey
+            };
+            return payload;
+        }
+
         async function buildApiEndpointPayload(url, preferredFormat = "auto") {
             const response = await fetch(url, { headers: { Accept: "application/geo+json, application/json, text/csv, */*" } });
             if (!response.ok) {
@@ -16349,7 +16383,7 @@
                 payload.source = { type: "api-endpoint", format: "JSON geometry", url };
                 return payload;
             }
-            return buildCsvPayloadFromRows(parsed, { projectName, url });
+            return buildGeoJsonPayloadFromJsonRows(parsed, { projectName, url });
         }
 
         function findMatchingApiLayerPayload(referenceLayer, payload) {
