@@ -20848,14 +20848,19 @@ function setImportPanelVisibility(show) {
             }
         });
     </script>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-NLY6QZ7L7B');
+  (() => {
+    const analyticsHosts = new Set(["lalgeo.com", "www.lalgeo.com", "maps.lalgeo.com", "lalgeo.ca", "www.lalgeo.ca"]);
+    if (!analyticsHosts.has(window.location.hostname)) return;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag(){ window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    window.gtag('config', 'G-NLY6QZ7L7B');
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B";
+    document.head.appendChild(script);
+  })();
 </script>
 </body>
 </html>
