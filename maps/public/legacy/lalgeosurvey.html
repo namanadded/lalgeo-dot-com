@@ -4810,6 +4810,12 @@
         min-width: 24px;
         min-height: 24px;
     }
+    #toolbar #toolbarSearchShell #collapseSearchBtn {
+        display: none;
+    }
+    #toolbar #toolbarSearchShell.has-search-text #collapseSearchBtn {
+        display: inline-flex;
+    }
     .toolbar-left.expanded .app-menubar,
     .toolbar-right.expanded .toolbar-quick-actions {
         background: rgba(255, 255, 255, 0.96);
@@ -19434,8 +19440,11 @@ function setImportPanelVisibility(show) {
 
         function updateSearchClearControls() {
             const hasSearchText = Boolean(searchField.value);
+            toolbarSearchShell?.classList.toggle("has-search-text", hasSearchText);
             if (collapseSearchBtn) collapseSearchBtn.style.display = hasSearchText ? "inline-flex" : "none";
         }
+
+        updateSearchClearControls();
 
         searchField.addEventListener("input", () => {
             updateSearchClearControls();
