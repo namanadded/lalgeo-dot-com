@@ -6648,6 +6648,7 @@
             myLocation: myLocationBtn,
             help: helpCenterBtn
         };
+        const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
         let sidebarVisible = false;
         let dataPaneVisible = false;
@@ -12332,6 +12333,7 @@
         const storedActiveProjectId = rememberLastSession ? localStorage.getItem(WORKSPACE_ACTIVE_KEY) : null;
         logWorkspaceDebug("startupRestoreCheck", {
             rememberLastSession,
+            startupSafeMode,
             storedActiveProjectId,
             workspaceProjectCount: workspaceProjects.length,
             workspaceProjectNames: workspaceProjects.map((item) => item.name),
@@ -12359,7 +12361,12 @@
             return true;
         };
         let restoredStartupProject = false;
-        if (storedActiveProjectId) {
+        if (startupSafeMode) {
+            try {
+                localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
+            } catch {}
+            logWorkspaceDebug("startupRestoreAction", { mode: "safe-mode-skip-restore" });
+        } else if (storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
                 restoredStartupProject = restoreStartupProject(storedProject, "stored-active-project");
@@ -12371,10 +12378,10 @@
                 });
             }
         }
-        if (!restoredStartupProject && workspaceProjects[0]) {
+        if (!restoredStartupProject && rememberLastSession && workspaceProjects[0] && !startupSafeMode) {
             restoredStartupProject = restoreStartupProject(
                 workspaceProjects[0],
-                rememberLastSession ? "first-workspace-project" : "first-available-project"
+                "first-workspace-project"
             );
         }
         if (!restoredStartupProject) {
