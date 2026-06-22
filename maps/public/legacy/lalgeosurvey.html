@@ -19296,9 +19296,19 @@ function setImportPanelVisibility(show) {
             speechSynthesis.speak(utterance);
         }
 
+        function getMapKitMapConstructor() {
+            try {
+                return typeof mapkit !== "undefined" && typeof mapkit.Map === "function" ? mapkit.Map : null;
+            } catch {
+                return null;
+            }
+        }
+
         function initializeMapRuntime() {
         if (mapReady) return;
-        map = new mapkit.Map("map", {
+        const MapConstructor = getMapKitMapConstructor();
+        if (!MapConstructor) throw new Error("MapKit map library is not loaded.");
+        map = new MapConstructor("map", {
             isZoomEnabled: true,
             isScrollEnabled: true,
             showsZoomControl: true,
@@ -20627,22 +20637,26 @@ function setImportPanelVisibility(show) {
                 window.setTimeout(() => initializeMapRuntimeWithRetry(attempt + 1), retryDelay);
             };
             try {
-                if (mapkit?.Map) {
+                if (getMapKitMapConstructor()) {
                     initializeMapRuntime();
                     return;
                 }
                 if (typeof mapkit?.load === "function") {
-                    mapkit.load(["map"], () => {
+                    const finishMapLibraryLoad = (error = null) => {
                         try {
-                            if (!mapkit.Map) {
-                                retry(new Error("MapKit map library unavailable after load."));
+                            if (error || !getMapKitMapConstructor()) {
+                                retry(error || new Error("MapKit map library unavailable after load."));
                                 return;
                             }
                             initializeMapRuntime();
                         } catch (error) {
                             retry(error);
                         }
-                    });
+                    };
+                    const loadResult = mapkit.load(["map"], finishMapLibraryLoad);
+                    if (loadResult?.then) {
+                        loadResult.then(() => finishMapLibraryLoad()).catch(finishMapLibraryLoad);
+                    }
                     return;
                 }
                 retry(new Error("MapKit load() is unavailable."));
