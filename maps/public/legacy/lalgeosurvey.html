@@ -5291,8 +5291,7 @@
             <div class="search-pill collapsed" id="toolbarSearchShell">
                 <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
-                <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Close search">×</button>
-                <span id="clearSearch" style="display:none;">×</span>
+                <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
             </div>
         </div>
     </div>
@@ -19430,12 +19429,16 @@ function setImportPanelVisibility(show) {
                 if (centered) search.region = map.region;
             });
         }
-        const clearSearch = document.getElementById("clearSearch");
         let searchInputTimer = null;
         let latestSearchSequence = 0;
 
+        function updateSearchClearControls() {
+            const hasSearchText = Boolean(searchField.value);
+            if (collapseSearchBtn) collapseSearchBtn.style.display = hasSearchText ? "inline-flex" : "none";
+        }
+
         searchField.addEventListener("input", () => {
-            clearSearch.style.display = searchField.value ? "inline" : "none";
+            updateSearchClearControls();
         });
         searchField.addEventListener("blur", () => {
             if (!searchField.value.trim()) {
@@ -20150,9 +20153,9 @@ function setImportPanelVisibility(show) {
 
         searchField.addEventListener("input", requestSearchSuggestions);
 
-        clearSearch.addEventListener("click", () => {
+        collapseSearchBtn?.addEventListener("click", () => {
             searchField.value = "";
-            clearSearch.style.display = "none";
+            updateSearchClearControls();
             latestSearchSequence += 1;
             hideSearchResults();
             stopVoice(); // Stop voice navigation if active
@@ -20687,9 +20690,6 @@ function setImportPanelVisibility(show) {
         const searchIconBtn = document.getElementById("searchIconBtn");
         searchIconBtn?.addEventListener("click", () => {
             setSearchExpanded(!toolbarSearchExpanded);
-        });
-        collapseSearchBtn?.addEventListener("click", () => {
-            setSearchExpanded(false);
         });
         document.getElementById("printButton").addEventListener("click", () => window.print());
         window.addEventListener("beforeunload", (event) => {
