@@ -42,6 +42,10 @@ jobs:
         working-directory: maps
         run: npm ci
 
+      - name: Test maps route configuration
+        working-directory: maps
+        run: npm run test:mapkit-route
+
       - name: Build maps app
         working-directory: maps
         run: npm run build

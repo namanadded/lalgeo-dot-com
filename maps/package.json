@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "build": "next build",
     "start": "next start"
   },
