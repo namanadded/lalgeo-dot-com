@@ -38,6 +38,10 @@ jobs:
       - name: Check local static links
         run: node .github/scripts/check-static-links.mjs
 
+      - name: Check maps survey table accessibility
+        working-directory: maps
+        run: npm run test:survey-table-a11y
+
       - name: Install maps dependencies
         working-directory: maps
         run: npm ci
