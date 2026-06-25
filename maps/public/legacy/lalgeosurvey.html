@@ -9,7 +9,11 @@
     window.lalgeoMapkitToken = window.location.hostname.includes("lalgeo.ca")
         ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
         : "eyJraWQiOiIzOVBKMjNNODVRIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY29tIn0.CIkZ1wlCStvy0oTTeH4AVBc5EigAa6JFFdFh5bjd7iMOOnVnJ_T4ZDplj5YtL4pxooL1iGYngNz9gAKP4VKgbw";
-    document.write(`<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js" crossorigin data-token="${window.lalgeoMapkitToken}" data-libraries="map,annotations,overlays,services,look-around"><\/script>`);
+    if (window.lalgeoMapkitToken) {
+        document.write(`<script src="https://cdn.apple-mapkit.com/mk/5.x.x/mapkit.core.js" crossorigin data-token="${window.lalgeoMapkitToken}" data-libraries="map,annotations,overlays,services,look-around"><\/script>`);
+    } else {
+        window.lalgeoMapkitConfigError = window.lalgeoMapkitConfigError || "MapKit token is missing for this domain.";
+    }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
@@ -1483,6 +1487,89 @@
     }
     #projectStatus.error {
         color: #c62828;
+    }
+    .map-load-error {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        width: min(430px, calc(100vw - 32px));
+        z-index: 2200;
+        padding: 18px;
+        border-radius: 16px;
+        background: rgba(248, 250, 252, 0.96);
+        border: 1px solid rgba(148, 163, 184, 0.45);
+        color: #0f172a;
+        box-shadow: 0 22px 50px rgba(15, 23, 42, 0.28);
+    }
+    .map-load-error[hidden] {
+        display: none;
+    }
+    .map-load-error strong {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 16px;
+    }
+    .map-load-error p {
+        margin: 0 0 12px;
+        color: #475569;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .map-load-error button {
+        border: 1px solid rgba(15, 23, 42, 0.14);
+        border-radius: 999px;
+        padding: 8px 12px;
+        background: #0f172a;
+        color: #fff;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .layer-render-progress {
+        position: fixed;
+        left: 50%;
+        bottom: 86px;
+        transform: translateX(-50%);
+        width: min(420px, calc(100vw - 32px));
+        padding: 14px 16px;
+        border-radius: 14px;
+        background: rgba(15, 23, 42, 0.92);
+        color: #f8fafc;
+        box-shadow: 0 16px 40px rgba(15, 23, 42, 0.32);
+        z-index: 2100;
+    }
+    .layer-render-progress[hidden] {
+        display: none;
+    }
+    .layer-render-progress strong {
+        display: block;
+        margin-bottom: 4px;
+        font-size: 13px;
+    }
+    .layer-render-progress span {
+        display: block;
+        margin-bottom: 10px;
+        color: #cbd5e1;
+        font-size: 12px;
+    }
+    .layer-render-progress progress {
+        width: 100%;
+        height: 8px;
+        accent-color: #38bdf8;
+    }
+    .layer-render-progress button {
+        margin-top: 10px;
+        border: 1px solid rgba(248, 250, 252, 0.25);
+        border-radius: 999px;
+        padding: 7px 12px;
+        background: rgba(248, 250, 252, 0.08);
+        color: #f8fafc;
+        cursor: pointer;
+        font-weight: 700;
+    }
+    .layer-render-progress button:hover,
+    .layer-render-progress button:focus-visible {
+        background: rgba(248, 250, 252, 0.18);
     }
     .drop-zone {
         position: fixed;
@@ -4810,6 +4897,12 @@
         min-width: 24px;
         min-height: 24px;
     }
+    #toolbar #toolbarSearchShell #collapseSearchBtn {
+        display: none;
+    }
+    #toolbar #toolbarSearchShell.has-search-text #collapseSearchBtn {
+        display: inline-flex;
+    }
     .toolbar-left.expanded .app-menubar,
     .toolbar-right.expanded .toolbar-quick-actions {
         background: rgba(255, 255, 255, 0.96);
@@ -5291,8 +5384,7 @@
             <div class="search-pill collapsed" id="toolbarSearchShell">
                 <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                 <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
-                <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Close search">×</button>
-                <span id="clearSearch" style="display:none;">×</span>
+                <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
             </div>
         </div>
     </div>
@@ -5873,6 +5965,11 @@
         <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
     </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
+    <div id="mapLoadError" class="map-load-error" role="alert" hidden>
+        <strong>Map could not load</strong>
+        <p id="mapLoadErrorMessage">Refresh the page or check the MapKit configuration for this domain.</p>
+        <button id="mapLoadErrorReloadBtn" type="button">Reload map</button>
+    </div>
     <button id="layersMapBtn" type="button" aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
         <span class="layers-map-icon" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
@@ -5925,13 +6022,19 @@
             <p>Import GeoJSON, CSV, KML, GPX, shapefile zips, LalGeo packages, or folders. To change map draw order, open Layers and drag the handle or use ↑ / ↓.</p>
         </div>
     </div>
+    <div id="layerRenderProgress" class="layer-render-progress" role="status" aria-live="polite" hidden>
+        <strong id="layerRenderProgressTitle">Loading layer...</strong>
+        <span id="layerRenderProgressMessage">Preparing features...</span>
+        <progress id="layerRenderProgressBar" value="0" max="100"></progress>
+        <button id="layerRenderCancelBtn" type="button">Cancel loading</button>
+    </div>
     <div id="imageModal">
         <button type="button" aria-label="Close image">×</button>
         <img src="" alt="Survey photo">
     </div>
     <div id="surveyTablePanel" hidden>
         <div class="bottom-bar">
-            <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
+            <button id="surveyTableToggle" class="show-survey-table-btn" type="button" aria-controls="surveyTableWrapper" aria-expanded="false">
                 <span id="surveyTableToggleIcon">▲</span>
                 <span id="surveyTableToggleLabel">Open table</span>
             </button>
@@ -6244,6 +6347,9 @@
         let dropboxConnected = false;
         const addSurveyPointBtn = document.getElementById("addSurveyPointBtn");
         const mapElement = document.getElementById("map");
+        const mapLoadError = document.getElementById("mapLoadError");
+        const mapLoadErrorMessage = document.getElementById("mapLoadErrorMessage");
+        const mapLoadErrorReloadBtn = document.getElementById("mapLoadErrorReloadBtn");
         const myLocationBtn = document.getElementById("myLocationBtn");
         const surveyTablePanel = document.getElementById("surveyTablePanel");
         const surveyTableToggle = document.getElementById("surveyTableToggle");
@@ -6275,6 +6381,11 @@
         const layerImportApiUrl = document.getElementById("layerImportApiUrl");
         const layerImportApiFormat = document.getElementById("layerImportApiFormat");
         const layerImportApiBtn = document.getElementById("layerImportApiBtn");
+        const layerRenderProgress = document.getElementById("layerRenderProgress");
+        const layerRenderProgressTitle = document.getElementById("layerRenderProgressTitle");
+        const layerRenderProgressMessage = document.getElementById("layerRenderProgressMessage");
+        const layerRenderProgressBar = document.getElementById("layerRenderProgressBar");
+        const layerRenderCancelBtn = document.getElementById("layerRenderCancelBtn");
         const helpCenterBtn = document.getElementById("helpCenterBtn");
         const menuFileHelpBtn = document.getElementById("menuFileHelpBtn");
         const menuHelpCenterBtn = document.getElementById("menuHelpCenterBtn");
@@ -6425,8 +6536,11 @@
         });
         const MAX_RENDERED_MAP_FEATURES = 2000;
         const MAX_RENDERED_TABLE_ROWS = 500;
+        const LAYER_RENDER_PROGRESS_MIN_FEATURES = 750;
+        const LAYER_RENDER_CHUNK_SIZE = 200;
         let surveyAnnotations = [];
         let surveyOverlays = [];
+        let activeLayerRenderTask = null;
         let activeSurveyAnnotation = null;
         let activeProjectName = "";
         let activeProjectRecord = null;
@@ -6583,6 +6697,7 @@
             myLocation: myLocationBtn,
             help: helpCenterBtn
         };
+        const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
         let sidebarVisible = false;
         let dataPaneVisible = false;
@@ -6957,7 +7072,7 @@
         }
 
         function selectFeatureFromMapPoint(clientX, clientY) {
-            const annotation = findFeatureAtMapPoint(clientX, clientY);
+            const annotation = findNearestPointAnnotation(clientX, clientY, 32) || findFeatureAtMapPoint(clientX, clientY);
             if (!annotation) return false;
             suppressMapTapFor();
             showSurveyCallout(annotation);
@@ -8822,6 +8937,12 @@
             return editSessionActive;
         }
 
+        function setSurveyTableToggleState(isOpen) {
+            if (surveyTableToggle) surveyTableToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            if (surveyTableToggleIcon) surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
+            if (surveyTableToggleLabel) surveyTableToggleLabel.textContent = isOpen ? "Close table" : "Open table";
+        }
+
         function openActiveLayerTableForEditing() {
             const layerId = getEditPanelLayerId();
             if (!layerId || !ensureEditSessionStarted()) return;
@@ -8829,8 +8950,7 @@
             setSurveyTableVisibility(true);
             surveyTablePanel?.classList.add("open");
             if (surveyTableWrapper) surveyTableWrapper.hidden = false;
-            if (surveyTableToggleIcon) surveyTableToggleIcon.textContent = "▼";
-            if (surveyTableToggleLabel) surveyTableToggleLabel.textContent = "Close table";
+            setSurveyTableToggleState(true);
             if (!tableEditMode && tableEditBtn && !tableEditBtn.hidden) tableEditBtn.click();
             updateSurveyTable();
             updateFloatingButtonLayer(true);
@@ -9406,7 +9526,7 @@
             analyzeSurveySchema(currentSurveyData);
             rebuildPointIndexes(currentSurveyData);
             if (render && mapReady && map) {
-                renderSurveyProject({
+                void renderSurveyProject({
                     parsed: ensureParsedCoordinates(currentSurveyData),
                     projectName: project.name,
                     preserveRegion
@@ -9630,10 +9750,36 @@
             selectedFeatureInspector.innerHTML = "";
         }
 
+        function activateLayerForFeatureInspection(layerId) {
+            if (!layerId || layerId === activeLayerId || !activeProjectRecord?.layers?.length) return;
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            activeLayerId = layer.id;
+            activeProjectRecord.activeLayerId = layer.id;
+            currentSurveyData = layer.parsed || buildParsedFromLayer(layer);
+            layer.parsed = currentSurveyData;
+            analyzeSurveySchema(currentSurveyData);
+            rebuildPointIndexes(currentSurveyData);
+            applyFeatureLabelStyleSettings(layer);
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
+            updateSurveyTable();
+            syncEditPanelState();
+        }
+
+        function getSelectedFeatureContext() {
+            const surveyPoint = activeSurveyAnnotation?.surveyPoint;
+            if (!surveyPoint) return null;
+            const layer = getLayerById(surveyPoint.layerId) || getActiveLayerRecord();
+            if (!layer) return null;
+            const rowIndex = surveyPoint.rowIndex;
+            const feature = Number.isInteger(rowIndex) ? layer.features?.[rowIndex] : null;
+            if (!feature) return null;
+            return { layer, feature, rowIndex };
+        }
+
         function getSelectedFeatureRecord() {
-            const layer = getActiveLayerRecord();
-            if (!layer || !activeSurveyAnnotation?.surveyPoint) return null;
-            return layer.features?.[activeSurveyAnnotation.surveyPoint.rowIndex] || null;
+            return getSelectedFeatureContext()?.feature || null;
         }
 
         function updateAnnotationVisualState(annotation) {
@@ -9876,8 +10022,9 @@
         }
 
         function applyFeatureAttributesToRow(rowIndex, nextAttributes, options = {}) {
-            const layer = getActiveLayerRecord();
-            const feature = layer?.features?.[rowIndex];
+            const context = getSelectedFeatureContext();
+            const layer = context?.layer || getActiveLayerRecord();
+            const feature = context?.feature || layer?.features?.[rowIndex];
             const record = currentSurveyData?.records?.[rowIndex];
             if (!layer || !feature || !record) return false;
             const schema = layer.schema || getDefaultLayerSchema();
@@ -9927,11 +10074,11 @@
         }
 
         function commitFeatureFieldChange(fieldName, rawValue) {
-            const layer = getActiveLayerRecord();
-            const feature = getSelectedFeatureRecord();
-            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
+            const context = getSelectedFeatureContext();
+            if (!context || !activeSurveyAnnotation?.surveyPoint) return;
+            const { layer, feature } = context;
             if (!editSessionActive || !canEditAttributes()) return;
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const rowIndex = context.rowIndex;
             const schemaField = (layer.schema || []).find((field) => field.name === fieldName);
             if (!schemaField || schemaField.locked) return;
             const before = { ...(feature.attributes || {}) };
@@ -9998,15 +10145,14 @@
                 closeFeatureDrawer();
                 return;
             }
-            const layer = getActiveLayerRecord();
-            const feature = getSelectedFeatureRecord();
-            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) {
+            const context = getSelectedFeatureContext();
+            if (!context || !activeSurveyAnnotation?.surveyPoint) {
                 featureDrawerMeta.innerHTML = "";
                 featureDrawerBody.innerHTML = `<div class="feature-drawer-empty">Select a feature to edit attributes.</div>`;
                 closeFeatureDrawer();
                 return;
             }
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const { layer, feature, rowIndex } = context;
             const featureImageSrc = activeSurveyAnnotation.surveyPoint.imageSrc || null;
             const featureImageTitle = activeSurveyAnnotation.surveyPoint.title || feature.attributes?.name || `Feature ${rowIndex + 1}`;
             const attrs = feature.attributes || {};
@@ -10632,8 +10778,7 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.remove("open");
                 surveyTableWrapper.hidden = true;
-                surveyTableToggleIcon.textContent = "▲";
-                surveyTableToggleLabel.textContent = "Open table";
+                setSurveyTableToggleState(false);
                 updateFloatingButtonLayer(false);
                 renderWorkspaceCollections();
                 renderActiveProjectSidebar();
@@ -10647,8 +10792,7 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.add("open");
                 surveyTableWrapper.hidden = false;
-                surveyTableToggleIcon.textContent = "▼";
-                surveyTableToggleLabel.textContent = "Close table";
+                setSurveyTableToggleState(true);
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
             }
@@ -12267,6 +12411,7 @@
         const storedActiveProjectId = rememberLastSession ? localStorage.getItem(WORKSPACE_ACTIVE_KEY) : null;
         logWorkspaceDebug("startupRestoreCheck", {
             rememberLastSession,
+            startupSafeMode,
             storedActiveProjectId,
             workspaceProjectCount: workspaceProjects.length,
             workspaceProjectNames: workspaceProjects.map((item) => item.name),
@@ -12294,7 +12439,12 @@
             return true;
         };
         let restoredStartupProject = false;
-        if (storedActiveProjectId) {
+        if (startupSafeMode) {
+            try {
+                localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
+            } catch {}
+            logWorkspaceDebug("startupRestoreAction", { mode: "safe-mode-skip-restore" });
+        } else if (storedActiveProjectId) {
             const storedProject = workspaceProjects.find((item) => item.id === storedActiveProjectId);
             if (storedProject) {
                 restoredStartupProject = restoreStartupProject(storedProject, "stored-active-project");
@@ -12306,10 +12456,10 @@
                 });
             }
         }
-        if (!restoredStartupProject && workspaceProjects[0]) {
+        if (!restoredStartupProject && rememberLastSession && workspaceProjects[0] && !startupSafeMode) {
             restoredStartupProject = restoreStartupProject(
                 workspaceProjects[0],
-                rememberLastSession ? "first-workspace-project" : "first-available-project"
+                "first-workspace-project"
             );
         }
         if (!restoredStartupProject) {
@@ -13093,8 +13243,7 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.add("open");
                 surveyTableWrapper.hidden = false;
-                surveyTableToggleIcon.textContent = "▼";
-                surveyTableToggleLabel.textContent = "Close table";
+                setSurveyTableToggleState(true);
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
                 renderWorkspaceCollections();
@@ -13283,8 +13432,7 @@
             if (!surveyTableWrapper) return;
             const isOpen = surveyTablePanel.classList.toggle("open");
             surveyTableWrapper.hidden = !isOpen;
-            surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
-            surveyTableToggleLabel.textContent = isOpen ? "Close table" : "Open table";
+            setSurveyTableToggleState(isOpen);
             if (isOpen) {
                 updateSurveyTable();
             }
@@ -15217,7 +15365,7 @@
                 activeLayerId = targetProject.activeLayerId || targetProject.layers?.[0]?.id || null;
                 saveWorkspaceProjects();
             }
-            const rendered = renderSurveyProject({
+            const rendered = await renderSurveyProject({
                 parsed,
                 projectName: payload.projectName || "Survey",
                 preserveRegion
@@ -17212,7 +17360,46 @@
                 : markerFeatures;
         }
 
-        function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
+        function waitForNextFrame() {
+            return new Promise((resolve) => window.requestAnimationFrame(() => resolve()));
+        }
+
+        function getLayerRenderFeatureTotal(layers = []) {
+            return layers.reduce((sum, layer) => sum + (layer.features?.length || 0), 0);
+        }
+
+        function updateLayerRenderProgress(done, total) {
+            if (layerRenderProgressBar) {
+                layerRenderProgressBar.max = Math.max(1, total);
+                layerRenderProgressBar.value = Math.min(done, total);
+            }
+            if (layerRenderProgressMessage) {
+                const percent = total ? Math.round((Math.min(done, total) / total) * 100) : 0;
+                layerRenderProgressMessage.textContent = `Rendered ${Math.min(done, total).toLocaleString()} of ${total.toLocaleString()} features (${percent}%).`;
+            }
+        }
+
+        function showLayerRenderProgress(total) {
+            if (!layerRenderProgress) return;
+            layerRenderProgress.hidden = false;
+            if (layerRenderProgressTitle) layerRenderProgressTitle.textContent = "Loading map layer";
+            updateLayerRenderProgress(0, total);
+        }
+
+        function hideLayerRenderProgress() {
+            if (layerRenderProgress) layerRenderProgress.hidden = true;
+        }
+
+        function cancelActiveLayerRender() {
+            if (!activeLayerRenderTask) return;
+            activeLayerRenderTask.cancelled = true;
+            setProjectStatus("Cancelling layer load...", "error");
+        }
+
+        layerRenderCancelBtn?.addEventListener("click", cancelActiveLayerRender);
+
+        async function renderSurveyProject({ parsed, projectName, preserveRegion = false }) {
+            if (activeLayerRenderTask) activeLayerRenderTask.cancelled = true;
             clearSurveyLayers();
             rowAnnotationMap = new Map();
             const coords = [];
@@ -17232,18 +17419,45 @@
                 identifierField = (parsed?.headers || []).find((h) => h !== parsed?.latKey && h !== parsed?.lonKey) || parsed?.latKey || identifierField;
             }
             populateIdentifierOptions(parsed?.headers || [], parsed?.latKey, parsed?.lonKey);
-            layersToRender.forEach((layer) => {
+            const totalFeatureCount = getLayerRenderFeatureTotal(layersToRender);
+            const showProgress = totalFeatureCount >= LAYER_RENDER_PROGRESS_MIN_FEATURES;
+            const renderTask = { cancelled: false };
+            activeLayerRenderTask = renderTask;
+            let renderedFeatureCount = 0;
+            if (showProgress) {
+                showLayerRenderProgress(totalFeatureCount);
+                setProjectStatus(`Rendering ${totalFeatureCount.toLocaleString()} map features...`);
+                await waitForNextFrame();
+            }
+            for (const layer of layersToRender) {
+                if (renderTask.cancelled) break;
                 const interactive = layer.id === activeLayerId;
                 const markerFeatureSet = getRenderableMarkerFeatures(layer, projectName);
-                (layer.features || []).forEach((feature, index) => {
+                const features = layer.features || [];
+                for (let index = 0; index < features.length; index += 1) {
+                    if (renderTask.cancelled) break;
+                    const feature = features[index];
                     coords.push(...renderFeatureGeometryOnMap(feature, layer, {
                         interactive,
                         rowIndex: interactive ? index : null,
                         projectName,
                         markerFeatureSet
                     }));
-                });
-            });
+                    renderedFeatureCount += 1;
+                    if (showProgress && renderedFeatureCount % LAYER_RENDER_CHUNK_SIZE === 0) {
+                        updateLayerRenderProgress(renderedFeatureCount, totalFeatureCount);
+                        await waitForNextFrame();
+                    }
+                }
+            }
+            if (activeLayerRenderTask === renderTask) activeLayerRenderTask = null;
+            if (showProgress) hideLayerRenderProgress();
+            if (renderTask.cancelled) {
+                setProjectStatus("Layer rendering cancelled. The project is still loaded; hide layers or import a smaller file before trying again.", "error");
+                updateSurveyTable();
+                return false;
+            }
+            if (showProgress) updateLayerRenderProgress(totalFeatureCount, totalFeatureCount);
             if (!coords.length) {
                 updateSurveyTable();
                 return true;
@@ -17334,6 +17548,7 @@
 
         function showSurveyCallout(annotation, options = {}) {
             if (!annotation || !annotation.surveyPoint) return;
+            activateLayerForFeatureInspection(annotation.surveyPoint.layerId);
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             refreshAnnotationStyles();
@@ -18525,8 +18740,7 @@
             }
             surveyTablePanel.classList.remove("open");
             surveyTableWrapper.hidden = true;
-            surveyTableToggleIcon.textContent = "▲";
-            surveyTableToggleLabel.textContent = "Open table";
+            setSurveyTableToggleState(false);
             surveyFieldsBtn.hidden = true;
             if (tableEditBtn) tableEditBtn.hidden = true;
             archiveToggleBtn.hidden = true;
@@ -19165,9 +19379,33 @@ function setImportPanelVisibility(show) {
             speechSynthesis.speak(utterance);
         }
 
+        function getMapKitMapConstructor() {
+            try {
+                return typeof mapkit !== "undefined" && typeof mapkit.Map === "function" ? mapkit.Map : null;
+            } catch {
+                return null;
+            }
+        }
+
+        function showMapLoadError(message) {
+            if (mapLoadErrorMessage) {
+                mapLoadErrorMessage.textContent = message || "Refresh the page or check the MapKit configuration for this domain.";
+            }
+            if (mapLoadError) mapLoadError.hidden = false;
+        }
+
+        function hideMapLoadError() {
+            if (mapLoadError) mapLoadError.hidden = true;
+        }
+
+        mapLoadErrorReloadBtn?.addEventListener("click", () => window.location.reload());
+
         function initializeMapRuntime() {
         if (mapReady) return;
-        map = new mapkit.Map("map", {
+        const MapConstructor = getMapKitMapConstructor();
+        if (!MapConstructor) throw new Error("MapKit map library is not loaded.");
+        hideMapLoadError();
+        map = new MapConstructor("map", {
             isZoomEnabled: true,
             isScrollEnabled: true,
             showsZoomControl: true,
@@ -19430,12 +19668,19 @@ function setImportPanelVisibility(show) {
                 if (centered) search.region = map.region;
             });
         }
-        const clearSearch = document.getElementById("clearSearch");
         let searchInputTimer = null;
         let latestSearchSequence = 0;
 
+        function updateSearchClearControls() {
+            const hasSearchText = Boolean(searchField.value);
+            toolbarSearchShell?.classList.toggle("has-search-text", hasSearchText);
+            if (collapseSearchBtn) collapseSearchBtn.style.display = hasSearchText ? "inline-flex" : "none";
+        }
+
+        updateSearchClearControls();
+
         searchField.addEventListener("input", () => {
-            clearSearch.style.display = searchField.value ? "inline" : "none";
+            updateSearchClearControls();
         });
         searchField.addEventListener("blur", () => {
             if (!searchField.value.trim()) {
@@ -20150,9 +20395,9 @@ function setImportPanelVisibility(show) {
 
         searchField.addEventListener("input", requestSearchSuggestions);
 
-        clearSearch.addEventListener("click", () => {
+        collapseSearchBtn?.addEventListener("click", () => {
             searchField.value = "";
-            clearSearch.style.display = "none";
+            updateSearchClearControls();
             latestSearchSequence += 1;
             hideSearchResults();
             stopVoice(); // Stop voice navigation if active
@@ -20477,42 +20722,46 @@ function setImportPanelVisibility(show) {
 
         }
 
-        function hasMapKitMapConstructor() {
-            try {
-                return typeof mapkit !== "undefined" && typeof mapkit.Map === "function";
-            } catch {
-                return false;
-            }
-        }
-
         function initializeMapRuntimeWithRetry(attempt = 0) {
+            if (window.lalgeoMapkitConfigError) {
+                const message = String(window.lalgeoMapkitConfigError);
+                setProjectStatus(message, "error");
+                showMapLoadError(message);
+                return;
+            }
             const maxAttempts = 4;
             const retryDelay = Math.min(4000, 500 * Math.pow(2, attempt));
             const retry = (error = null) => {
                 if (error) console.warn("MapKit map library load failed", error);
                 if (attempt >= maxAttempts) {
-                    setProjectStatus("Map failed to load. Refresh the page or check network access to Apple MapKit.", "error");
+                    const message = "Map failed to load. Refresh the page or check the MapKit token for this domain.";
+                    setProjectStatus(message, "error");
+                    showMapLoadError(message);
                     return;
                 }
                 window.setTimeout(() => initializeMapRuntimeWithRetry(attempt + 1), retryDelay);
             };
             try {
-                if (hasMapKitMapConstructor()) {
+                if (getMapKitMapConstructor()) {
                     initializeMapRuntime();
                     return;
                 }
                 if (typeof mapkit?.load === "function") {
-                    mapkit.load(["map"], () => {
+                    const finishMapLibraryLoad = (error = null) => {
                         try {
-                            if (!hasMapKitMapConstructor()) {
-                                retry(new Error("MapKit map library unavailable after load."));
+                            if (error || !getMapKitMapConstructor()) {
+                                retry(error || new Error("MapKit map library unavailable after load."));
                                 return;
                             }
                             initializeMapRuntime();
                         } catch (error) {
                             retry(error);
                         }
-                    });
+                    };
+                    const loadResult = mapkit.load(["map"], finishMapLibraryLoad);
+                    if (loadResult?.then) {
+                        loadResult.then(() => finishMapLibraryLoad()).catch(finishMapLibraryLoad);
+                    }
                     return;
                 }
                 retry(new Error("MapKit load() is unavailable."));
@@ -20696,9 +20945,6 @@ function setImportPanelVisibility(show) {
         searchIconBtn?.addEventListener("click", () => {
             setSearchExpanded(!toolbarSearchExpanded);
         });
-        collapseSearchBtn?.addEventListener("click", () => {
-            setSearchExpanded(false);
-        });
         document.getElementById("printButton").addEventListener("click", () => window.print());
         window.addEventListener("beforeunload", (event) => {
             if (pendingChanges) {
@@ -20707,14 +20953,19 @@ function setImportPanelVisibility(show) {
             }
         });
     </script>
-    <!-- Google tag (gtag.js) -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B"></script>
 <script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
-
-  gtag('config', 'G-NLY6QZ7L7B');
+  (() => {
+    const analyticsHosts = new Set(["lalgeo.com", "www.lalgeo.com", "maps.lalgeo.com", "lalgeo.ca", "www.lalgeo.ca"]);
+    if (!analyticsHosts.has(window.location.hostname)) return;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function gtag(){ window.dataLayer.push(arguments); };
+    window.gtag('js', new Date());
+    window.gtag('config', 'G-NLY6QZ7L7B');
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = "https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B";
+    document.head.appendChild(script);
+  })();
 </script>
 </body>
 </html>

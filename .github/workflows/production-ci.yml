@@ -1,0 +1,55 @@
+name: Production CI
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  production-ci:
+    name: Production CI
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: |
+            maps/package-lock.json
+
+      - name: Validate static entry points
+        run: |
+          test -f index.html
+          test -f lalgeo-app.html
+          test -f lalgeo-data-manager.html
+          test -f lalgeosurvey.html
+
+      - name: Check local static links
+        run: node .github/scripts/check-static-links.mjs
+
+      - name: Check maps survey table accessibility
+        working-directory: maps
+        run: npm run test:survey-table-a11y
+
+      - name: Install maps dependencies
+        working-directory: maps
+        run: npm ci
+
+      - name: Test maps route configuration
+        working-directory: maps
+        run: npm run test:mapkit-route
+
+      - name: Build maps app
+        working-directory: maps
+        run: npm run build
