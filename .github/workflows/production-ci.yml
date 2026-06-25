@@ -38,6 +38,10 @@ jobs:
       - name: Check local static links
         run: node .github/scripts/check-static-links.mjs
 
+      - name: Check maps external link security
+        working-directory: maps
+        run: npm run test:external-link-security
+
       - name: Check maps survey table accessibility
         working-directory: maps
         run: npm run test:survey-table-a11y
