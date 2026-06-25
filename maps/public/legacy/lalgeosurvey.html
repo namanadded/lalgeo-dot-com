@@ -20219,7 +20219,7 @@ function setImportPanelVisibility(show) {
                 <h3>${escapeHtml(placeAttributes.name || "Unknown Place")}</h3>
                 <p>${escapeHtml(placeAttributes.address || "No address available.")}</p>
                 ${placeAttributes.phone ? `<p>${escapeHtml(placeAttributes.phone)}</p>` : ""}
-                ${placeAttributes.website ? `<p><a href="${escapeHtml(placeAttributes.website)}" target="_blank">Website</a></p>` : ""}
+                ${placeAttributes.website ? `<p><a href="${escapeHtml(placeAttributes.website)}" target="_blank" rel="noopener noreferrer">Website</a></p>` : ""}
                 ${placeAttributes.category ? `<p>${escapeHtml(placeAttributes.category)}</p>` : ""}
                 <div class="workspace-inline-actions">
                     <button id="searchPlaceDirectionsBtn" type="button" class="mini-btn">Get Directions</button>

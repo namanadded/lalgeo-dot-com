@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test:external-link-security": "node scripts/test-external-link-security.mjs",
     "build": "next build",
     "start": "next start"
   },
