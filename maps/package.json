@@ -5,6 +5,7 @@
   "scripts": {
     "dev": "next dev",
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
+    "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "build": "next build",
     "start": "next start"
   },
