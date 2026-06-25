@@ -6034,7 +6034,7 @@
     </div>
     <div id="surveyTablePanel" hidden>
         <div class="bottom-bar">
-            <button id="surveyTableToggle" class="show-survey-table-btn" type="button">
+            <button id="surveyTableToggle" class="show-survey-table-btn" type="button" aria-controls="surveyTableWrapper" aria-expanded="false">
                 <span id="surveyTableToggleIcon">▲</span>
                 <span id="surveyTableToggleLabel">Open table</span>
             </button>
@@ -8937,6 +8937,12 @@
             return editSessionActive;
         }
 
+        function setSurveyTableToggleState(isOpen) {
+            if (surveyTableToggle) surveyTableToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
+            if (surveyTableToggleIcon) surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
+            if (surveyTableToggleLabel) surveyTableToggleLabel.textContent = isOpen ? "Close table" : "Open table";
+        }
+
         function openActiveLayerTableForEditing() {
             const layerId = getEditPanelLayerId();
             if (!layerId || !ensureEditSessionStarted()) return;
@@ -8944,8 +8950,7 @@
             setSurveyTableVisibility(true);
             surveyTablePanel?.classList.add("open");
             if (surveyTableWrapper) surveyTableWrapper.hidden = false;
-            if (surveyTableToggleIcon) surveyTableToggleIcon.textContent = "▼";
-            if (surveyTableToggleLabel) surveyTableToggleLabel.textContent = "Close table";
+            setSurveyTableToggleState(true);
             if (!tableEditMode && tableEditBtn && !tableEditBtn.hidden) tableEditBtn.click();
             updateSurveyTable();
             updateFloatingButtonLayer(true);
@@ -10747,8 +10752,7 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.remove("open");
                 surveyTableWrapper.hidden = true;
-                surveyTableToggleIcon.textContent = "▲";
-                surveyTableToggleLabel.textContent = "Open table";
+                setSurveyTableToggleState(false);
                 updateFloatingButtonLayer(false);
                 renderWorkspaceCollections();
                 renderActiveProjectSidebar();
@@ -10762,8 +10766,7 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.add("open");
                 surveyTableWrapper.hidden = false;
-                surveyTableToggleIcon.textContent = "▼";
-                surveyTableToggleLabel.textContent = "Close table";
+                setSurveyTableToggleState(true);
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
             }
@@ -13214,8 +13217,7 @@
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.add("open");
                 surveyTableWrapper.hidden = false;
-                surveyTableToggleIcon.textContent = "▼";
-                surveyTableToggleLabel.textContent = "Close table";
+                setSurveyTableToggleState(true);
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
                 renderWorkspaceCollections();
@@ -13404,8 +13406,7 @@
             if (!surveyTableWrapper) return;
             const isOpen = surveyTablePanel.classList.toggle("open");
             surveyTableWrapper.hidden = !isOpen;
-            surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
-            surveyTableToggleLabel.textContent = isOpen ? "Close table" : "Open table";
+            setSurveyTableToggleState(isOpen);
             if (isOpen) {
                 updateSurveyTable();
             }
@@ -18712,8 +18713,7 @@
             }
             surveyTablePanel.classList.remove("open");
             surveyTableWrapper.hidden = true;
-            surveyTableToggleIcon.textContent = "▲";
-            surveyTableToggleLabel.textContent = "Open table";
+            setSurveyTableToggleState(false);
             surveyFieldsBtn.hidden = true;
             if (tableEditBtn) tableEditBtn.hidden = true;
             archiveToggleBtn.hidden = true;

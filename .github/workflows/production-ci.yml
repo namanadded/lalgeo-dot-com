@@ -42,9 +42,17 @@ jobs:
         working-directory: maps
         run: npm run test:external-link-security
 
+      - name: Check maps survey table accessibility
+        working-directory: maps
+        run: npm run test:survey-table-a11y
+
       - name: Install maps dependencies
         working-directory: maps
         run: npm ci
+
+      - name: Test maps route configuration
+        working-directory: maps
+        run: npm run test:mapkit-route
 
       - name: Build maps app
         working-directory: maps
