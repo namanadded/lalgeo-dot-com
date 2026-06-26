@@ -7072,7 +7072,7 @@
         }
 
         function selectFeatureFromMapPoint(clientX, clientY) {
-            const annotation = findFeatureAtMapPoint(clientX, clientY);
+            const annotation = findNearestPointAnnotation(clientX, clientY, 32) || findFeatureAtMapPoint(clientX, clientY);
             if (!annotation) return false;
             suppressMapTapFor();
             showSurveyCallout(annotation);
@@ -9750,10 +9750,36 @@
             selectedFeatureInspector.innerHTML = "";
         }
 
+        function activateLayerForFeatureInspection(layerId) {
+            if (!layerId || layerId === activeLayerId || !activeProjectRecord?.layers?.length) return;
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            activeLayerId = layer.id;
+            activeProjectRecord.activeLayerId = layer.id;
+            currentSurveyData = layer.parsed || buildParsedFromLayer(layer);
+            layer.parsed = currentSurveyData;
+            analyzeSurveySchema(currentSurveyData);
+            rebuildPointIndexes(currentSurveyData);
+            applyFeatureLabelStyleSettings(layer);
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
+            updateSurveyTable();
+            syncEditPanelState();
+        }
+
+        function getSelectedFeatureContext() {
+            const surveyPoint = activeSurveyAnnotation?.surveyPoint;
+            if (!surveyPoint) return null;
+            const layer = getLayerById(surveyPoint.layerId) || getActiveLayerRecord();
+            if (!layer) return null;
+            const rowIndex = surveyPoint.rowIndex;
+            const feature = Number.isInteger(rowIndex) ? layer.features?.[rowIndex] : null;
+            if (!feature) return null;
+            return { layer, feature, rowIndex };
+        }
+
         function getSelectedFeatureRecord() {
-            const layer = getActiveLayerRecord();
-            if (!layer || !activeSurveyAnnotation?.surveyPoint) return null;
-            return layer.features?.[activeSurveyAnnotation.surveyPoint.rowIndex] || null;
+            return getSelectedFeatureContext()?.feature || null;
         }
 
         function updateAnnotationVisualState(annotation) {
@@ -9996,8 +10022,9 @@
         }
 
         function applyFeatureAttributesToRow(rowIndex, nextAttributes, options = {}) {
-            const layer = getActiveLayerRecord();
-            const feature = layer?.features?.[rowIndex];
+            const context = getSelectedFeatureContext();
+            const layer = context?.layer || getActiveLayerRecord();
+            const feature = context?.feature || layer?.features?.[rowIndex];
             const record = currentSurveyData?.records?.[rowIndex];
             if (!layer || !feature || !record) return false;
             const schema = layer.schema || getDefaultLayerSchema();
@@ -10047,11 +10074,11 @@
         }
 
         function commitFeatureFieldChange(fieldName, rawValue) {
-            const layer = getActiveLayerRecord();
-            const feature = getSelectedFeatureRecord();
-            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) return;
+            const context = getSelectedFeatureContext();
+            if (!context || !activeSurveyAnnotation?.surveyPoint) return;
+            const { layer, feature } = context;
             if (!editSessionActive || !canEditAttributes()) return;
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const rowIndex = context.rowIndex;
             const schemaField = (layer.schema || []).find((field) => field.name === fieldName);
             if (!schemaField || schemaField.locked) return;
             const before = { ...(feature.attributes || {}) };
@@ -10118,15 +10145,14 @@
                 closeFeatureDrawer();
                 return;
             }
-            const layer = getActiveLayerRecord();
-            const feature = getSelectedFeatureRecord();
-            if (!layer || !feature || !activeSurveyAnnotation?.surveyPoint) {
+            const context = getSelectedFeatureContext();
+            if (!context || !activeSurveyAnnotation?.surveyPoint) {
                 featureDrawerMeta.innerHTML = "";
                 featureDrawerBody.innerHTML = `<div class="feature-drawer-empty">Select a feature to edit attributes.</div>`;
                 closeFeatureDrawer();
                 return;
             }
-            const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
+            const { layer, feature, rowIndex } = context;
             const featureImageSrc = activeSurveyAnnotation.surveyPoint.imageSrc || null;
             const featureImageTitle = activeSurveyAnnotation.surveyPoint.title || feature.attributes?.name || `Feature ${rowIndex + 1}`;
             const attrs = feature.attributes || {};
@@ -17522,6 +17548,7 @@
 
         function showSurveyCallout(annotation, options = {}) {
             if (!annotation || !annotation.surveyPoint) return;
+            activateLayerForFeatureInspection(annotation.surveyPoint.layerId);
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             refreshAnnotationStyles();
