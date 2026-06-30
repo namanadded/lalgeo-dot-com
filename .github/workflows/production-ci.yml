@@ -50,6 +50,10 @@ jobs:
         working-directory: maps
         run: npm run test:survey-table-a11y
 
+      - name: Check maps view menu accessibility
+        working-directory: maps
+        run: npm run test:view-menu-a11y
+
       - name: Install maps dependencies
         working-directory: maps
         run: npm ci

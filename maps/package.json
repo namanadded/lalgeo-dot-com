@@ -7,6 +7,7 @@
     "test:external-link-security": "node scripts/test-external-link-security.mjs",
     "test:maps-frame-viewport": "node scripts/test-maps-frame-viewport.mjs",
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
+    "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "build": "next build",
     "start": "next start"
