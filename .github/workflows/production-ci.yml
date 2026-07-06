@@ -50,6 +50,10 @@ jobs:
         working-directory: maps
         run: npm run test:panel-toggle-a11y
 
+      - name: Check maps toolbar overflow accessibility
+        working-directory: maps
+        run: npm run test:toolbar-overflow-a11y
+
       - name: Check maps survey table accessibility
         working-directory: maps
         run: npm run test:survey-table-a11y

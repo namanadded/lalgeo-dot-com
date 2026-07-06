@@ -1,0 +1,72 @@
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import assert from "node:assert/strict";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const legacyHtmlPath = resolve(__dirname, "../public/legacy/lalgeosurvey.html");
+const legacyHtml = readFileSync(legacyHtmlPath, "utf8");
+
+function getTagById(id) {
+  const tag = legacyHtml.match(new RegExp(`<[^>]+id="${id}"[^>]*>`))?.[0];
+  assert.ok(tag, `Expected #${id} to exist.`);
+  return tag;
+}
+
+function assertAttribute(tag, name, value, message) {
+  assert.match(tag, new RegExp(`\\b${name}="${value}"`), message);
+}
+
+const leftToggle = getTagById("leftToolbarExpand");
+const menuCommands = getTagById("toolbarMenuCommands");
+const rightToggle = getTagById("rightToolbarExpand");
+const quickActions = getTagById("quickActionBar");
+
+assertAttribute(
+  leftToggle,
+  "aria-controls",
+  "toolbarMenuCommands",
+  "Left toolbar overflow toggle must identify the menu commands it expands.",
+);
+assertAttribute(
+  leftToggle,
+  "aria-expanded",
+  "false",
+  "Left toolbar overflow toggle must default to the collapsed state.",
+);
+assert.match(
+  menuCommands,
+  /\bclass="[^"]*\bapp-menubar\b[^"]*"/,
+  "Left toolbar overflow target must remain the app menu command group.",
+);
+
+assertAttribute(
+  rightToggle,
+  "aria-controls",
+  "quickActionBar",
+  "Right toolbar overflow toggle must identify the quick action group it expands.",
+);
+assertAttribute(
+  rightToggle,
+  "aria-expanded",
+  "false",
+  "Right toolbar overflow toggle must default to the collapsed state.",
+);
+assert.match(
+  quickActions,
+  /\bclass="[^"]*\btoolbar-quick-actions\b[^"]*"/,
+  "Right toolbar overflow target must remain the quick actions group.",
+);
+
+assert.match(
+  legacyHtml,
+  /leftToolbarExpandBtn\.setAttribute\("aria-expanded",\s*expanded\s*\?\s*"true"\s*:\s*"false"\)/,
+  "Left toolbar overflow handler must synchronize aria-expanded.",
+);
+assert.match(
+  legacyHtml,
+  /rightToolbarExpandBtn\.setAttribute\("aria-expanded",\s*expanded\s*\?\s*"true"\s*:\s*"false"\)/,
+  "Right toolbar overflow handler must synchronize aria-expanded.",
+);
+
+console.log("Toolbar overflow accessibility checks passed.");
