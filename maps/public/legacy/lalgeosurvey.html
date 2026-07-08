@@ -3490,16 +3490,14 @@
         display: none;
     }
     .workspace-empty-card {
-        width: min(720px, 100%);
-        padding: 32px;
-        border-radius: 28px;
+        width: min(520px, 100%);
+        padding: 34px 30px 26px;
+        border-radius: 30px;
         background:
-            radial-gradient(circle at top right, rgba(92, 200, 192, 0.12), transparent 24%),
-            radial-gradient(circle at 15% 15%, rgba(240, 90, 79, 0.12), transparent 18%),
-            rgba(8, 18, 30, 0.86);
-        border: 1px solid rgba(255,255,255,0.08);
-        box-shadow: 0 28px 80px rgba(0,0,0,0.36);
-        backdrop-filter: blur(20px);
+            linear-gradient(160deg, rgba(20, 30, 38, 0.9), rgba(10, 18, 28, 0.92));
+        border: 1px solid rgba(255,255,255,0.09);
+        box-shadow: 0 24px 70px rgba(0,0,0,0.34);
+        backdrop-filter: blur(24px);
         pointer-events: auto;
         position: relative;
     }
@@ -3507,14 +3505,15 @@
         position: absolute;
         top: 18px;
         right: 18px;
-        min-width: 40px;
-        min-height: 40px;
+        width: 44px;
+        height: 44px;
         border-radius: 999px;
         border: 1px solid rgba(255,255,255,0.1);
-        background: rgba(255,255,255,0.06);
+        background: rgba(255,255,255,0.05);
         color: #eef6fb;
         cursor: pointer;
-        font-size: 22px;
+        font-size: 24px;
+        font-weight: 300;
         line-height: 1;
     }
     .workspace-empty-close:hover,
@@ -3524,58 +3523,54 @@
         border-color: rgba(143,240,220,0.28);
     }
     .workspace-empty-card h2 {
-        margin: 0 0 10px;
-        font-size: 34px;
-        line-height: 1;
+        margin: 0 46px 10px 0;
+        font-size: clamp(32px, 8vw, 46px);
+        line-height: 0.96;
         letter-spacing: -0.04em;
+        color: #f8fafc;
     }
     .workspace-empty-card p {
         margin: 0;
-        max-width: 34rem;
+        max-width: 25rem;
         color: #9fb1c2;
-        line-height: 1.6;
-        font-size: 15px;
+        line-height: 1.45;
+        font-size: 16px;
     }
     .workspace-empty-actions {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 12px;
-        margin-top: 20px;
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 10px;
+        margin-top: 24px;
     }
     .workspace-empty-actions button,
     .workspace-empty-actions a {
-        min-height: 44px;
-        padding: 0 16px;
+        min-height: 48px;
+        padding: 0 14px;
         text-decoration: none;
         display: inline-flex;
         align-items: center;
         justify-content: center;
+        font-size: 15px;
+        font-weight: 700;
     }
-    .workspace-chip-row {
-        display: flex;
-        gap: 10px;
-        flex-wrap: wrap;
-        margin-top: 18px;
-    }
-    .workspace-chip {
-        padding: 9px 12px;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.06);
-        color: #d7e6f3;
-        font-size: 13px;
+    #emptyConnectDropboxBtn {
+        grid-column: 1 / -1;
+        justify-self: start;
+        min-width: min(180px, 100%);
+        background: transparent;
     }
     .workspace-empty-footer {
-        margin-top: 18px;
+        margin-top: 24px;
         display: flex;
         align-items: center;
-        gap: 10px;
-        color: #d7e6f3;
-        font-size: 14px;
+        gap: 12px;
+        color: #c5d1dd;
+        font-size: 15px;
     }
     .workspace-empty-footer input {
-        width: 16px;
-        height: 16px;
+        width: 18px;
+        height: 18px;
+        accent-color: #8ff0dc;
     }
     .workspace-modal-backdrop {
         position: fixed;
@@ -5689,21 +5684,16 @@
     <div id="workspaceEmptyState" class="workspace-empty-state">
         <div class="workspace-empty-card">
             <button id="workspaceEmptyCloseBtn" type="button" class="workspace-empty-close" aria-label="Close welcome panel">×</button>
-            <h2>Create a project to start editing</h2>
-            <p>Start a new LalGeo project in the browser or import an existing one.</p>
+            <h2>Start a project</h2>
+            <p>Create a map or open an existing one.</p>
             <div class="workspace-empty-actions">
-                <button id="emptyCreateProjectBtn" type="button" class="workspace-primary-btn">Create Project</button>
-                <button id="emptyImportProjectBtn" type="button" class="workspace-secondary-btn">Import Existing Project</button>
-                <button id="emptyConnectDropboxBtn" type="button" class="workspace-secondary-btn">Connect Dropbox</button>
-            </div>
-            <div class="workspace-chip-row">
-                <div class="workspace-chip">Browser-based map editing</div>
-                <div class="workspace-chip">Import shapefiles, FGDB, GeoJSON, CSV</div>
-                <div class="workspace-chip">Survey web + mobile tools already live</div>
+                <button id="emptyCreateProjectBtn" type="button" class="workspace-primary-btn">New</button>
+                <button id="emptyImportProjectBtn" type="button" class="workspace-secondary-btn">Import</button>
+                <button id="emptyConnectDropboxBtn" type="button" class="workspace-secondary-btn">Dropbox</button>
             </div>
             <label class="workspace-empty-footer">
                 <input id="hideWorkspaceEmptyStateToggle" type="checkbox">
-                <span>Do not show this panel again.</span>
+                <span>Don’t show again</span>
             </label>
         </div>
     </div>
