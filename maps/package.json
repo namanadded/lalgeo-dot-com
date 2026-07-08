@@ -6,6 +6,7 @@
     "dev": "next dev",
     "test:external-link-security": "node scripts/test-external-link-security.mjs",
     "test:maps-frame-viewport": "node scripts/test-maps-frame-viewport.mjs",
+    "test:empty-dropbox-flow": "node scripts/test-empty-dropbox-flow.mjs",
     "test:panel-toggle-a11y": "node scripts/test-panel-toggle-a11y.mjs",
     "test:toolbar-overflow-a11y": "node scripts/test-toolbar-overflow-a11y.mjs",
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
