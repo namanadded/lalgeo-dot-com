@@ -46,6 +46,10 @@ jobs:
         working-directory: maps
         run: npm run test:maps-frame-viewport
 
+      - name: Check empty state Dropbox flow
+        working-directory: maps
+        run: npm run test:empty-dropbox-flow
+
       - name: Check maps panel toggle accessibility
         working-directory: maps
         run: npm run test:panel-toggle-a11y

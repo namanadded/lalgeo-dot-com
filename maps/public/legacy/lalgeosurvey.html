@@ -12045,6 +12045,15 @@
             setImportPanelVisibility(true);
         }
 
+        function showDropboxWorkspaceControls() {
+            openWorkspacePanelFallback();
+            window.requestAnimationFrame(() => {
+                document.getElementById("dropboxControls")?.scrollIntoView({ block: "center", behavior: "smooth" });
+                connectDropboxBtn?.focus({ preventScroll: true });
+            });
+            setProjectStatus("Connect Dropbox when you’re ready.");
+        }
+
         function openCreateProjectModalFallback() {
             if (!createProjectModal) return;
             createProjectModal.hidden = false;
@@ -12140,6 +12149,10 @@
             }
             if (button.id === "emptyConnectDropboxBtn" || button.id === "drawerConnectDropboxBtn" || button.id === "connectDropboxBtn") {
                 event.preventDefault();
+                if (button.id !== "connectDropboxBtn") {
+                    showDropboxWorkspaceControls();
+                    return;
+                }
                 openWorkspacePanelFallback();
                 if (button.id === "connectDropboxBtn") {
                     if (dropboxConnected) {
@@ -12661,8 +12674,7 @@
             setImportPanelVisibility(false);
         });
         emptyConnectDropboxBtn?.addEventListener("click", () => {
-            setImportPanelVisibility(true);
-            connectDropboxBtn?.click();
+            showDropboxWorkspaceControls();
         });
         sampleMapKeepBtn?.addEventListener("click", dismissSampleMapModal);
         sampleMapDeleteBtn?.addEventListener("click", deleteSampleProjectAndStartFresh);
