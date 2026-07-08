@@ -69,4 +69,16 @@ assert.match(
   "Right toolbar overflow handler must synchronize aria-expanded.",
 );
 
+assert.match(
+  legacyHtml,
+  /#leftToolbarExpand,\s*#rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
+  "Mobile toolbar overflow toggles must provide at least a 44px touch target.",
+);
+
+assert.match(
+  legacyHtml,
+  /#toolbarSearchShell\s*{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?height:\s*44px;/,
+  "Collapsed mobile search control must provide at least a 44px touch target.",
+);
+
 console.log("Toolbar overflow accessibility checks passed.");
