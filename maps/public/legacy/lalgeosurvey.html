@@ -5385,11 +5385,11 @@
                         <span class="quick-action-icon" aria-hidden="true">⌖</span>
                         <span class="quick-action-label">My Location</span>
                     </button>
-                    <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" title="Measure">
+                    <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" aria-controls="measurementPanel" aria-expanded="false" title="Measure">
                         <span class="quick-action-icon" aria-hidden="true">▱</span>
                         <span class="quick-action-label">Measure</span>
                     </button>
-                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" title="Advanced GIS">
+                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Advanced GIS">
                         <span class="quick-action-icon" aria-hidden="true">⌬</span>
                         <span class="quick-action-label">GIS</span>
                     </button>
@@ -15096,6 +15096,7 @@
         function updateMeasurementPanel() {
             measurementPanel.hidden = !measurementActive;
             measureToolBtn?.classList.toggle("active", measurementActive);
+            measureToolBtn?.setAttribute("aria-expanded", measurementActive ? "true" : "false");
             measurementDistanceModeBtn?.classList.toggle("active", measurementMode === "distance");
             measurementAreaModeBtn?.classList.toggle("active", measurementMode === "area");
             if (measurementUnitSelect) measurementUnitSelect.value = measurementUnits;
