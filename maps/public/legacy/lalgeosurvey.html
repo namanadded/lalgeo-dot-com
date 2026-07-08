@@ -2271,15 +2271,30 @@
     .toolbar-quick-actions {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 10px;
+    }
+    .toolbar-action-group {
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        padding: 3px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.66);
+        border: 1px solid rgba(209,213,219,0.64);
+        box-shadow: 0 4px 12px rgba(15,23,42,0.08), inset 0 1px 0 rgba(255,255,255,0.75);
+    }
+    .toolbar-help-search-group {
+        gap: 6px;
+        margin-left: 2px;
+        order: 3;
     }
     .menu-bar-btn.quick-action {
         display: inline-flex;
         align-items: center;
         gap: 6px;
         padding: 5px 8px;
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(209,213,219,0.56);
+        background: rgba(255,255,255,0.72);
     }
     .quick-action-icon {
         font-size: 16px;
@@ -2721,7 +2736,7 @@
     .toolbar-quick-actions {
         display: inline-flex;
         align-items: center;
-        gap: 4px;
+        gap: 10px;
         margin-left: 4px;
         order: 1;
     }
@@ -2730,7 +2745,7 @@
     }
     #toolbarSearchShell {
         order: 3;
-        margin-left: 4px;
+        margin-left: 0;
     }
     .menu-bar-btn.quick-action {
         border: 1px solid rgba(255,255,255,0.08);
@@ -5347,44 +5362,50 @@
         </div>
         <div class="toolbar-right">
             <div id="quickActionBar" class="toolbar-quick-actions">
-                <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add New">
-                    <span class="quick-action-icon">✚</span>
-                    <span class="quick-action-label">Add New</span>
-                </button>
-                <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
-                    <span class="quick-action-icon" aria-hidden="true">↺</span>
-                    <span class="quick-action-label">Undo</span>
-                </button>
-                <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
-                    <span class="quick-action-icon" aria-hidden="true">↻</span>
-                    <span class="quick-action-label">Redo</span>
-                </button>
-                <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
-                    <span class="quick-action-icon" aria-hidden="true">⌖</span>
-                    <span class="quick-action-label">My Location</span>
-                </button>
-                <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" title="Measure">
-                    <span class="quick-action-icon" aria-hidden="true">▱</span>
-                    <span class="quick-action-label">Measure</span>
-                </button>
-                <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" title="Advanced GIS">
-                    <span class="quick-action-icon" aria-hidden="true">⌬</span>
-                    <span class="quick-action-label">GIS</span>
-                </button>
+                <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
+                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
+                        <span class="quick-action-icon" aria-hidden="true">✎</span>
+                        <span class="quick-action-label">Edit</span>
+                    </button>
+                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add New">
+                        <span class="quick-action-icon">✚</span>
+                        <span class="quick-action-label">Add New</span>
+                    </button>
+                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
+                        <span class="quick-action-icon" aria-hidden="true">↺</span>
+                        <span class="quick-action-label">Undo</span>
+                    </button>
+                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
+                        <span class="quick-action-icon" aria-hidden="true">↻</span>
+                        <span class="quick-action-label">Redo</span>
+                    </button>
+                </div>
+                <div class="toolbar-action-group toolbar-map-group" aria-label="Map controls">
+                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
+                        <span class="quick-action-icon" aria-hidden="true">⌖</span>
+                        <span class="quick-action-label">My Location</span>
+                    </button>
+                    <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" aria-controls="measurementPanel" aria-expanded="false" title="Measure">
+                        <span class="quick-action-icon" aria-hidden="true">▱</span>
+                        <span class="quick-action-label">Measure</span>
+                    </button>
+                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Advanced GIS">
+                        <span class="quick-action-icon" aria-hidden="true">⌬</span>
+                        <span class="quick-action-label">GIS</span>
+                    </button>
+                </div>
+            </div>
+            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-expanded="false">&lt;</button>
+            <div class="toolbar-action-group toolbar-help-search-group" aria-label="Help and search controls">
                 <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
                     <span class="quick-action-icon" aria-hidden="true">?</span>
                     <span class="quick-action-label">Help</span>
                 </button>
-            </div>
-            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-expanded="false">&lt;</button>
-            <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
-                <span class="quick-action-icon" aria-hidden="true">✎</span>
-                <span class="quick-action-label">Edit</span>
-            </button>
-            <div class="search-pill collapsed" id="toolbarSearchShell">
-                <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
-                <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
-                <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
+                <div class="search-pill collapsed" id="toolbarSearchShell">
+                    <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
+                    <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
+                    <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
+                </div>
             </div>
         </div>
     </div>
@@ -15075,6 +15096,7 @@
         function updateMeasurementPanel() {
             measurementPanel.hidden = !measurementActive;
             measureToolBtn?.classList.toggle("active", measurementActive);
+            measureToolBtn?.setAttribute("aria-expanded", measurementActive ? "true" : "false");
             measurementDistanceModeBtn?.classList.toggle("active", measurementMode === "distance");
             measurementAreaModeBtn?.classList.toggle("active", measurementMode === "area");
             if (measurementUnitSelect) measurementUnitSelect.value = measurementUnits;
