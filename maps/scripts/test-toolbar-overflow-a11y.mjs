@@ -34,6 +34,12 @@ assertAttribute(
   "false",
   "Left toolbar overflow toggle must default to the collapsed state.",
 );
+assertAttribute(
+  leftToggle,
+  "aria-label",
+  "Show menu",
+  "Left toolbar overflow toggle should describe the menu it opens without directional copy.",
+);
 assert.match(
   menuCommands,
   /\bclass="[^"]*\bapp-menubar\b[^"]*"/,
@@ -51,6 +57,12 @@ assertAttribute(
   "aria-expanded",
   "false",
   "Right toolbar overflow toggle must default to the collapsed state.",
+);
+assertAttribute(
+  rightToggle,
+  "aria-label",
+  "Show tools",
+  "Right toolbar overflow toggle should describe the tools it opens without directional copy.",
 );
 assert.match(
   quickActions,
@@ -73,6 +85,21 @@ assert.match(
   legacyHtml,
   /#leftToolbarExpand,\s*#rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
   "Mobile toolbar overflow toggles must provide at least a 44px touch target.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="(?:leftToolbarExpand|rightToolbarExpand)"[^>]*>(?:&gt;|&lt;)/,
+  "Mobile toolbar overflow toggles should not use directional arrow glyphs.",
+);
+assert.match(
+  legacyHtml,
+  /#leftToolbarExpand::before\s*{[\s\S]*?linear-gradient\(currentColor,\s*currentColor\)/,
+  "Left toolbar overflow toggle should use a menu glyph instead of a chevron.",
+);
+assert.match(
+  legacyHtml,
+  /#rightToolbarExpand::before\s*{[\s\S]*?radial-gradient\(circle at 4px 4px,\s*currentColor/,
+  "Right toolbar overflow toggle should use a tools glyph instead of a chevron.",
 );
 
 assert.match(
