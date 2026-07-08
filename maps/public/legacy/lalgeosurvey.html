@@ -4575,28 +4575,41 @@
             height: 44px;
             border-radius: 12px;
             overflow: hidden;
-            text-indent: -999px;
+            font-size: 0;
+            color: #6b7280;
             background: rgba(255,255,255,0.08);
             border-color: rgba(255,255,255,0.13);
         }
         #leftToolbarExpand::before,
         #rightToolbarExpand::before {
             content: "";
-            width: 8px;
-            height: 8px;
-            border-top: 2px solid #f8fafc;
-            border-right: 2px solid #f8fafc;
-            opacity: 0.95;
+            display: block;
+            flex: 0 0 auto;
+            opacity: 0.78;
+            transform: none;
+            transition: opacity 0.16s ease, transform 0.16s ease;
         }
         #leftToolbarExpand::before {
-            transform: rotate(45deg);
+            width: 18px;
+            height: 14px;
+            background:
+                linear-gradient(currentColor, currentColor) 0 1px / 18px 2px no-repeat,
+                linear-gradient(currentColor, currentColor) 0 6px / 14px 2px no-repeat,
+                linear-gradient(currentColor, currentColor) 0 11px / 18px 2px no-repeat;
         }
         #rightToolbarExpand::before {
-            transform: rotate(225deg);
+            width: 18px;
+            height: 18px;
+            background:
+                radial-gradient(circle at 4px 4px, currentColor 0 2px, transparent 2.4px),
+                radial-gradient(circle at 14px 4px, currentColor 0 2px, transparent 2.4px),
+                radial-gradient(circle at 4px 14px, currentColor 0 2px, transparent 2.4px),
+                radial-gradient(circle at 14px 14px, currentColor 0 2px, transparent 2.4px);
         }
         #leftToolbarExpand[aria-expanded="true"]::before,
         #rightToolbarExpand[aria-expanded="true"]::before {
-            transform: rotate(315deg);
+            opacity: 1;
+            transform: scale(1.04);
         }
 
         #toolbarSearchShell {
@@ -4862,11 +4875,6 @@
         background: #f9fafb;
         color: #374151;
         border-color: rgba(190, 197, 205, 0.92);
-    }
-    #toolbar .toolbar-overflow-toggle::before,
-    #toolbar #leftToolbarExpand::before,
-    #toolbar #rightToolbarExpand::before {
-        border-color: #6b7280;
     }
     #toolbar .toolbar-project-mini strong {
         color: #4b5563;
@@ -5339,7 +5347,7 @@
             <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LAL GEO menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
                 <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
             </button>
-            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu commands" aria-controls="toolbarMenuCommands" aria-expanded="false">&gt;</button>
+            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands" aria-expanded="false"></button>
             <div id="toolbarMenuCommands" class="menu-bar-actions app-menubar">
                 <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="file">File</button>
                 <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="edit">Edit</button>
@@ -5390,7 +5398,7 @@
                     </button>
                 </div>
             </div>
-            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show map controls" aria-controls="quickActionBar" aria-expanded="false">&lt;</button>
+            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show tools" aria-controls="quickActionBar" aria-expanded="false"></button>
             <div class="toolbar-action-group toolbar-help-search-group" aria-label="Help and search controls">
                 <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
                     <span class="quick-action-icon" aria-hidden="true">?</span>
