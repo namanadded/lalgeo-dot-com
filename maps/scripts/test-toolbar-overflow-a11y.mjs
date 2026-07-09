@@ -21,6 +21,31 @@ const leftToggle = getTagById("leftToolbarExpand");
 const menuCommands = getTagById("toolbarMenuCommands");
 const rightToggle = getTagById("rightToolbarExpand");
 const quickActions = getTagById("quickActionBar");
+const projectTitleBlock = legacyHtml.match(
+  /<div class="toolbar-project-mini"[^>]*>[\s\S]*?<\/div>/,
+)?.[0];
+
+assert.ok(projectTitleBlock, "Toolbar must include the current project title block.");
+assert.match(
+  projectTitleBlock,
+  /<span id="toolbarProjectMeta">Project<\/span>\s*<strong id="toolbarProjectName">No Project Open<\/strong>/,
+  "Toolbar project title must render a small Project caption above the project name.",
+);
+assert.match(
+  legacyHtml,
+  /toolbarProjectNameCompact\.textContent\s*=\s*hasProject\s*\?\s*activeProjectRecord\.name\s*:\s*"No Project Open"/,
+  "Toolbar project title must use title case when no project is open.",
+);
+assert.match(
+  legacyHtml,
+  /toolbarProjectMeta\.textContent\s*=\s*"Project"/,
+  "Toolbar project caption must stay as Project instead of layer or status metadata.",
+);
+assert.match(
+  legacyHtml,
+  /\.toolbar-project-mini strong\s*{[\s\S]*?white-space:\s*nowrap;[\s\S]*?overflow:\s*hidden;[\s\S]*?text-overflow:\s*ellipsis;/,
+  "Toolbar project names must truncate gracefully.",
+);
 
 assertAttribute(
   leftToggle,
