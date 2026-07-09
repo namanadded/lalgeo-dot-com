@@ -70,6 +70,11 @@ assert.match(
   /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*auto\s+minmax\(94px,\s*1fr\)\s+auto;/,
   "Small-screen toolbar should reserve a visible middle track for the two-line project title.",
 );
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?min-height:\s*48px;[\s\S]*?padding:\s*2px\s+10px;/,
+  "Mobile toolbar should feel lighter while retaining room for 44px controls.",
+);
 
 assertAttribute(
   leftToggle,
