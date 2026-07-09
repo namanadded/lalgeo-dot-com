@@ -5464,9 +5464,9 @@
                     <span class="quick-action-label">Help</span>
                 </button>
                 <div class="search-pill collapsed" id="toolbarSearchShell">
-                    <button id="searchIconBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
+                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
                     <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
-                    <button id="collapseSearchBtn" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
+                    <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
                 </div>
             </div>
         </div>
@@ -6086,7 +6086,7 @@
     </div>
     <div id="surveyCallout">
         <div class="card">
-            <button class="close-btn" aria-label="Close">×</button>
+            <button class="close-btn" type="button" aria-label="Close">×</button>
             <div class="callout-content"></div>
         </div>
     </div>
@@ -6180,7 +6180,7 @@
                 <small style="color:#475569; font-size:12px;">Map on the left, project features listed here.</small>
             </div>
             <div class="share-panel-actions">
-                <button id="shareCloseBtn" class="share-close-btn" aria-label="Close share panel">×</button>
+                <button id="shareCloseBtn" type="button" class="share-close-btn" aria-label="Close share panel">×</button>
             </div>
         </div>
         <div id="shareList"></div>
@@ -19586,8 +19586,8 @@ function setImportPanelVisibility(show) {
                                 <option value="hi-IN">Hindi</option>
                             </select>
                             <br><br>
-                            <button id="startVoiceNav">▶️ Start Voice Navigation</button>
-                            <button id="stopVoiceNav">⛔ Stop Voice</button>
+                            <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
+                            <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
                         `;
 
                         document.getElementById("startVoiceNav").addEventListener("click", () => {
@@ -20756,8 +20756,8 @@ function setImportPanelVisibility(show) {
                                 <option value="hi-IN">Hindi</option>
                             </select>
                             <br><br>
-                            <button id="startVoiceNav">▶️ Start Voice Navigation</button>
-                            <button id="stopVoiceNav">⛔ Stop Voice</button>
+                            <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
+                            <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
                         `;
                         document.getElementById("startVoiceNav").addEventListener("click", () => {
                             startVoiceNavigation(route.steps);
