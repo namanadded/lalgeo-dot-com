@@ -2321,7 +2321,7 @@
     .toolbar-quick-actions {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
     }
     .toolbar-action-group {
         display: inline-flex;
@@ -2332,6 +2332,9 @@
         background: rgba(255,255,255,0.54);
         border: 1px solid rgba(209,213,219,0.36);
         box-shadow: 0 2px 8px rgba(15,23,42,0.05), inset 0 1px 0 rgba(255,255,255,0.68);
+    }
+    .toolbar-tools-group {
+        margin-left: 2px;
     }
     .toolbar-help-search-group {
         gap: 6px;
@@ -2851,7 +2854,7 @@
     .toolbar-quick-actions {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
         margin-left: 10px;
         order: 1;
     }
@@ -5544,7 +5547,7 @@
         <div class="toolbar-right">
             <div id="quickActionBar" class="toolbar-quick-actions">
                 <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
-                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
+                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" title="Draw">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M4 20h4"></path>
@@ -5552,16 +5555,16 @@
                                 <path d="M18 2.8a2.1 2.1 0 0 1 3 3L8 18.8 4 20l1.2-4L18 2.8z"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">Edit</span>
+                        <span class="quick-action-label">Draw</span>
                     </button>
-                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add New">
+                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M12 5v14"></path>
                                 <path d="M5 12h14"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">Add New</span>
+                        <span class="quick-action-label">Add</span>
                     </button>
                     <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
                         <span class="quick-action-icon" aria-hidden="true">
@@ -5583,7 +5586,7 @@
                     </button>
                 </div>
                 <div class="toolbar-action-group toolbar-map-group" aria-label="Map controls">
-                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
+                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="Locate me" title="Locate">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="4"></circle>
@@ -5593,8 +5596,30 @@
                                 <path d="M19 12h3"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">My Location</span>
+                        <span class="quick-action-label">Locate</span>
                     </button>
+                    <button id="toolbarLayersBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M12 3l8 4-8 4-8-4 8-4z"></path>
+                                <path d="M4 12l8 4 8-4"></path>
+                                <path d="M4 17l8 4 8-4"></path>
+                            </svg>
+                        </span>
+                        <span class="quick-action-label">Layers</span>
+                    </button>
+                    <button id="toolbarBasemapBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open basemap controls" aria-controls="toolbarMenuTray" aria-expanded="false" title="Basemap">
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"></path>
+                                <path d="M9 3v15"></path>
+                                <path d="M15 6v15"></path>
+                            </svg>
+                        </span>
+                        <span class="quick-action-label">Basemap</span>
+                    </button>
+                </div>
+                <div class="toolbar-action-group toolbar-tools-group" aria-label="Measurement and GIS controls">
                     <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" aria-controls="measurementPanel" aria-expanded="false" title="Measure">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -6510,6 +6535,8 @@
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
         const layersMapBtn = document.getElementById("layersMapBtn");
+        const toolbarLayersBtn = document.getElementById("toolbarLayersBtn");
+        const toolbarBasemapBtn = document.getElementById("toolbarBasemapBtn");
         const lookAroundPreviewEl = document.getElementById("lookAroundPreview");
         const lookAroundContainerEl = document.getElementById("lookAroundContainer");
         const lookAroundDragHandle = document.getElementById("lookAroundDragHandle");
@@ -6737,6 +6764,8 @@
                 undo: { element: undoBtn, group: "quickActions", role: "action" },
                 redo: { element: redoBtn, group: "quickActions", role: "action" },
                 locate: { element: myLocationBtn, group: "quickActions", role: "action" },
+                layers: { element: toolbarLayersBtn, group: "quickActions", role: "panel-toggle" },
+                basemap: { element: toolbarBasemapBtn, group: "quickActions", role: "menu" },
                 measure: { element: measureToolBtn, group: "quickActions", role: "action" },
                 gis: { element: advancedGisBtn, group: "quickActions", role: "action" },
                 help: { element: helpCenterBtn, group: "helpSearch", role: "action" },
@@ -6762,7 +6791,8 @@
                 "viewMenu",
                 "historyMenu",
                 "windowMenu",
-                "helpMenu"
+                "helpMenu",
+                "basemap"
             ],
             containsMenuButton(target) {
                 return this.menuBoundaryButtons.some((buttonKey) => this.component.buttons[buttonKey]?.contains(target));
@@ -8173,6 +8203,9 @@
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
+            const basemapActive = toolbarMenuVisible && toolbarMenuKey === "view" && menuMapTypeList && !menuMapTypeList.hidden;
+            toolbarBasemapBtn?.classList.toggle("active", Boolean(basemapActive));
+            toolbarBasemapBtn?.setAttribute("aria-expanded", basemapActive ? "true" : "false");
             updateMapTypeControls(activeProjectRecord);
         }
 
@@ -9896,6 +9929,10 @@
             if (layersMapBtn) {
                 layersMapBtn.classList.toggle("active", sidebarVisible);
                 layersMapBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
+            }
+            if (toolbarLayersBtn) {
+                toolbarLayersBtn.classList.toggle("active", sidebarVisible);
+                toolbarLayersBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
             updateCommandAvailability();
             if (rememberLastSession) saveWorkspaceUiPrefs();
@@ -13010,10 +13047,21 @@
             setProjectBasemapPoisVisible(!getProjectBasemapPoisVisible());
         });
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
-        layersMapBtn?.addEventListener("click", () => {
+        function toggleLayersPanel() {
             renderActiveProjectSidebar();
             setSidebarVisibility(!sidebarVisible);
-        });
+        }
+        function openBasemapControls() {
+            openToolbarMenu("view", toolbarBasemapBtn || settingsBtn);
+            if (menuMapTypeList) menuMapTypeList.hidden = false;
+            menuMapTypeBtn?.setAttribute("aria-expanded", "true");
+            toolbarBasemapBtn?.classList.add("active");
+            toolbarBasemapBtn?.setAttribute("aria-expanded", "true");
+            updateMapTypeControls(activeProjectRecord);
+        }
+        layersMapBtn?.addEventListener("click", toggleLayersPanel);
+        toolbarLayersBtn?.addEventListener("click", toggleLayersPanel);
+        toolbarBasemapBtn?.addEventListener("click", openBasemapControls);
         toolbarMenuTray?.addEventListener("click", (event) => {
             if (event.target.closest("#menuToolbarsBtn")) {
                 event.preventDefault();

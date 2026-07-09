@@ -54,6 +54,18 @@ assertContains(
   "Global toolbar menu dismissal should use the top toolbar view model.",
 );
 assertContains(
+  /layers: \{ element: toolbarLayersBtn, group: "quickActions", role: "panel-toggle" \}[\s\S]*?basemap: \{ element: toolbarBasemapBtn, group: "quickActions", role: "menu" \}/,
+  "Top toolbar view model should include Layers and Basemap controls.",
+);
+assertContains(
+  /function toggleLayersPanel\(\) \{[\s\S]*?renderActiveProjectSidebar\(\);[\s\S]*?setSidebarVisibility\(!sidebarVisible\);[\s\S]*?\}[\s\S]*?layersMapBtn\?\.addEventListener\("click", toggleLayersPanel\);[\s\S]*?toolbarLayersBtn\?\.addEventListener\("click", toggleLayersPanel\);/s,
+  "Toolbar Layers button should use the same behavior as the existing map layers button.",
+);
+assertContains(
+  /function openBasemapControls\(\) \{[\s\S]*?openToolbarMenu\("view", toolbarBasemapBtn \|\| settingsBtn\);[\s\S]*?menuMapTypeList\) menuMapTypeList\.hidden = false;[\s\S]*?\}[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
+  "Toolbar Basemap button should open the existing map type controls.",
+);
+assertContains(
   /#editFloatingPanel\s*\{[\s\S]*?opacity:\s*0;[\s\S]*?transform:\s*translateY\(-8px\)\s*scale\(0\.985\);[\s\S]*?transition:[\s\S]*?opacity 180ms[\s\S]*?transform 180ms/s,
   "Editing toolbar should have a subtle Apple-like entry and exit transition.",
 );
