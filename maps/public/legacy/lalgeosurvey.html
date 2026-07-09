@@ -2683,7 +2683,7 @@
         min-height: 26px;
         transform: none;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(96px, min(420px, 36vw)) minmax(0, 1fr);
         grid-template-areas: "toolbar-left toolbar-center toolbar-right";
         align-items: center;
         gap: 13px;
@@ -2780,7 +2780,9 @@
         align-items: center;
         text-align: center;
         justify-self: center;
-        max-width: min(42vw, 420px);
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
     .toolbar-project-mini strong {
         display: block;
@@ -2828,13 +2830,11 @@
     }
     .toolbar-center {
         grid-area: toolbar-center;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
+        position: static;
+        transform: none;
         justify-content: center;
         overflow: hidden;
-        width: min(420px, calc(100vw - 440px));
+        width: 100%;
         pointer-events: none;
         z-index: 1;
     }
@@ -2955,16 +2955,13 @@
         .toolbar-project-mini strong {
             max-width: 100%;
         }
-        .toolbar-center {
-            width: min(320px, calc(100vw - 250px));
+        #toolbar {
+            grid-template-columns: auto minmax(92px, 1fr) auto;
         }
     }
     @media (max-width: 760px) {
         #toolbarMenuBtn {
             display: none;
-        }
-        .toolbar-center {
-            width: min(260px, calc(100vw - 190px));
         }
         .toolbar-project-mini strong {
             max-width: 100%;
@@ -2974,13 +2971,13 @@
         #openDataManagerBtn {
             display: none;
         }
-        .toolbar-center {
-            width: min(240px, calc(100vw - 170px));
+        #toolbar {
+            grid-template-columns: auto minmax(84px, 1fr) auto;
         }
     }
     @media (max-width: 600px) {
-        .toolbar-center {
-            width: min(220px, max(92px, calc(100vw - 360px)));
+        #toolbar {
+            grid-template-columns: auto minmax(94px, 1fr) auto;
         }
     }
     .toolbar-left.expanded .app-menubar,
@@ -4602,12 +4599,13 @@
 
         #toolbar {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            grid-template-columns: auto minmax(94px, 1fr) auto;
             grid-template-areas: "toolbar-left toolbar-center toolbar-right";
             align-items: center;
-            gap: 14px;
-            min-height: 52px;
-            padding: 6px 10px;
+            column-gap: 8px;
+            row-gap: 0;
+            min-height: 48px;
+            padding: 2px 10px;
             top: 0;
             left: 0;
             right: 0;
@@ -4668,10 +4666,12 @@
             justify-content: center;
             pointer-events: auto;
             overflow: hidden;
+            min-width: 0;
         }
 
         #toolbar .toolbar-project-mini {
-            max-width: min(42vw, 220px);
+            width: 100%;
+            max-width: 100%;
             min-width: 0;
             align-items: center;
             text-align: center;
@@ -4683,6 +4683,9 @@
             font-size: 15px;
             line-height: 1.05;
             color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #toolbar .toolbar-project-mini span {
@@ -4691,6 +4694,9 @@
             font-size: 9px;
             line-height: 1;
             color: rgba(248, 250, 252, 0.62);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #toolbar .toolbar-right {
@@ -5645,25 +5651,13 @@
                     </button>
                 </div>
             </div>
-            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show tools" aria-controls="quickActionBar" aria-expanded="false">
+            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Tools" aria-controls="quickActionBar" aria-expanded="false" title="Tools">
                 <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="5" y="5" width="4" height="4" rx="1"></rect>
-                    <rect x="15" y="5" width="4" height="4" rx="1"></rect>
-                    <rect x="5" y="15" width="4" height="4" rx="1"></rect>
-                    <rect x="15" y="15" width="4" height="4" rx="1"></rect>
+                    <path d="M14.7 6.3a4 4 0 0 0-5 5L4 17l3 3 5.7-5.7a4 4 0 0 0 5-5l-2.6 2.6-3-3 2.6-2.6z"></path>
+                    <path d="M12 12l-2.4 2.4"></path>
                 </svg>
             </button>
-            <div class="toolbar-action-group toolbar-help-search-group" aria-label="Help and search controls">
-                <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
-                    <span class="quick-action-icon" aria-hidden="true">
-                        <svg class="toolbar-icon" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="9"></circle>
-                            <path d="M9.8 9a2.3 2.3 0 0 1 4.4 1c0 1.5-1.1 2.1-2.2 2.8"></path>
-                            <path d="M12 17h.01"></path>
-                        </svg>
-                    </span>
-                    <span class="quick-action-label">Help</span>
-                </button>
+            <div class="toolbar-action-group toolbar-help-search-group" aria-label="Search controls">
                 <div class="search-pill collapsed" id="toolbarSearchShell">
                     <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -5809,10 +5803,6 @@
                 <input type="checkbox" class="quick-action-toggle" data-action="myLocation">
                 <span>My Location</span>
             </label>
-            <label class="settings-option">
-                <input type="checkbox" class="quick-action-toggle" data-action="help">
-                <span>Help</span>
-            </label>
         </div>
     </div>
     <div id="toolbarMenuTray" hidden>
@@ -5820,6 +5810,7 @@
             <button id="menuAboutBtn" type="button" class="menu-command"><span>About</span></button>
             <button id="menuSettingsBtn" type="button" class="menu-command"><span>Settings</span><span class="menu-shortcut" data-shortcut="settings"></span></button>
             <button id="workspacePanelBtn" type="button" class="menu-command"><span>Recent</span><span class="menu-shortcut" data-shortcut="projects"></span></button>
+            <button id="menuAppHelpBtn" type="button" class="menu-command"><span>Help Center</span></button>
             <button id="menuForceCloseBtn" type="button" class="menu-command"><span>Force Close</span></button>
             <button id="menuLogoutBtn" type="button" class="menu-command"><span>Log Out</span></button>
         </div>
@@ -6677,7 +6668,7 @@
         const layerRenderProgressMessage = document.getElementById("layerRenderProgressMessage");
         const layerRenderProgressBar = document.getElementById("layerRenderProgressBar");
         const layerRenderCancelBtn = document.getElementById("layerRenderCancelBtn");
-        const helpCenterBtn = document.getElementById("helpCenterBtn");
+        const menuAppHelpBtn = document.getElementById("menuAppHelpBtn");
         const menuFileHelpBtn = document.getElementById("menuFileHelpBtn");
         const menuHelpCenterBtn = document.getElementById("menuHelpCenterBtn");
         const helpCenterModal = document.getElementById("helpCenterModal");
@@ -6769,7 +6760,6 @@
                 basemap: { element: toolbarBasemapBtn, group: "quickActions", role: "menu" },
                 measure: { element: measureToolBtn, group: "quickActions", role: "action" },
                 gis: { element: advancedGisBtn, group: "quickActions", role: "action" },
-                help: { element: helpCenterBtn, group: "helpSearch", role: "action" },
                 search: { element: document.getElementById("searchIconBtn"), group: "helpSearch", role: "search" },
                 clearSearch: { element: collapseSearchBtn, group: "helpSearch", role: "search" }
             },
@@ -7161,13 +7151,12 @@
         const SAMPLE_PROJECT_SLUG = "canada-us-first-visit-open-data";
         const SAMPLE_PROJECT_DISMISSED_KEY = "lalgeoSampleProjectPromptDismissedV1";
         const isMacPlatform = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || navigator.userAgent || "");
-        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation", "help"];
+        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation"];
         const QUICK_ACTION_BUTTONS = {
             addNew: addSurveyPointBtn,
             undo: undoBtn,
             redo: redoBtn,
-            myLocation: myLocationBtn,
-            help: helpCenterBtn
+            myLocation: myLocationBtn
         };
         const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
@@ -8250,6 +8239,7 @@
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length) {
                     quickActions = parsed.filter((item) => Object.prototype.hasOwnProperty.call(QUICK_ACTION_BUTTONS, item));
+                    if (!quickActions.length) quickActions = [...DEFAULT_QUICK_ACTIONS];
                 } else {
                     quickActions = [...DEFAULT_QUICK_ACTIONS];
                 }
@@ -12580,7 +12570,7 @@
                 setLayerImportPanelVisibility(true);
                 return;
             }
-            if (button.id === "helpCenterBtn" || button.id === "menuFileHelpBtn" || button.id === "menuHelpCenterBtn") {
+            if (button.id === "menuAppHelpBtn" || button.id === "menuFileHelpBtn" || button.id === "menuHelpCenterBtn") {
                 event.preventDefault();
                 setHelpCenterVisibility(true);
                 return;
@@ -12804,7 +12794,7 @@
                 handleApiEndpointImport();
             }
         });
-        helpCenterBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        menuAppHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
         advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));

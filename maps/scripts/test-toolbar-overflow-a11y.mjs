@@ -55,6 +55,26 @@ assert.match(
   /\.toolbar-project-mini strong\s*{[\s\S]*?white-space:\s*nowrap;[\s\S]*?overflow:\s*hidden;[\s\S]*?text-overflow:\s*ellipsis;/,
   "Toolbar project names must truncate gracefully.",
 );
+assert.match(
+  legacyHtml,
+  /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(96px,\s*min\(420px,\s*36vw\)\)\s+minmax\(0,\s*1fr\);/,
+  "Desktop toolbar should reserve a real center track for the project title.",
+);
+assert.match(
+  legacyHtml,
+  /\.toolbar-center\s*{[\s\S]*?position:\s*static;[\s\S]*?width:\s*100%;[\s\S]*?overflow:\s*hidden;/,
+  "Project title should participate in toolbar layout instead of being absolutely positioned behind controls.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*auto\s+minmax\(94px,\s*1fr\)\s+auto;/,
+  "Small-screen toolbar should reserve a visible middle track for the two-line project title.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?min-height:\s*48px;[\s\S]*?padding:\s*2px\s+10px;/,
+  "Mobile toolbar should feel lighter while retaining room for 44px controls.",
+);
 
 assertAttribute(
   leftToggle,
@@ -95,8 +115,8 @@ assertAttribute(
 assertAttribute(
   rightToggle,
   "aria-label",
-  "Show tools",
-  "Right toolbar overflow toggle should describe the tools it opens without directional copy.",
+  "Tools",
+  "Right toolbar overflow toggle should use a direct Tools accessibility label.",
 );
 assert.match(
   quickActions,
@@ -120,6 +140,21 @@ assert.match(
   toolsGroup,
   /id="measureToolBtn"[\s\S]*?id="advancedGisBtn"/,
   "Measure and GIS controls should remain available outside the primary Map group.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="helpCenterBtn"/,
+  "Standalone toolbar Help button should be removed to free title space.",
+);
+assert.match(
+  legacyHtml,
+  /<div class="menu-dropdown-section" data-menu-pane="app">[\s\S]*?id="menuAppHelpBtn"[\s\S]*?<span>Help Center<\/span>/,
+  "Help Center should be available from the hamburger app menu.",
+);
+assert.match(
+  legacyHtml,
+  /menuAppHelpBtn\?\.addEventListener\("click", \(\) => setHelpCenterVisibility\(true\)\)/,
+  "Hamburger Help Center item should open the existing help center.",
 );
 assert.match(
   legacyHtml,
@@ -157,6 +192,16 @@ assert.match(
   legacyHtml,
   /id="leftToolbarExpand"[\s\S]*?<svg class="toolbar-icon"[\s\S]*?id="rightToolbarExpand"[\s\S]*?<svg class="toolbar-icon"/,
   "Toolbar overflow toggles should use the same SVG icon family as other toolbar controls.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="rightToolbarExpand"[\s\S]*?<rect x="5" y="5" width="4" height="4" rx="1">/,
+  "Tools overflow toggle should not use the old grid icon.",
+);
+assert.match(
+  legacyHtml,
+  /id="rightToolbarExpand"[\s\S]*?<path d="M14\.7 6\.3a4 4 0 0 0-5 5L4 17l3 3 5\.7-5\.7a4 4 0 0 0 5-5l-2\.6 2\.6-3-3 2\.6-2\.6z">/,
+  "Tools overflow toggle should use a clearer tools icon.",
 );
 assert.doesNotMatch(
   legacyHtml,
