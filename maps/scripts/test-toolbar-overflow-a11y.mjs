@@ -225,6 +225,21 @@ assert.match(
 );
 assert.match(
   legacyHtml,
+  /#toolbar\s*{[\s\S]*?border:\s*1px\s+solid\s+rgba\(255,\s*255,\s*255,\s*0\.045\);[\s\S]*?box-shadow:\s*0\s+4px\s+14px\s+rgba\(0,\s*0,\s*0,\s*0\.09\);[\s\S]*?backdrop-filter:\s*blur\(22px\)\s+saturate\(135%\);/,
+  "Toolbar glass should keep a subtle Apple-like border, shadow, and blur.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.brand-menu-btn,[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border:\s*1px\s+solid\s+rgba\(209,\s*213,\s*219,\s*0\.24\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.025\);/,
+  "Toolbar buttons should use lighter chrome with reduced border contrast.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-icon,\s*#toolbar \.quick-action-icon\s*{[\s\S]*?width:\s*18px;[\s\S]*?height:\s*18px;[\s\S]*?flex:\s*0\s+0\s+18px;/,
+  "Toolbar icons should align to a consistent 18px visual box.",
+);
+assert.match(
+  legacyHtml,
   /id="leftToolbarExpand"[\s\S]*?<svg class="toolbar-icon"[\s\S]*?id="rightToolbarExpand"[\s\S]*?<svg class="toolbar-icon"/,
   "Toolbar overflow toggles should use the same SVG icon family as other toolbar controls.",
 );
