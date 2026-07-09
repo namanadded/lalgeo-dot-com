@@ -55,6 +55,21 @@ assert.match(
   /\.toolbar-project-mini strong\s*{[\s\S]*?white-space:\s*nowrap;[\s\S]*?overflow:\s*hidden;[\s\S]*?text-overflow:\s*ellipsis;/,
   "Toolbar project names must truncate gracefully.",
 );
+assert.match(
+  legacyHtml,
+  /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(96px,\s*min\(420px,\s*36vw\)\)\s+minmax\(0,\s*1fr\);/,
+  "Desktop toolbar should reserve a real center track for the project title.",
+);
+assert.match(
+  legacyHtml,
+  /\.toolbar-center\s*{[\s\S]*?position:\s*static;[\s\S]*?width:\s*100%;[\s\S]*?overflow:\s*hidden;/,
+  "Project title should participate in toolbar layout instead of being absolutely positioned behind controls.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*auto\s+minmax\(94px,\s*1fr\)\s+auto;/,
+  "Small-screen toolbar should reserve a visible middle track for the two-line project title.",
+);
 
 assertAttribute(
   leftToggle,

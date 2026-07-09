@@ -2683,7 +2683,7 @@
         min-height: 26px;
         transform: none;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+        grid-template-columns: minmax(0, 1fr) minmax(96px, min(420px, 36vw)) minmax(0, 1fr);
         grid-template-areas: "toolbar-left toolbar-center toolbar-right";
         align-items: center;
         gap: 13px;
@@ -2780,7 +2780,9 @@
         align-items: center;
         text-align: center;
         justify-self: center;
-        max-width: min(42vw, 420px);
+        width: 100%;
+        min-width: 0;
+        max-width: 100%;
     }
     .toolbar-project-mini strong {
         display: block;
@@ -2828,13 +2830,11 @@
     }
     .toolbar-center {
         grid-area: toolbar-center;
-        position: absolute;
-        left: 50%;
-        top: 50%;
-        transform: translate(-50%, -50%);
+        position: static;
+        transform: none;
         justify-content: center;
         overflow: hidden;
-        width: min(420px, calc(100vw - 440px));
+        width: 100%;
         pointer-events: none;
         z-index: 1;
     }
@@ -2955,16 +2955,13 @@
         .toolbar-project-mini strong {
             max-width: 100%;
         }
-        .toolbar-center {
-            width: min(320px, calc(100vw - 250px));
+        #toolbar {
+            grid-template-columns: auto minmax(92px, 1fr) auto;
         }
     }
     @media (max-width: 760px) {
         #toolbarMenuBtn {
             display: none;
-        }
-        .toolbar-center {
-            width: min(260px, calc(100vw - 190px));
         }
         .toolbar-project-mini strong {
             max-width: 100%;
@@ -2974,13 +2971,13 @@
         #openDataManagerBtn {
             display: none;
         }
-        .toolbar-center {
-            width: min(240px, calc(100vw - 170px));
+        #toolbar {
+            grid-template-columns: auto minmax(84px, 1fr) auto;
         }
     }
     @media (max-width: 600px) {
-        .toolbar-center {
-            width: min(220px, max(92px, calc(100vw - 360px)));
+        #toolbar {
+            grid-template-columns: auto minmax(94px, 1fr) auto;
         }
     }
     .toolbar-left.expanded .app-menubar,
@@ -4602,10 +4599,11 @@
 
         #toolbar {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+            grid-template-columns: auto minmax(94px, 1fr) auto;
             grid-template-areas: "toolbar-left toolbar-center toolbar-right";
             align-items: center;
-            gap: 14px;
+            column-gap: 8px;
+            row-gap: 0;
             min-height: 52px;
             padding: 6px 10px;
             top: 0;
@@ -4668,10 +4666,12 @@
             justify-content: center;
             pointer-events: auto;
             overflow: hidden;
+            min-width: 0;
         }
 
         #toolbar .toolbar-project-mini {
-            max-width: min(42vw, 220px);
+            width: 100%;
+            max-width: 100%;
             min-width: 0;
             align-items: center;
             text-align: center;
@@ -4683,6 +4683,9 @@
             font-size: 15px;
             line-height: 1.05;
             color: #f8fafc;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #toolbar .toolbar-project-mini span {
@@ -4691,6 +4694,9 @@
             font-size: 9px;
             line-height: 1;
             color: rgba(248, 250, 252, 0.62);
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
         }
 
         #toolbar .toolbar-right {
