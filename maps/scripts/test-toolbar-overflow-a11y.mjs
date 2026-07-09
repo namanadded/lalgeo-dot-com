@@ -128,6 +128,16 @@ assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
 assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
 assert.match(
   editingGroup,
+  /<span class="toolbar-group-label" aria-hidden="true">Edit<\/span>/,
+  "Editing toolbar group should have a visible Edit section label when space allows.",
+);
+assert.match(
+  mapGroup,
+  /<span class="toolbar-group-label" aria-hidden="true">Map<\/span>/,
+  "Map toolbar group should have a visible Map section label when space allows.",
+);
+assert.match(
+  editingGroup,
   /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>[\s\S]*?id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
   "Editing group should read as Draw, Add, Undo, Redo.",
 );
@@ -140,6 +150,11 @@ assert.match(
   legacyHtml,
   /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?\.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
   "Toolbar quick action labels should appear beside icons when there is enough horizontal space.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.toolbar-map-group::before\s*{[\s\S]*?background:\s*rgba\(209,\s*213,\s*219,\s*0\.34\);[\s\S]*?\.toolbar-group-label\s*{[\s\S]*?display:\s*inline-flex;/,
+  "Toolbar Edit and Map groups should use subtle section labels and a divider on roomy screens.",
 );
 assert.match(
   legacyHtml,
