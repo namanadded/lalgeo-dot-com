@@ -2321,7 +2321,7 @@
     .toolbar-quick-actions {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
+        gap: 14px;
     }
     .toolbar-action-group {
         display: inline-flex;
@@ -2332,6 +2332,9 @@
         background: rgba(255,255,255,0.54);
         border: 1px solid rgba(209,213,219,0.36);
         box-shadow: 0 2px 8px rgba(15,23,42,0.05), inset 0 1px 0 rgba(255,255,255,0.68);
+    }
+    .toolbar-tools-group {
+        margin-left: 2px;
     }
     .toolbar-help-search-group {
         gap: 6px;
@@ -2673,24 +2676,25 @@
         top: 0;
         left: 0;
         right: 0;
-        --toolbar-motion-fast: 120ms;
-        --toolbar-motion-menu: 180ms;
-        --toolbar-motion-ease: cubic-bezier(0.2, 0.8, 0.2, 1);
-        --toolbar-motion-press: cubic-bezier(0.34, 1.56, 0.64, 1);
+        --toolbar-motion-fast: 140ms;
+        --toolbar-motion-menu: 170ms;
+        --toolbar-motion-ease: cubic-bezier(0.25, 0.1, 0.25, 1);
+        --toolbar-motion-press: cubic-bezier(0.25, 0.1, 0.25, 1);
         min-height: 26px;
         transform: none;
         display: grid;
         grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
         grid-template-areas: "toolbar-left toolbar-center toolbar-right";
         align-items: center;
-        gap: 14px;
+        gap: 13px;
         padding: 2px 10px;
         border-radius: 0 0 10px 10px;
         background: rgba(53, 60, 58, 0.62);
         border: 1px solid rgba(255,255,255,0.06);
         border-top: 0;
-        box-shadow: 0 8px 20px rgba(0,0,0,0.16);
-        backdrop-filter: blur(20px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+        backdrop-filter: blur(24px) saturate(150%);
+        -webkit-backdrop-filter: blur(24px) saturate(150%);
     }
     .brand-menu-btn {
         flex: 0 0 128px;
@@ -2713,7 +2717,7 @@
     .menu-bar-actions {
         display: inline-flex;
         align-items: center;
-        gap: 1px;
+        gap: 2px;
         flex-wrap: nowrap;
     }
     .toolbar-overflow-toggle {
@@ -2746,16 +2750,16 @@
     }
     .menu-bar-btn {
         text-decoration: none;
-        border-radius: 6px;
+        border-radius: 7px;
         border: none;
         background: transparent;
         color: rgba(244, 248, 251, 0.96);
-        padding: 4px 7px;
-        font-size: 13px;
+        padding: 4px 8px;
+        font-size: 12px;
         font-weight: 600;
-        letter-spacing: -0.01em;
+        letter-spacing: 0;
         cursor: pointer;
-        line-height: 1.1;
+        line-height: 1.15;
         white-space: nowrap;
         transform: translateZ(0);
         transition: background-color var(--toolbar-motion-fast, 120ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)),
@@ -2770,7 +2774,7 @@
         color: #ffffff;
     }
     .menu-bar-btn:active {
-        transform: scale(0.97);
+        transform: scale(0.98);
     }
     .toolbar-project-mini {
         align-items: center;
@@ -2782,9 +2786,9 @@
         display: block;
         width: 100%;
         max-width: 100%;
-        font-size: 15px;
-        font-weight: 750;
-        line-height: 1.05;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.08;
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
@@ -2795,7 +2799,7 @@
         max-width: 100%;
         font-size: 9px;
         font-weight: 700;
-        letter-spacing: 0.12em;
+        letter-spacing: 0.1em;
         text-transform: uppercase;
         color: rgba(214, 225, 233, 0.82);
         line-height: 1;
@@ -2815,7 +2819,7 @@
         grid-area: toolbar-left;
         justify-content: flex-start;
         justify-self: start;
-        gap: 12px;
+        gap: 11px;
         width: auto;
         max-width: none;
         margin: 0;
@@ -2841,7 +2845,7 @@
         grid-area: toolbar-right;
         justify-content: flex-end;
         justify-self: end;
-        gap: 14px;
+        gap: 12px;
         width: auto;
         max-width: none;
         margin: 0;
@@ -2851,8 +2855,8 @@
     .toolbar-quick-actions {
         display: inline-flex;
         align-items: center;
-        gap: 10px;
-        margin-left: 10px;
+        gap: 15px;
+        margin-left: 8px;
         order: 1;
     }
     #rightToolbarExpand {
@@ -2863,25 +2867,25 @@
         margin-left: 0;
     }
     .menu-bar-btn.quick-action {
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.04);
-        width: 30px;
-        height: 30px;
+        border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.06);
+        width: 32px;
+        height: 32px;
         padding: 0;
         justify-content: center;
-        border-radius: 8px;
+        border-radius: 9px;
     }
     .menu-bar-btn.quick-action:active {
-        transform: scale(0.94);
+        transform: scale(0.97);
     }
     .menu-bar-btn.quick-action[disabled] {
         opacity: 0.5;
         cursor: default;
     }
     .menu-bar-btn.quick-action.active {
-        background: rgba(92, 200, 192, 0.18);
-        border-color: rgba(92, 200, 192, 0.3);
-        color: #8ff0dc;
+        background: rgba(92, 200, 192, 0.14);
+        border-color: rgba(92, 200, 192, 0.24);
+        color: #0f766e;
     }
     .quick-action-icon {
         display: inline-flex;
@@ -4922,13 +4926,13 @@
     }
 
     #toolbar {
-        background: rgba(255, 255, 255, 0.96);
+        background: rgba(255, 255, 255, 0.9);
         color: #4b5563;
-        border: 1px solid rgba(209, 213, 219, 0.46);
+        border: 1px solid rgba(209, 213, 219, 0.34);
         border-top: 0;
-        box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
-        backdrop-filter: blur(20px) saturate(150%);
-        -webkit-backdrop-filter: blur(20px) saturate(150%);
+        box-shadow: 0 5px 16px rgba(15, 23, 42, 0.055);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
     }
     @media (min-width: 601px) {
         #toolbar {
@@ -4964,10 +4968,10 @@
     #toolbar .toolbar-overflow-toggle,
     #toolbar #toolbarSearchShell,
     #toolbar .menu-bar-btn.quick-action {
-        background: rgba(255, 255, 255, 0.82);
+        background: rgba(255, 255, 255, 0.68);
         color: #6b7280;
-        border: 1px solid rgba(209, 213, 219, 0.46);
-        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.07);
+        border: 1px solid rgba(209, 213, 219, 0.32);
+        box-shadow: 0 1px 4px rgba(15, 23, 42, 0.04);
         transform: translateZ(0);
         transition: background-color var(--toolbar-motion-fast, 120ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)),
             border-color var(--toolbar-motion-fast, 120ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)),
@@ -4987,27 +4991,27 @@
     #toolbar #toolbarSearchShell:hover,
     #toolbar .menu-bar-btn.quick-action:hover,
     #toolbar .menu-bar-btn.quick-action.active {
-        background: rgba(255, 255, 255, 0.94);
+        background: rgba(255, 255, 255, 0.82);
         color: #374151;
-        border-color: rgba(190, 197, 205, 0.58);
+        border-color: rgba(190, 197, 205, 0.42);
     }
     #toolbar #toolbarSearchShell.collapsed {
-        background: rgba(255, 255, 255, 0.62);
-        border-color: rgba(209, 213, 219, 0.28);
-        box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+        background: rgba(255, 255, 255, 0.52);
+        border-color: rgba(209, 213, 219, 0.24);
+        box-shadow: 0 1px 2px rgba(15, 23, 42, 0.035);
     }
     #toolbar #toolbarSearchShell.collapsed:hover {
-        background: rgba(255, 255, 255, 0.78);
-        border-color: rgba(190, 197, 205, 0.4);
+        background: rgba(255, 255, 255, 0.68);
+        border-color: rgba(190, 197, 205, 0.34);
     }
     #toolbar .brand-menu-btn:active,
     #toolbar .toolbar-overflow-toggle:active,
     #toolbar .menu-bar-btn.quick-action:active,
     #toolbar .toolbar-btn.ghost.search-toggle-btn:active {
-        transform: scale(0.95);
+        transform: scale(0.97);
     }
     #toolbar #toolbarSearchShell.collapsed .search-toggle-btn {
-        color: rgba(75, 85, 99, 0.76);
+        color: rgba(75, 85, 99, 0.68);
     }
     #toolbar .toolbar-project-mini strong {
         color: #4b5563;
@@ -5041,8 +5045,8 @@
     }
     #toolbar .menu-bar-btn.quick-action,
     #toolbar .toolbar-btn.ghost.search-toggle-btn {
-        width: 30px;
-        height: 30px;
+        width: 32px;
+        height: 32px;
         padding: 0;
     }
     #toolbar #clearSearch {
@@ -5057,11 +5061,11 @@
     }
     .toolbar-left.expanded .app-menubar,
     .toolbar-right.expanded .toolbar-quick-actions {
-        background: rgba(255, 255, 255, 0.96);
-        border: 1px solid rgba(209, 213, 219, 0.82);
-        box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
-        backdrop-filter: blur(20px) saturate(150%);
-        -webkit-backdrop-filter: blur(20px) saturate(150%);
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid rgba(209, 213, 219, 0.48);
+        box-shadow: 0 10px 26px rgba(15, 23, 42, 0.12);
+        backdrop-filter: blur(24px) saturate(160%);
+        -webkit-backdrop-filter: blur(24px) saturate(160%);
     }
     .toolbar-left.expanded .app-menubar .menu-bar-btn,
     .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn {
@@ -5075,7 +5079,7 @@
     .toolbar-left.expanded .app-menubar .menu-bar-btn.active,
     .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn:hover,
     .toolbar-right.expanded .toolbar-quick-actions .menu-bar-btn.active {
-        background: #f3f4f6;
+        background: rgba(243, 244, 246, 0.82);
         color: #374151;
     }
     #toolbar .menu-bar-actions .menu-bar-btn,
@@ -5088,7 +5092,7 @@
     #toolbar .menu-bar-actions .menu-bar-btn.active,
     #toolbar .menu-bar-actions .menu-bar-btn.menu-open {
         color: #374151;
-        background: #f3f4f6;
+        background: rgba(243, 244, 246, 0.82);
     }
     #toolbarMenuTray:not([hidden]) {
         transform-origin: top right;
@@ -5544,7 +5548,7 @@
         <div class="toolbar-right">
             <div id="quickActionBar" class="toolbar-quick-actions">
                 <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
-                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
+                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" title="Draw">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M4 20h4"></path>
@@ -5552,16 +5556,16 @@
                                 <path d="M18 2.8a2.1 2.1 0 0 1 3 3L8 18.8 4 20l1.2-4L18 2.8z"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">Edit</span>
+                        <span class="quick-action-label">Draw</span>
                     </button>
-                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add New">
+                    <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M12 5v14"></path>
                                 <path d="M5 12h14"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">Add New</span>
+                        <span class="quick-action-label">Add</span>
                     </button>
                     <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
                         <span class="quick-action-icon" aria-hidden="true">
@@ -5583,7 +5587,7 @@
                     </button>
                 </div>
                 <div class="toolbar-action-group toolbar-map-group" aria-label="Map controls">
-                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
+                    <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="Locate me" title="Locate">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <circle cx="12" cy="12" r="4"></circle>
@@ -5593,8 +5597,30 @@
                                 <path d="M19 12h3"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">My Location</span>
+                        <span class="quick-action-label">Locate</span>
                     </button>
+                    <button id="toolbarLayersBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M12 3l8 4-8 4-8-4 8-4z"></path>
+                                <path d="M4 12l8 4 8-4"></path>
+                                <path d="M4 17l8 4 8-4"></path>
+                            </svg>
+                        </span>
+                        <span class="quick-action-label">Layers</span>
+                    </button>
+                    <button id="toolbarBasemapBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open basemap controls" aria-controls="toolbarMenuTray" aria-expanded="false" title="Basemap">
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"></path>
+                                <path d="M9 3v15"></path>
+                                <path d="M15 6v15"></path>
+                            </svg>
+                        </span>
+                        <span class="quick-action-label">Basemap</span>
+                    </button>
+                </div>
+                <div class="toolbar-action-group toolbar-tools-group" aria-label="Measurement and GIS controls">
                     <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" aria-controls="measurementPanel" aria-expanded="false" title="Measure">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -6510,6 +6536,8 @@
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
         const layersMapBtn = document.getElementById("layersMapBtn");
+        const toolbarLayersBtn = document.getElementById("toolbarLayersBtn");
+        const toolbarBasemapBtn = document.getElementById("toolbarBasemapBtn");
         const lookAroundPreviewEl = document.getElementById("lookAroundPreview");
         const lookAroundContainerEl = document.getElementById("lookAroundContainer");
         const lookAroundDragHandle = document.getElementById("lookAroundDragHandle");
@@ -6737,6 +6765,8 @@
                 undo: { element: undoBtn, group: "quickActions", role: "action" },
                 redo: { element: redoBtn, group: "quickActions", role: "action" },
                 locate: { element: myLocationBtn, group: "quickActions", role: "action" },
+                layers: { element: toolbarLayersBtn, group: "quickActions", role: "panel-toggle" },
+                basemap: { element: toolbarBasemapBtn, group: "quickActions", role: "menu" },
                 measure: { element: measureToolBtn, group: "quickActions", role: "action" },
                 gis: { element: advancedGisBtn, group: "quickActions", role: "action" },
                 help: { element: helpCenterBtn, group: "helpSearch", role: "action" },
@@ -6762,7 +6792,8 @@
                 "viewMenu",
                 "historyMenu",
                 "windowMenu",
-                "helpMenu"
+                "helpMenu",
+                "basemap"
             ],
             containsMenuButton(target) {
                 return this.menuBoundaryButtons.some((buttonKey) => this.component.buttons[buttonKey]?.contains(target));
@@ -8173,6 +8204,9 @@
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
+            const basemapActive = toolbarMenuVisible && toolbarMenuKey === "view" && menuMapTypeList && !menuMapTypeList.hidden;
+            toolbarBasemapBtn?.classList.toggle("active", Boolean(basemapActive));
+            toolbarBasemapBtn?.setAttribute("aria-expanded", basemapActive ? "true" : "false");
             updateMapTypeControls(activeProjectRecord);
         }
 
@@ -9896,6 +9930,10 @@
             if (layersMapBtn) {
                 layersMapBtn.classList.toggle("active", sidebarVisible);
                 layersMapBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
+            }
+            if (toolbarLayersBtn) {
+                toolbarLayersBtn.classList.toggle("active", sidebarVisible);
+                toolbarLayersBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
             updateCommandAvailability();
             if (rememberLastSession) saveWorkspaceUiPrefs();
@@ -13010,10 +13048,21 @@
             setProjectBasemapPoisVisible(!getProjectBasemapPoisVisible());
         });
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
-        layersMapBtn?.addEventListener("click", () => {
+        function toggleLayersPanel() {
             renderActiveProjectSidebar();
             setSidebarVisibility(!sidebarVisible);
-        });
+        }
+        function openBasemapControls() {
+            openToolbarMenu("view", toolbarBasemapBtn || settingsBtn);
+            if (menuMapTypeList) menuMapTypeList.hidden = false;
+            menuMapTypeBtn?.setAttribute("aria-expanded", "true");
+            toolbarBasemapBtn?.classList.add("active");
+            toolbarBasemapBtn?.setAttribute("aria-expanded", "true");
+            updateMapTypeControls(activeProjectRecord);
+        }
+        layersMapBtn?.addEventListener("click", toggleLayersPanel);
+        toolbarLayersBtn?.addEventListener("click", toggleLayersPanel);
+        toolbarBasemapBtn?.addEventListener("click", openBasemapControls);
         toolbarMenuTray?.addEventListener("click", (event) => {
             if (event.target.closest("#menuToolbarsBtn")) {
                 event.preventDefault();

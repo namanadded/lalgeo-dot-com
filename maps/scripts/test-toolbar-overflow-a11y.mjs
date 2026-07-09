@@ -21,6 +21,15 @@ const leftToggle = getTagById("leftToolbarExpand");
 const menuCommands = getTagById("toolbarMenuCommands");
 const rightToggle = getTagById("rightToolbarExpand");
 const quickActions = getTagById("quickActionBar");
+const editingGroup = legacyHtml.match(
+  /<div class="toolbar-action-group toolbar-editing-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-map-group"/,
+)?.[0];
+const mapGroup = legacyHtml.match(
+  /<div class="toolbar-action-group toolbar-map-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-tools-group"/,
+)?.[0];
+const toolsGroup = legacyHtml.match(
+  /<div class="toolbar-action-group toolbar-tools-group"[^>]*>[\s\S]*?<\/div>\s*<\/div>\s*<button id="rightToolbarExpand"/,
+)?.[0];
 const projectTitleBlock = legacyHtml.match(
   /<div class="toolbar-project-mini"[^>]*>[\s\S]*?<\/div>/,
 )?.[0];
@@ -94,6 +103,29 @@ assert.match(
   /\bclass="[^"]*\btoolbar-quick-actions\b[^"]*"/,
   "Right toolbar overflow target must remain the quick actions group.",
 );
+assert.ok(editingGroup, "Toolbar must include a dedicated Editing control group.");
+assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
+assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
+assert.match(
+  editingGroup,
+  /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>[\s\S]*?id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
+  "Editing group should read as Draw, Add, Undo, Redo.",
+);
+assert.match(
+  mapGroup,
+  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
+  "Map group should read as Locate, Layers, Basemap.",
+);
+assert.match(
+  toolsGroup,
+  /id="measureToolBtn"[\s\S]*?id="advancedGisBtn"/,
+  "Measure and GIS controls should remain available outside the primary Map group.",
+);
+assert.match(
+  legacyHtml,
+  /\.toolbar-quick-actions\s*{[\s\S]*?gap:\s*14px;/,
+  "Logical toolbar groups should have additional spacing between them.",
+);
 
 assert.match(
   legacyHtml,
@@ -144,7 +176,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /#toolbar\s+#toolbarSearchShell\.collapsed\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border-color:\s*rgba\(209,\s*213,\s*219,\s*0\.28\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.04\);/,
+  /#toolbar\s+#toolbarSearchShell\.collapsed\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.52\);[\s\S]*?border-color:\s*rgba\(209,\s*213,\s*219,\s*0\.24\);[\s\S]*?box-shadow:\s*0\s+1px\s+2px\s+rgba\(15,\s*23,\s*42,\s*0\.035\);/,
   "Collapsed toolbar search should keep a lighter, lower-emphasis treatment than primary toolbar buttons.",
 );
 
