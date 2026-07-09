@@ -118,19 +118,34 @@ assert.doesNotMatch(
 );
 assert.match(
   legacyHtml,
-  /#leftToolbarExpand::before\s*{[\s\S]*?linear-gradient\(currentColor,\s*currentColor\)/,
-  "Left toolbar overflow toggle should use a menu glyph instead of a chevron.",
+  /\.toolbar-icon\s*{[\s\S]*?width:\s*18px;[\s\S]*?height:\s*18px;[\s\S]*?stroke:\s*currentColor;[\s\S]*?stroke-width:\s*2;[\s\S]*?stroke-linecap:\s*round;[\s\S]*?stroke-linejoin:\s*round;/,
+  "Toolbar icons must share one normalized SVG stroke style.",
 );
 assert.match(
   legacyHtml,
-  /#rightToolbarExpand::before\s*{[\s\S]*?radial-gradient\(circle at 4px 4px,\s*currentColor/,
-  "Right toolbar overflow toggle should use a tools glyph instead of a chevron.",
+  /id="leftToolbarExpand"[\s\S]*?<svg class="toolbar-icon"[\s\S]*?id="rightToolbarExpand"[\s\S]*?<svg class="toolbar-icon"/,
+  "Toolbar overflow toggles should use the same SVG icon family as other toolbar controls.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /<span class="quick-action-icon"[^>]*>\s*(?:✎|✚|↺|↻|⌖|▱|⌬|\?)/,
+  "Toolbar quick actions should not use mixed text-symbol icon glyphs.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="searchIconBtn"[^>]*>🔍|id="collapseSearchBtn"[^>]*>×/,
+  "Toolbar search controls should not use emoji or text close icons.",
 );
 
 assert.match(
   legacyHtml,
   /#toolbarSearchShell\s*{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?height:\s*44px;/,
   "Collapsed mobile search control must provide at least a 44px touch target.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar\s+#toolbarSearchShell\.collapsed\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border-color:\s*rgba\(209,\s*213,\s*219,\s*0\.28\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.04\);/,
+  "Collapsed toolbar search should keep a lighter, lower-emphasis treatment than primary toolbar buttons.",
 );
 
 console.log("Toolbar overflow accessibility checks passed.");
