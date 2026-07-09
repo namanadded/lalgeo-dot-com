@@ -136,6 +136,21 @@ assert.match(
   /id="measureToolBtn"[\s\S]*?id="advancedGisBtn"/,
   "Measure and GIS controls should remain available outside the primary Map group.",
 );
+assert.doesNotMatch(
+  legacyHtml,
+  /id="helpCenterBtn"/,
+  "Standalone toolbar Help button should be removed to free title space.",
+);
+assert.match(
+  legacyHtml,
+  /<div class="menu-dropdown-section" data-menu-pane="app">[\s\S]*?id="menuAppHelpBtn"[\s\S]*?<span>Help Center<\/span>/,
+  "Help Center should be available from the hamburger app menu.",
+);
+assert.match(
+  legacyHtml,
+  /menuAppHelpBtn\?\.addEventListener\("click", \(\) => setHelpCenterVisibility\(true\)\)/,
+  "Hamburger Help Center item should open the existing help center.",
+);
 assert.match(
   legacyHtml,
   /\.toolbar-quick-actions\s*{[\s\S]*?gap:\s*14px;/,

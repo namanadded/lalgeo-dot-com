@@ -5657,17 +5657,7 @@
                     <path d="M12 12l-2.4 2.4"></path>
                 </svg>
             </button>
-            <div class="toolbar-action-group toolbar-help-search-group" aria-label="Help and search controls">
-                <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
-                    <span class="quick-action-icon" aria-hidden="true">
-                        <svg class="toolbar-icon" viewBox="0 0 24 24">
-                            <circle cx="12" cy="12" r="9"></circle>
-                            <path d="M9.8 9a2.3 2.3 0 0 1 4.4 1c0 1.5-1.1 2.1-2.2 2.8"></path>
-                            <path d="M12 17h.01"></path>
-                        </svg>
-                    </span>
-                    <span class="quick-action-label">Help</span>
-                </button>
+            <div class="toolbar-action-group toolbar-help-search-group" aria-label="Search controls">
                 <div class="search-pill collapsed" id="toolbarSearchShell">
                     <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
@@ -5813,10 +5803,6 @@
                 <input type="checkbox" class="quick-action-toggle" data-action="myLocation">
                 <span>My Location</span>
             </label>
-            <label class="settings-option">
-                <input type="checkbox" class="quick-action-toggle" data-action="help">
-                <span>Help</span>
-            </label>
         </div>
     </div>
     <div id="toolbarMenuTray" hidden>
@@ -5824,6 +5810,7 @@
             <button id="menuAboutBtn" type="button" class="menu-command"><span>About</span></button>
             <button id="menuSettingsBtn" type="button" class="menu-command"><span>Settings</span><span class="menu-shortcut" data-shortcut="settings"></span></button>
             <button id="workspacePanelBtn" type="button" class="menu-command"><span>Recent</span><span class="menu-shortcut" data-shortcut="projects"></span></button>
+            <button id="menuAppHelpBtn" type="button" class="menu-command"><span>Help Center</span></button>
             <button id="menuForceCloseBtn" type="button" class="menu-command"><span>Force Close</span></button>
             <button id="menuLogoutBtn" type="button" class="menu-command"><span>Log Out</span></button>
         </div>
@@ -6681,7 +6668,7 @@
         const layerRenderProgressMessage = document.getElementById("layerRenderProgressMessage");
         const layerRenderProgressBar = document.getElementById("layerRenderProgressBar");
         const layerRenderCancelBtn = document.getElementById("layerRenderCancelBtn");
-        const helpCenterBtn = document.getElementById("helpCenterBtn");
+        const menuAppHelpBtn = document.getElementById("menuAppHelpBtn");
         const menuFileHelpBtn = document.getElementById("menuFileHelpBtn");
         const menuHelpCenterBtn = document.getElementById("menuHelpCenterBtn");
         const helpCenterModal = document.getElementById("helpCenterModal");
@@ -6773,7 +6760,6 @@
                 basemap: { element: toolbarBasemapBtn, group: "quickActions", role: "menu" },
                 measure: { element: measureToolBtn, group: "quickActions", role: "action" },
                 gis: { element: advancedGisBtn, group: "quickActions", role: "action" },
-                help: { element: helpCenterBtn, group: "helpSearch", role: "action" },
                 search: { element: document.getElementById("searchIconBtn"), group: "helpSearch", role: "search" },
                 clearSearch: { element: collapseSearchBtn, group: "helpSearch", role: "search" }
             },
@@ -7165,13 +7151,12 @@
         const SAMPLE_PROJECT_SLUG = "canada-us-first-visit-open-data";
         const SAMPLE_PROJECT_DISMISSED_KEY = "lalgeoSampleProjectPromptDismissedV1";
         const isMacPlatform = /(Mac|iPhone|iPad|iPod)/i.test(navigator.platform || navigator.userAgent || "");
-        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation", "help"];
+        const DEFAULT_QUICK_ACTIONS = ["addNew", "undo", "redo", "myLocation"];
         const QUICK_ACTION_BUTTONS = {
             addNew: addSurveyPointBtn,
             undo: undoBtn,
             redo: redoBtn,
-            myLocation: myLocationBtn,
-            help: helpCenterBtn
+            myLocation: myLocationBtn
         };
         const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
@@ -8254,6 +8239,7 @@
                 const parsed = JSON.parse(raw);
                 if (Array.isArray(parsed) && parsed.length) {
                     quickActions = parsed.filter((item) => Object.prototype.hasOwnProperty.call(QUICK_ACTION_BUTTONS, item));
+                    if (!quickActions.length) quickActions = [...DEFAULT_QUICK_ACTIONS];
                 } else {
                     quickActions = [...DEFAULT_QUICK_ACTIONS];
                 }
@@ -12584,7 +12570,7 @@
                 setLayerImportPanelVisibility(true);
                 return;
             }
-            if (button.id === "helpCenterBtn" || button.id === "menuFileHelpBtn" || button.id === "menuHelpCenterBtn") {
+            if (button.id === "menuAppHelpBtn" || button.id === "menuFileHelpBtn" || button.id === "menuHelpCenterBtn") {
                 event.preventDefault();
                 setHelpCenterVisibility(true);
                 return;
@@ -12808,7 +12794,7 @@
                 handleApiEndpointImport();
             }
         });
-        helpCenterBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        menuAppHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
         advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
