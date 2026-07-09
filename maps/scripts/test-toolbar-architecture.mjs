@@ -53,5 +53,29 @@ assertContains(
   /const onToolbarMenuButton = topToolbarViewModel\.containsMenuButton\(event\.target\)/,
   "Global toolbar menu dismissal should use the top toolbar view model.",
 );
+assertContains(
+  /#editFloatingPanel\s*\{[\s\S]*?opacity:\s*0;[\s\S]*?transform:\s*translateY\(-8px\)\s*scale\(0\.985\);[\s\S]*?transition:[\s\S]*?opacity 180ms[\s\S]*?transform 180ms/s,
+  "Editing toolbar should have a subtle Apple-like entry and exit transition.",
+);
+assertContains(
+  /#editFloatingPanel\.toolbar-visible\s*\{[\s\S]*?opacity:\s*1;[\s\S]*?transform:\s*translateY\(0\)\s*scale\(1\);[\s\S]*?pointer-events:\s*auto;/s,
+  "Editing toolbar should animate into its visible state.",
+);
+assertContains(
+  /editPanelToggleBtn\?\.addEventListener\("click",[\s\S]*?setEditSessionActive\(!editSessionActive\);[\s\S]*?\}\);/s,
+  "Top edit button should toggle edit mode instead of showing tools independently.",
+);
+assertContains(
+  /editPanelCloseBtn\?\.addEventListener\("click", \(\) => setEditSessionActive\(false\)\);/,
+  "Closing the editing toolbar should exit edit mode.",
+);
+assertContains(
+  /if \(!editSessionActive\) \{[\s\S]*?setEditPanelVisibility\(false\);[\s\S]*?\} else \{[\s\S]*?setEditPanelVisibility\(true, \{ layerId \}\);/s,
+  "Editing toolbar visibility should be driven by edit mode state.",
+);
+assertContains(
+  /editPanelVisibilityTimer = window\.setTimeout\(\(\) => \{[\s\S]*?editFloatingPanel\.hidden = true;[\s\S]*?\}, 190\);/s,
+  "Editing toolbar should wait for its exit transition before hiding.",
+);
 
 console.log("Toolbar architecture checks passed.");

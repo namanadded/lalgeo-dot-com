@@ -549,6 +549,29 @@
     .floating-toolbar[hidden] {
         display: none;
     }
+    #editFloatingPanel {
+        opacity: 0;
+        transform: translateY(-8px) scale(0.985);
+        pointer-events: none;
+        transition:
+            opacity 180ms cubic-bezier(0.2, 0.8, 0.2, 1),
+            transform 180ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        will-change: opacity, transform;
+    }
+    #editFloatingPanel.toolbar-visible {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+        pointer-events: auto;
+    }
+    #editFloatingPanel.docked {
+        transform: none !important;
+    }
+    @media (prefers-reduced-motion: reduce) {
+        #editFloatingPanel {
+            transition: none;
+            transform: none;
+        }
+    }
     .floating-toolbar.docked {
         height: 44px;
         min-height: 44px;
@@ -6856,6 +6879,7 @@
         let pointGeometryEditMode = false;
         let pointGeometryDragState = null;
         let editSessionActive = false;
+        let editPanelVisibilityTimer = null;
         let suppressAnnotationDetailOpen = false;
         let popoutsVisible = true;
         let selectedTableRows = new Set();
@@ -9123,8 +9147,8 @@
             const layer = layerId ? getLayerById(layerId) : null;
             const canEdit = Boolean(activeProjectRecord && layer && currentSurveyData && !isArchiveView && canEditLayer(layer));
             renderEditPanelLayerOptions(layerId);
-            editPanelToggleBtn?.classList.toggle("active", Boolean(editFloatingPanel && !editFloatingPanel.hidden));
-            editPanelToggleBtn?.setAttribute("aria-expanded", editFloatingPanel && !editFloatingPanel.hidden ? "true" : "false");
+            editPanelToggleBtn?.classList.toggle("active", editSessionActive);
+            editPanelToggleBtn?.setAttribute("aria-expanded", editSessionActive ? "true" : "false");
             editPanelPinBtn?.classList.toggle("active", editPanelPinned);
             if (editPanelPinBtn) {
                 editPanelPinBtn.textContent = editPanelPinned ? "⇤" : "⇥";
@@ -9252,7 +9276,7 @@
                     : "Choose a layer and start editing to add or modify features.";
             }
             editFloatingPanel?.classList.toggle("compact", true);
-            menuToggleEditToolbarBtn?.querySelector("span") && (menuToggleEditToolbarBtn.querySelector("span").textContent = `${editFloatingPanel && !editFloatingPanel.hidden ? "✓ " : ""}Edit Tools`);
+            menuToggleEditToolbarBtn?.querySelector("span") && (menuToggleEditToolbarBtn.querySelector("span").textContent = `${editSessionActive ? "✓ " : ""}Edit Tools`);
             menuToggleLayerToolbarBtn?.querySelector("span") && (menuToggleLayerToolbarBtn.querySelector("span").textContent = `${layerToolsPanel && !layerToolsPanel.hidden ? "✓ " : ""}Layer Tools`);
             updateAdvancedGisPanelState();
         }
@@ -9264,8 +9288,13 @@
                 openCreateProjectModal();
                 return;
             }
-            editFloatingPanel.hidden = !show;
+            window.clearTimeout(editPanelVisibilityTimer);
             if (show) {
+                editFloatingPanel.hidden = false;
+                editFloatingPanel.classList.remove("toolbar-dismissing");
+                window.requestAnimationFrame(() => {
+                    editFloatingPanel?.classList.add("toolbar-visible");
+                });
                 const targetLayerId = layerId || getEditPanelLayerId();
                 renderEditPanelLayerOptions(targetLayerId);
                 if (targetLayerId && targetLayerId !== activeLayerId) {
@@ -9274,6 +9303,14 @@
                 if (editPanelPinned) dockEditPanel();
                 syncEditPanelState();
             } else {
+                editFloatingPanel.classList.remove("toolbar-visible");
+                editFloatingPanel.classList.add("toolbar-dismissing");
+                editPanelVisibilityTimer = window.setTimeout(() => {
+                    editFloatingPanel.hidden = true;
+                    editFloatingPanel.classList.remove("toolbar-dismissing");
+                    updateToolbarDockStrip();
+                    syncEditPanelState();
+                }, 190);
                 updateToolbarDockStrip();
                 syncEditPanelState();
             }
@@ -9300,7 +9337,11 @@
         }
 
         function openEditPanelForLayer(layerId = activeLayerId) {
+            if (layerId && layerId !== activeLayerId) {
+                switchToLayer(layerId, { revealTable: false });
+            }
             setEditPanelVisibility(true, { layerId });
+            setEditSessionActive(true);
         }
 
         function openLayerToolsForLayer(layerId = activeLayerId) {
@@ -9340,7 +9381,9 @@
                 if (!isDropboxSurvey() && (pendingChanges || surveyNeedsSave || workspaceDirty)) {
                     void persistSurveyEditsIfNeeded(true);
                 }
+                setEditPanelVisibility(false);
             } else {
+                setEditPanelVisibility(true, { layerId });
                 setProjectStatus("Editing started. Choose an edit action from the panel.", "success");
             }
             renderFeatureDrawer();
@@ -13125,9 +13168,9 @@
         editPanelToggleBtn?.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
-            setEditPanelVisibility(Boolean(editFloatingPanel?.hidden));
+            setEditSessionActive(!editSessionActive);
         });
-        editPanelCloseBtn?.addEventListener("click", () => setEditPanelVisibility(false));
+        editPanelCloseBtn?.addEventListener("click", () => setEditSessionActive(false));
         editPanelPinBtn?.addEventListener("click", () => {
             if (!editFloatingPanel) return;
             if (editPanelPinned) {
@@ -13255,11 +13298,11 @@
         contextualToolbarComponents.forEach((component) => installToolbarTooltipEvents(component.root));
         menuOpenEditPanelBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
-            openEditPanelForLayer(activeLayerId);
+            setEditSessionActive(true);
         });
         menuToggleEditToolbarBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
-            setEditPanelVisibility(Boolean(editFloatingPanel?.hidden), { layerId: activeLayerId });
+            setEditSessionActive(!editSessionActive);
         });
         menuToggleLayerToolbarBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
