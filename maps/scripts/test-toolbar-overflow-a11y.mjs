@@ -176,7 +176,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /#toolbar\s+#toolbarSearchShell\.collapsed\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border-color:\s*rgba\(209,\s*213,\s*219,\s*0\.28\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.04\);/,
+  /#toolbar\s+#toolbarSearchShell\.collapsed\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.52\);[\s\S]*?border-color:\s*rgba\(209,\s*213,\s*219,\s*0\.24\);[\s\S]*?box-shadow:\s*0\s+1px\s+2px\s+rgba\(15,\s*23,\s*42,\s*0\.035\);/,
   "Collapsed toolbar search should keep a lighter, lower-emphasis treatment than primary toolbar buttons.",
 );
 
