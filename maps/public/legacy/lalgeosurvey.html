@@ -2324,8 +2324,24 @@
         background: rgba(255,255,255,0.72);
     }
     .quick-action-icon {
-        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        color: currentColor;
         line-height: 1;
+    }
+    .toolbar-icon {
+        display: block;
+        width: 18px;
+        height: 18px;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        fill: none;
+        vector-effect: non-scaling-stroke;
     }
     .quick-action-label {
         display: none;
@@ -2820,7 +2836,12 @@
         color: #8ff0dc;
     }
     .quick-action-icon {
-        font-size: 16px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        color: currentColor;
         line-height: 1;
     }
     .quick-action-label {
@@ -4639,34 +4660,13 @@
             background: rgba(255,255,255,0.08);
             border-color: rgba(255,255,255,0.13);
         }
-        #leftToolbarExpand::before,
-        #rightToolbarExpand::before {
-            content: "";
-            display: block;
-            flex: 0 0 auto;
+        #leftToolbarExpand .toolbar-icon,
+        #rightToolbarExpand .toolbar-icon {
             opacity: 0.78;
-            transform: none;
             transition: opacity 0.16s ease, transform 0.16s ease;
         }
-        #leftToolbarExpand::before {
-            width: 18px;
-            height: 14px;
-            background:
-                linear-gradient(currentColor, currentColor) 0 1px / 18px 2px no-repeat,
-                linear-gradient(currentColor, currentColor) 0 6px / 14px 2px no-repeat,
-                linear-gradient(currentColor, currentColor) 0 11px / 18px 2px no-repeat;
-        }
-        #rightToolbarExpand::before {
-            width: 18px;
-            height: 18px;
-            background:
-                radial-gradient(circle at 4px 4px, currentColor 0 2px, transparent 2.4px),
-                radial-gradient(circle at 14px 4px, currentColor 0 2px, transparent 2.4px),
-                radial-gradient(circle at 4px 14px, currentColor 0 2px, transparent 2.4px),
-                radial-gradient(circle at 14px 14px, currentColor 0 2px, transparent 2.4px);
-        }
-        #leftToolbarExpand[aria-expanded="true"]::before,
-        #rightToolbarExpand[aria-expanded="true"]::before {
+        #leftToolbarExpand[aria-expanded="true"] .toolbar-icon,
+        #rightToolbarExpand[aria-expanded="true"] .toolbar-icon {
             opacity: 1;
             transform: scale(1.04);
         }
@@ -5418,7 +5418,13 @@
             <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LAL GEO menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
                 <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
             </button>
-            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands" aria-expanded="false"></button>
+            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands" aria-expanded="false">
+                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <path d="M5 7h14"></path>
+                    <path d="M5 12h14"></path>
+                    <path d="M5 17h14"></path>
+                </svg>
+            </button>
             <div id="toolbarMenuCommands" class="menu-bar-actions app-menubar">
                 <button id="openDataManagerBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="file">File</button>
                 <button id="toolbarMenuBtn" type="button" class="menu-bar-btn" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="edit">Edit</button>
@@ -5438,47 +5444,113 @@
             <div id="quickActionBar" class="toolbar-quick-actions">
                 <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
                     <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open edit panel" title="Edit">
-                        <span class="quick-action-icon" aria-hidden="true">✎</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M4 20h4"></path>
+                                <path d="M14.5 4.5l5 5"></path>
+                                <path d="M18 2.8a2.1 2.1 0 0 1 3 3L8 18.8 4 20l1.2-4L18 2.8z"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">Edit</span>
                     </button>
                     <button id="addSurveyPointBtn" type="button" class="menu-bar-btn quick-action" hidden aria-label="Add a new feature to the active layer" aria-describedby="mapInteractionHelp" aria-pressed="false" title="Add New">
-                        <span class="quick-action-icon">✚</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M12 5v14"></path>
+                                <path d="M5 12h14"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">Add New</span>
                     </button>
                     <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
-                        <span class="quick-action-icon" aria-hidden="true">↺</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M9 7H4v5"></path>
+                                <path d="M4 12a8 8 0 1 0 2.35-5.65L4 8.7"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">Undo</span>
                     </button>
                     <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
-                        <span class="quick-action-icon" aria-hidden="true">↻</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M15 7h5v5"></path>
+                                <path d="M20 12a8 8 0 1 1-2.35-5.65L20 8.7"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">Redo</span>
                     </button>
                 </div>
                 <div class="toolbar-action-group toolbar-map-group" aria-label="Map controls">
                     <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="My location" title="My Location">
-                        <span class="quick-action-icon" aria-hidden="true">⌖</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="4"></circle>
+                                <path d="M12 2v3"></path>
+                                <path d="M12 19v3"></path>
+                                <path d="M2 12h3"></path>
+                                <path d="M19 12h3"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">My Location</span>
                     </button>
                     <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" aria-controls="measurementPanel" aria-expanded="false" title="Measure">
-                        <span class="quick-action-icon" aria-hidden="true">▱</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M4 15l9-9 7 7-9 9-7-7z"></path>
+                                <path d="M9 10l2 2"></path>
+                                <path d="M12 7l2 2"></path>
+                                <path d="M6 13l2 2"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">Measure</span>
                     </button>
                     <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Advanced GIS">
-                        <span class="quick-action-icon" aria-hidden="true">⌬</span>
+                        <span class="quick-action-icon" aria-hidden="true">
+                            <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
+                                <path d="M12 11l7-4"></path>
+                                <path d="M12 11v8"></path>
+                                <path d="M12 11L5 7"></path>
+                            </svg>
+                        </span>
                         <span class="quick-action-label">GIS</span>
                     </button>
                 </div>
             </div>
-            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show tools" aria-controls="quickActionBar" aria-expanded="false"></button>
+            <button id="rightToolbarExpand" type="button" class="toolbar-overflow-toggle right-overflow-toggle" aria-label="Show tools" aria-controls="quickActionBar" aria-expanded="false">
+                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                    <rect x="5" y="5" width="4" height="4" rx="1"></rect>
+                    <rect x="15" y="5" width="4" height="4" rx="1"></rect>
+                    <rect x="5" y="15" width="4" height="4" rx="1"></rect>
+                    <rect x="15" y="15" width="4" height="4" rx="1"></rect>
+                </svg>
+            </button>
             <div class="toolbar-action-group toolbar-help-search-group" aria-label="Help and search controls">
                 <button id="helpCenterBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open help" title="Help">
-                    <span class="quick-action-icon" aria-hidden="true">?</span>
+                    <span class="quick-action-icon" aria-hidden="true">
+                        <svg class="toolbar-icon" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="9"></circle>
+                            <path d="M9.8 9a2.3 2.3 0 0 1 4.4 1c0 1.5-1.1 2.1-2.2 2.8"></path>
+                            <path d="M12 17h.01"></path>
+                        </svg>
+                    </span>
                     <span class="quick-action-label">Help</span>
                 </button>
                 <div class="search-pill collapsed" id="toolbarSearchShell">
-                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">🔍</button>
+                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">
+                        <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <circle cx="11" cy="11" r="6"></circle>
+                            <path d="M16 16l4 4"></path>
+                        </svg>
+                    </button>
                     <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
-                    <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">×</button>
+                    <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">
+                        <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M6 6l12 12"></path>
+                            <path d="M18 6L6 18"></path>
+                        </svg>
+                    </button>
                 </div>
             </div>
         </div>
