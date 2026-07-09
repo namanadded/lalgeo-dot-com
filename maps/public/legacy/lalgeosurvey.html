@@ -2689,10 +2689,10 @@
         min-height: 26px;
         transform: none;
         display: grid;
-        grid-template-columns: minmax(0, 1fr) minmax(96px, min(420px, 36vw)) minmax(0, 1fr);
+        grid-template-columns: minmax(160px, 1fr) minmax(160px, min(560px, 52vw)) minmax(160px, 1fr);
         grid-template-areas: "toolbar-left toolbar-center toolbar-right";
         align-items: center;
-        gap: 13px;
+        gap: 16px;
         padding: 2px 10px;
         border-radius: 0 0 10px 10px;
         background: rgba(53, 60, 58, 0.62);
@@ -4987,10 +4987,17 @@
     }
     @media (min-width: 601px) {
         #toolbar {
+            grid-template-columns: minmax(160px, 1fr) minmax(160px, min(560px, 52vw)) minmax(160px, 1fr);
             min-height: 34px;
             padding-top: 0;
             padding-bottom: 0;
             border-radius: 0 0 8px 8px;
+        }
+        #toolbar .toolbar-project-mini {
+            max-width: min(560px, 52vw);
+        }
+        #toolbar .toolbar-project-mini strong {
+            font-size: 14px;
         }
         #toolbar .brand-menu-btn {
             min-height: 30px;
@@ -5013,6 +5020,14 @@
         #toolbar .menu-bar-btn {
             padding-top: 3px;
             padding-bottom: 3px;
+        }
+    }
+    @media (min-width: 1024px) {
+        #toolbar {
+            grid-template-columns: minmax(220px, 1fr) minmax(180px, min(640px, 48vw)) minmax(220px, 1fr);
+        }
+        #toolbar .toolbar-project-mini {
+            max-width: min(640px, 48vw);
         }
     }
     #toolbar .brand-menu-btn,

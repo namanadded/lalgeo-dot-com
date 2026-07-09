@@ -57,8 +57,18 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(96px,\s*min\(420px,\s*36vw\)\)\s+minmax\(0,\s*1fr\);/,
-  "Desktop toolbar should reserve a real center track for the project title.",
+  /grid-template-columns:\s*minmax\(160px,\s*1fr\)\s+minmax\(160px,\s*min\(560px,\s*52vw\)\)\s+minmax\(160px,\s*1fr\);/,
+  "Tablet toolbar should reserve a wider center track for the project title without using mobile sizing.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*1024px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*minmax\(220px,\s*1fr\)\s+minmax\(180px,\s*min\(640px,\s*48vw\)\)\s+minmax\(220px,\s*1fr\);/,
+  "Desktop toolbar should widen the horizontal layout and project title track.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.brand-menu-btn\s*{[\s\S]*?height:\s*30px;[\s\S]*?width:\s*67px;/,
+  "Desktop and tablet toolbar controls should avoid oversized mobile touch styling.",
 );
 assert.match(
   legacyHtml,
