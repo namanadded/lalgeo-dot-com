@@ -132,5 +132,10 @@ assert.match(
   /#toolbarSearchShell\s*{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?height:\s*44px;/,
   "Collapsed mobile search control must provide at least a 44px touch target.",
 );
+assert.match(
+  legacyHtml,
+  /#toolbar\s+#toolbarSearchShell\.collapsed\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border-color:\s*rgba\(209,\s*213,\s*219,\s*0\.28\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.04\);/,
+  "Collapsed toolbar search should keep a lighter, lower-emphasis treatment than primary toolbar buttons.",
+);
 
 console.log("Toolbar overflow accessibility checks passed.");
