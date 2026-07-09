@@ -137,6 +137,16 @@ assert.match(
   "Map group should read as Locate, Layers, Basemap.",
 );
 assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?\.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
+  "Toolbar quick action labels should appear beside icons when there is enough horizontal space.",
+);
+assert.match(
+  legacyHtml,
+  /\.quick-action-label\s*{[\s\S]*?display:\s*none;/,
+  "Toolbar quick action labels should stay hidden by default for compact and very small screens.",
+);
+assert.match(
   toolsGroup,
   /id="measureToolBtn"[\s\S]*?id="advancedGisBtn"/,
   "Measure and GIS controls should remain available outside the primary Map group.",
