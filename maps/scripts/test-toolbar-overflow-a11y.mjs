@@ -110,8 +110,8 @@ assertAttribute(
 assertAttribute(
   rightToggle,
   "aria-label",
-  "Show tools",
-  "Right toolbar overflow toggle should describe the tools it opens without directional copy.",
+  "Tools",
+  "Right toolbar overflow toggle should use a direct Tools accessibility label.",
 );
 assert.match(
   quickActions,
@@ -172,6 +172,16 @@ assert.match(
   legacyHtml,
   /id="leftToolbarExpand"[\s\S]*?<svg class="toolbar-icon"[\s\S]*?id="rightToolbarExpand"[\s\S]*?<svg class="toolbar-icon"/,
   "Toolbar overflow toggles should use the same SVG icon family as other toolbar controls.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="rightToolbarExpand"[\s\S]*?<rect x="5" y="5" width="4" height="4" rx="1">/,
+  "Tools overflow toggle should not use the old grid icon.",
+);
+assert.match(
+  legacyHtml,
+  /id="rightToolbarExpand"[\s\S]*?<path d="M14\.7 6\.3a4 4 0 0 0-5 5L4 17l3 3 5\.7-5\.7a4 4 0 0 0 5-5l-2\.6 2\.6-3-3 2\.6-2\.6z">/,
+  "Tools overflow toggle should use a clearer tools icon.",
 );
 assert.doesNotMatch(
   legacyHtml,
