@@ -6642,6 +6642,183 @@
         const sampleMapOwnProjectBtn = document.getElementById("sampleMapOwnProjectBtn");
         const undoBtn = document.getElementById("undoBtn");
         const redoBtn = document.getElementById("redoBtn");
+        function createToolbarButtonViewModel({ key, element, group = "", role = "button" }) {
+            return {
+                key,
+                element,
+                group,
+                role,
+                contains(target) {
+                    return Boolean(element?.contains(target));
+                },
+                setExpanded(expanded) {
+                    element?.classList.toggle("active", Boolean(expanded));
+                    element?.setAttribute("aria-expanded", expanded ? "true" : "false");
+                }
+            };
+        }
+
+        function createToolbarComponent({ key, root, groups = {}, buttons = {}, controls = {} }) {
+            const buttonViewModels = Object.fromEntries(
+                Object.entries(buttons).map(([buttonKey, config]) => [
+                    buttonKey,
+                    createToolbarButtonViewModel({
+                        key: buttonKey,
+                        group: config.group,
+                        role: config.role,
+                        element: config.element
+                    })
+                ])
+            );
+            return {
+                key,
+                root,
+                groups,
+                buttons: buttonViewModels,
+                controls,
+                contains(target) {
+                    return Boolean(root?.contains(target));
+                },
+                containsButton(target) {
+                    return Object.values(buttonViewModels).some((button) => button.contains(target));
+                },
+                visible() {
+                    return Boolean(root && !root.hidden);
+                }
+            };
+        }
+
+        const topToolbarComponent = createToolbarComponent({
+            key: "top-toolbar",
+            root: toolbar,
+            groups: {
+                left: toolbar?.querySelector(".toolbar-left"),
+                center: toolbar?.querySelector(".toolbar-center"),
+                right: toolbar?.querySelector(".toolbar-right"),
+                menuCommands: document.getElementById("toolbarMenuCommands"),
+                quickActions: document.getElementById("quickActionBar"),
+                helpSearch: toolbar?.querySelector(".toolbar-help-search-group")
+            },
+            buttons: {
+                appMenu: { element: sidebarToggleBtn, group: "left", role: "menu" },
+                menuOverflow: { element: leftToolbarExpandBtn, group: "left", role: "overflow" },
+                toolsOverflow: { element: rightToolbarExpandBtn, group: "right", role: "overflow" },
+                editTools: { element: editPanelToggleBtn, group: "quickActions", role: "contextual-toolbar-toggle" },
+                fileMenu: { element: openDataManagerBtn, group: "menuCommands", role: "menu" },
+                editMenu: { element: toolbarMenuBtn, group: "menuCommands", role: "menu" },
+                viewMenu: { element: settingsBtn, group: "menuCommands", role: "menu" },
+                historyMenu: { element: historyMenuBtn, group: "menuCommands", role: "menu" },
+                windowMenu: { element: windowMenuBtn, group: "menuCommands", role: "menu" },
+                helpMenu: { element: helpMenuBtn, group: "menuCommands", role: "menu" },
+                addFeature: { element: addSurveyPointBtn, group: "quickActions", role: "action" },
+                undo: { element: undoBtn, group: "quickActions", role: "action" },
+                redo: { element: redoBtn, group: "quickActions", role: "action" },
+                locate: { element: myLocationBtn, group: "quickActions", role: "action" },
+                measure: { element: measureToolBtn, group: "quickActions", role: "action" },
+                gis: { element: advancedGisBtn, group: "quickActions", role: "action" },
+                help: { element: helpCenterBtn, group: "helpSearch", role: "action" },
+                search: { element: document.getElementById("searchIconBtn"), group: "helpSearch", role: "search" },
+                clearSearch: { element: collapseSearchBtn, group: "helpSearch", role: "search" }
+            },
+            controls: {
+                projectCaption: toolbarProjectMeta,
+                projectName: toolbarProjectNameCompact,
+                searchShell: toolbarSearchShell,
+                searchInput: document.getElementById("searchInput")
+            }
+        });
+        const topToolbarViewModel = {
+            component: topToolbarComponent,
+            menuBoundaryButtons: [
+                "appMenu",
+                "menuOverflow",
+                "toolsOverflow",
+                "editTools",
+                "fileMenu",
+                "editMenu",
+                "viewMenu",
+                "historyMenu",
+                "windowMenu",
+                "helpMenu"
+            ],
+            containsMenuButton(target) {
+                return this.menuBoundaryButtons.some((buttonKey) => this.component.buttons[buttonKey]?.contains(target));
+            },
+            collapseOverflow(side) {
+                const groupKey = side === "left" ? "left" : "right";
+                const buttonKey = side === "left" ? "menuOverflow" : "toolsOverflow";
+                this.component.groups[groupKey]?.classList.remove("expanded");
+                this.component.buttons[buttonKey]?.setExpanded(false);
+            }
+        };
+
+        const editingToolbarComponent = createToolbarComponent({
+            key: "editing-toolbar",
+            root: editFloatingPanel,
+            groups: {
+                header: editPanelDragHandle,
+                body: editFloatingPanel?.querySelector(".edit-panel-body"),
+                geometry: editPanelGeometryTools
+            },
+            buttons: {
+                pin: { element: editPanelPinBtn, group: "header", role: "dock" },
+                close: { element: editPanelCloseBtn, group: "header", role: "close" },
+                session: { element: editPanelSessionBtn, group: "body", role: "mode" },
+                undo: { element: editPanelUndoBtn, group: "body", role: "action" },
+                redo: { element: editPanelRedoBtn, group: "body", role: "action" },
+                addFeature: { element: editPanelAddFeatureBtn, group: "body", role: "action" },
+                editAttributes: { element: editPanelEditExistingBtn, group: "body", role: "action" },
+                editGeometry: { element: editPanelGeometryBtn, group: "body", role: "mode" },
+                trace: { element: editPanelTraceBtn, group: "geometry", role: "mode" },
+                finishGeometry: { element: editPanelFinishGeometryBtn, group: "geometry", role: "action" },
+                cancelGeometry: { element: editPanelCancelGeometryBtn, group: "geometry", role: "action" },
+                snapVertices: { element: editPanelSnapVerticesBtn, group: "geometry", role: "toggle" },
+                snapEdges: { element: editPanelSnapEdgesBtn, group: "geometry", role: "toggle" },
+                snapPolygonEdges: { element: editPanelSnapPolygonEdgesBtn, group: "geometry", role: "toggle" },
+                rectangle: { element: editPanelRectangleBtn, group: "geometry", role: "action" },
+                square: { element: editPanelSquareBtn, group: "geometry", role: "action" },
+                editVertices: { element: editPanelEditVerticesBtn, group: "geometry", role: "mode" },
+                splitGeometry: { element: editPanelSplitGeometryBtn, group: "geometry", role: "action" }
+            },
+            controls: {
+                layerSelect: editPanelLayerSelect,
+                status: editPanelStatus,
+                statusText: editPanelStatusText,
+                selectedBadge: editPanelSelectedBadge,
+                help: editPanelHelp
+            }
+        });
+        const layerToolbarComponent = createToolbarComponent({
+            key: "layer-toolbar",
+            root: layerToolsPanel,
+            groups: {
+                header: layerToolsDragHandle,
+                body: layerToolsPanel?.querySelector(".edit-panel-body")
+            },
+            buttons: {
+                pin: { element: layerToolsPinBtn, group: "header", role: "dock" },
+                close: { element: layerToolsCloseBtn, group: "header", role: "close" },
+                addLayer: { element: layerToolsAddLayerBtn, group: "body", role: "action" },
+                properties: { element: layerToolsPropertiesBtn, group: "body", role: "action" },
+                fields: { element: layerToolsFieldsBtn, group: "body", role: "action" },
+                zoom: { element: layerToolsZoomBtn, group: "body", role: "action" }
+            },
+            controls: {
+                layerSelect: layerToolsLayerSelect
+            }
+        });
+        const contextualToolbarComponents = [editingToolbarComponent, layerToolbarComponent];
+        const contextualToolbarViewModel = {
+            components: contextualToolbarComponents,
+            visibleDockedPanels() {
+                return this.components
+                    .map((component) => component.root)
+                    .filter((panel) => panel && !panel.hidden && panel.classList.contains("docked"));
+            },
+            getByRoot(panel) {
+                return this.components.find((component) => component.root === panel) || null;
+            }
+        };
         const saveChangesBtn = document.getElementById("saveChangesBtn");
         const sharePanel = document.getElementById("sharePanel");
         const shareList = document.getElementById("shareList");
@@ -9313,7 +9490,7 @@
         }
 
         function getDockedToolbars() {
-            return [editFloatingPanel, layerToolsPanel].filter((panel) => panel && !panel.hidden && panel.classList.contains("docked"));
+            return contextualToolbarViewModel.visibleDockedPanels();
         }
 
         function getNextToolbarDockOffset(panel) {
@@ -13075,8 +13252,7 @@
                 if (button) showEditToolbarTooltip(button);
             });
         }
-        installToolbarTooltipEvents(editFloatingPanel);
-        installToolbarTooltipEvents(layerToolsPanel);
+        contextualToolbarComponents.forEach((component) => installToolbarTooltipEvents(component.root));
         menuOpenEditPanelBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
             openEditPanelForLayer(activeLayerId);
@@ -13091,19 +13267,14 @@
         });
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
-            const onToolbarMenuButton = [sidebarToggleBtn, leftToolbarExpandBtn, rightToolbarExpandBtn, editPanelToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn]
-                .some((button) => button?.contains(event.target));
+            const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
             const insideSettingsPanel = settingsPanel?.contains(event.target);
             const onSettingsButton = menuSettingsBtn?.contains(event.target);
             if (!event.target.closest(".toolbar-left")) {
-                leftToolbarExpandBtn?.closest(".toolbar-left")?.classList.remove("expanded");
-                leftToolbarExpandBtn?.classList.remove("active");
-                leftToolbarExpandBtn?.setAttribute("aria-expanded", "false");
+                topToolbarViewModel.collapseOverflow("left");
             }
             if (!event.target.closest(".toolbar-right")) {
-                rightToolbarExpandBtn?.closest(".toolbar-right")?.classList.remove("expanded");
-                rightToolbarExpandBtn?.classList.remove("active");
-                rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
+                topToolbarViewModel.collapseOverflow("right");
             }
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
