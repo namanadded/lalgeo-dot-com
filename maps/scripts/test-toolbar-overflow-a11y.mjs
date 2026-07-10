@@ -57,8 +57,18 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /grid-template-columns:\s*minmax\(0,\s*1fr\)\s+minmax\(96px,\s*min\(420px,\s*36vw\)\)\s+minmax\(0,\s*1fr\);/,
-  "Desktop toolbar should reserve a real center track for the project title.",
+  /grid-template-columns:\s*minmax\(160px,\s*1fr\)\s+minmax\(160px,\s*min\(560px,\s*52vw\)\)\s+minmax\(160px,\s*1fr\);/,
+  "Tablet toolbar should reserve a wider center track for the project title without using mobile sizing.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*1024px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*minmax\(220px,\s*1fr\)\s+minmax\(180px,\s*min\(640px,\s*48vw\)\)\s+minmax\(220px,\s*1fr\);/,
+  "Desktop toolbar should widen the horizontal layout and project title track.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.brand-menu-btn\s*{[\s\S]*?height:\s*30px;[\s\S]*?width:\s*67px;/,
+  "Desktop and tablet toolbar controls should avoid oversized mobile touch styling.",
 );
 assert.match(
   legacyHtml,
@@ -128,6 +138,16 @@ assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
 assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
 assert.match(
   editingGroup,
+  /<span class="toolbar-group-label" aria-hidden="true">Edit<\/span>/,
+  "Editing toolbar group should have a visible Edit section label when space allows.",
+);
+assert.match(
+  mapGroup,
+  /<span class="toolbar-group-label" aria-hidden="true">Map<\/span>/,
+  "Map toolbar group should have a visible Map section label when space allows.",
+);
+assert.match(
+  editingGroup,
   /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>[\s\S]*?id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
   "Editing group should read as Draw, Add, Undo, Redo.",
 );
@@ -135,6 +155,21 @@ assert.match(
   mapGroup,
   /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
   "Map group should read as Locate, Layers, Basemap.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?\.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
+  "Toolbar quick action labels should appear beside icons when there is enough horizontal space.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.toolbar-map-group::before\s*{[\s\S]*?background:\s*rgba\(209,\s*213,\s*219,\s*0\.34\);[\s\S]*?\.toolbar-group-label\s*{[\s\S]*?display:\s*inline-flex;/,
+  "Toolbar Edit and Map groups should use subtle section labels and a divider on roomy screens.",
+);
+assert.match(
+  legacyHtml,
+  /\.quick-action-label\s*{[\s\S]*?display:\s*none;/,
+  "Toolbar quick action labels should stay hidden by default for compact and very small screens.",
 );
 assert.match(
   toolsGroup,
@@ -187,6 +222,21 @@ assert.match(
   legacyHtml,
   /\.toolbar-icon\s*{[\s\S]*?width:\s*18px;[\s\S]*?height:\s*18px;[\s\S]*?stroke:\s*currentColor;[\s\S]*?stroke-width:\s*2;[\s\S]*?stroke-linecap:\s*round;[\s\S]*?stroke-linejoin:\s*round;/,
   "Toolbar icons must share one normalized SVG stroke style.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar\s*{[\s\S]*?border:\s*1px\s+solid\s+rgba\(255,\s*255,\s*255,\s*0\.045\);[\s\S]*?box-shadow:\s*0\s+4px\s+14px\s+rgba\(0,\s*0,\s*0,\s*0\.09\);[\s\S]*?backdrop-filter:\s*blur\(22px\)\s+saturate\(135%\);/,
+  "Toolbar glass should keep a subtle Apple-like border, shadow, and blur.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.brand-menu-btn,[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border:\s*1px\s+solid\s+rgba\(209,\s*213,\s*219,\s*0\.24\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.025\);/,
+  "Toolbar buttons should use lighter chrome with reduced border contrast.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-icon,\s*#toolbar \.quick-action-icon\s*{[\s\S]*?width:\s*18px;[\s\S]*?height:\s*18px;[\s\S]*?flex:\s*0\s+0\s+18px;/,
+  "Toolbar icons should align to a consistent 18px visual box.",
 );
 assert.match(
   legacyHtml,
