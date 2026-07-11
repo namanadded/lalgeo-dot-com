@@ -136,15 +136,10 @@ assert.match(
 assert.ok(editingGroup, "Toolbar must include a dedicated Editing control group.");
 assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
 assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
-assert.match(
-  editingGroup,
-  /<span class="toolbar-group-label" aria-hidden="true">Edit<\/span>/,
-  "Editing toolbar group should have a visible Edit section label when space allows.",
-);
-assert.match(
-  mapGroup,
-  /<span class="toolbar-group-label" aria-hidden="true">Map<\/span>/,
-  "Map toolbar group should have a visible Map section label when space allows.",
+assert.doesNotMatch(
+  legacyHtml,
+  /toolbar-group-label/,
+  "Desktop editing toolbar should not use Edit or Map heading capsules.",
 );
 assert.match(
   editingGroup,
@@ -163,8 +158,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.toolbar-map-group::before\s*{[\s\S]*?background:\s*rgba\(209,\s*213,\s*219,\s*0\.34\);[\s\S]*?\.toolbar-group-label\s*{[\s\S]*?display:\s*inline-flex;/,
-  "Toolbar Edit and Map groups should use subtle section labels and a divider on roomy screens.",
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?position:\s*absolute;[\s\S]*?top:\s*calc\(100%\s*\+\s*28px\);[\s\S]*?min-width:\s*min\(720px,\s*calc\(100vw\s*-\s*48px\)\);[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.76\);/,
+  "Desktop editing controls should live in one wider floating glass toolbar below the top navigation.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-action-group\s*{[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;[\s\S]*?#toolbar \.toolbar-map-group::before\s*{[\s\S]*?height:\s*24px;[\s\S]*?background:\s*rgba\(148,\s*163,\s*184,\s*0\.3\);/,
+  "Desktop editing toolbar should separate editing and map tools with a subtle divider instead of labeled pills.",
 );
 assert.match(
   legacyHtml,
