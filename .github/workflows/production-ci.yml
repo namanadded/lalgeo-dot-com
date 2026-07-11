@@ -50,6 +50,10 @@ jobs:
         working-directory: maps
         run: npm run test:button-type-safety
 
+      - name: Check Dropbox status accessibility
+        working-directory: maps
+        run: npm run test:dropbox-status-a11y
+
       - name: Check empty state Dropbox flow
         working-directory: maps
         run: npm run test:empty-dropbox-flow
