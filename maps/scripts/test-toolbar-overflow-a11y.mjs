@@ -213,6 +213,11 @@ assert.match(
   /#leftToolbarExpand,\s*#rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
   "Mobile toolbar overflow toggles must provide at least a 44px touch target.",
 );
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;/,
+  "Expanded mobile tools must stay within the safe viewport and scroll instead of being clipped off-screen.",
+);
 assert.doesNotMatch(
   legacyHtml,
   /id="(?:leftToolbarExpand|rightToolbarExpand)"[^>]*>(?:&gt;|&lt;)/,
