@@ -5763,7 +5763,7 @@
                             <path d="M16 16l4 4"></path>
                         </svg>
                     </button>
-                    <input type="text" id="searchInput" placeholder="Search location or project" aria-label="Search" />
+                    <input type="text" id="searchInput" inputmode="search" enterkeyhint="search" placeholder="Search location or project" aria-label="Search" />
                     <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M6 6l12 12"></path>
@@ -6147,7 +6147,7 @@
                             </select>
                             <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Open selected project</button>
                         </div>
-                        <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
+                        <span id="dropboxConnectStatus" role="status" aria-live="polite" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
                     </div>
                 </div>
             </div>
@@ -6391,7 +6391,7 @@
         </div>
     </div>
     <div id="shareToast">
-        <input type="url" id="shareToastInput" readonly>
+        <input type="url" id="shareToastInput" aria-label="Share link" readonly>
         <button id="shareToastCopy" type="button">Copy</button>
     </div>
     <div id="dropZone" class="drop-zone">

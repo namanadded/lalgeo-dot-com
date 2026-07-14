@@ -46,9 +46,21 @@ jobs:
         working-directory: maps
         run: npm run test:maps-frame-viewport
 
+      - name: Check maps mobile search input hints
+        working-directory: maps
+        run: npm run test:search-input-mobile
+
       - name: Check maps button type safety
         working-directory: maps
         run: npm run test:button-type-safety
+
+      - name: Check Dropbox status accessibility
+        working-directory: maps
+        run: npm run test:dropbox-status-a11y
+
+      - name: Check share toast accessibility
+        working-directory: maps
+        run: npm run test:share-toast-a11y
 
       - name: Check empty state Dropbox flow
         working-directory: maps
