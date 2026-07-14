@@ -6,6 +6,7 @@
     "dev": "next dev",
     "test:external-link-security": "node scripts/test-external-link-security.mjs",
     "test:maps-frame-viewport": "node scripts/test-maps-frame-viewport.mjs",
+    "test:search-input-mobile": "node scripts/test-search-input-mobile.mjs",
     "test:button-type-safety": "node scripts/test-button-type-safety.mjs",
     "test:dropbox-status-a11y": "node scripts/test-dropbox-status-a11y.mjs",
     "test:share-toast-a11y": "node scripts/test-share-toast-a11y.mjs",

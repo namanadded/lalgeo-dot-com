@@ -46,6 +46,10 @@ jobs:
         working-directory: maps
         run: npm run test:maps-frame-viewport
 
+      - name: Check maps mobile search input hints
+        working-directory: maps
+        run: npm run test:search-input-mobile
+
       - name: Check maps button type safety
         working-directory: maps
         run: npm run test:button-type-safety
