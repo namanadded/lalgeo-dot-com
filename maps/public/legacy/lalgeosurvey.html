@@ -4716,6 +4716,30 @@
             align-items: center;
             gap: 12px;
         }
+
+        #toolbar .toolbar-right.expanded .toolbar-quick-actions {
+            left: max(8px, env(safe-area-inset-left, 0px));
+            right: max(8px, env(safe-area-inset-right, 0px));
+            width: auto;
+            max-width: none;
+            box-sizing: border-box;
+            margin-left: 0;
+            justify-content: safe center;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+            -webkit-overflow-scrolling: touch;
+            scrollbar-width: none;
+        }
+
+        #toolbar .toolbar-right.expanded .toolbar-quick-actions::-webkit-scrollbar {
+            display: none;
+        }
+
+        #toolbar .toolbar-right.expanded .toolbar-action-group {
+            flex: 0 0 auto;
+        }
+
         #leftToolbarExpand,
         #rightToolbarExpand {
             display: inline-flex;
