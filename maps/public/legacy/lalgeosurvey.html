@@ -2899,19 +2899,29 @@
     .quick-action-label {
         display: none;
     }
-    @media (min-width: 1281px) {
-        .menu-bar-btn.quick-action {
+    @media (min-width: 601px) and (max-width: 1599px) {
+        #toolbar .menu-bar-btn.quick-action {
+            width: 36px;
+            min-width: 36px;
+            height: 36px;
+            padding: 0;
+            gap: 0;
+        }
+    }
+    @media (min-width: 1600px) {
+        #toolbar .menu-bar-btn.quick-action {
             width: auto;
             min-width: 32px;
             padding: 0 9px;
             gap: 5px;
         }
-        .quick-action-label {
+        #toolbar .quick-action-label {
             display: inline;
             font-size: 10px;
             font-weight: 700;
             line-height: 1;
             letter-spacing: 0.01em;
+            white-space: nowrap;
         }
     }
     @media (max-width: 1180px) {
@@ -5228,18 +5238,26 @@
             position: relative;
         }
         #toolbar .toolbar-quick-actions {
-            position: absolute;
-            top: calc(100% + 28px);
-            right: 0;
+            position: fixed;
+            top: 62px;
+            left: 50%;
+            right: auto;
+            transform: translateX(-50%);
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            justify-content: safe center;
+            flex-wrap: nowrap;
             gap: 22px;
-            min-width: min(720px, calc(100vw - 48px));
+            min-width: 0;
             width: max-content;
             max-width: calc(100vw - 48px);
+            box-sizing: border-box;
             margin-left: 0;
             padding: 8px 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
             border-radius: 14px;
             background: rgba(255, 255, 255, 0.76);
             border: 1px solid rgba(209, 213, 219, 0.22);
@@ -5247,7 +5265,11 @@
             backdrop-filter: blur(22px) saturate(135%);
             -webkit-backdrop-filter: blur(22px) saturate(135%);
         }
+        #toolbar .toolbar-quick-actions::-webkit-scrollbar {
+            display: none;
+        }
         #toolbar .toolbar-action-group {
+            flex: 0 0 auto;
             gap: 10px;
             padding: 0;
             background: transparent;
@@ -5391,8 +5413,10 @@
     }
     #toolbar .menu-bar-btn.quick-action,
     #toolbar .toolbar-btn.ghost.search-toggle-btn {
-        width: 32px;
         height: 32px;
+    }
+    #toolbar .toolbar-btn.ghost.search-toggle-btn {
+        width: 32px;
         padding: 0;
     }
     #toolbar #clearSearch {
