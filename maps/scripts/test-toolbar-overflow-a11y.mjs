@@ -260,8 +260,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;/,
-  "Expanded mobile tools must stay within the safe viewport and scroll instead of being clipped off-screen.",
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;[\s\S]*?z-index:\s*1270;/,
+  "Expanded mobile tools must open in a separate safe-area row below the floating controls and scroll instead of being clipped.",
 );
 assert.doesNotMatch(
   legacyHtml,

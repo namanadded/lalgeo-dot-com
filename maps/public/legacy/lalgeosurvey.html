@@ -4801,6 +4801,8 @@
         }
 
         #toolbar .toolbar-right.expanded .toolbar-quick-actions {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 116px);
             left: max(8px, env(safe-area-inset-left, 0px));
             right: max(8px, env(safe-area-inset-right, 0px));
             width: auto;
@@ -4813,6 +4815,7 @@
             overscroll-behavior-x: contain;
             -webkit-overflow-scrolling: touch;
             scrollbar-width: none;
+            z-index: 1270;
         }
 
         #toolbar .toolbar-right.expanded .toolbar-quick-actions::-webkit-scrollbar {
