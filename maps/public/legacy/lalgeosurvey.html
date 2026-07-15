@@ -5233,13 +5233,19 @@
             right: 0;
             display: inline-flex;
             align-items: center;
-            justify-content: center;
+            justify-content: safe center;
+            flex-wrap: nowrap;
             gap: 22px;
             min-width: min(720px, calc(100vw - 48px));
             width: max-content;
             max-width: calc(100vw - 48px);
+            box-sizing: border-box;
             margin-left: 0;
             padding: 8px 12px;
+            overflow-x: auto;
+            overflow-y: hidden;
+            overscroll-behavior-x: contain;
+            scrollbar-width: none;
             border-radius: 14px;
             background: rgba(255, 255, 255, 0.76);
             border: 1px solid rgba(209, 213, 219, 0.22);
@@ -5247,7 +5253,11 @@
             backdrop-filter: blur(22px) saturate(135%);
             -webkit-backdrop-filter: blur(22px) saturate(135%);
         }
+        #toolbar .toolbar-quick-actions::-webkit-scrollbar {
+            display: none;
+        }
         #toolbar .toolbar-action-group {
+            flex: 0 0 auto;
             gap: 10px;
             padding: 0;
             background: transparent;
@@ -5391,8 +5401,10 @@
     }
     #toolbar .menu-bar-btn.quick-action,
     #toolbar .toolbar-btn.ghost.search-toggle-btn {
-        width: 32px;
         height: 32px;
+    }
+    #toolbar .toolbar-btn.ghost.search-toggle-btn {
+        width: 32px;
         padding: 0;
     }
     #toolbar #clearSearch {

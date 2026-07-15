@@ -163,6 +163,16 @@ assert.match(
 );
 assert.match(
   legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?justify-content:\s*safe center;[\s\S]*?flex-wrap:\s*nowrap;[\s\S]*?overflow-x:\s*auto;[\s\S]*?scrollbar-width:\s*none;[\s\S]*?#toolbar \.toolbar-action-group\s*{[\s\S]*?flex:\s*0\s+0\s+auto;/,
+  "Desktop toolbar groups should keep their intrinsic width and scroll safely instead of crushing icons and labels.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /#toolbar \.menu-bar-btn\.quick-action,\s*#toolbar \.toolbar-btn\.ghost\.search-toggle-btn\s*{[^}]*width:\s*32px;/,
+  "Late toolbar chrome rules must not force labeled desktop actions back into 32px squares.",
+);
+assert.match(
+  legacyHtml,
   /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-action-group\s*{[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;[\s\S]*?#toolbar \.toolbar-map-group::before\s*{[\s\S]*?height:\s*24px;[\s\S]*?background:\s*rgba\(148,\s*163,\s*184,\s*0\.3\);/,
   "Desktop editing toolbar should separate editing and map tools with a subtle divider instead of labeled pills.",
 );
