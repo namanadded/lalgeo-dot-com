@@ -62,6 +62,10 @@ jobs:
         working-directory: maps
         run: npm run test:share-toast-a11y
 
+      - name: Check quick actions accessibility
+        working-directory: maps
+        run: npm run test:quick-actions-a11y
+
       - name: Check empty state Dropbox flow
         working-directory: maps
         run: npm run test:empty-dropbox-flow
