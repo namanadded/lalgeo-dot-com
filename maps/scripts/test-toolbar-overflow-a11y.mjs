@@ -153,13 +153,18 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?\.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
-  "Toolbar quick action labels should appear beside icons when there is enough horizontal space.",
+  /@media \(min-width:\s*1600px\)\s*{[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?#toolbar \.quick-action-label\s*{[\s\S]*?display:\s*inline;[\s\S]*?white-space:\s*nowrap;/,
+  "Toolbar quick action labels should appear only on genuinely wide screens with enough room.",
 );
 assert.match(
   legacyHtml,
-  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?position:\s*absolute;[\s\S]*?top:\s*calc\(100%\s*\+\s*28px\);[\s\S]*?min-width:\s*min\(720px,\s*calc\(100vw\s*-\s*48px\)\);[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.76\);/,
-  "Desktop editing controls should live in one wider floating glass toolbar below the top navigation.",
+  /@media \(min-width:\s*601px\) and \(max-width:\s*1599px\)\s*{[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*36px;[\s\S]*?min-width:\s*36px;[\s\S]*?height:\s*36px;[\s\S]*?padding:\s*0;[\s\S]*?gap:\s*0;/,
+  "Regular desktop widths should use consistent icon-only action buttons without compressed labels.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*62px;[\s\S]*?left:\s*50%;[\s\S]*?transform:\s*translateX\(-50%\);[\s\S]*?min-width:\s*0;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.76\);/,
+  "Desktop editing controls should live in one compact floating glass toolbar centered below the top navigation.",
 );
 assert.match(
   legacyHtml,
