@@ -3767,6 +3767,59 @@
         min-height: 42px;
         padding: 0 16px;
     }
+    .workflow-disclosure {
+        margin-top: 12px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 14px;
+        background: rgba(255,255,255,0.035);
+    }
+    .workflow-disclosure > summary {
+        min-height: 48px;
+        box-sizing: border-box;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 14px;
+        cursor: pointer;
+        list-style: none;
+        color: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        -webkit-tap-highlight-color: transparent;
+    }
+    .workflow-disclosure > summary::-webkit-details-marker { display: none; }
+    .workflow-disclosure > summary::after {
+        content: "";
+        width: 7px;
+        height: 7px;
+        margin-right: 3px;
+        border-right: 1.5px solid currentColor;
+        border-bottom: 1.5px solid currentColor;
+        opacity: 0.55;
+        transform: rotate(45deg) translateY(-2px);
+        transition: transform 160ms ease;
+    }
+    .workflow-disclosure[open] > summary::after { transform: rotate(225deg) translate(-2px, -2px); }
+    .workflow-disclosure-content {
+        display: grid;
+        gap: 12px;
+        padding: 0 14px 14px;
+        border-top: 1px solid rgba(255,255,255,0.07);
+    }
+    .workflow-disclosure-content > :first-child { margin-top: 14px; }
+    .workflow-primary-choice {
+        width: 100%;
+        min-height: 48px;
+        margin-top: 14px;
+    }
+    #dropboxControls {
+        display: grid;
+        gap: 12px;
+        padding: 12px;
+        border-radius: 12px;
+    }
+    #dropboxControls .dropbox-block { display: grid; gap: 8px; }
     .workspace-validation {
         margin-top: 8px;
         font-size: 12px;
@@ -4886,15 +4939,43 @@
             border: 1px solid rgba(209, 213, 219, 0.52);
         }
 
-        .mobile-menu-heading {
-            margin: 0;
-            padding: 9px 12px 5px;
-            color: #8a919c;
-            font-size: 10px;
-            font-weight: 750;
-            letter-spacing: 0.1em;
-            line-height: 1;
-            text-transform: uppercase;
+        .mobile-menu-summary {
+            display: flex;
+            min-height: 50px;
+            box-sizing: border-box;
+            align-items: center;
+            justify-content: space-between;
+            padding: 12px 14px;
+            color: #374151;
+            font-size: 15px;
+            font-weight: 700;
+            cursor: pointer;
+            list-style: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .mobile-menu-summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .mobile-menu-summary::after {
+            content: "";
+            width: 7px;
+            height: 7px;
+            margin-right: 3px;
+            border-right: 1.5px solid #9ca3af;
+            border-bottom: 1.5px solid #9ca3af;
+            transform: rotate(45deg) translateY(-2px);
+            transition: transform 160ms ease;
+        }
+
+        .mobile-menu-group[open] > .mobile-menu-summary {
+            background: rgba(255, 255, 255, 0.64);
+            border-bottom: 1px solid rgba(209, 213, 219, 0.52);
+        }
+
+        .mobile-menu-group[open] > .mobile-menu-summary::after {
+            transform: rotate(225deg) translate(-2px, -2px);
         }
 
         .mobile-menu-command {
@@ -5001,24 +5082,52 @@
         }
 
         #featureDrawer {
-            left: max(10px, env(safe-area-inset-left, 0px));
-            right: max(10px, env(safe-area-inset-right, 0px));
-            top: calc(env(safe-area-inset-top, 0px) + 76px);
+            left: max(10px, env(safe-area-inset-left, 0px)) !important;
+            right: max(10px, env(safe-area-inset-right, 0px)) !important;
+            top: auto !important;
+            bottom: max(10px, env(safe-area-inset-bottom, 0px));
             width: auto;
             max-width: none;
+            height: min(50dvh, 460px);
             box-sizing: border-box;
-            max-height: min(70dvh, calc(100dvh - 150px));
-            padding: 16px;
-            border-radius: 20px;
-            overflow-x: hidden;
+            max-height: 50dvh;
+            padding: 10px 16px 16px;
+            border-radius: 24px;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            transform: translateY(calc(100% + 24px));
+            box-shadow: 0 18px 52px rgba(15, 23, 42, 0.28);
         }
         #featureDrawer.open {
-            transform: translateX(0);
+            transform: translateY(0);
+        }
+        #featureDrawer::before {
+            content: "";
+            width: 36px;
+            height: 5px;
+            flex: 0 0 5px;
+            margin: 0 auto 8px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.34);
         }
         .feature-drawer-header {
+            position: relative;
+            z-index: 1;
+            flex: 0 0 auto;
             align-items: flex-start;
             gap: 10px;
+            margin-bottom: 10px;
             cursor: default;
+        }
+        .feature-drawer-body {
+            min-height: 0;
+            flex: 1 1 auto;
+            overflow-y: auto;
+            overflow-x: hidden;
+            overscroll-behavior: contain;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: max(8px, env(safe-area-inset-bottom, 0px));
         }
         .feature-drawer-header h3 {
             font-size: 24px;
@@ -5709,6 +5818,33 @@
         color: #374151;
         border-color: rgba(190, 197, 205, 0.92);
     }
+    #importPanel .workflow-disclosure,
+    .workspace-modal .workflow-disclosure,
+    .layer-modal .workflow-disclosure {
+        background: #f9fafb;
+        border-color: #e5e7eb;
+    }
+    #importPanel .workflow-disclosure-content,
+    .workspace-modal .workflow-disclosure-content,
+    .layer-modal .workflow-disclosure-content { border-top-color: #e5e7eb; }
+    #importPanel .workspace-primary-btn,
+    .workspace-modal .workspace-primary-btn,
+    .layer-modal .workspace-primary-btn {
+        background: #007aff;
+        color: #fff;
+        border-color: #007aff;
+        box-shadow: 0 6px 16px rgba(0, 122, 255, 0.22);
+    }
+    #importPanel .workspace-primary-btn:hover,
+    #importPanel .workspace-primary-btn:focus-visible,
+    .workspace-modal .workspace-primary-btn:hover,
+    .workspace-modal .workspace-primary-btn:focus-visible,
+    .layer-modal .workspace-primary-btn:hover,
+    .layer-modal .workspace-primary-btn:focus-visible {
+        background: #0877e1;
+        color: #fff;
+        border-color: #0877e1;
+    }
     .workspace-validation,
     .layer-modal-danger {
         color: #b45353;
@@ -6038,30 +6174,30 @@
     </div>
     <div id="toolbarMenuTray" hidden>
         <div id="mobileMenuPane" class="menu-dropdown-section mobile-menu-pane" data-menu-pane="mobile" aria-label="Main menu" hidden>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuNewHeading">
-                <h3 id="mobileMenuNewHeading" class="mobile-menu-heading">New</h3>
+            <details class="mobile-menu-group" name="mobile-menu-sections" open>
+                <summary class="mobile-menu-summary">New</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="newProjectBtn" aria-label="New project"><span>Project</span><span class="mobile-menu-accessory" aria-hidden="true">＋</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuNewLayerBtn" aria-label="New layer"><span>Layer</span><span class="mobile-menu-accessory" aria-hidden="true">＋</span></button>
-            </section>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuImportHeading">
-                <h3 id="mobileMenuImportHeading" class="mobile-menu-heading">Import</h3>
+            </details>
+            <details class="mobile-menu-group" name="mobile-menu-sections">
+                <summary class="mobile-menu-summary">Import</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="openProjectBtn" aria-label="Import project"><span>Project</span><span class="mobile-menu-accessory" aria-hidden="true">↓</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="toggleImportBtn" aria-label="Import layer"><span>Layer</span><span class="mobile-menu-accessory" aria-hidden="true">↓</span></button>
-            </section>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuWorkspaceHeading">
-                <h3 id="mobileMenuWorkspaceHeading" class="mobile-menu-heading">Workspace</h3>
+            </details>
+            <details class="mobile-menu-group" name="mobile-menu-sections">
+                <summary class="mobile-menu-summary">Workspace</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="workspacePanelBtn"><span>Projects</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuToggleDataPaneBtn"><span>Data Manager</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuToggleLayersBtn"><span>Layers</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
-            </section>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuEditHeading">
-                <h3 id="mobileMenuEditHeading" class="mobile-menu-heading">Edit</h3>
+            </details>
+            <details class="mobile-menu-group" name="mobile-menu-sections">
+                <summary class="mobile-menu-summary">Edit</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuOpenEditPanelBtn"><span>Edit Tools</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuUndoBtn"><span>Undo</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuRedoBtn"><span>Redo</span></button>
-            </section>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuMapHeading">
-                <h3 id="mobileMenuMapHeading" class="mobile-menu-heading">Map</h3>
+            </details>
+            <details class="mobile-menu-group" name="mobile-menu-sections">
+                <summary class="mobile-menu-summary">Map</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuMyLocationBtn"><span>My Location</span></button>
                 <button id="mobileMenuPoisBtn" type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuShowBasemapPoisBtn"><span>Points of Interest</span><span class="mobile-menu-accessory mobile-menu-check" aria-hidden="true">✓</span></button>
                 <div class="mobile-map-type-picker" role="group" aria-label="Map style">
@@ -6069,20 +6205,20 @@
                     <button type="button" data-map-type="satellite" aria-pressed="false">Satellite</button>
                     <button type="button" data-map-type="hybrid" aria-pressed="false">Hybrid</button>
                 </div>
-            </section>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuShareHeading">
-                <h3 id="mobileMenuShareHeading" class="mobile-menu-heading">Share &amp; Export</h3>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="shareMapBtn"><span>Share Map</span></button>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuExportPdfBtn"><span>Export as PDF</span></button>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="printButton"><span>Print Map</span></button>
-            </section>
-            <section class="mobile-menu-group" aria-labelledby="mobileMenuMoreHeading">
-                <h3 id="mobileMenuMoreHeading" class="mobile-menu-heading">Settings &amp; Help</h3>
+            </details>
+            <details class="mobile-menu-group" name="mobile-menu-sections">
+                <summary class="mobile-menu-summary">Share &amp; Export</summary>
+                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="shareMapBtn"><span>Share Link</span></button>
+                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuExportPdfBtn"><span>Export PDF</span></button>
+                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="printButton"><span>Print</span></button>
+            </details>
+            <details class="mobile-menu-group" name="mobile-menu-sections">
+                <summary class="mobile-menu-summary">Settings &amp; Help</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuSettingsBtn"><span>Settings</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuHelpCenterBtn"><span>Help Center</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuAboutBtn"><span>About LalGeo</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuLogoutBtn"><span>Disconnect Dropbox</span></button>
-            </section>
+            </details>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="app">
             <button id="menuAboutBtn" type="button" class="menu-command"><span>About</span></button>
@@ -6097,9 +6233,9 @@
             <button id="menuNewLayerBtn" type="button" class="menu-command"><span>New Layer</span><span class="menu-shortcut" data-shortcut="newLayer"></span></button>
             <button id="openProjectBtn" type="button" class="menu-command"><span>Import Project</span><span class="menu-shortcut" data-shortcut="openProject"></span></button>
             <button id="toggleImportBtn" type="button" class="menu-command"><span>Import Layer</span><span class="menu-shortcut" data-shortcut="importProject"></span></button>
-            <button id="shareMapBtn" type="button" class="menu-command"><span>Share Map</span><span class="menu-shortcut" data-shortcut="share"></span></button>
-            <button id="menuExportPdfBtn" type="button" class="menu-command"><span>Export as PDF</span><span class="menu-shortcut" data-shortcut="exportPdf"></span></button>
-            <button id="printButton" type="button" class="menu-command"><span>Print Map</span><span class="menu-shortcut" data-shortcut="print"></span></button>
+            <button id="shareMapBtn" type="button" class="menu-command"><span>Share Link</span><span class="menu-shortcut" data-shortcut="share"></span></button>
+            <button id="menuExportPdfBtn" type="button" class="menu-command"><span>Export Map…</span><span class="menu-shortcut" data-shortcut="exportPdf"></span></button>
+            <button id="printButton" type="button" class="menu-command"><span>Print…</span><span class="menu-shortcut" data-shortcut="print"></span></button>
             <button id="menuFileHelpBtn" type="button" class="menu-command"><span>Help and Documentation</span></button>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="edit" hidden>
@@ -6251,13 +6387,12 @@
         <div class="import-panel-container">
             <div class="workspace-panel-header">
                 <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-                <p class="workspace-section-kicker">Cloud Workspace</p>
-                <h3>Workspace panel</h3>
-                <p>Manage projects, layers, imports, and optional Dropbox sync from one place.</p>
+                <h3>Projects</h3>
+                <p>Open, import, or export.</p>
             </div>
 
             <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
-                <div class="import-section-title">Current project</div>
+                <div class="import-section-title">Open</div>
                 <div class="workspace-record-card active">
                     <div class="workspace-record-title" id="workspacePanelProjectName">No project open</div>
                     <div class="workspace-record-meta">
@@ -6268,72 +6403,63 @@
                         <option value="">Select a project</option>
                     </select>
                     <div class="workspace-panel-actions">
-                        <button id="drawerLoadProjectBtn" type="button" class="workspace-primary-btn">Load Project</button>
+                        <button id="drawerLoadProjectBtn" type="button" class="workspace-primary-btn">Open</button>
                     </div>
                 </div>
             </div>
 
-            <div class="workspace-panel-section">
-                <div class="import-section-title">Attachments / Project files</div>
-                <div id="projectFilesList" class="workspace-file-list"></div>
-            </div>
-
-            <div class="workspace-panel-section">
-                <div class="import-section-title">Project settings</div>
-                <div class="workspace-settings-card">
-                    <div id="projectSettingsSummary" class="workspace-panel-muted">Use Dropbox for project storage and cross-device access.</div>
+            <details class="workflow-disclosure">
+                <summary>Share &amp; Export</summary>
+                <div class="workflow-disclosure-content">
+                    <div id="projectSettingsSummary" class="workspace-panel-muted">Available when a project is open.</div>
                     <div class="workspace-inline-actions">
-                        <button id="copyShareLinkBtn" type="button" class="mini-btn">Copy share link</button>
-                        <button id="downloadProjectBtn" type="button" class="mini-btn">Download LalGeo project package</button>
-                        <a id="projectSettingsDataManagerBtn" href="/datamanager" class="mini-btn">Open Data Manager</a>
+                        <button id="copyShareLinkBtn" type="button" class="mini-btn">Copy Link</button>
+                        <button id="downloadProjectBtn" type="button" class="mini-btn">Export Project</button>
+                        <a id="projectSettingsDataManagerBtn" href="/datamanager" class="mini-btn">Data Manager</a>
                     </div>
                 </div>
-            </div>
+            </details>
 
             <div class="import-section">
-                <div class="import-section-title section-header">Import existing project</div>
-                <p>Import a LalGeo project from file, Dropbox, or existing survey export.</p>
-                <div class="import-section-title section-header">From file</div>
+                <div class="import-section-title section-header">Import</div>
                 <div class="import-stack">
-                    <button id="projectPickerBtn" type="button" class="import-secondary-btn">Select files…</button>
+                    <button id="projectPickerBtn" type="button" class="workspace-primary-btn workflow-primary-choice">Choose Project File</button>
                     <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple webkitdirectory style="display:none">
                 </div>
             </div>
 
-            <div class="divider"></div>
-
-            <div class="import-section">
-                <div class="import-section-title section-header">From Dropbox link</div>
-                <div class="import-stack">
-                    <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.lal?dl=1">
-                    <button id="dropboxLoadBtn" type="button" class="import-primary-btn">Load from Dropbox link</button>
-                </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="import-section">
-                <div class="import-section-title section-header">From Dropbox account</div>
-                <div id="dropboxControls" style="padding:18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.04);">
-                    <div style="font-size:14px; font-weight:600; margin-bottom:10px; margin-top:6px; color:#eef6fb;">Live Dropbox connection</div>
-                    <div class="workspace-panel-muted" style="margin-bottom:10px;">Use Dropbox for project storage and cross-device access.</div>
-                    <div class="import-stack">
-                        <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
+            <details class="workflow-disclosure">
+                <summary>Dropbox</summary>
+                <div class="workflow-disclosure-content">
+                    <div class="workspace-field">
+                        <label for="dropboxUrlInput">Shared link</label>
+                        <input type="url" id="dropboxUrlInput" placeholder="Paste Dropbox link">
+                    </div>
+                    <button id="dropboxLoadBtn" type="button" class="workspace-secondary-btn">Open Link</button>
+                    <div id="dropboxControls">
+                        <button id="connectDropboxBtn" type="button" class="workspace-secondary-btn">Connect Dropbox</button>
                         <div id="dropboxConnectedInfo" style="display:none; background:rgba(92, 200, 192, 0.12); border-radius:8px; padding:10px 12px; font-size:12px; color:#8ff0dc;">
-                            <strong>Connected to Dropbox</strong>
+                            <strong>Connected</strong>
                             <div id="dropboxUserDetails" style="margin-top:0; color:#b9f7e7;"></div>
                         </div>
                         <div class="dropbox-block">
-                            <div class="dropbox-label">Open Dropbox project</div>
+                            <label class="dropbox-label" for="dropboxSurveySelect">Project</label>
                             <select id="dropboxSurveySelect">
-                                <option value="">— Select project file —</option>
+                                <option value="">Select a project</option>
                             </select>
-                            <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Open selected project</button>
+                            <button id="loadDropboxSurveyBtn" type="button" class="workspace-secondary-btn">Open</button>
                         </div>
-                        <span id="dropboxConnectStatus" role="status" aria-live="polite" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
+                        <span id="dropboxConnectStatus" role="status" aria-live="polite" style="display:block; font-size:11px; color:#5f6368;">Not connected</span>
                     </div>
                 </div>
-            </div>
+            </details>
+
+            <details class="workflow-disclosure">
+                <summary>Project Files</summary>
+                <div class="workflow-disclosure-content">
+                    <div id="projectFilesList" class="workspace-file-list"></div>
+                </div>
+            </details>
 
             <span id="projectStatus">Create a project or open an existing one.</span>
         </div>
@@ -6341,38 +6467,36 @@
     <div id="layerImportModal" class="workspace-modal-backdrop" hidden>
         <div class="workspace-modal">
             <h3>Import Layer</h3>
-            <p class="workspace-panel-muted">Add GIS data to the open project. If no project is open, LalGeo creates one from the imported file.</p>
-            <div class="workspace-settings-card" style="margin-top:14px;">
-                <div class="import-section-title">Supported files</div>
-                <p class="workspace-panel-muted" style="margin-bottom:8px;">GeoJSON, JSON GeoJSON, KML, KMZ, GPX, CSV, LalGeo .lal packages, shapefiles, and API endpoints.</p>
-                <p class="workspace-panel-muted" style="margin-bottom:0;">For shapefiles, upload a .zip package or select the matching .shp, .dbf, .shx, .prj, and .cpg files together.</p>
-            </div>
-            <div class="workspace-settings-card" style="margin-top:12px;">
-                <div class="import-section-title">From API endpoint</div>
-                <p class="workspace-panel-muted" style="margin-bottom:10px;">Paste a public endpoint that returns GeoJSON, JSON rows, or CSV. The endpoint must allow browser access.</p>
-                <div class="workspace-field">
-                    <label for="layerImportApiUrl">Endpoint URL</label>
-                    <input id="layerImportApiUrl" class="workspace-text-input" type="url" placeholder="https://data.example.com/api/views/example/query.json">
+            <p class="workspace-panel-muted">Choose a file or connect a public URL.</p>
+            <details class="workflow-disclosure">
+                <summary>Import from URL</summary>
+                <div class="workflow-disclosure-content">
+                    <div class="workspace-field">
+                        <label for="layerImportApiUrl">URL</label>
+                        <input id="layerImportApiUrl" class="workspace-text-input" type="url" placeholder="https://data.example.com/layer.geojson">
+                    </div>
+                    <div class="workspace-field">
+                        <label for="layerImportApiFormat">Format</label>
+                        <select id="layerImportApiFormat" class="workspace-text-input">
+                            <option value="auto">Automatic</option>
+                            <option value="geojson">GeoJSON</option>
+                            <option value="json">JSON</option>
+                            <option value="csv">CSV</option>
+                        </select>
+                    </div>
+                    <button id="layerImportApiBtn" type="button" class="workspace-secondary-btn">Import URL</button>
                 </div>
-                <div class="workspace-field" style="margin-top:10px;">
-                    <label for="layerImportApiFormat">Data format</label>
-                    <select id="layerImportApiFormat" class="workspace-text-input">
-                        <option value="auto">Auto detect</option>
-                        <option value="geojson">GeoJSON</option>
-                        <option value="json">JSON rows</option>
-                        <option value="csv">CSV</option>
-                    </select>
+            </details>
+            <details class="workflow-disclosure">
+                <summary>Supported Formats</summary>
+                <div class="workflow-disclosure-content">
+                    <p class="workspace-panel-muted">GeoJSON, KML, KMZ, GPX, CSV, JSON, LalGeo, and zipped shapefiles.</p>
                 </div>
-                <button id="layerImportApiBtn" type="button" class="workspace-secondary-btn" style="margin-top:12px;">Import from endpoint</button>
-            </div>
-            <div class="workspace-settings-card" style="margin-top:12px;">
-                <div class="import-section-title">What happens on import</div>
-                <p class="workspace-panel-muted" style="margin-bottom:0;">GIS files become map layers with attributes. Existing projects keep their current layers and receive the imported layer. LalGeo project packages open as projects.</p>
-            </div>
-            <div id="layerImportStatus" class="workspace-validation" role="status">Choose a supported file to start.</div>
+            </details>
+            <div id="layerImportStatus" class="workspace-validation" role="status">Choose a file.</div>
             <div class="workspace-modal-actions">
                 <button id="layerImportCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
-                <button id="layerImportPickerBtn" type="button" class="workspace-primary-btn">Select files...</button>
+                <button id="layerImportPickerBtn" type="button" class="workspace-primary-btn">Choose File</button>
             </div>
         </div>
     </div>
@@ -6418,50 +6542,54 @@
     </div>
     <div id="workspaceCreateModal" class="workspace-modal-backdrop" hidden>
         <div class="workspace-modal">
-            <h3>Create Project</h3>
-            <p class="workspace-panel-muted">Start a new LalGeo project in the browser and open it directly in the editor.</p>
+            <h3>New Project</h3>
             <form id="createProjectForm" aria-describedby="createProjectHelp createProjectValidation">
                 <div class="workspace-form-grid">
                     <div class="workspace-field full">
-                        <label for="createProjectName">Project name</label>
+                        <label for="createProjectName">Name</label>
                         <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required aria-required="true" aria-label="Project name">
                     </div>
-                    <div class="workspace-field full">
-                        <label for="createProjectDescription">Description</label>
-                        <textarea id="createProjectDescription" class="workspace-textarea" placeholder="Optional project description" aria-label="Project description"></textarea>
-                    </div>
                     <div class="workspace-field">
-                        <label for="createProjectType">Base workspace type</label>
-                        <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type">
-                            <option value="Survey project">Survey project</option>
-                            <option value="GIS workspace">GIS workspace</option>
-                        </select>
-                    </div>
-                    <div class="workspace-field">
-                        <label for="createLayerName">Default layer name</label>
+                        <label for="createLayerName">First Layer</label>
                         <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required aria-required="true" aria-label="Default layer name">
                     </div>
                     <div class="workspace-field">
-                        <label for="createGeometryType">Geometry type</label>
+                        <label for="createGeometryType">Geometry</label>
                         <select id="createGeometryType" class="workspace-text-input" aria-label="Geometry type">
                             <option value="point">Point</option>
                             <option value="line">Line</option>
                             <option value="polygon">Polygon</option>
                         </select>
                     </div>
-                    <div class="workspace-field full">
-                        <label for="createStorageDestination">Storage destination</label>
-                        <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination">
-                            <option value="web">Web workspace</option>
-                            <option value="dropbox">Dropbox sync</option>
-                        </select>
-                    </div>
                 </div>
-                <div id="createProjectHelp" class="workspace-panel-muted">Project name is required. Shortcut: press <strong>N</strong> to add a layer when a project is open, or use this dialog to start a new project.</div>
+                <details class="workflow-disclosure">
+                    <summary>Options</summary>
+                    <div class="workflow-disclosure-content">
+                        <div class="workspace-field">
+                            <label for="createProjectDescription">Description</label>
+                            <textarea id="createProjectDescription" class="workspace-textarea" placeholder="Optional" aria-label="Project description"></textarea>
+                        </div>
+                        <div class="workspace-field">
+                            <label for="createProjectType">Workspace</label>
+                            <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type">
+                                <option value="Survey project">Survey</option>
+                                <option value="GIS workspace">GIS</option>
+                            </select>
+                        </div>
+                        <div class="workspace-field">
+                            <label for="createStorageDestination">Save To</label>
+                            <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination">
+                                <option value="web">This Browser</option>
+                                <option value="dropbox">Dropbox</option>
+                            </select>
+                        </div>
+                    </div>
+                </details>
+                <div id="createProjectHelp" class="sr-only">Enter a project name and first layer.</div>
                 <div id="createProjectValidation" class="workspace-validation" hidden>Enter a project name to continue.</div>
                 <div class="workspace-modal-actions">
                     <button id="createProjectCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
-                    <button id="createProjectSubmitBtn" type="submit" class="workspace-primary-btn" disabled>Create Project</button>
+                    <button id="createProjectSubmitBtn" type="submit" class="workspace-primary-btn" disabled>Create</button>
                 </div>
             </form>
         </div>
@@ -6552,7 +6680,7 @@
                 <button id="featureDrawerClose" type="button" class="feature-drawer-close" aria-label="Close feature details">×</button>
             </div>
         </div>
-        <div id="featureDrawerBody" class="feature-drawer-empty">Select a feature to edit attributes.</div>
+        <div id="featureDrawerBody" class="feature-drawer-body feature-drawer-empty">Select a feature to edit attributes.</div>
     </aside>
     <div id="layerActionModalBackdrop" class="layer-modal-backdrop" hidden>
         <div id="layerActionModal" class="layer-modal" role="dialog" aria-modal="true" aria-labelledby="layerActionModalTitle" aria-describedby="layerActionModalDescription">
@@ -6901,6 +7029,7 @@
         const menuHelpShortcutsBtn = document.getElementById("menuHelpShortcutsBtn");
         const mobileMenuPane = document.getElementById("mobileMenuPane");
         const mobileMenuPoisBtn = document.getElementById("mobileMenuPoisBtn");
+        const mobileMenuGroups = Array.from(document.querySelectorAll("#mobileMenuPane .mobile-menu-group"));
         const menuPaneEls = Array.from(document.querySelectorAll("[data-menu-pane]"));
         const dropboxUrlInput = document.getElementById("dropboxUrlInput");
         const dropboxLoadBtn = document.getElementById("dropboxLoadBtn");
@@ -7389,7 +7518,7 @@
             {
                 title: "Share, print, and export",
                 keywords: "share print pdf export copy link report package",
-                body: "Use File > Share Map to copy a share link, Export as PDF for a printable output, Print Map for browser printing, and Download LalGeo project package from the workspace panel to save a portable project archive."
+                body: "Use File > Share Link, Export Map, or Print. Open Projects > Share & Export to save a portable project file."
             },
             {
                 title: "Dropbox and Data Manager",
@@ -8490,6 +8619,9 @@
 
         function syncMobileMenuCommandStates() {
             if (!mobileMenuPane) return;
+            if (!mobileMenuGroups.some((group) => group.open) && mobileMenuGroups[0]) {
+                mobileMenuGroups[0].open = true;
+            }
             mobileMenuPane.querySelectorAll("[data-mobile-menu-target]").forEach((button) => {
                 const target = document.getElementById(button.dataset.mobileMenuTarget || "");
                 const disabled = !target || Boolean(target.disabled);
@@ -11118,15 +11250,14 @@
             }
             openLayerActionModal({
                 title: "New Layer",
-                description: "Create another editable layer in this project.",
                 bodyHtml: `
                     <div class="layer-modal-grid">
                         <div class="workspace-field full">
-                            <label for="layerModalName">Layer name</label>
+                            <label for="layerModalName">Name</label>
                             <input id="layerModalName" class="workspace-text-input" type="text" placeholder="Inspection points" autofocus>
                         </div>
                         <div class="workspace-field full">
-                            <label for="layerModalGeometry">Geometry type</label>
+                            <label for="layerModalGeometry">Geometry</label>
                             <select id="layerModalGeometry" class="workspace-text-input">
                                 <option value="point">Point</option>
                                 <option value="line">Line</option>
@@ -11139,7 +11270,7 @@
                 actions: [
                     { label: "Cancel" },
                     {
-                        label: "Create layer",
+                        label: "Add",
                         primary: true,
                         onClick: () => {
                             const nameInput = document.getElementById("layerModalName");
@@ -13326,6 +13457,14 @@
             event.stopPropagation();
             setToolbarMenuVisibility(false);
             target.click();
+        });
+        mobileMenuGroups.forEach((group) => {
+            group.addEventListener("toggle", () => {
+                if (!group.open) return;
+                mobileMenuGroups.forEach((otherGroup) => {
+                    if (otherGroup !== group) otherGroup.open = false;
+                });
+            });
         });
         closeDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
         menuAddNewBtn?.addEventListener("click", () => addSurveyPointBtn?.click());
@@ -18080,32 +18219,12 @@
             if (!coords.length) return [];
             let overlay = null;
             const overlayColor = getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color);
-            if (geometryType === "line") {
-                overlay = new mapkit.PolylineOverlay(coords, {
-                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
-                });
-            } else if (geometryType === "polygon") {
-                const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
-                const rings = getGeometryRingsCoordinates(feature).map((ring) => getClosedPolygonCoordinates(ring));
-                overlay = new mapkit.PolygonOverlay(rings.length ? rings : [getClosedPolygonCoordinates(coords)], {
-                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
-                });
-            }
-            if (overlay) {
-                surveyOverlays.push(overlay);
-                map.addOverlay(overlay);
-            }
-            const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
-            const repCoord = shouldShowMarker ? getFeatureRepresentativeCoordinate(feature) : null;
-            if (repCoord) {
-                const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
-                const marker = new mapkit.MarkerAnnotation(repCoord, {
-                    color: overlayColor,
-                    glyphText: geometryType === "line" ? "━" : "▣",
-                    title: markerTitle
-                });
-                marker.surveyPoint = {
-                    coordinate: repCoord,
+            const representativeCoordinate = getFeatureRepresentativeCoordinate(feature) || coords[0];
+            const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
+            const surveyFeatureAnnotation = {
+                coordinate: representativeCoordinate,
+                surveyPoint: {
+                    coordinate: representativeCoordinate,
                     attributes,
                     imageSrc,
                     title: markerTitle,
@@ -18114,7 +18233,37 @@
                     pointId: feature.id || null,
                     pointVersion: feature.version ?? 1,
                     geometryType
-                };
+                }
+            };
+            if (geometryType === "line") {
+                overlay = new mapkit.PolylineOverlay(coords, {
+                    enabled: true,
+                    data: { surveyFeatureAnnotation },
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
+                });
+            } else if (geometryType === "polygon") {
+                const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
+                const rings = getGeometryRingsCoordinates(feature).map((ring) => getClosedPolygonCoordinates(ring));
+                overlay = new mapkit.PolygonOverlay(rings.length ? rings : [getClosedPolygonCoordinates(coords)], {
+                    enabled: true,
+                    data: { surveyFeatureAnnotation },
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
+                });
+            }
+            if (overlay) {
+                surveyOverlays.push(overlay);
+                map.addOverlay(overlay);
+            }
+            const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
+            const repCoord = shouldShowMarker ? representativeCoordinate : null;
+            if (repCoord) {
+                const marker = new mapkit.MarkerAnnotation(repCoord, {
+                    color: overlayColor,
+                    glyphText: geometryType === "line" ? "━" : "▣",
+                    title: markerTitle
+                });
+                marker.surveyPoint = surveyFeatureAnnotation.surveyPoint;
+                if (overlay?.data) overlay.data.surveyFeatureAnnotation = marker;
                 surveyAnnotations.push(marker);
                 map.addAnnotation(marker);
                 if (interactive && Number.isInteger(rowIndex)) {
@@ -19682,7 +19831,7 @@ function setImportPanelVisibility(show) {
             toggleImportBtn?.classList.toggle("active", show);
             if (show) {
                 setToolbarMenuVisibility(true);
-                setProjectStatus("Choose a supported file to import.");
+                setProjectStatus("Choose a file to import.");
                 layerImportPickerBtn?.focus();
             }
         }
@@ -20093,6 +20242,9 @@ function setImportPanelVisibility(show) {
 
         function hideSurveyCallout() {
             surveyCallout.style.display = "none";
+            if (map?.selectedOverlay?.data?.surveyFeatureAnnotation) {
+                map.selectedOverlay = null;
+            }
             activeSurveyAnnotation = null;
             isCalloutEditing = false;
             activeFeatureId = null;
@@ -20302,9 +20454,13 @@ function setImportPanelVisibility(show) {
                 }
                 showSurveyCallout(event.annotation);
                 return;
-            } else {
-                hideSurveyCallout();
             }
+            const surveyFeatureAnnotation = event?.overlay?.data?.surveyFeatureAnnotation;
+            if (surveyFeatureAnnotation?.surveyPoint) {
+                showSurveyCallout(surveyFeatureAnnotation);
+                return;
+            }
+            hideSurveyCallout();
             if (!event || !event.overlay || event.overlay.routeIndex === undefined) return;
 
             const selectedIndex = event.overlay.routeIndex;

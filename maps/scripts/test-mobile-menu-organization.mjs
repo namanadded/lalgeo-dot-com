@@ -14,10 +14,21 @@ assert.ok(mobilePane, "Expected a dedicated unified mobile menu pane.");
 for (const heading of ["New", "Import", "Workspace", "Edit", "Map", "Share &amp; Export", "Settings &amp; Help"]) {
   assert.match(
     mobilePane,
-    new RegExp(`class="mobile-menu-heading">${heading}<\\/h3>`),
+    new RegExp(`class="mobile-menu-summary">${heading}<\\/summary>`),
     `Expected the mobile menu to include the ${heading} group.`,
   );
 }
+
+assert.match(
+  mobilePane,
+  /<details class="mobile-menu-group" name="mobile-menu-sections" open>/,
+  "New should be the single expanded section when the mobile menu first opens.",
+);
+assert.match(
+  mobilePane,
+  /<details class="mobile-menu-group" name="mobile-menu-sections">[\s\S]*?<summary class="mobile-menu-summary">Import<\/summary>/,
+  "Collapsed sections should use a shared exclusive disclosure group.",
+);
 
 const expectedTargets = [
   "newProjectBtn",
@@ -63,6 +74,16 @@ assert.match(
   legacyHtml,
   /mobileMenuPane\?\.addEventListener\("click"[\s\S]*?data-mobile-menu-target[\s\S]*?setToolbarMenuVisibility\(false\);[\s\S]*?target\.click\(\);/,
   "Mobile commands should delegate to the existing tested desktop actions.",
+);
+assert.match(
+  legacyHtml,
+  /mobileMenuGroups\.forEach\(\(group\)[\s\S]*?group\.addEventListener\("toggle"[\s\S]*?if \(!group\.open\) return;[\s\S]*?otherGroup\.open = false;/,
+  "Opening one mobile menu section should collapse every other section.",
+);
+assert.match(
+  legacyHtml,
+  /\.mobile-menu-summary\s*\{[\s\S]*?min-height:\s*50px;[\s\S]*?font-size:\s*15px;[\s\S]*?\.mobile-menu-group\[open\] > \.mobile-menu-summary/,
+  "Accordion headers should retain large Apple-like touch targets and a clear expanded state.",
 );
 assert.match(
   legacyHtml,
