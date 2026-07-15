@@ -77,8 +77,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*auto\s+minmax\(94px,\s*1fr\)\s+auto;/,
-  "Small-screen toolbar should reserve a visible middle track for the two-line project title.",
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*74px\s+minmax\(0,\s*1fr\)\s+44px;/,
+  "Small-screen toolbar should reserve the widest available middle track for the project title.",
 );
 assert.match(
   legacyHtml,
@@ -207,11 +207,31 @@ assert.match(
   /rightToolbarExpandBtn\.setAttribute\("aria-expanded",\s*expanded\s*\?\s*"true"\s*:\s*"false"\)/,
   "Right toolbar overflow handler must synchronize aria-expanded.",
 );
+assert.match(
+  legacyHtml,
+  /if \(!expanded\) setToolbarMenuVisibility\(false\);[\s\S]*?rightToolbarExpandBtn\?\.addEventListener\("click"[\s\S]*?setToolbarMenuVisibility\(false\);/,
+  "Closing Menu or opening Tools should dismiss an open desktop-style command tray on mobile.",
+);
 
 assert.match(
   legacyHtml,
-  /#leftToolbarExpand,\s*#rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
+  /#toolbar #leftToolbarExpand,\s*#toolbar #rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
   "Mobile toolbar overflow toggles must provide at least a 44px touch target.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar #leftToolbarExpand,\s*#toolbar #rightToolbarExpand\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*64px\);[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.84\);[\s\S]*?backdrop-filter:\s*blur\(22px\)\s+saturate\(150%\);/,
+  "Mobile menu and tools controls should float below the header using light glass styling.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-left\.expanded \.app-menubar\s*{[\s\S]*?position:\s*fixed;[\s\S]*?display:\s*flex\s*!important;[\s\S]*?overflow-x:\s*auto;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.9\);/,
+  "The mobile hamburger should reveal a scrollable Apple-like desktop menu strip.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-left\.expanded #openDataManagerBtn,[\s\S]*?#toolbar \.toolbar-left\.expanded #toolbarMenuBtn,[\s\S]*?display:\s*inline-flex\s*!important;/,
+  "The expanded mobile menu must expose File and Edit even when compact breakpoints normally hide them.",
 );
 assert.match(
   legacyHtml,

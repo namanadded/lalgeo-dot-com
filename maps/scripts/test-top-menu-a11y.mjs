@@ -73,4 +73,10 @@ assert.match(
   "Opening or switching top menus must refresh top menu aria-expanded states.",
 );
 
+assert.match(
+  legacyHtml,
+  /function positionToolbarMenu\(button\)[\s\S]*?matchMedia\("\(max-width: 600px\)"\)[\s\S]*?buttonRect\.bottom \+ 8[\s\S]*?return;/,
+  "Mobile File and Edit trays should open below the floating menu strip.",
+);
+
 console.log("Top menu accessibility checks passed.");
