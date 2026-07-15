@@ -4,7 +4,18 @@
 <base href="/">
 <meta charset="UTF-8">
 <title>LalGeo Maps</title>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<script>
+    const isMapGestureTarget = (target) => target instanceof Element && Boolean(target.closest("#map"));
+    const preventNonMapPinch = (event) => {
+        if (!isMapGestureTarget(event.target)) event.preventDefault();
+    };
+    document.addEventListener("gesturestart", preventNonMapPinch, { passive: false });
+    document.addEventListener("gesturechange", preventNonMapPinch, { passive: false });
+    document.addEventListener("touchmove", (event) => {
+        if (event.touches.length > 1) preventNonMapPinch(event);
+    }, { passive: false });
+</script>
 <script>
     window.lalgeoMapkitToken = window.location.hostname.includes("lalgeo.ca")
         ? "eyJraWQiOiJaNTM3TTc2Qk1RIiwidHlwIjoiSldUIiwiYWxnIjoiRVMyNTYifQ.eyJpc3MiOiJKOTU2Mkw2TFE2IiwiaWF0IjoxNzQ3MDk1MzUwLCJvcmlnaW4iOiJsYWxnZW8uY2EifQ.lFsIe9182uBOQ_q2hW1JspNpieuttywt7TgL7GzzcOOCqTDi32Fd59waM4wZnUqys0xLt3Bh_hpK-OHZH6ocoA"
