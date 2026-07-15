@@ -89,8 +89,8 @@ assert.match(
 assertAttribute(
   leftToggle,
   "aria-controls",
-  "toolbarMenuCommands",
-  "Left toolbar overflow toggle must identify the menu commands it expands.",
+  "toolbarMenuCommands mobileMenuPane",
+  "Menu toggle must identify both its desktop command strip and unified mobile pane.",
 );
 assertAttribute(
   leftToggle,
@@ -225,13 +225,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /#toolbar \.toolbar-left\.expanded \.app-menubar\s*{[\s\S]*?position:\s*fixed;[\s\S]*?display:\s*flex\s*!important;[\s\S]*?overflow-x:\s*auto;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.9\);/,
-  "The mobile hamburger should reveal a scrollable Apple-like desktop menu strip.",
+  /#toolbar \.toolbar-left \.app-menubar\s*{\s*display:\s*none\s*!important;/,
+  "The mobile hamburger should remove the redundant desktop category strip.",
 );
 assert.match(
   legacyHtml,
-  /#toolbar \.toolbar-left\.expanded #openDataManagerBtn,[\s\S]*?#toolbar \.toolbar-left\.expanded #toolbarMenuBtn,[\s\S]*?display:\s*inline-flex\s*!important;/,
-  "The expanded mobile menu must expose File and Edit even when compact breakpoints normally hide them.",
+  /matchMedia\("\(max-width: 600px\)"\)[\s\S]*?toolbarMenuKey === "mobile"[\s\S]*?openToolbarMenu\("mobile", leftToolbarExpandBtn\)/,
+  "The mobile hamburger should open the unified command pane directly.",
 );
 assert.match(
   legacyHtml,

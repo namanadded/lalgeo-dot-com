@@ -76,7 +76,7 @@ assert.match(
 assert.match(
   legacyHtml,
   /function positionToolbarMenu\(button\)[\s\S]*?matchMedia\("\(max-width: 600px\)"\)[\s\S]*?buttonRect\.bottom \+ 8[\s\S]*?return;/,
-  "Mobile File and Edit trays should open below the floating menu strip.",
+  "The unified mobile command tray should open below the floating hamburger.",
 );
 
 console.log("Top menu accessibility checks passed.");
