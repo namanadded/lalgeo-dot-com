@@ -37,8 +37,18 @@ const projectTitleBlock = legacyHtml.match(
 assert.ok(projectTitleBlock, "Toolbar must include the current project title block.");
 assert.match(
   projectTitleBlock,
-  /<span id="toolbarProjectMeta">Project<\/span>\s*<strong id="toolbarProjectName">No Project Open<\/strong>/,
-  "Toolbar project title must render a small Project caption above the project name.",
+  /<span id="toolbarProjectMeta">Project<\/span>[\s\S]*?<div class="toolbar-project-title-row">[\s\S]*?<strong id="toolbarProjectName">No Project Open<\/strong>[\s\S]*?id="renameProjectBtn"[\s\S]*?aria-label="Rename project"[\s\S]*?hidden/,
+  "Toolbar project title must render a small Project caption and a hidden-by-default rename control.",
+);
+assert.match(
+  legacyHtml,
+  /renameProjectBtn\.hidden\s*=\s*!hasProject;[\s\S]*?renameProjectBtn\.disabled\s*=\s*!hasProject;/,
+  "Project rename control should appear only when a project is open.",
+);
+assert.match(
+  legacyHtml,
+  /function openRenameProjectModal\(\)[\s\S]*?title:\s*"Rename project"[\s\S]*?id="projectRenameInput"[\s\S]*?activeProjectRecord\.name\s*=\s*nextName;[\s\S]*?activeProjectName\s*=\s*nextName;[\s\S]*?markActiveProjectUpdated\(\);/,
+  "Rename control should validate and persist the updated active project name.",
 );
 assert.match(
   legacyHtml,
@@ -250,8 +260,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;/,
-  "Expanded mobile tools must stay within the safe viewport and scroll instead of being clipped off-screen.",
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;[\s\S]*?z-index:\s*1270;/,
+  "Expanded mobile tools must open in a separate safe-area row below the floating controls and scroll instead of being clipped.",
 );
 assert.doesNotMatch(
   legacyHtml,
