@@ -5922,6 +5922,55 @@
     #dataCatalogPane .data-pane-table tbody tr.active {
         background: #f3f4f6;
     }
+    #toolbar .toolbar-project-title-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        width: 100%;
+        min-width: 0;
+    }
+    #toolbar .toolbar-project-title-row strong {
+        flex: 0 1 auto;
+        width: auto;
+        min-width: 0;
+    }
+    #toolbar .toolbar-project-rename {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 24px;
+        width: 24px;
+        height: 24px;
+        padding: 0;
+        border: 0;
+        border-radius: 7px;
+        color: #6b7280;
+        background: transparent;
+        cursor: pointer;
+        transition: background-color 120ms ease, color 120ms ease, transform 120ms ease;
+    }
+    #toolbar .toolbar-project-rename[hidden] {
+        display: none;
+    }
+    #toolbar .toolbar-project-rename:hover,
+    #toolbar .toolbar-project-rename:focus-visible {
+        color: #374151;
+        background: rgba(107, 114, 128, 0.1);
+        outline: none;
+    }
+    #toolbar .toolbar-project-rename:active {
+        transform: scale(0.94);
+    }
+    #toolbar .toolbar-project-rename svg {
+        width: 14px;
+        height: 14px;
+        fill: none;
+        stroke: currentColor;
+        stroke-width: 2;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+    }
 
 </style>
     </head>
@@ -5950,7 +5999,16 @@
         <div class="toolbar-center">
             <div class="toolbar-project-mini" aria-label="Current project">
                 <span id="toolbarProjectMeta">Project</span>
-                <strong id="toolbarProjectName">No Project Open</strong>
+                <div class="toolbar-project-title-row">
+                    <strong id="toolbarProjectName">No Project Open</strong>
+                    <button id="renameProjectBtn" type="button" class="toolbar-project-rename" aria-label="Rename project" title="Rename project" hidden>
+                        <svg viewBox="0 0 24 24" aria-hidden="true">
+                            <path d="M4 20h4"></path>
+                            <path d="M14.5 4.5l5 5"></path>
+                            <path d="M18 2.8a2.1 2.1 0 0 1 3 3L8 18.8 4 20l1.2-4L18 2.8z"></path>
+                        </svg>
+                    </button>
+                </div>
             </div>
         </div>
         <div class="toolbar-right">
@@ -6898,6 +6956,7 @@
         const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
+        const renameProjectBtn = document.getElementById("renameProjectBtn");
         const toolbarSearchShell = document.getElementById("toolbarSearchShell");
         const collapseSearchBtn = document.getElementById("collapseSearchBtn");
         const measureToolBtn = document.getElementById("measureToolBtn");
@@ -9383,6 +9442,10 @@
             }
             if (toolbarProjectMeta) {
                 toolbarProjectMeta.textContent = "Project";
+            }
+            if (renameProjectBtn) {
+                renameProjectBtn.hidden = !hasProject;
+                renameProjectBtn.disabled = !hasProject;
             }
             if (workspacePanelProjectName) workspacePanelProjectName.textContent = hasProject ? activeProjectRecord.name : "No project open";
             if (workspacePanelProjectType) workspacePanelProjectType.textContent = `Type: ${hasProject ? activeProjectRecord.type : "-"}`;
@@ -13265,6 +13328,64 @@
                 actions: [{ label: "Close", primary: true }]
             });
         }
+
+        function openRenameProjectModal() {
+            if (!activeProjectRecord) return;
+            const currentName = String(activeProjectRecord.name || "").trim();
+            openLayerActionModal({
+                title: "Rename project",
+                description: "Choose a short, recognizable project name.",
+                bodyHtml: `
+                    <div class="workspace-field full">
+                        <label for="projectRenameInput">Project name</label>
+                        <input id="projectRenameInput" class="workspace-text-input" type="text" maxlength="120" value="${escapeHtml(currentName)}" autocomplete="off" autofocus>
+                        <p id="projectRenameError" class="workspace-validation" hidden>Enter a project name.</p>
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: "Rename",
+                        primary: true,
+                        onClick: () => {
+                            const input = layerActionModalBody.querySelector("#projectRenameInput");
+                            const error = layerActionModalBody.querySelector("#projectRenameError");
+                            const nextName = input?.value?.trim() || "";
+                            if (!nextName) {
+                                if (error) error.hidden = false;
+                                input?.setAttribute("aria-invalid", "true");
+                                input?.focus();
+                                return false;
+                            }
+                            if (nextName === activeProjectRecord.name) return true;
+                            activeProjectRecord.name = nextName;
+                            activeProjectName = nextName;
+                            markActiveProjectUpdated();
+                            scheduleLocalAutosave();
+                            setProjectStatus(`Project renamed to ${nextName}.`, "success");
+                            return true;
+                        }
+                    }
+                ],
+                onOpen: () => {
+                    const input = layerActionModalBody.querySelector("#projectRenameInput");
+                    const error = layerActionModalBody.querySelector("#projectRenameError");
+                    const renameButton = layerActionModalActions.querySelector('[data-layer-action-modal="1"]');
+                    const validate = () => {
+                        const valid = Boolean(input?.value?.trim());
+                        if (renameButton) renameButton.disabled = !valid;
+                        input?.setAttribute("aria-invalid", valid ? "false" : "true");
+                        if (error) error.hidden = valid;
+                    };
+                    input?.addEventListener("input", validate);
+                    input?.select();
+                    validate();
+                },
+                returnFocusTo: renameProjectBtn
+            });
+        }
+
+        renameProjectBtn?.addEventListener("click", openRenameProjectModal);
 
         layerActionModalClose?.addEventListener("click", closeLayerActionModal);
         layerActionModalBackdrop?.addEventListener("click", (event) => {

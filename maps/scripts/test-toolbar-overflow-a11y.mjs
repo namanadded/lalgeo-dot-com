@@ -37,8 +37,18 @@ const projectTitleBlock = legacyHtml.match(
 assert.ok(projectTitleBlock, "Toolbar must include the current project title block.");
 assert.match(
   projectTitleBlock,
-  /<span id="toolbarProjectMeta">Project<\/span>\s*<strong id="toolbarProjectName">No Project Open<\/strong>/,
-  "Toolbar project title must render a small Project caption above the project name.",
+  /<span id="toolbarProjectMeta">Project<\/span>[\s\S]*?<div class="toolbar-project-title-row">[\s\S]*?<strong id="toolbarProjectName">No Project Open<\/strong>[\s\S]*?id="renameProjectBtn"[\s\S]*?aria-label="Rename project"[\s\S]*?hidden/,
+  "Toolbar project title must render a small Project caption and a hidden-by-default rename control.",
+);
+assert.match(
+  legacyHtml,
+  /renameProjectBtn\.hidden\s*=\s*!hasProject;[\s\S]*?renameProjectBtn\.disabled\s*=\s*!hasProject;/,
+  "Project rename control should appear only when a project is open.",
+);
+assert.match(
+  legacyHtml,
+  /function openRenameProjectModal\(\)[\s\S]*?title:\s*"Rename project"[\s\S]*?id="projectRenameInput"[\s\S]*?activeProjectRecord\.name\s*=\s*nextName;[\s\S]*?activeProjectName\s*=\s*nextName;[\s\S]*?markActiveProjectUpdated\(\);/,
+  "Rename control should validate and persist the updated active project name.",
 );
 assert.match(
   legacyHtml,
