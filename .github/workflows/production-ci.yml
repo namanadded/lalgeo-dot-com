@@ -78,6 +78,10 @@ jobs:
         working-directory: maps
         run: npm run test:feature-selection-highlight
 
+      - name: Check maps tool panel region accessibility
+        working-directory: maps
+        run: npm run test:tool-panel-regions
+
       - name: Check maps top menu accessibility
         working-directory: maps
         run: npm run test:top-menu-a11y
