@@ -13,6 +13,7 @@
     "test:quick-actions-a11y": "node scripts/test-quick-actions-a11y.mjs",
     "test:empty-dropbox-flow": "node scripts/test-empty-dropbox-flow.mjs",
     "test:panel-toggle-a11y": "node scripts/test-panel-toggle-a11y.mjs",
+    "test:feature-selection-highlight": "node scripts/test-feature-selection-highlight.mjs",
     "test:top-menu-a11y": "node scripts/test-top-menu-a11y.mjs",
     "test:toolbar-architecture": "node scripts/test-toolbar-architecture.mjs",
     "test:toolbar-overflow-a11y": "node scripts/test-toolbar-overflow-a11y.mjs",
