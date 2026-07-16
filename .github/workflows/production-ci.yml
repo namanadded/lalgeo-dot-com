@@ -74,6 +74,10 @@ jobs:
         working-directory: maps
         run: npm run test:panel-toggle-a11y
 
+      - name: Check maps tool panel region accessibility
+        working-directory: maps
+        run: npm run test:tool-panel-regions
+
       - name: Check maps top menu accessibility
         working-directory: maps
         run: npm run test:top-menu-a11y
