@@ -10843,6 +10843,40 @@
             }
         }
 
+        function updateSurveyOverlayVisualState(overlay) {
+            const surveyPoint = overlay?.data?.surveyFeatureAnnotation?.surveyPoint;
+            if (!surveyPoint) return;
+            const featureId = surveyPoint.pointId || surveyPoint.rowIndex;
+            const rowIndex = surveyPoint.rowIndex;
+            const isTableSelected = Number.isInteger(rowIndex) && selectedTableRows.has(rowIndex);
+            const isSelected = isTableSelected || featureId === activeFeatureId;
+            const layer = getLayerById(surveyPoint.layerId) || getActiveLayerRecord();
+            const attributes = surveyPoint.attributes || {};
+            const baseColor = getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color);
+            const geometryType = normalizeLayerGeometryType(surveyPoint.geometryType || layer?.geometryType);
+            const selectionColor = "#00a99d";
+
+            if (geometryType === "line") {
+                overlay.style = new mapkit.Style({
+                    lineWidth: isSelected ? 9 : 4,
+                    strokeColor: isSelected ? selectionColor : baseColor,
+                    lineCap: "round",
+                    lineJoin: "round"
+                });
+                return;
+            }
+
+            if (geometryType === "polygon") {
+                const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
+                overlay.style = new mapkit.Style({
+                    lineWidth: isSelected ? 8 : 4,
+                    strokeColor: isSelected ? selectionColor : baseColor,
+                    fillColor: isSelected ? selectionColor : baseColor,
+                    fillOpacity: isSelected ? Math.max(fillOpacity, 0.35) : fillOpacity
+                });
+            }
+        }
+
         function setPointGeometryEditMode(active) {
             pointGeometryEditMode = Boolean(active);
             document.body.classList.toggle("point-geometry-editing", pointGeometryEditMode);
@@ -11041,6 +11075,7 @@
 
         function refreshAnnotationStyles() {
             surveyAnnotations.forEach(updateAnnotationVisualState);
+            surveyOverlays.forEach(updateSurveyOverlayVisualState);
         }
 
         function closeFeatureDrawer({ clearSelection = false } = {}) {
@@ -18412,6 +18447,7 @@
             if (overlay) {
                 surveyOverlays.push(overlay);
                 map.addOverlay(overlay);
+                updateSurveyOverlayVisualState(overlay);
             }
             const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
             const repCoord = shouldShowMarker ? representativeCoordinate : null;
