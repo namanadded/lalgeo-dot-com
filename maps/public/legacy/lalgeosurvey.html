@@ -16741,8 +16741,18 @@
             dropboxConnectStatus.textContent = "Checking Dropbox connection…";
             try {
                 const response = await fetch(`${WORKER_BASE}/api/surveys/list`, { credentials: "include" });
+                if (response.status === 401) {
+                    currentDropboxProjects = [];
+                    selectedDropboxProjectPath = null;
+                    dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
+                    dropboxConnectStatus.textContent = "Dropbox not connected.";
+                    renderDropboxCatalogPane();
+                    showDropboxDisconnectedState();
+                    logWorkspaceDebug("dropboxList", { connected: false, reason: "authentication-required" });
+                    return false;
+                }
                 if (!response.ok) {
-                    throw new Error(response.status === 401 ? "Connect your Dropbox account to list files." : "Unable to list Dropbox files.");
+                    throw new Error("Unable to list Dropbox files.");
                 }
                 const data = await response.json();
                 currentDropboxCursor = data.cursor || null;
@@ -16777,9 +16787,6 @@
                 dropboxConnectStatus.textContent = error.message;
                 renderDropboxCatalogPane();
                 console.error(error);
-                if (error.message && error.message.includes("Connect your Dropbox account")) {
-                    showDropboxDisconnectedState();
-                }
                 return false;
             }
         }
