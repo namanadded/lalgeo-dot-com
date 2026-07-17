@@ -17,6 +17,14 @@ function expectAttribute(tag, attr, value, message) {
 
 const measureButton = getTagById("measureToolBtn");
 const advancedGisButton = getTagById("advancedGisBtn");
+const panelCloseButtonIds = [
+  "measurementCloseBtn",
+  "advancedGisCloseBtn",
+  "editPanelCloseBtn",
+  "layerToolsCloseBtn",
+  "closeSidebar",
+  "toolbarMenuTrayCloseBtn",
+];
 
 expectAttribute(
   measureButton,
@@ -67,12 +75,30 @@ if (
   failures.push("Advanced GIS panel must open below mobile floating controls and remain within safe viewport bounds.");
 }
 
-if (
-  !/function\s+setAdvancedGisVisible\s*\(\s*show\s*\)\s*{[\s\S]*?show\s*&&\s*window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?rightToolbarExpandBtn\?\.closest\("\.toolbar-right"\)\?\.classList\.remove\("expanded"\);[\s\S]*?rightToolbarExpandBtn\?\.setAttribute\("aria-expanded",\s*"false"\);/.test(
-    html,
-  )
-) {
-  failures.push("Opening Advanced GIS on mobile must collapse the expanded tools tray.");
+if (!/function\s+collapseMobileToolsTray\s*\(\s*\)\s*{[\s\S]*?rightToolbarExpandBtn\?\.closest\("\.toolbar-right"\)\?\.classList\.remove\("expanded"\);[\s\S]*?rightToolbarExpandBtn\?\.setAttribute\("aria-expanded",\s*"false"\);/.test(html)) {
+  failures.push("Mobile tool surfaces must share a tools-tray collapse helper.");
+}
+
+for (const id of panelCloseButtonIds) {
+  const closeButton = getTagById(id);
+  if (!/aria-label="Close [^"]+"/.test(closeButton)) {
+    failures.push(`${id} must expose a clear Close label.`);
+  }
+}
+
+if (!/#measurementCloseBtn,[\s\S]*?#advancedGisCloseBtn,[\s\S]*?#editPanelCloseBtn,[\s\S]*?#layerToolsCloseBtn,[\s\S]*?#closeSidebar,[\s\S]*?#toolbarMenuTrayCloseBtn\s*{[\s\S]*?width:\s*32px;[\s\S]*?height:\s*32px;[\s\S]*?border-radius:\s*999px;/.test(html)) {
+  failures.push("Mobile tool surfaces must use the same close-button treatment.");
+}
+
+for (const [surface, opener, guard] of [
+  ["edit", "setEditPanelVisibility", "show"],
+  ["layer", "setLayerToolsVisibility", "show"],
+  ["sidebar", "setSidebarVisibility", "show"],
+  ["gis", "setAdvancedGisVisible", "show"],
+  ["measurement", "setMeasurementActive", "active"],
+]) {
+  const pattern = new RegExp(`function\\s+${opener}\\s*\\([^)]*\\)\\s*{[\\s\\S]*?if \\(${guard}\\) prepareMobileToolSurface\\("${surface}"\\)`);
+  if (!pattern.test(html)) failures.push(`${opener} must prepare the shared mobile ${surface} surface.`);
 }
 
 if (failures.length) {

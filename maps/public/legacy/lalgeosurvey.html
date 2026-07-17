@@ -2210,6 +2210,9 @@
     #toolbarMenuTray[hidden] {
         display: none;
     }
+    .toolbar-menu-tray-close {
+        display: none;
+    }
     #settingsPanel {
         position: absolute;
         top: 44px;
@@ -4921,13 +4924,16 @@
         }
 
         #toolbarMenuTray {
-            top: 58px;
-            left: 12px;
-            right: 12px;
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 116px) !important;
+            left: max(10px, env(safe-area-inset-left, 0px)) !important;
+            right: max(10px, env(safe-area-inset-right, 0px)) !important;
             min-width: 0;
             max-width: none;
             z-index: 1595;
-            max-height: min(70dvh, calc(100dvh - 132px));
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 128px);
+            box-sizing: border-box;
+            padding: 52px 12px 12px;
             overflow-x: hidden;
             overflow-y: auto;
             overscroll-behavior: contain;
@@ -4937,6 +4943,15 @@
             box-shadow: 0 18px 44px rgba(15, 23, 42, 0.16);
             backdrop-filter: blur(26px) saturate(160%);
             -webkit-backdrop-filter: blur(26px) saturate(160%);
+        }
+
+        .toolbar-menu-tray-close {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
         }
 
         #settingsPanel {
@@ -5074,11 +5089,12 @@
             grid-template-columns: 1fr;
         }
         #sidebar {
+            position: fixed;
             width: auto;
-            max-height: min(440px, calc(100dvh - 84px));
-            left: 8px;
-            right: 8px;
-            top: 64px;
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 128px);
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            top: calc(env(safe-area-inset-top, 0px) + 116px);
             bottom: auto;
             padding: 14px;
             border-radius: 18px;
@@ -5229,9 +5245,84 @@
             box-shadow: 0 7px 20px rgba(15, 23, 42, 0.11), inset 0 1px 0 rgba(255, 255, 255, 0.72);
         }
         .floating-toolbar {
-            top: 88px;
-            right: 10px;
-            max-width: calc(100vw - 20px);
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 116px) !important;
+            left: max(10px, env(safe-area-inset-left, 0px)) !important;
+            right: max(10px, env(safe-area-inset-right, 0px)) !important;
+            width: auto !important;
+            max-width: none;
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 128px);
+            box-sizing: border-box;
+            flex-direction: column;
+            align-items: stretch;
+            transform: none !important;
+            overflow: hidden;
+        }
+        .floating-toolbar .edit-panel-header {
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: space-between;
+            padding: 8px 8px 8px 12px;
+            border-right: 0;
+            border-bottom: 1px solid #e5e7eb;
+            border-radius: 18px 18px 0 0;
+            cursor: default;
+        }
+        .floating-toolbar .edit-panel-title {
+            width: auto;
+            height: auto;
+            text-indent: 0;
+            overflow: visible;
+            font-size: 13px;
+            font-weight: 800;
+            color: #374151;
+        }
+        .floating-toolbar .edit-panel-title::before {
+            display: none;
+        }
+        .floating-toolbar .edit-panel-body {
+            width: 100%;
+            box-sizing: border-box;
+            justify-content: flex-start;
+            overflow-x: auto;
+            overflow-y: hidden;
+            -webkit-overflow-scrolling: touch;
+        }
+        #editPanelPinBtn,
+        #layerToolsPinBtn {
+            display: none;
+        }
+        .measurement-panel,
+        .advanced-gis-panel {
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 116px);
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            width: auto;
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 128px);
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        #measurementCloseBtn,
+        #advancedGisCloseBtn,
+        #editPanelCloseBtn,
+        #layerToolsCloseBtn,
+        #closeSidebar,
+        #toolbarMenuTrayCloseBtn {
+            flex: 0 0 32px;
+            width: 32px;
+            height: 32px;
+            min-width: 32px;
+            min-height: 32px;
+            padding: 0;
+            border: 1px solid rgba(203, 213, 225, 0.72);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.92);
+            color: #6b7280;
+            font-size: 18px;
+            font-weight: 500;
+            line-height: 1;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
         }
     }
 
@@ -6273,6 +6364,7 @@
         </div>
     </div>
     <div id="toolbarMenuTray" hidden>
+        <button id="toolbarMenuTrayCloseBtn" type="button" class="toolbar-menu-tray-close" aria-label="Close menu">×</button>
         <div id="mobileMenuPane" class="menu-dropdown-section mobile-menu-pane" data-menu-pane="mobile" aria-label="Main menu" hidden>
             <details class="mobile-menu-group" name="mobile-menu-sections" open>
                 <summary class="mobile-menu-summary">New</summary>
@@ -6948,8 +7040,10 @@
         const sidebarToggleBtn = document.getElementById("sidebarToggleBtn");
         const leftToolbarExpandBtn = document.getElementById("leftToolbarExpand");
         const rightToolbarExpandBtn = document.getElementById("rightToolbarExpand");
+        const quickActionBar = document.getElementById("quickActionBar");
         const toolbarMenuBtn = document.getElementById("toolbarMenuBtn");
         const toolbarMenuTray = document.getElementById("toolbarMenuTray");
+        const toolbarMenuTrayCloseBtn = document.getElementById("toolbarMenuTrayCloseBtn");
         const openDataManagerBtn = document.getElementById("openDataManagerBtn");
         const settingsBtn = document.getElementById("settingsBtn");
         const historyMenuBtn = document.getElementById("historyMenuBtn");
@@ -8760,6 +8854,7 @@
         }
 
         function openToolbarMenu(menuKey, button = null) {
+            prepareMobileToolSurface("menu");
             toolbarMenuKey = menuKey;
             toolbarMenuVisible = true;
             if (toolbarMenuTray) toolbarMenuTray.hidden = false;
@@ -9867,6 +9962,7 @@
 
         function setEditPanelVisibility(show, { layerId = null } = {}) {
             if (!editFloatingPanel) return;
+            if (show) prepareMobileToolSurface("edit");
             if (show && !activeProjectRecord) {
                 setProjectStatus("Create or open a project before editing.", "error");
                 openCreateProjectModal();
@@ -9902,6 +9998,7 @@
 
         function setLayerToolsVisibility(show, { layerId = null } = {}) {
             if (!layerToolsPanel) return;
+            if (show) prepareMobileToolSurface("layer");
             if (show && !activeProjectRecord) {
                 setProjectStatus("Create or open a project before using layer tools.", "error");
                 openCreateProjectModal();
@@ -10460,6 +10557,7 @@
         }
 
         function setSidebarVisibility(show) {
+            if (show) prepareMobileToolSurface("sidebar");
             const persistent = window.innerWidth > 980;
             sidebarVisible = Boolean(show);
             if (sidebar) {
@@ -12084,13 +12182,32 @@
             setProjectStatus("Project package downloaded.", "success");
         }
 
+        function collapseMobileToolsTray() {
+            if (!window.matchMedia("(max-width: 600px)").matches) return;
+            rightToolbarExpandBtn?.closest(".toolbar-right")?.classList.remove("expanded");
+            rightToolbarExpandBtn?.classList.remove("active");
+            rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
+        }
+
+        function prepareMobileToolSurface(surface) {
+            if (!window.matchMedia("(max-width: 600px)").matches) return;
+            collapseMobileToolsTray();
+            if (surface !== "menu" && toolbarMenuVisible) setToolbarMenuVisibility(false);
+            if (surface !== "sidebar" && sidebarVisible) setSidebarVisibility(false);
+            if (surface !== "measurement" && measurementActive) setMeasurementActive(false);
+            if (surface !== "gis" && advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+            if (surface !== "edit" && editFloatingPanel?.hidden === false) {
+                setEditSessionActive(false);
+                window.clearTimeout(editPanelVisibilityTimer);
+                editFloatingPanel.hidden = true;
+                editFloatingPanel.classList.remove("toolbar-visible", "toolbar-dismissing");
+            }
+            if (surface !== "layer" && layerToolsPanel?.hidden === false) setLayerToolsVisibility(false);
+        }
+
         function setAdvancedGisVisible(show) {
             if (!advancedGisPanel) return;
-            if (show && window.matchMedia("(max-width: 600px)").matches) {
-                rightToolbarExpandBtn?.closest(".toolbar-right")?.classList.remove("expanded");
-                rightToolbarExpandBtn?.classList.remove("active");
-                rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
-            }
+            if (show) prepareMobileToolSurface("gis");
             advancedGisPanel.hidden = !show;
             advancedGisBtn?.classList.toggle("active", Boolean(show));
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
@@ -13693,6 +13810,7 @@
         layersMapBtn?.addEventListener("click", toggleLayersPanel);
         toolbarLayersBtn?.addEventListener("click", toggleLayersPanel);
         toolbarBasemapBtn?.addEventListener("click", openBasemapControls);
+        toolbarMenuTrayCloseBtn?.addEventListener("click", () => setToolbarMenuVisibility(false));
         toolbarMenuTray?.addEventListener("click", (event) => {
             if (event.target.closest("#menuToolbarsBtn")) {
                 event.preventDefault();
@@ -13858,6 +13976,9 @@
             group?.classList.toggle("expanded", expanded);
             rightToolbarExpandBtn.classList.toggle("active", expanded);
             rightToolbarExpandBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+        });
+        quickActionBar?.addEventListener("click", (event) => {
+            if (event.target.closest(".quick-action")) collapseMobileToolsTray();
         });
         editPanelToggleBtn?.addEventListener("click", (event) => {
             event.preventDefault();
@@ -16264,6 +16385,7 @@
         }
 
         function setMeasurementActive(active) {
+            if (active) prepareMobileToolSurface("measurement");
             measurementActive = Boolean(active);
             if (measurementActive) {
                 if (isAddingSurveyPoint) exitAddSurveyPointMode();
