@@ -82,6 +82,10 @@ jobs:
         working-directory: maps
         run: npm run test:tool-panel-regions
 
+      - name: Check mobile project onboarding
+        working-directory: maps
+        run: npm run test:mobile-project-onboarding
+
       - name: Check maps top menu accessibility
         working-directory: maps
         run: npm run test:top-menu-a11y
