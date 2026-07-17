@@ -8129,6 +8129,13 @@
             return { type: "Polygon", rings: [vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng }))] };
         }
 
+        function createPolygonGeometryFromRings(rings = []) {
+            return {
+                type: "Polygon",
+                rings: rings.map((ring) => ring.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })))
+            };
+        }
+
         function getFeatureRepresentativeCoordinate(feature) {
             const geometry = feature?.geometry;
             if (!geometry) return null;
@@ -17498,6 +17505,35 @@
             return Math.abs(area / 2);
         }
 
+        function verticesFromGeoJsonRing(coordinates, ringLabel = "polygon ring") {
+            if (!Array.isArray(coordinates)) {
+                throw new Error(`${ringLabel} is missing coordinates.`);
+            }
+            const vertices = coordinates.map(coordinatePairToVertex);
+            if (vertices.some((vertex) => !vertex)) {
+                throw new Error(`${ringLabel} contains an invalid longitude or latitude.`);
+            }
+            if (vertices.length > 1 && coordinatesAreEqual(vertices[0], vertices[vertices.length - 1])) {
+                vertices.pop();
+            }
+            const uniqueVertices = new Set(vertices.map((vertex) => `${vertex.lng},${vertex.lat}`));
+            if (vertices.length < 3 || uniqueVertices.size < 3) {
+                throw new Error(`${ringLabel} needs at least three distinct coordinate pairs.`);
+            }
+            return vertices;
+        }
+
+        function polygonGeometryFromGeoJsonCoordinates(coordinates, polygonLabel = "Polygon") {
+            if (!Array.isArray(coordinates) || !coordinates.length) {
+                throw new Error(`${polygonLabel} is missing an outer ring.`);
+            }
+            const rings = coordinates.map((ring, index) => verticesFromGeoJsonRing(
+                ring,
+                index === 0 ? `${polygonLabel} outer ring` : `${polygonLabel} hole ${index}`
+            ));
+            return createPolygonGeometryFromRings(rings);
+        }
+
         function geometryPartsFromGeoJson(geometry) {
             if (!geometry) return [];
             if (geometry.type === "GeometryCollection") {
@@ -17524,19 +17560,22 @@
                 });
             }
             if (geometry.type === "Polygon") {
-                const vertices = ((geometry.coordinates || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
-                const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
-                return ring.length >= 3 ? [{ geometryType: "polygon", geometry: createPolygonGeometry(ring) }] : [];
+                return [{
+                    geometryType: "polygon",
+                    geometry: polygonGeometryFromGeoJsonCoordinates(geometry.coordinates)
+                }];
             }
             if (geometry.type === "MultiPolygon") {
-                const parts = (geometry.coordinates || []).flatMap((polygon) => {
-                    const vertices = ((polygon || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
-                    const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
-                    return ring.length >= 3 ? [{
+                if (!Array.isArray(geometry.coordinates) || !geometry.coordinates.length) {
+                    throw new Error("MultiPolygon does not contain any polygons.");
+                }
+                const parts = geometry.coordinates.map((polygon, polygonIndex) => {
+                    const polygonGeometry = polygonGeometryFromGeoJsonCoordinates(polygon, `MultiPolygon part ${polygonIndex + 1}`);
+                    return {
                         geometryType: "polygon",
-                        geometry: createPolygonGeometry(ring),
-                        representativeArea: getRingArea(ring)
-                    }] : [];
+                        geometry: polygonGeometry,
+                        representativeArea: getRingArea(polygonGeometry.rings[0])
+                    };
                 });
                 let representativeIndex = 0;
                 parts.forEach((part, index) => {
@@ -17565,7 +17604,12 @@
             });
             const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
             const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker }, index) => {
-                const attributes = Object.fromEntries(schema.map((field) => [field.name, properties[field.name] ?? ""]));
+                const attributes = Object.fromEntries(schema.map((field) => [
+                    field.name,
+                    Object.prototype.hasOwnProperty.call(properties, field.name) && properties[field.name] !== undefined
+                        ? properties[field.name]
+                        : ""
+                ]));
                 attributes.ID = attributes.ID || generateSurveyPointId();
                 attributes.Date = attributes.Date || new Date().toISOString();
                 attributes.TimeZone = attributes.TimeZone || getProjectTimeZone();
@@ -17602,15 +17646,26 @@
         function buildGeoJsonPayload(input, { projectName = "Imported GIS Project", fileName = "", format = "GeoJSON" } = {}) {
             const collection = normalizeFeatureCollection(input);
             const grouped = { point: [], line: [], polygon: [] };
-            collection.features.forEach((feature) => {
+            collection.features.forEach((feature, featureIndex) => {
                 const properties = { ...(feature.properties || {}) };
-                geometryPartsFromGeoJson(feature.geometry).forEach((part) => {
-                    grouped[part.geometryType].push({
-                        geometry: part.geometry,
-                        properties,
-                        showRepresentativeMarker: part.showRepresentativeMarker
+                try {
+                    if (!feature?.geometry) {
+                        throw new Error("feature has no geometry.");
+                    }
+                    const parts = geometryPartsFromGeoJson(feature.geometry);
+                    if (!parts.length) {
+                        throw new Error(`geometry type ${feature.geometry.type || "unknown"} is not supported.`);
+                    }
+                    parts.forEach((part) => {
+                        grouped[part.geometryType].push({
+                            geometry: part.geometry,
+                            properties,
+                            showRepresentativeMarker: part.showRepresentativeMarker
+                        });
                     });
-                });
+                } catch (error) {
+                    throw new Error(`${format} feature ${featureIndex + 1} could not be imported: ${error.message || "invalid geometry."}`);
+                }
             });
             const baseName = stripExtension(fileName || projectName || "Imported layer");
             const layers = Object.entries(grouped)
@@ -17894,6 +17949,9 @@
 
         function parseKmlText(text) {
             const doc = new DOMParser().parseFromString(text, "application/xml");
+            if (doc.getElementsByTagName("parsererror").length) {
+                throw new Error("KML is not valid XML. Check that all tags are closed and try again.");
+            }
             const placemarks = Array.from(doc.getElementsByTagName("Placemark"));
             return {
                 type: "FeatureCollection",
@@ -17915,9 +17973,16 @@
                         if (coords.length >= 2) features.push({ type: "Feature", properties, geometry: { type: "LineString", coordinates: coords } });
                     });
                     Array.from(placemark.getElementsByTagName("Polygon")).forEach((polygonEl) => {
-                        const ringEl = polygonEl.getElementsByTagName("outerBoundaryIs")[0] || polygonEl;
-                        const coords = parseKmlCoordinates(ringEl.getElementsByTagName("coordinates")[0]?.textContent || "");
-                        if (coords.length >= 3) features.push({ type: "Feature", properties, geometry: { type: "Polygon", coordinates: [coords] } });
+                        const outerBoundary = polygonEl.getElementsByTagName("outerBoundaryIs")[0];
+                        const outerCoordinates = parseKmlCoordinates((outerBoundary || polygonEl).getElementsByTagName("coordinates")[0]?.textContent || "");
+                        const innerCoordinates = Array.from(polygonEl.getElementsByTagName("innerBoundaryIs")).map((boundary) => (
+                            parseKmlCoordinates(boundary.getElementsByTagName("coordinates")[0]?.textContent || "")
+                        ));
+                        features.push({
+                            type: "Feature",
+                            properties,
+                            geometry: { type: "Polygon", coordinates: [outerCoordinates, ...innerCoordinates] }
+                        });
                     });
                     return features;
                 })
