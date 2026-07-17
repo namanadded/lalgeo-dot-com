@@ -282,6 +282,174 @@
         background: rgba(255,255,255,0.1);
         border-color: rgba(143,240,220,0.24);
     }
+    .place-card {
+        display: grid;
+        gap: 14px;
+    }
+    .place-card h3,
+    .place-card p {
+        margin: 0;
+    }
+    .place-card h3 {
+        color: #111827;
+        font-size: 22px;
+        line-height: 1.15;
+        letter-spacing: -0.025em;
+    }
+    .place-card-address,
+    .place-card-meta {
+        color: #6b7280;
+        line-height: 1.45;
+    }
+    .place-card-link {
+        color: #007aff;
+        font-weight: 650;
+        text-decoration: none;
+    }
+    .place-card-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .route-summary-card {
+        display: grid;
+        gap: 12px;
+    }
+    .route-summary-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .route-duration {
+        display: block;
+        color: #198754;
+        font-size: 32px;
+        font-weight: 750;
+        line-height: 1;
+        letter-spacing: -0.045em;
+    }
+    .route-meta {
+        display: block;
+        margin-top: 5px;
+        color: #6b7280;
+        font-size: 13px;
+        font-weight: 600;
+    }
+    .route-mode-chip {
+        display: inline-flex;
+        align-items: center;
+        min-height: 28px;
+        padding: 0 10px;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #007aff;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .route-name {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        color: #374151;
+        font-size: 15px;
+        font-weight: 650;
+    }
+    .route-name::before {
+        content: "";
+        width: 8px;
+        height: 8px;
+        flex: 0 0 8px;
+        border-radius: 999px;
+        background: #007aff;
+    }
+    .route-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+    }
+    .route-start-btn,
+    .route-stop-btn {
+        min-height: 46px;
+        border-radius: 13px;
+        border: 0;
+        font-size: 15px;
+        font-weight: 750;
+        cursor: pointer;
+    }
+    .route-start-btn {
+        background: #007aff;
+        color: #fff;
+        box-shadow: 0 8px 20px rgba(0, 122, 255, 0.24);
+    }
+    .route-stop-btn {
+        padding: 0 16px;
+        background: #f3f4f6;
+        color: #4b5563;
+    }
+    .route-start-btn:disabled,
+    .route-stop-btn:disabled {
+        cursor: default;
+        opacity: 0.48;
+    }
+    .route-disclosure {
+        border-top: 1px solid #e5e7eb;
+    }
+    .route-disclosure summary {
+        padding: 12px 0 4px;
+        color: #4b5563;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        list-style: none;
+    }
+    .route-disclosure summary::-webkit-details-marker {
+        display: none;
+    }
+    .route-options-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 8px 0 2px;
+        color: #6b7280;
+        font-size: 13px;
+    }
+    .route-options-row select {
+        min-height: 34px;
+        padding: 0 28px 0 10px;
+        border: 1px solid #d1d5db;
+        border-radius: 10px;
+        background: #fff;
+        color: #374151;
+    }
+    .route-step-list {
+        display: grid;
+        gap: 9px;
+        margin: 8px 0 0;
+        padding: 0;
+        list-style: none;
+    }
+    .route-step-list li {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        gap: 8px;
+        color: #4b5563;
+        font-size: 13px;
+        line-height: 1.35;
+    }
+    .route-step-list li span:first-child {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 22px;
+        height: 22px;
+        border-radius: 999px;
+        background: #eef6ff;
+        color: #007aff;
+        font-size: 11px;
+        font-weight: 800;
+    }
     .workspace-sidebar-section {
         margin-top: 18px;
         padding-top: 18px;
@@ -5132,6 +5300,36 @@
             padding: 14px;
             border-radius: 18px;
         }
+        #sidebar.sidebar-mode-place,
+        #sidebar.sidebar-mode-directions {
+            top: auto !important;
+            bottom: max(76px, calc(env(safe-area-inset-bottom, 0px) + 76px));
+            max-height: min(48dvh, 440px) !important;
+            border-radius: 24px;
+            box-shadow: 0 18px 52px rgba(15, 23, 42, 0.24);
+            overflow-y: auto;
+        }
+        #sidebar.sidebar-mode-place::before,
+        #sidebar.sidebar-mode-directions::before {
+            content: "";
+            display: block;
+            width: 36px;
+            height: 5px;
+            margin: -5px auto 10px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.3);
+        }
+        body.sidebar-contextual-open .sidebar-backdrop {
+            display: none !important;
+        }
+        #sidebar.sidebar-mode-place .sidebar-subheading,
+        #sidebar.sidebar-mode-directions .sidebar-subheading {
+            margin-top: 2px;
+        }
+        #sidebar.sidebar-mode-place .sidebar-topbar,
+        #sidebar.sidebar-mode-directions .sidebar-topbar {
+            padding-bottom: 10px;
+        }
         .sidebar-shell {
             gap: 8px;
         }
@@ -5569,10 +5767,10 @@
         min-height: 24px;
     }
     #toolbar #toolbarSearchShell #collapseSearchBtn {
-        display: none;
-    }
-    #toolbar #toolbarSearchShell.has-search-text #collapseSearchBtn {
         display: inline-flex;
+    }
+    #toolbar #toolbarSearchShell.collapsed #collapseSearchBtn {
+        display: none;
     }
     .toolbar-left.expanded .app-menubar,
     .toolbar-right.expanded .toolbar-quick-actions {
@@ -6241,14 +6439,14 @@
             </button>
             <div class="toolbar-action-group toolbar-help-search-group" aria-label="Search controls">
                 <div class="search-pill collapsed" id="toolbarSearchShell">
-                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">
+                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search" aria-controls="searchInput" aria-expanded="false">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <circle cx="11" cy="11" r="6"></circle>
                             <path d="M16 16l4 4"></path>
                         </svg>
                     </button>
-                    <input type="text" id="searchInput" inputmode="search" enterkeyhint="search" placeholder="Search location or project" aria-label="Search" />
-                    <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">
+                    <input type="text" id="searchInput" inputmode="search" enterkeyhint="search" placeholder="Search location or project" aria-label="Search" aria-controls="searchSuggestions" aria-autocomplete="list" aria-expanded="false" />
+                    <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Close search" title="Close search">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M6 6l12 12"></path>
                             <path d="M18 6L6 18"></path>
@@ -6819,8 +7017,8 @@
         <div class="sidebar-shell">
             <div class="sidebar-topbar">
                 <div>
-                    <h2 class="sidebar-heading">Layers</h2>
-                    <p class="sidebar-subheading">Current project layers and quick map controls.</p>
+                    <h2 id="sidebarHeading" class="sidebar-heading">Layers</h2>
+                    <p id="sidebarSubheading" class="sidebar-subheading">Current project layers and quick map controls.</p>
                 </div>
                 <button id="closeSidebar" type="button" class="sidebar-close-btn" aria-label="Close workspace sidebar">×</button>
             </div>
@@ -7157,6 +7355,8 @@
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
+        const sidebarHeading = document.getElementById("sidebarHeading");
+        const sidebarSubheading = document.getElementById("sidebarSubheading");
         const layersMapBtn = document.getElementById("layersMapBtn");
         const toolbarLayersBtn = document.getElementById("toolbarLayersBtn");
         const toolbarBasemapBtn = document.getElementById("toolbarBasemapBtn");
@@ -7794,6 +7994,7 @@
         const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
         let sidebarVisible = false;
+        let sidebarMode = "layers";
         let dataPaneVisible = false;
         let rememberLastSession = true;
         let hideWorkspaceEmptyStateForever = false;
@@ -9679,6 +9880,7 @@
 
         function renderActiveProjectSidebar() {
             if (!sidebarContent) return;
+            setSidebarMode("layers");
             if (!activeProjectRecord) {
                 sidebarContent.innerHTML = `
                     <p class="layer-pane-helper">Create or open a project from File to manage layers here.</p>
@@ -10581,6 +10783,29 @@
             return Boolean(target?.closest?.("input, textarea, select, button, [contenteditable='true']"));
         }
 
+        function setSidebarMode(mode = "layers", { heading = "", subheading = "" } = {}) {
+            sidebarMode = ["place", "directions"].includes(mode) ? mode : "layers";
+            sidebar?.classList.toggle("sidebar-mode-place", sidebarMode === "place");
+            sidebar?.classList.toggle("sidebar-mode-directions", sidebarMode === "directions");
+            if (sidebarHeading) {
+                sidebarHeading.textContent = heading || (sidebarMode === "directions" ? "Directions" : sidebarMode === "place" ? "Place" : "Layers");
+            }
+            if (sidebarSubheading) {
+                sidebarSubheading.textContent = subheading || (sidebarMode === "directions"
+                    ? "Route overview"
+                    : sidebarMode === "place"
+                    ? "Search result"
+                    : "Current project layers and quick map controls.");
+            }
+            closeSidebar?.setAttribute("aria-label", sidebarMode === "directions"
+                ? "Close directions"
+                : sidebarMode === "place"
+                ? "Close place details"
+                : "Close workspace sidebar");
+            document.body.classList.toggle("sidebar-contextual-open", sidebarVisible && sidebarMode !== "layers");
+            positionMobileSidebarBelowSearch();
+        }
+
         function setSidebarVisibility(show) {
             if (show) prepareMobileToolSurface("sidebar");
             const persistent = window.innerWidth > 980;
@@ -10608,6 +10833,8 @@
                 toolbarLayersBtn.classList.toggle("active", sidebarVisible);
                 toolbarLayersBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
+            document.body.classList.toggle("sidebar-contextual-open", sidebarVisible && sidebarMode !== "layers");
+            window.requestAnimationFrame(positionMobileSidebarBelowSearch);
             updateCommandAvailability();
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
@@ -20120,9 +20347,30 @@ function updateFloatingButtonLayer(panelOpen) {
         function setSearchExpanded(show) {
             toolbarSearchExpanded = Boolean(show);
             toolbarSearchShell?.classList.toggle("collapsed", !toolbarSearchExpanded);
-            if (toolbarSearchExpanded && window.matchMedia("(min-width: 701px)").matches) {
-                document.getElementById("searchInput")?.focus();
+            document.getElementById("searchIconBtn")?.setAttribute("aria-expanded", toolbarSearchExpanded ? "true" : "false");
+            window.requestAnimationFrame(positionMobileSidebarBelowSearch);
+            if (toolbarSearchExpanded) window.requestAnimationFrame(() => document.getElementById("searchInput")?.focus());
+        }
+
+        collapseSearchBtn?.addEventListener("click", () => {
+            const input = document.getElementById("searchInput");
+            if (input) input.value = "";
+            toolbarSearchShell?.classList.remove("has-search-text");
+            setSearchExpanded(false);
+        });
+
+        function positionMobileSidebarBelowSearch() {
+            if (!sidebar) return;
+            if (!window.matchMedia("(max-width: 600px)").matches || !toolbarSearchExpanded || !sidebarVisible || sidebarMode === "directions") {
+                sidebar.style.top = "";
+                sidebar.style.maxHeight = "";
+                return;
             }
+            const searchRect = toolbarSearchShell?.getBoundingClientRect();
+            if (!searchRect?.height) return;
+            const top = Math.round(searchRect.bottom + 10);
+            sidebar.style.top = `${top}px`;
+            sidebar.style.maxHeight = `${Math.max(180, window.innerHeight - top - 12)}px`;
         }
 
 function setImportPanelVisibility(show) {
@@ -20678,6 +20926,87 @@ function setImportPanelVisibility(show) {
             }
         }
 
+        function getRouteModeLabel(transportType) {
+            return {
+                [mapkit.Directions.Transport.Automobile]: "Driving",
+                [mapkit.Directions.Transport.Walking]: "Walking",
+                [mapkit.Directions.Transport.Transit]: "Transit"
+            }[transportType] || "Route";
+        }
+
+        function renderDirectionsSidebar(route) {
+            if (!route || !sidebarContent) return;
+            const durationMinutes = Math.max(1, Math.round(route.expectedTravelTime / 60));
+            const distanceKm = (route.distance / 1000).toFixed(route.distance >= 10000 ? 1 : 2);
+            const arrivalTime = new Date(Date.now() + route.expectedTravelTime * 1000);
+            const arrivalTimeStr = arrivalTime.toLocaleTimeString([], { hour: "numeric", minute: "2-digit" });
+            const routeName = route.name || "Recommended route";
+            const mode = getRouteModeLabel(route.transportType);
+            const steps = Array.isArray(route.steps) ? route.steps : [];
+            const stepMarkup = steps.slice(0, 16).map((step, index) => `
+                <li><span>${index + 1}</span><span>${escapeHtml(naturalizeInstruction(step.instructions || "Continue"))}</span></li>
+            `).join("");
+
+            setSidebarMode("directions", {
+                heading: "Directions",
+                subheading: `${mode} · Recommended`
+            });
+            sidebarContent.innerHTML = `
+                <section class="route-summary-card" aria-label="Route summary">
+                    <div class="route-summary-top">
+                        <div>
+                            <strong class="route-duration">${durationMinutes} min</strong>
+                            <span class="route-meta">${distanceKm} km · Arrive ${escapeHtml(arrivalTimeStr)}</span>
+                        </div>
+                        <span class="route-mode-chip">${escapeHtml(mode)}</span>
+                    </div>
+                    <div class="route-name">${escapeHtml(routeName)}</div>
+                    <div class="route-actions">
+                        <button id="startVoiceNav" class="route-start-btn" type="button">Start</button>
+                        <button id="stopVoiceNav" class="route-stop-btn" type="button" disabled>End</button>
+                    </div>
+                    <details class="route-disclosure">
+                        <summary>Voice options</summary>
+                        <label class="route-options-row" for="langSelect">
+                            <span>Language</span>
+                            <select id="langSelect">
+                                <option value="en-US" ${voiceLang === "en-US" ? "selected" : ""}>English</option>
+                                <option value="fr-FR" ${voiceLang === "fr-FR" ? "selected" : ""}>French</option>
+                                <option value="hi-IN" ${voiceLang === "hi-IN" ? "selected" : ""}>Hindi</option>
+                            </select>
+                        </label>
+                    </details>
+                    ${stepMarkup ? `
+                        <details class="route-disclosure">
+                            <summary>Route steps</summary>
+                            <ol class="route-step-list">${stepMarkup}</ol>
+                        </details>
+                    ` : ""}
+                </section>
+            `;
+
+            const startButton = sidebarContent.querySelector("#startVoiceNav");
+            const stopButton = sidebarContent.querySelector("#stopVoiceNav");
+            const languageSelect = sidebarContent.querySelector("#langSelect");
+            languageSelect?.addEventListener("change", () => {
+                voiceLang = languageSelect.value;
+            });
+            startButton?.addEventListener("click", () => {
+                voiceLang = languageSelect?.value || voiceLang;
+                startVoiceNavigation(steps);
+                startButton.textContent = "Navigating";
+                startButton.disabled = true;
+                if (stopButton) stopButton.disabled = false;
+            });
+            stopButton?.addEventListener("click", () => {
+                stopVoice();
+                startButton.textContent = "Start";
+                startButton.disabled = false;
+                stopButton.disabled = true;
+            });
+            setSidebarVisibility(true);
+        }
+
         // Replaces "Dr" with "Drive" and "SE" with "South East"
         function naturalizeInstruction(text) {
             if (typeof text !== 'string') {
@@ -20792,42 +21121,9 @@ function setImportPanelVisibility(show) {
                     const bounds = computeBounds(overlay.routeCoordinates);
                     map.region = bounds;
 
-                    setSidebarVisibility(true);
                     if (window.currentRouteData && window.currentRouteData[selectedIndex]) {
                         const selectedRoute = window.currentRouteData[selectedIndex];
-                        const durationMinutes = Math.round(selectedRoute.expectedTravelTime / 60);
-                        const sidebarContent = document.getElementById("sidebar-content");
-                        const distanceKm = (selectedRoute.distance / 1000).toFixed(2);
-                        const arrivalTime = new Date(Date.now() + selectedRoute.expectedTravelTime * 1000);
-                        const arrivalTimeStr = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const routeName = selectedRoute.name || "Unnamed Route";
-                        const mode = {
-                            [mapkit.Directions.Transport.Automobile]: "Automobile",
-                            [mapkit.Directions.Transport.Walking]: "Walking",
-                            [mapkit.Directions.Transport.Transit]: "Transit"
-                        }[selectedRoute.transportType] || "Unknown";
-
-                        sidebarContent.innerHTML = `
-                            <p>⏱️ Estimated Time: ${durationMinutes} min</p>
-                            <p>📏 Distance: ${distanceKm} km</p>
-                            <p>🕒 Arrive by: ${arrivalTimeStr}</p>
-                            <p>🛣️ Route: ${routeName}</p>
-                            <p>🚗 Mode: ${mode}</p>
-                            <label for="langSelect">🌐 Language:</label>
-                            <select id="langSelect">
-                                <option value="en-US">English</option>
-                                <option value="fr-FR">French</option>
-                                <option value="hi-IN">Hindi</option>
-                            </select>
-                            <br><br>
-                            <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
-                            <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
-                        `;
-
-                        document.getElementById("startVoiceNav").addEventListener("click", () => {
-                            startVoiceNavigation(selectedRoute.steps);
-                        });
-                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                        renderDirectionsSidebar(selectedRoute);
                     }
                 }
             });
@@ -20997,7 +21293,6 @@ function setImportPanelVisibility(show) {
         function updateSearchClearControls() {
             const hasSearchText = Boolean(searchField.value);
             toolbarSearchShell?.classList.toggle("has-search-text", hasSearchText);
-            if (collapseSearchBtn) collapseSearchBtn.style.display = hasSearchText ? "inline-flex" : "none";
         }
 
         updateSearchClearControls();
@@ -21012,6 +21307,9 @@ function setImportPanelVisibility(show) {
         });
 
         const resultsList = document.createElement("ul");
+        resultsList.id = "searchSuggestions";
+        resultsList.setAttribute("role", "listbox");
+        resultsList.setAttribute("aria-label", "Search suggestions");
         Object.assign(resultsList.style, {
             position: "absolute",
             top: "0",
@@ -21048,6 +21346,7 @@ function setImportPanelVisibility(show) {
             resultsList.style.width = `${Math.round(width)}px`;
         }
         window.addEventListener("resize", () => {
+            positionMobileSidebarBelowSearch();
             if (resultsList.style.display === "block") {
                 positionSearchSuggestions();
             }
@@ -21604,17 +21903,21 @@ function setImportPanelVisibility(show) {
             const sidebar = document.getElementById("sidebar");
             const content = document.getElementById("sidebar-content");
             const placeAttributes = buildPlaceAttributeMap(place);
-            // Fallback UI using place properties
+            setSidebarMode("place", {
+                heading: "Place",
+                subheading: placeAttributes.category || "Search result"
+            });
             content.innerHTML = `
-                <h3>${escapeHtml(placeAttributes.name || "Unknown Place")}</h3>
-                <p>${escapeHtml(placeAttributes.address || "No address available.")}</p>
-                ${placeAttributes.phone ? `<p>${escapeHtml(placeAttributes.phone)}</p>` : ""}
-                ${placeAttributes.website ? `<p><a href="${escapeHtml(placeAttributes.website)}" target="_blank" rel="noopener noreferrer">Website</a></p>` : ""}
-                ${placeAttributes.category ? `<p>${escapeHtml(placeAttributes.category)}</p>` : ""}
-                <div class="workspace-inline-actions">
-                    <button id="searchPlaceDirectionsBtn" type="button" class="mini-btn">Get Directions</button>
-                    <button id="searchPlaceAddBtn" type="button" class="mini-btn primary">Add to Current Project</button>
-                </div>
+                <section class="place-card">
+                    <h3>${escapeHtml(placeAttributes.name || "Unknown Place")}</h3>
+                    <p class="place-card-address">${escapeHtml(placeAttributes.address || "No address available.")}</p>
+                    ${placeAttributes.phone ? `<p class="place-card-meta">${escapeHtml(placeAttributes.phone)}</p>` : ""}
+                    ${placeAttributes.website ? `<p><a class="place-card-link" href="${escapeHtml(placeAttributes.website)}" target="_blank" rel="noopener noreferrer">Website</a></p>` : ""}
+                    <div class="place-card-actions">
+                        <button id="searchPlaceDirectionsBtn" type="button" class="route-start-btn">Directions</button>
+                        <button id="searchPlaceAddBtn" type="button" class="mini-btn primary">Add to Project</button>
+                    </div>
+                </section>
             `;
             content.querySelector("#searchPlaceDirectionsBtn")?.addEventListener("click", () => {
                 getDirections(place.coordinate.latitude, place.coordinate.longitude);
@@ -21673,6 +21976,7 @@ function setImportPanelVisibility(show) {
         function hideSearchResults() {
             resultsList.innerHTML = "";
             resultsList.style.display = "none";
+            searchField.setAttribute("aria-expanded", "false");
         }
 
         function renderSearchSuggestions(results) {
@@ -21686,6 +21990,7 @@ function setImportPanelVisibility(show) {
                 const subtitle = getAutocompleteSubtitle(result);
                 if (!title) return;
                 const li = document.createElement("li");
+                li.setAttribute("role", "option");
                 li.style.padding = "10px 14px";
                 li.style.cursor = "pointer";
                 li.style.borderBottom = "1px solid rgba(15, 23, 42, 0.08)";
@@ -21705,6 +22010,7 @@ function setImportPanelVisibility(show) {
             }
             positionSearchSuggestions();
             resultsList.style.display = "block";
+            searchField.setAttribute("aria-expanded", "true");
         }
 
         function searchPlaces(query) {
@@ -21761,6 +22067,7 @@ function setImportPanelVisibility(show) {
         collapseSearchBtn?.addEventListener("click", () => {
             searchField.value = "";
             updateSearchClearControls();
+            setSearchExpanded(false);
             latestSearchSequence += 1;
             hideSearchResults();
             stopVoice(); // Stop voice navigation if active
@@ -21775,6 +22082,7 @@ function setImportPanelVisibility(show) {
                 allRouteOverlays = [];
             }
             document.getElementById("sidebar-content").innerHTML = ""; // Clear sidebar content
+            setSidebarMode("layers");
             window.currentRouteData = null; // Optionally reset route data
         });
 
@@ -21948,7 +22256,6 @@ function setImportPanelVisibility(show) {
                 // Clear sidebar
                 const sidebarContent = document.getElementById("sidebar-content");
                 sidebarContent.innerHTML = "";
-                setSidebarVisibility(true);
 
                 // Store for external reference
                 window.currentRouteData = data.routes;
@@ -21979,37 +22286,7 @@ function setImportPanelVisibility(show) {
                     allCoords = allCoords.concat(routeCoords);
 
                     if (index === 0) {
-                        const durationMinutes = Math.round(route.expectedTravelTime / 60);
-                        const distanceKm = (route.distance / 1000).toFixed(2);
-                        const arrivalTime = new Date(Date.now() + route.expectedTravelTime * 1000);
-                        const arrivalTimeStr = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                        const routeName = route.name || "Unnamed Route";
-                        const mode = {
-                            [mapkit.Directions.Transport.Automobile]: "Automobile",
-                            [mapkit.Directions.Transport.Walking]: "Walking",
-                            [mapkit.Directions.Transport.Transit]: "Transit"
-                        }[route.transportType] || "Unknown";
-
-                        sidebarContent.innerHTML = `
-                            <p>⏱️ Estimated Time: ${durationMinutes} min</p>
-                            <p>📏 Distance: ${distanceKm} km</p>
-                            <p>🕒 Arrive by: ${arrivalTimeStr}</p>
-                            <p>🛣️ Route: ${routeName}</p>
-                            <p>🚗 Mode: ${mode}</p>
-                            <label for="langSelect">🌐 Language:</label>
-                            <select id="langSelect">
-                                <option value="en-US">English</option>
-                                <option value="fr-FR">French</option>
-                                <option value="hi-IN">Hindi</option>
-                            </select>
-                            <br><br>
-                            <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
-                            <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
-                        `;
-                        document.getElementById("startVoiceNav").addEventListener("click", () => {
-                            startVoiceNavigation(route.steps);
-                        });
-                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                        renderDirectionsSidebar(route);
                     }
                 });
 
