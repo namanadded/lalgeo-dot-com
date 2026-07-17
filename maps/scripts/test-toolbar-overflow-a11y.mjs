@@ -158,8 +158,13 @@ assert.match(
 );
 assert.match(
   mapGroup,
-  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
-  "Map group should read as Locate, Layers, Basemap.",
+  /id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
+  "Toolbar map group should contain Layers and Basemap.",
+);
+assert.doesNotMatch(
+  quickActions,
+  /id="myLocationBtn"/,
+  "My Location should live on the map rather than in the tools tray.",
 );
 assert.match(
   legacyHtml,

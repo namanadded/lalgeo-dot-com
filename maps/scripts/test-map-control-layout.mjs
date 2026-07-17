@@ -14,6 +14,7 @@ function getButtonById(id) {
 }
 
 const layersButton = getButtonById("layersMapBtn");
+const locationButton = getButtonById("myLocationBtn");
 const lookAroundButton = getButtonById("streetViewDropBtn");
 const lookAroundMarkup = legacyHtml.match(
   /<button id="streetViewDropBtn"[\s\S]*?<\/button>/,
@@ -28,6 +29,16 @@ assert.match(
   legacyHtml,
   /#layersMapBtn\[hidden\]\s*{\s*display:\s*none\s*!important;/,
   "Author styles must preserve the hidden state of the retired Layers bubble.",
+);
+assert.match(
+  locationButton,
+  /aria-label="Show my location"[\s\S]*?aria-pressed="false"/,
+  "The map location control should expose its purpose and active state.",
+);
+assert.match(
+  legacyHtml,
+  /<div class="map-navigation-controls"[^>]*>[\s\S]*?id="myLocationBtn"[\s\S]*?id="streetViewDropBtn"[\s\S]*?<\/div>/,
+  "Location and Look Around should share the lower-right map navigation cluster.",
 );
 assert.match(
   lookAroundButton,
@@ -47,8 +58,13 @@ assert.doesNotMatch(
 );
 assert.match(
   legacyHtml,
-  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#streetViewDropBtn\s*{[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*146px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;[\s\S]*?border-radius:\s*14px;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.84\);/,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?\.map-navigation-controls\s*{[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*146px;[\s\S]*?gap:\s*8px;[\s\S]*?#streetViewDropBtn\s*{[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;[\s\S]*?border-radius:\s*14px;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.84\);/,
   "Mobile Look Around should align as a 44px Apple-like glass control above the lower-right map controls.",
+);
+assert.match(
+  legacyHtml,
+  /#myLocationBtn\s*{[\s\S]*?width:\s*38px;[\s\S]*?height:\s*38px;[\s\S]*?border-radius:\s*999px;[\s\S]*?color:\s*#0a84ff;/,
+  "My Location should use a compact circular Apple-blue map control.",
 );
 assert.match(
   legacyHtml,
