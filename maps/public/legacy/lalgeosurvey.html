@@ -4138,6 +4138,37 @@
         box-shadow: 0 18px 42px rgba(0,0,0,0.28);
         backdrop-filter: blur(16px);
     }
+    #workspaceHint {
+        top: auto;
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        left: 22px;
+    }
+    .workspace-hint-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        color: #eef6fb;
+        font: 600 20px/1 ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+    }
+    .workspace-hint-close:hover,
+    .workspace-hint-close:focus-visible {
+        background: rgba(255,255,255,0.16);
+        outline: 2px solid #8ff0dc;
+        outline-offset: 2px;
+    }
+    #workspaceHint h4,
+    #workspaceHint p {
+        padding-right: 34px;
+    }
     .workspace-screenshot-banner[hidden] {
         display: none;
     }
@@ -4150,6 +4181,29 @@
         color: #9fb1c2;
         font-size: 12px;
         line-height: 1.55;
+    }
+    @media (max-width: 600px) {
+        #workspaceHint {
+            right: 12px;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            left: 12px;
+            width: auto;
+            box-sizing: border-box;
+            padding: 14px 52px 14px 16px;
+        }
+        #workspaceHint h4,
+        #workspaceHint p {
+            padding-right: 0;
+        }
+        .workspace-hint-close {
+            top: 50%;
+            right: 10px;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            transform: translateY(-50%);
+        }
     }
     #mapAddHint {
         position: fixed;
@@ -6758,7 +6812,8 @@
     <button id="layersMapBtn" type="button" hidden aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
         <span class="layers-map-icon" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
-    <div id="workspaceHint" class="workspace-screenshot-banner" hidden style="top:auto; bottom:22px; left:22px;">
+    <div id="workspaceHint" class="workspace-screenshot-banner" role="status" aria-live="polite" hidden>
+        <button id="workspaceHintCloseBtn" type="button" class="workspace-hint-close" aria-label="Dismiss editing tip">×</button>
         <h4>Start editing</h4>
         <p>Click Add New, then click on the map to place your first feature.</p>
     </div>
@@ -7014,6 +7069,7 @@
         const drawerImportProjectBtn = document.getElementById("drawerImportProjectBtn");
         const drawerConnectDropboxBtn = document.getElementById("drawerConnectDropboxBtn");
         const workspaceHint = document.getElementById("workspaceHint");
+        const workspaceHintCloseBtn = document.getElementById("workspaceHintCloseBtn");
         const mapAddHint = document.getElementById("mapAddHint");
         const workspaceLiveRegion = document.getElementById("workspaceLiveRegion");
         const featureDrawer = document.getElementById("featureDrawer");
@@ -8071,6 +8127,13 @@
 
         function createPolygonGeometry(vertices = []) {
             return { type: "Polygon", rings: [vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng }))] };
+        }
+
+        function createPolygonGeometryFromRings(rings = []) {
+            return {
+                type: "Polygon",
+                rings: rings.map((ring) => ring.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })))
+            };
         }
 
         function getFeatureRepresentativeCoordinate(feature) {
@@ -9422,6 +9485,8 @@
         function hideWorkspaceHint() {
             if (workspaceHint) workspaceHint.hidden = true;
         }
+
+        workspaceHintCloseBtn?.addEventListener("click", hideWorkspaceHint);
 
         function updateWorkspaceContext() {
             const layer = getActiveLayerRecord();
@@ -16683,8 +16748,18 @@
             dropboxConnectStatus.textContent = "Checking Dropbox connection…";
             try {
                 const response = await fetch(`${WORKER_BASE}/api/surveys/list`, { credentials: "include" });
+                if (response.status === 401) {
+                    currentDropboxProjects = [];
+                    selectedDropboxProjectPath = null;
+                    dropboxSurveySelect.innerHTML = `<option value="">— Select project file —</option>`;
+                    dropboxConnectStatus.textContent = "Dropbox not connected.";
+                    renderDropboxCatalogPane();
+                    showDropboxDisconnectedState();
+                    logWorkspaceDebug("dropboxList", { connected: false, reason: "authentication-required" });
+                    return false;
+                }
                 if (!response.ok) {
-                    throw new Error(response.status === 401 ? "Connect your Dropbox account to list files." : "Unable to list Dropbox files.");
+                    throw new Error("Unable to list Dropbox files.");
                 }
                 const data = await response.json();
                 currentDropboxCursor = data.cursor || null;
@@ -16719,9 +16794,6 @@
                 dropboxConnectStatus.textContent = error.message;
                 renderDropboxCatalogPane();
                 console.error(error);
-                if (error.message && error.message.includes("Connect your Dropbox account")) {
-                    showDropboxDisconnectedState();
-                }
                 return false;
             }
         }
@@ -17433,6 +17505,35 @@
             return Math.abs(area / 2);
         }
 
+        function verticesFromGeoJsonRing(coordinates, ringLabel = "polygon ring") {
+            if (!Array.isArray(coordinates)) {
+                throw new Error(`${ringLabel} is missing coordinates.`);
+            }
+            const vertices = coordinates.map(coordinatePairToVertex);
+            if (vertices.some((vertex) => !vertex)) {
+                throw new Error(`${ringLabel} contains an invalid longitude or latitude.`);
+            }
+            if (vertices.length > 1 && coordinatesAreEqual(vertices[0], vertices[vertices.length - 1])) {
+                vertices.pop();
+            }
+            const uniqueVertices = new Set(vertices.map((vertex) => `${vertex.lng},${vertex.lat}`));
+            if (vertices.length < 3 || uniqueVertices.size < 3) {
+                throw new Error(`${ringLabel} needs at least three distinct coordinate pairs.`);
+            }
+            return vertices;
+        }
+
+        function polygonGeometryFromGeoJsonCoordinates(coordinates, polygonLabel = "Polygon") {
+            if (!Array.isArray(coordinates) || !coordinates.length) {
+                throw new Error(`${polygonLabel} is missing an outer ring.`);
+            }
+            const rings = coordinates.map((ring, index) => verticesFromGeoJsonRing(
+                ring,
+                index === 0 ? `${polygonLabel} outer ring` : `${polygonLabel} hole ${index}`
+            ));
+            return createPolygonGeometryFromRings(rings);
+        }
+
         function geometryPartsFromGeoJson(geometry) {
             if (!geometry) return [];
             if (geometry.type === "GeometryCollection") {
@@ -17459,19 +17560,22 @@
                 });
             }
             if (geometry.type === "Polygon") {
-                const vertices = ((geometry.coordinates || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
-                const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
-                return ring.length >= 3 ? [{ geometryType: "polygon", geometry: createPolygonGeometry(ring) }] : [];
+                return [{
+                    geometryType: "polygon",
+                    geometry: polygonGeometryFromGeoJsonCoordinates(geometry.coordinates)
+                }];
             }
             if (geometry.type === "MultiPolygon") {
-                const parts = (geometry.coordinates || []).flatMap((polygon) => {
-                    const vertices = ((polygon || [])[0] || []).map(coordinatePairToVertex).filter(Boolean);
-                    const ring = vertices.filter((vertex, index, list) => index === 0 || !coordinatesAreEqual(vertex, list[0]) || index < list.length - 1);
-                    return ring.length >= 3 ? [{
+                if (!Array.isArray(geometry.coordinates) || !geometry.coordinates.length) {
+                    throw new Error("MultiPolygon does not contain any polygons.");
+                }
+                const parts = geometry.coordinates.map((polygon, polygonIndex) => {
+                    const polygonGeometry = polygonGeometryFromGeoJsonCoordinates(polygon, `MultiPolygon part ${polygonIndex + 1}`);
+                    return {
                         geometryType: "polygon",
-                        geometry: createPolygonGeometry(ring),
-                        representativeArea: getRingArea(ring)
-                    }] : [];
+                        geometry: polygonGeometry,
+                        representativeArea: getRingArea(polygonGeometry.rings[0])
+                    };
                 });
                 let representativeIndex = 0;
                 parts.forEach((part, index) => {
@@ -17500,7 +17604,12 @@
             });
             const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
             const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker }, index) => {
-                const attributes = Object.fromEntries(schema.map((field) => [field.name, properties[field.name] ?? ""]));
+                const attributes = Object.fromEntries(schema.map((field) => [
+                    field.name,
+                    Object.prototype.hasOwnProperty.call(properties, field.name) && properties[field.name] !== undefined
+                        ? properties[field.name]
+                        : ""
+                ]));
                 attributes.ID = attributes.ID || generateSurveyPointId();
                 attributes.Date = attributes.Date || new Date().toISOString();
                 attributes.TimeZone = attributes.TimeZone || getProjectTimeZone();
@@ -17537,15 +17646,26 @@
         function buildGeoJsonPayload(input, { projectName = "Imported GIS Project", fileName = "", format = "GeoJSON" } = {}) {
             const collection = normalizeFeatureCollection(input);
             const grouped = { point: [], line: [], polygon: [] };
-            collection.features.forEach((feature) => {
+            collection.features.forEach((feature, featureIndex) => {
                 const properties = { ...(feature.properties || {}) };
-                geometryPartsFromGeoJson(feature.geometry).forEach((part) => {
-                    grouped[part.geometryType].push({
-                        geometry: part.geometry,
-                        properties,
-                        showRepresentativeMarker: part.showRepresentativeMarker
+                try {
+                    if (!feature?.geometry) {
+                        throw new Error("feature has no geometry.");
+                    }
+                    const parts = geometryPartsFromGeoJson(feature.geometry);
+                    if (!parts.length) {
+                        throw new Error(`geometry type ${feature.geometry.type || "unknown"} is not supported.`);
+                    }
+                    parts.forEach((part) => {
+                        grouped[part.geometryType].push({
+                            geometry: part.geometry,
+                            properties,
+                            showRepresentativeMarker: part.showRepresentativeMarker
+                        });
                     });
-                });
+                } catch (error) {
+                    throw new Error(`${format} feature ${featureIndex + 1} could not be imported: ${error.message || "invalid geometry."}`);
+                }
             });
             const baseName = stripExtension(fileName || projectName || "Imported layer");
             const layers = Object.entries(grouped)
@@ -17829,6 +17949,9 @@
 
         function parseKmlText(text) {
             const doc = new DOMParser().parseFromString(text, "application/xml");
+            if (doc.getElementsByTagName("parsererror").length) {
+                throw new Error("KML is not valid XML. Check that all tags are closed and try again.");
+            }
             const placemarks = Array.from(doc.getElementsByTagName("Placemark"));
             return {
                 type: "FeatureCollection",
@@ -17850,9 +17973,16 @@
                         if (coords.length >= 2) features.push({ type: "Feature", properties, geometry: { type: "LineString", coordinates: coords } });
                     });
                     Array.from(placemark.getElementsByTagName("Polygon")).forEach((polygonEl) => {
-                        const ringEl = polygonEl.getElementsByTagName("outerBoundaryIs")[0] || polygonEl;
-                        const coords = parseKmlCoordinates(ringEl.getElementsByTagName("coordinates")[0]?.textContent || "");
-                        if (coords.length >= 3) features.push({ type: "Feature", properties, geometry: { type: "Polygon", coordinates: [coords] } });
+                        const outerBoundary = polygonEl.getElementsByTagName("outerBoundaryIs")[0];
+                        const outerCoordinates = parseKmlCoordinates((outerBoundary || polygonEl).getElementsByTagName("coordinates")[0]?.textContent || "");
+                        const innerCoordinates = Array.from(polygonEl.getElementsByTagName("innerBoundaryIs")).map((boundary) => (
+                            parseKmlCoordinates(boundary.getElementsByTagName("coordinates")[0]?.textContent || "")
+                        ));
+                        features.push({
+                            type: "Feature",
+                            properties,
+                            geometry: { type: "Polygon", coordinates: [outerCoordinates, ...innerCoordinates] }
+                        });
                     });
                     return features;
                 })

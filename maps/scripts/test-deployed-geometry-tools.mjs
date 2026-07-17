@@ -1,8 +1,12 @@
 import crypto from "node:crypto";
 import net from "node:net";
+import { readFileSync } from "node:fs";
 
 const DEVTOOLS = "http://127.0.0.1:9223";
 const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/render/lalgeosurvey";
+const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
+const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
+const malformedPolygonGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-polygon.geojson", import.meta.url), "utf8"));
 
 class CdpSocket {
   constructor(url) {
@@ -240,6 +244,37 @@ try {
     assert(mixedGeoJsonPayload.geospatialLayers.length === 3, "mixed GeoJSON splits into point line and polygon layers");
     assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "point" && layer.features[0].attributes.asset === "A"), "GeoJSON properties become layer fields");
     assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "polygon" && layer.features[0].geometry.type === "Polygon"), "GeoJSON polygon imports as polygon geometry");
+
+    const polygonHolesPayload = buildGeoJsonPayload(${JSON.stringify(polygonHolesGeoJson)}, {
+      projectName: "Polygon holes",
+      fileName: "polygon-holes.geojson",
+      format: "GeoJSON"
+    });
+    const polygonHolesLayer = polygonHolesPayload.geospatialLayers[0];
+    assert(polygonHolesLayer.features[0].geometry.rings.length === 2, "GeoJSON import preserves polygon holes");
+    assert(polygonHolesLayer.features[0].attributes.name === "Parcelle Été 🌲", "GeoJSON import preserves Unicode attributes");
+    assert(polygonHolesLayer.features[0].attributes.nullable_note === null, "GeoJSON import preserves null attributes");
+    assert(polygonHolesLayer.features[0].attributes.inspected_at === "2026-07-17T14:30:00-06:00", "GeoJSON import preserves date strings");
+    const polygonHolesExport = layerToGeoJson(polygonHolesLayer);
+    assert(polygonHolesExport.features[0].geometry.coordinates.length === 2, "GeoJSON export preserves polygon holes");
+    const polygonHolesRoundTrip = buildGeoJsonPayload(polygonHolesExport, { format: "GeoJSON round trip" });
+    assert(polygonHolesRoundTrip.geospatialLayers[0].features[0].geometry.rings.length === 2, "GeoJSON import-export-import round trip preserves polygon holes");
+
+    const kmlHolesPayload = buildGeoJsonPayload(parseKmlText(${JSON.stringify(polygonHolesKml)}), {
+      projectName: "KML holes",
+      fileName: "polygon-holes.kml",
+      format: "KML"
+    });
+    assert(kmlHolesPayload.geospatialLayers[0].features[0].geometry.rings.length === 2, "KML import preserves inner boundaries");
+    assert(kmlHolesPayload.geospatialLayers[0].features[0].attributes.name === "Parcelle Été 🌲", "KML import preserves Unicode attributes");
+
+    let malformedPolygonMessage = "";
+    try {
+      buildGeoJsonPayload(${JSON.stringify(malformedPolygonGeoJson)}, { format: "GeoJSON" });
+    } catch (error) {
+      malformedPolygonMessage = error.message;
+    }
+    assert(malformedPolygonMessage === "GeoJSON feature 1 could not be imported: Polygon outer ring contains an invalid longitude or latitude.", "malformed GeoJSON reports the feature and invalid ring");
 
     const kmlPayload = buildGeoJsonPayload(parseKmlText('<kml><Document><Placemark><name>Building</name><Polygon><outerBoundaryIs><LinearRing><coordinates>-114,51 -113.999,51 -113.999,51.001 -114,51</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>'), {
       projectName: "KML GIS",
