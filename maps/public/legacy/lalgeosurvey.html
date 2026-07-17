@@ -1199,9 +1199,13 @@
             line-height: 30px;
         }
         .advanced-gis-panel {
-            top: 88px;
-            right: 10px;
-            width: calc(100vw - 20px);
+            position: fixed;
+            top: calc(env(safe-area-inset-top, 0px) + 116px);
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            width: auto;
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px) - 128px);
+            box-sizing: border-box;
         }
         .advanced-gis-grid {
             grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -12082,6 +12086,11 @@
 
         function setAdvancedGisVisible(show) {
             if (!advancedGisPanel) return;
+            if (show && window.matchMedia("(max-width: 600px)").matches) {
+                rightToolbarExpandBtn?.closest(".toolbar-right")?.classList.remove("expanded");
+                rightToolbarExpandBtn?.classList.remove("active");
+                rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
+            }
             advancedGisPanel.hidden = !show;
             advancedGisBtn?.classList.toggle("active", Boolean(show));
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");

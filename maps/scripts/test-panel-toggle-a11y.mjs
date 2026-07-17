@@ -59,6 +59,22 @@ if (
   failures.push("Advanced GIS panel state must synchronize aria-expanded.");
 }
 
+if (
+  !/@media \(max-width:\s*700px\)\s*{[\s\S]*?\.advanced-gis-panel\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?left:\s*max\(10px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(10px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?max-height:\s*calc\(100dvh\s*-\s*env\(safe-area-inset-top,\s*0px\)\s*-\s*env\(safe-area-inset-bottom,\s*0px\)\s*-\s*128px\)/.test(
+    html,
+  )
+) {
+  failures.push("Advanced GIS panel must open below mobile floating controls and remain within safe viewport bounds.");
+}
+
+if (
+  !/function\s+setAdvancedGisVisible\s*\(\s*show\s*\)\s*{[\s\S]*?show\s*&&\s*window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?rightToolbarExpandBtn\?\.closest\("\.toolbar-right"\)\?\.classList\.remove\("expanded"\);[\s\S]*?rightToolbarExpandBtn\?\.setAttribute\("aria-expanded",\s*"false"\);/.test(
+    html,
+  )
+) {
+  failures.push("Opening Advanced GIS on mobile must collapse the expanded tools tray.");
+}
+
 if (failures.length) {
   console.error("Panel toggle accessibility checks failed:");
   for (const failure of failures) {
