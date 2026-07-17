@@ -4138,6 +4138,37 @@
         box-shadow: 0 18px 42px rgba(0,0,0,0.28);
         backdrop-filter: blur(16px);
     }
+    #workspaceHint {
+        top: auto;
+        bottom: calc(70px + env(safe-area-inset-bottom, 0px));
+        left: 22px;
+    }
+    .workspace-hint-close {
+        position: absolute;
+        top: 8px;
+        right: 8px;
+        width: 36px;
+        height: 36px;
+        min-width: 36px;
+        min-height: 36px;
+        padding: 0;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        color: #eef6fb;
+        font: 600 20px/1 ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+    }
+    .workspace-hint-close:hover,
+    .workspace-hint-close:focus-visible {
+        background: rgba(255,255,255,0.16);
+        outline: 2px solid #8ff0dc;
+        outline-offset: 2px;
+    }
+    #workspaceHint h4,
+    #workspaceHint p {
+        padding-right: 34px;
+    }
     .workspace-screenshot-banner[hidden] {
         display: none;
     }
@@ -4150,6 +4181,29 @@
         color: #9fb1c2;
         font-size: 12px;
         line-height: 1.55;
+    }
+    @media (max-width: 600px) {
+        #workspaceHint {
+            right: 12px;
+            bottom: calc(72px + env(safe-area-inset-bottom, 0px));
+            left: 12px;
+            width: auto;
+            box-sizing: border-box;
+            padding: 14px 52px 14px 16px;
+        }
+        #workspaceHint h4,
+        #workspaceHint p {
+            padding-right: 0;
+        }
+        .workspace-hint-close {
+            top: 50%;
+            right: 10px;
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            min-height: 44px;
+            transform: translateY(-50%);
+        }
     }
     #mapAddHint {
         position: fixed;
@@ -6758,7 +6812,8 @@
     <button id="layersMapBtn" type="button" hidden aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
         <span class="layers-map-icon" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
-    <div id="workspaceHint" class="workspace-screenshot-banner" hidden style="top:auto; bottom:22px; left:22px;">
+    <div id="workspaceHint" class="workspace-screenshot-banner" role="status" aria-live="polite" hidden>
+        <button id="workspaceHintCloseBtn" type="button" class="workspace-hint-close" aria-label="Dismiss editing tip">×</button>
         <h4>Start editing</h4>
         <p>Click Add New, then click on the map to place your first feature.</p>
     </div>
@@ -7014,6 +7069,7 @@
         const drawerImportProjectBtn = document.getElementById("drawerImportProjectBtn");
         const drawerConnectDropboxBtn = document.getElementById("drawerConnectDropboxBtn");
         const workspaceHint = document.getElementById("workspaceHint");
+        const workspaceHintCloseBtn = document.getElementById("workspaceHintCloseBtn");
         const mapAddHint = document.getElementById("mapAddHint");
         const workspaceLiveRegion = document.getElementById("workspaceLiveRegion");
         const featureDrawer = document.getElementById("featureDrawer");
@@ -9422,6 +9478,8 @@
         function hideWorkspaceHint() {
             if (workspaceHint) workspaceHint.hidden = true;
         }
+
+        workspaceHintCloseBtn?.addEventListener("click", hideWorkspaceHint);
 
         function updateWorkspaceContext() {
             const layer = getActiveLayerRecord();
