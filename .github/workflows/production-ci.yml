@@ -110,6 +110,9 @@ jobs:
         working-directory: maps
         run: npm run test:view-menu-a11y
 
+      - name: Check cloud storage recovery contracts
+        working-directory: maps
+        run: npm run test:cloud-storage
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization
