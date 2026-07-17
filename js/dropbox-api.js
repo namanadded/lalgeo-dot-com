@@ -1,4 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
+import { DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
 export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
@@ -35,6 +36,8 @@ export class LalGeoDropboxClient {
     this.versionsPath = `${this.folderPath}/_versions`;
     this.accessToken = options.accessToken || readStoredDropboxToken();
     this.profile = null;
+    this.resumableThreshold = options.resumableThreshold || DEFAULT_RESUMABLE_THRESHOLD;
+    this.chunkSize = options.chunkSize;
   }
 
   setAccessToken(token, persist = true) {
@@ -244,7 +247,7 @@ export class LalGeoDropboxClient {
   }
 
   async saveLayer(layer, options = {}) {
-    const payload = exportLayer(layer, "lal");
+    const payload = exportLayer(layer, "lal", { pretty: false });
     const path = options.path || layer.revision?.sourcePath || `${this.folderPath}/${payload.fileName}`;
     const previousRev = options.rev || layer.revision?.dropboxRev || null;
     await this.ensureFolderStructure();
@@ -254,6 +257,9 @@ export class LalGeoDropboxClient {
     const contents = new Blob([payload.contents], { type: payload.mimeType });
     try {
       const mode = previousRev ? { ".tag": "update", update: previousRev } : { ".tag": "add" };
+      if (contents.size >= this.resumableThreshold) {
+        return await this.uploadLargeFile(contents, { path, mode, autorename: !previousRev });
+      }
       const response = await this.client.filesUpload({
         path,
         contents,
@@ -269,6 +275,53 @@ export class LalGeoDropboxClient {
       }
       throw error;
     }
+  }
+
+  async uploadLargeFile(contents, commit) {
+    const client = this.client;
+    const adapter = {
+      async start(chunk) {
+        const response = await client.filesUploadSessionStart({ close: false, contents: chunk });
+        const result = response.result || response;
+        return { sessionId: result.session_id };
+      },
+      async append(sessionId, offset, chunk) {
+        await client.filesUploadSessionAppendV2({
+          cursor: { session_id: sessionId, offset },
+          close: false,
+          contents: chunk,
+        });
+      },
+      async finish(sessionId, offset, chunk, nextCommit) {
+        const response = await client.filesUploadSessionFinish({
+          cursor: { session_id: sessionId, offset },
+          commit: { ...nextCommit, mute: false },
+          contents: chunk,
+        });
+        return response.result || response;
+      },
+      async lookupOffset(sessionId) {
+        try {
+          await client.filesUploadSessionAppendV2({
+            cursor: { session_id: sessionId, offset: Number.MAX_SAFE_INTEGER },
+            close: false,
+            contents: new Blob([]),
+          });
+          return Number.MAX_SAFE_INTEGER;
+        } catch (error) {
+          const correctOffset = error?.error?.error?.correct_offset
+            ?? error?.error?.correct_offset
+            ?? error?.correct_offset;
+          if (Number.isSafeInteger(correctOffset)) return correctOffset;
+          throw normalizeCloudError(error, "dropbox");
+        }
+      },
+    };
+    return uploadBlobResumably(adapter, contents, {
+      commit,
+      chunkSize: this.chunkSize,
+      provider: "dropbox",
+    });
   }
 
   async writeVersionSnapshot(path, rev) {

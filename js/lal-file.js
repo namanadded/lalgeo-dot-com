@@ -68,11 +68,11 @@ export function cloneSchema(schema = getDefaultSchema()) {
   }));
 }
 
-export function serializeLalDocument(layer) {
+export function serializeLalDocument(layer, options = {}) {
   const normalized = normalizeLalDocument(layer);
   normalized.metadata.featureCount = normalized.features.length;
   normalized.metadata.updatedAt = new Date().toISOString();
-  return JSON.stringify(normalized, null, 2);
+  return JSON.stringify(normalized, null, options.pretty === false ? undefined : 2);
 }
 
 export async function parseLalArrayBuffer(buffer, filename = "layer.lal") {
@@ -263,7 +263,7 @@ export function convertSurveyPackageToLal(surveyJson, metadataJson = {}, filenam
   return layer;
 }
 
-export function exportLayer(layer, format = "lal") {
+export function exportLayer(layer, format = "lal", options = {}) {
   if (format === "geojson") {
     return {
       fileName: `${slugify(layer.metadata.name)}.geojson`,
@@ -274,7 +274,7 @@ export function exportLayer(layer, format = "lal") {
   return {
     fileName: `${slugify(layer.metadata.name)}.lal`,
     mimeType: "application/json",
-    contents: serializeLalDocument(layer),
+    contents: serializeLalDocument(layer, options),
   };
 }
 

@@ -1,0 +1,23 @@
+{
+  "type": "FeatureCollection",
+  "name": "Unicode parcel holes",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "parcel-1",
+      "properties": {
+        "name": "Parcelle Été 🌲",
+        "inspected_at": "2026-07-17T14:30:00-06:00",
+        "nullable_note": null,
+        "owner": "LalGeo"
+      },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[-114.10, 51.00], [-114.00, 51.00], [-114.00, 51.10], [-114.10, 51.10], [-114.10, 51.00]],
+          [[-114.075, 51.025], [-114.025, 51.025], [-114.025, 51.075], [-114.075, 51.075], [-114.075, 51.025]]
+        ]
+      }
+    }
+  ]
+}
