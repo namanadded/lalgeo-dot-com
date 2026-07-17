@@ -9,6 +9,7 @@
     "test:search-input-mobile": "node scripts/test-search-input-mobile.mjs",
     "test:button-type-safety": "node scripts/test-button-type-safety.mjs",
     "test:dropbox-status-a11y": "node scripts/test-dropbox-status-a11y.mjs",
+    "test:dropbox-auth-navigation": "node scripts/test-dropbox-auth-navigation.mjs",
     "test:share-toast-a11y": "node scripts/test-share-toast-a11y.mjs",
     "test:quick-actions-a11y": "node scripts/test-quick-actions-a11y.mjs",
     "test:empty-dropbox-flow": "node scripts/test-empty-dropbox-flow.mjs",
