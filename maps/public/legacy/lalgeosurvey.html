@@ -7479,6 +7479,18 @@
         let surveyNeedsSave = false;
         let workspaceDirty = false;
         const WORKER_BASE = "https://dropbox.lalgeo.com";
+        function startDropboxAuthorization() {
+            const returnUrl = window.top && window.top !== window
+                ? document.referrer || window.location.href
+                : window.location.href;
+            const returnTo = encodeURIComponent(returnUrl.split("#")[0]);
+            const authorizationUrl = `${WORKER_BASE}/api/auth?returnTo=${returnTo}`;
+            if (window.top && window.top !== window) {
+                window.top.location.href = authorizationUrl;
+                return;
+            }
+            window.location.href = authorizationUrl;
+        }
         const surveyCallout = document.getElementById("surveyCallout");
         const surveyCalloutCard = surveyCallout.querySelector(".callout-content");
         const surveyCalloutClose = surveyCallout.querySelector(".close-btn");
@@ -13277,21 +13289,9 @@
                 setImportPanelVisibility(false);
                 return;
             }
-            if (button.id === "emptyConnectDropboxBtn" || button.id === "drawerConnectDropboxBtn" || button.id === "connectDropboxBtn") {
+            if (button.id === "emptyConnectDropboxBtn" || button.id === "drawerConnectDropboxBtn") {
                 event.preventDefault();
-                if (button.id !== "connectDropboxBtn") {
-                    showDropboxWorkspaceControls();
-                    return;
-                }
-                openWorkspacePanelFallback();
-                if (button.id === "connectDropboxBtn") {
-                    if (dropboxConnected) {
-                        disconnectDropboxAccount();
-                    } else {
-                        const returnTo = encodeURIComponent(window.location.href.split("#")[0]);
-                        window.location.href = `${WORKER_BASE}/api/auth?returnTo=${returnTo}`;
-                    }
-                }
+                showDropboxWorkspaceControls();
                 return;
             }
             const openProjectTarget = button.closest("[data-open-project]")?.dataset.openProject;
@@ -13592,8 +13592,7 @@
                 await disconnectDropboxAccount();
                 return;
             }
-            const returnTo = encodeURIComponent(window.location.href.split("#")[0]);
-            window.location.href = `${WORKER_BASE}/api/auth?returnTo=${returnTo}`;
+            startDropboxAuthorization();
         });
 
         loadDropboxSurveyBtn?.addEventListener("click", async () => {

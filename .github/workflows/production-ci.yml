@@ -58,6 +58,9 @@ jobs:
         working-directory: maps
         run: npm run test:dropbox-status-a11y
 
+      - name: Check Dropbox authorization navigation
+        working-directory: maps
+        run: npm run test:dropbox-auth-navigation
       - name: Check Dropbox disconnected recovery
         working-directory: maps
         run: npm run test:dropbox-disconnected-recovery
