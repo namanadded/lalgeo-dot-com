@@ -25,6 +25,8 @@
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
+    "test:cloud-storage": "node scripts/test-cloud-storage.mjs",
+    "benchmark:large-projects": "node scripts/benchmark-large-projects.mjs",
     "build": "next build",
     "start": "next start"
   },

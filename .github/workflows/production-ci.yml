@@ -102,6 +102,10 @@ jobs:
         working-directory: maps
         run: npm run test:view-menu-a11y
 
+      - name: Check cloud storage recovery contracts
+        working-directory: maps
+        run: npm run test:cloud-storage
+
       - name: Install maps dependencies
         working-directory: maps
         run: npm ci
