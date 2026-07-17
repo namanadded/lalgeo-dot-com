@@ -58,6 +58,10 @@ jobs:
         working-directory: maps
         run: npm run test:dropbox-status-a11y
 
+      - name: Check Dropbox disconnected recovery
+        working-directory: maps
+        run: npm run test:dropbox-disconnected-recovery
+
       - name: Check share toast accessibility
         working-directory: maps
         run: npm run test:share-toast-a11y
@@ -101,6 +105,22 @@ jobs:
       - name: Check maps view menu accessibility
         working-directory: maps
         run: npm run test:view-menu-a11y
+
+      - name: Check maps mobile menu organization
+        working-directory: maps
+        run: npm run test:mobile-menu-organization
+
+      - name: Check maps mobile feature details
+        working-directory: maps
+        run: npm run test:mobile-feature-details
+
+      - name: Check maps workflow UI
+        working-directory: maps
+        run: npm run test:workflow-ui
+
+      - name: Check maps control layout
+        working-directory: maps
+        run: npm run test:map-control-layout
 
       - name: Install maps dependencies
         working-directory: maps
