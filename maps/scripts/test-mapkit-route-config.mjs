@@ -20,8 +20,8 @@ assert(matches.length === 1, "legacy MapKit token assignment must match exactly 
 assert(routeSource.includes("MAPKIT_TOKEN"), "route should support the server-only MAPKIT_TOKEN override");
 assert(routeSource.includes("NEXT_PUBLIC_MAPKIT_TOKEN"), "route should support the public MapKit token override");
 assert(
-  routeSource.includes("process.env.DEPLOY_PRIME_URL || process.env.URL || new URL(request.url).origin"),
-  "route should load the legacy shell from the current deploy preview before the production site URL"
+  routeSource.includes("new URL(request.url).origin || process.env.DEPLOY_PRIME_URL || process.env.URL"),
+  "route should load the legacy shell from the incoming deployment origin before environment fallbacks"
 );
 assert(routeSource.includes("maps.lalgeo.com"), "route should special-case the production maps domain");
 assert(
