@@ -19,6 +19,10 @@ const matches = [...legacyHtml.matchAll(new RegExp(legacyTokenAssignment.source,
 assert(matches.length === 1, "legacy MapKit token assignment must match exactly once");
 assert(routeSource.includes("MAPKIT_TOKEN"), "route should support the server-only MAPKIT_TOKEN override");
 assert(routeSource.includes("NEXT_PUBLIC_MAPKIT_TOKEN"), "route should support the public MapKit token override");
+assert(
+  routeSource.includes("process.env.DEPLOY_PRIME_URL || process.env.URL || new URL(request.url).origin"),
+  "route should load the legacy shell from the current deploy preview before the production site URL"
+);
 assert(routeSource.includes("maps.lalgeo.com"), "route should special-case the production maps domain");
 assert(
   routeSource.includes("MapKit token is not configured for maps.lalgeo.com"),

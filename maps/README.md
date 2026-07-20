@@ -13,6 +13,6 @@ Open `http://localhost:3000`.
 ## Netlify
 Use this `maps/` directory as the site base, keep the build command as `npm run build`, and attach the custom domain `maps.lalgeo.com`.
 
-By default, this wrapper loads `https://lalgeo.com/lalgeosurvey.html` until a MapKit token env var is present. When `MAPKIT_TOKEN` or `NEXT_PUBLIC_MAPKIT_TOKEN` is set, it loads `/render/lalgeosurvey`, a Next route that serves `public/legacy/lalgeosurvey.html` with that token injected.
+By default, this wrapper loads `https://lalgeo.com/lalgeosurvey.html` until a MapKit token env var is present. When `MAPKIT_TOKEN` or `NEXT_PUBLIC_MAPKIT_TOKEN` is set, it loads `/render/lalgeosurvey`, a Next route that serves the current deployment's `public/legacy/lalgeosurvey.html` with that token injected. Netlify deploy previews use `DEPLOY_PRIME_URL` so visual changes can be reviewed before production.
 
 Set `MAPKIT_TOKEN` or `NEXT_PUBLIC_MAPKIT_TOKEN` in Netlify to the Apple Maps token for `*.lalgeo.com` before using `maps.lalgeo.com` in production.
