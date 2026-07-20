@@ -6758,7 +6758,7 @@
             <div id="sidebar-content"></div>
         </div>
     </div>
-    <aside id="dataCatalogPane" aria-label="Dropbox project browser">
+    <aside id="dataCatalogPane" aria-label="Dropbox project browser" aria-hidden="true" inert>
         <div class="data-pane-header">
             <div>
                 <h3>Data Manager</h3>
@@ -6803,7 +6803,7 @@
         <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
     </div>
-    <div id="map" style="width: 100%; height: 100vh;"></div>
+    <div id="map" tabindex="0" aria-label="Map canvas" style="width: 100%; height: 100vh;"></div>
     <div id="mapLoadError" class="map-load-error" role="alert" hidden>
         <strong>Map could not load</strong>
         <p id="mapLoadErrorMessage">Refresh the page or check the MapKit configuration for this domain.</p>
@@ -6820,7 +6820,7 @@
     <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel point placement or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
-    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite">
+    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite" aria-hidden="true" inert>
         <div class="feature-drawer-header">
             <div>
                 <h3>Feature Details</h3>
@@ -10562,9 +10562,22 @@
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
+        function setOffCanvasAccessibility(element, visible, returnFocus = null) {
+            if (!element) return;
+            if (!visible && element.contains(document.activeElement)) {
+                const focusTarget = returnFocus && !returnFocus.hidden && !returnFocus.disabled
+                    ? returnFocus
+                    : openDataManagerBtn;
+                focusTarget?.focus?.();
+            }
+            element.toggleAttribute("inert", !visible);
+            element.setAttribute("aria-hidden", visible ? "false" : "true");
+        }
+
         function setDataPaneVisibility(show) {
             dataPaneVisible = Boolean(show);
             dataCatalogPane?.classList.toggle("hidden-pane", !dataPaneVisible);
+            setOffCanvasAccessibility(dataCatalogPane, dataPaneVisible, openDataManagerBtn);
             openDataManagerBtn?.classList.toggle("active", dataPaneVisible);
             openDataManagerBtn?.setAttribute("aria-expanded", dataPaneVisible ? "true" : "false");
             if (featureDrawer) {
@@ -11156,7 +11169,10 @@
         }
 
         function closeFeatureDrawer({ clearSelection = false } = {}) {
-            if (featureDrawer) featureDrawer.classList.remove("open");
+            if (featureDrawer) {
+                featureDrawer.classList.remove("open");
+                setOffCanvasAccessibility(featureDrawer, false, mapElement);
+            }
             if (clearSelection) {
                 activeFeatureId = null;
                 activeSurveyAnnotation = null;
@@ -11454,6 +11470,7 @@
                 setProjectStatus("Feature details saved and closed.", "success");
             });
             featureDrawer.classList.add("open");
+            setOffCanvasAccessibility(featureDrawer, true);
         }
 
         function addLayerToActiveProject() {
