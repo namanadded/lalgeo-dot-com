@@ -7,6 +7,7 @@ async function importModule(path) {
 }
 
 const cloud = await importModule("../../js/cloud-storage.js");
+const dropboxSource = await readFile(new URL("../../js/dropbox-api.js", import.meta.url), "utf8");
 const bytes = new Uint8Array(2_500_000).map((_, index) => index % 251);
 const blob = new Blob([bytes]);
 let remote = new Uint8Array(0);
@@ -72,4 +73,41 @@ for (const [error, code, retryable] of [
   assert.equal(normalized.retryable, retryable);
 }
 
-console.log("Cloud storage contract: resumable recovery and error taxonomy passed.");
+const catalogCalls = [];
+const catalogPages = new Map([
+  ["/projects", { entries: [
+    { id: "1", path: "/projects/a.lal", name: "a.lal" },
+    { id: "skip", path: "/projects/readme.txt", name: "readme.txt" },
+  ], hasMore: true, cursor: "projects-2" }],
+  ["projects-2", { entries: [{ id: "2", path: "/projects/b.zip", name: "b.zip" }], hasMore: false }],
+  ["", { entries: [
+    { id: "1-copy", path: "/projects/a.lal", name: "a.lal" },
+    { id: "3", path: "/legacy.lal", name: "legacy.lal" },
+  ], hasMore: false }],
+]);
+const catalog = await cloud.collectCloudFiles({
+  async list(scope) {
+    catalogCalls.push([scope.path, scope.recursive]);
+    return catalogPages.get(scope.path);
+  },
+  async continue(cursor) {
+    catalogCalls.push([cursor, "continue"]);
+    return catalogPages.get(cursor);
+  },
+}, {
+  scopes: [{ path: "/projects", recursive: true }, { path: "", recursive: false }],
+  accept: (entry) => /\.(lal|zip)$/i.test(entry.name),
+  mapEntry: (entry) => ({ ...entry, pathLower: entry.path.toLowerCase() }),
+  keyOf: (row) => row.pathLower,
+});
+assert.deepEqual(catalog.rows.map((row) => row.name), ["a.lal", "b.zip", "legacy.lal"]);
+assert.deepEqual(catalog.stats, { pages: 3, examined: 5, matched: 3 });
+assert.deepEqual(catalogCalls, [["/projects", true], ["projects-2", "continue"], ["", false]],
+  "catalog recursion stays inside explicit project roots");
+assert.match(dropboxSource, /\{ path: "\/LalGeoDB", recursive: true \}/);
+assert.match(dropboxSource, /\{ path: "", recursive: false \}/,
+  "Dropbox fallback must never recursively scan the account root");
+assert.doesNotMatch(dropboxSource, /filesListFolder\(\{ path: scope\.path, recursive: true \}\)/,
+  "provider integration must honor each catalog scope's recursion boundary");
+
+console.log("Cloud storage contract: scoped catalog, resumable recovery, and error taxonomy passed.");

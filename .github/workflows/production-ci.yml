@@ -116,6 +116,10 @@ jobs:
       - name: Check cloud storage recovery contracts
         working-directory: maps
         run: npm run test:cloud-storage
+
+      - name: Benchmark scoped cloud catalog discovery
+        working-directory: maps
+        run: npm run benchmark:cloud-catalog
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization

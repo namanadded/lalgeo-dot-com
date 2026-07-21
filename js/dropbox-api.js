@@ -1,5 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
-import { DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
+import { collectCloudFiles, DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
 export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
@@ -7,7 +7,14 @@ export const TOKEN_STORAGE_SESSION_KEY = "lalgeo_dropbox_access_token_session";
 export const CHOOSER_APP_KEY_KEY = "lalgeo_dropbox_chooser_app_key";
 export const SURVEY_DROPBOX_CONNECTED_KEY = "lalgeo_survey_dropbox_connected";
 const PROJECT_EXTENSIONS = new Set(["lal", "zip"]);
-const PROJECT_SCAN_ROOTS = ["/LalGeoDB", "/Apps/LalGeo", "/Apps/LalGeoSurvey", ""];
+const PROJECT_SCAN_SCOPES = [
+  { path: "/LalGeoDB", recursive: true },
+  { path: "/Apps/LalGeo", recursive: true },
+  { path: "/Apps/LalGeoSurvey", recursive: true },
+  // Preserve legacy archives saved directly at the account root without
+  // recursively enumerating unrelated folders and files.
+  { path: "", recursive: false },
+];
 
 function isProjectArchiveName(name = "", path = "") {
   const value = String(name || path).toLowerCase();
@@ -180,45 +187,43 @@ export class LalGeoDropboxClient {
   }
 
   async listLayersViaSdk() {
-    const rows = [];
-    const seenPaths = new Set();
-    for (const root of PROJECT_SCAN_ROOTS) {
-      let cursor = null;
-      do {
-        let response;
-        try {
-          response = cursor
-            ? await this.client.filesListFolderContinue({ cursor })
-            : await this.client.filesListFolder({ path: root, recursive: true });
-        } catch (error) {
-          const summary = String(error?.error?.error_summary || error?.message || error?.status || "");
-          if (summary.includes("not_found")) break;
-          throw error;
-        }
-        const entries = response.result?.entries || response.entries || [];
-        entries.forEach((entry) => {
-          if (entry[".tag"] !== "file") return;
-          const pathLower = String(entry.path_lower || "").toLowerCase();
-          if (!pathLower || seenPaths.has(pathLower)) return;
-          if (pathLower.startsWith(`${this.versionsPath.toLowerCase()}/`)) return;
-          const extension = String(entry.name || "").split(".").pop()?.toLowerCase() || "";
-          if (!PROJECT_EXTENSIONS.has(extension)) return;
-          seenPaths.add(pathLower);
-          rows.push({
-            id: entry.id,
-            pathLower,
-            pathDisplay: entry.path_display,
-            name: entry.name,
-            serverModified: entry.server_modified,
-            clientModified: entry.client_modified,
-            rev: entry.rev,
-            size: entry.size,
-            fileType: extension,
-          });
-        });
-        cursor = (response.result?.has_more || response.has_more) ? (response.result?.cursor || response.cursor) : null;
-      } while (cursor);
-    }
+    const client = this.client;
+    const unwrap = (response) => response.result || response;
+    const catalog = await collectCloudFiles({
+      async list(scope) {
+        const result = unwrap(await client.filesListFolder({ path: scope.path, recursive: scope.recursive }));
+        return { entries: result.entries, hasMore: result.has_more, cursor: result.cursor };
+      },
+      async continue(cursor) {
+        const result = unwrap(await client.filesListFolderContinue({ cursor }));
+        return { entries: result.entries, hasMore: result.has_more, cursor: result.cursor };
+      },
+      isMissingScope(error) {
+        const summary = String(error?.error?.error_summary || error?.message || error?.status || "");
+        return summary.includes("not_found");
+      },
+    }, {
+      scopes: PROJECT_SCAN_SCOPES,
+      accept: (entry) => {
+        if (entry[".tag"] !== "file") return false;
+        const pathLower = String(entry.path_lower || "").toLowerCase();
+        if (!pathLower || pathLower.startsWith(`${this.versionsPath.toLowerCase()}/`)) return false;
+        return PROJECT_EXTENSIONS.has(String(entry.name || "").split(".").pop()?.toLowerCase() || "");
+      },
+      mapEntry: (entry) => ({
+        id: entry.id,
+        pathLower: String(entry.path_lower || "").toLowerCase(),
+        pathDisplay: entry.path_display,
+        name: entry.name,
+        serverModified: entry.server_modified,
+        clientModified: entry.client_modified,
+        rev: entry.rev,
+        size: entry.size,
+        fileType: String(entry.name || "").split(".").pop()?.toLowerCase() || "",
+      }),
+      keyOf: (row) => row.pathLower,
+    });
+    const rows = catalog.rows;
     return rows.sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
 

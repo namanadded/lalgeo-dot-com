@@ -49,6 +49,59 @@ export async function retryCloudOperation(operation, options = {}) {
   throw lastError;
 }
 
+function assertCatalogAdapter(adapter) {
+  for (const method of ["list", "continue"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Cloud catalog adapter requires ${method}().`);
+    }
+  }
+}
+
+/**
+ * Walk a provider catalog one page at a time without retaining provider pages.
+ * Scopes are deliberately explicit so a provider cannot silently widen a project
+ * listing to a user's entire cloud account.
+ */
+export async function collectCloudFiles(adapter, options = {}) {
+  assertCatalogAdapter(adapter);
+  const scopes = Array.isArray(options.scopes) ? options.scopes : [];
+  const accept = options.accept || (() => true);
+  const mapEntry = options.mapEntry || ((entry) => entry);
+  const keyOf = options.keyOf || ((entry) => entry?.id || entry?.pathLower || entry?.pathDisplay || entry?.name);
+  const rows = [];
+  const seen = new Set();
+  let pages = 0;
+  let examined = 0;
+
+  for (const scope of scopes) {
+    let cursor = null;
+    do {
+      let page;
+      try {
+        page = cursor ? await adapter.continue(cursor) : await adapter.list(scope);
+      } catch (error) {
+        if (adapter.isMissingScope?.(error, scope)) break;
+        throw error;
+      }
+      pages += 1;
+      const entries = Array.isArray(page?.entries) ? page.entries : [];
+      examined += entries.length;
+      for (const entry of entries) {
+        if (!accept(entry, scope)) continue;
+        const row = mapEntry(entry, scope);
+        const key = String(keyOf(row, entry, scope) || "").toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        rows.push(row);
+      }
+      cursor = page?.hasMore ? page.cursor : null;
+      options.onPage?.({ scope, pages, examined, matched: rows.length });
+    } while (cursor);
+  }
+
+  return { rows, stats: { pages, examined, matched: rows.length } };
+}
+
 function assertUploadAdapter(adapter) {
   for (const method of ["start", "append", "finish", "lookupOffset"]) {
     if (typeof adapter?.[method] !== "function") {
