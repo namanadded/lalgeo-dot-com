@@ -28,5 +28,13 @@ assert(
   routeSource.includes("TOKEN_ASSIGNMENT_PATTERN") && routeSource.includes("source.replace"),
   "route should replace the legacy token assignment before serving the shell"
 );
+assert(
+  routeSource.includes("new URL(request.url).origin") && routeSource.includes("DEPLOY_PRIME_URL"),
+  "route should load the legacy shell from the incoming deployment before environment fallbacks"
+);
+assert(
+  !routeSource.includes('process.env.URL || "https://maps.lalgeo.com"'),
+  "deploy previews must not fall back directly to the production legacy shell"
+);
 
 console.log("MapKit route configuration checks passed.");
