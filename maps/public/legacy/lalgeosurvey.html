@@ -4707,6 +4707,34 @@
     } */
 
     @media (max-width: 600px) {
+        #importPanel .import-panel-container {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px 14px max(22px, env(safe-area-inset-bottom));
+        }
+        #importPanel .workspace-panel-header {
+            padding-right: 62px;
+        }
+        #importPanel #importPanelClose {
+            top: max(8px, env(safe-area-inset-top));
+            right: 10px;
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            padding: 0;
+            margin: 0;
+            font-size: 22px;
+        }
+        #importPanel #importPanelClose::after { content: none; }
+        #importPanel .import-source-actions {
+            grid-template-columns: 1fr;
+        }
+        #importPanel .import-source-actions button {
+            width: 100%;
+            min-height: 48px;
+            height: 48px;
+            font-size: 14px;
+        }
         .import-panel-container {
             position: fixed;
             max-width: 100%;
@@ -5758,6 +5786,8 @@
     }
     #importPanel .close-btn,
     #importPanelClose {
+        min-height: 44px;
+        height: 44px;
         background: #fff;
         color: #6b7280;
         border: 1px solid rgba(209, 213, 219, 0.82);
@@ -5806,6 +5836,64 @@
     }
     #importPanel .workspace-panel-section {
         border-top-color: #e5e7eb;
+    }
+    #importPanel .import-source-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid #dbe2ea;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+    #importPanel .import-source-card.is-dragging {
+        border-color: #0a84ff;
+        background: #f0f7ff;
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.14);
+    }
+    #importPanel .import-source-heading {
+        display: grid;
+        gap: 4px;
+    }
+    #importPanel .import-source-heading strong {
+        color: #1f2937;
+        font-size: 15px;
+    }
+    #importPanel .import-source-heading span,
+    #importPanel .import-format-help {
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    #importPanel .import-source-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+    #importPanel .import-source-actions button {
+        min-height: 44px;
+        margin: 0;
+    }
+    #importPanel #projectStatus {
+        display: block;
+        min-height: 18px;
+        margin: 14px 2px 4px;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    #importPanel #projectStatus.success { color: #047857; }
+    #importPanel #projectStatus.error { color: #b91c1c; }
+    @media (max-width: 600px) {
+        #importPanel .import-source-actions {
+            grid-template-columns: 1fr;
+        }
+        #importPanel .import-source-actions button {
+            width: 100%;
+            min-height: 48px;
+            height: 48px;
+            font-size: 14px;
+        }
     }
     #importPanel input[type="url"],
     #importPanel input[type="file"],
@@ -6537,8 +6625,8 @@
         <div class="import-panel-container">
             <div class="workspace-panel-header">
                 <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-                <h3>Projects</h3>
-                <p>Open, import, or export.</p>
+                <h3>Open a project</h3>
+                <p>Continue recent work or bring in map data.</p>
             </div>
 
             <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
@@ -6571,10 +6659,19 @@
             </details>
 
             <div class="import-section">
-                <div class="import-section-title section-header">Import</div>
-                <div class="import-stack">
-                    <button id="projectPickerBtn" type="button" class="workspace-primary-btn workflow-primary-choice">Choose Project File</button>
-                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple webkitdirectory style="display:none">
+                <div class="import-section-title section-header">Import from this device</div>
+                <div id="projectImportDropTarget" class="import-source-card">
+                    <div class="import-source-heading">
+                        <strong>Drop files here</strong>
+                        <span>Or choose files or a folder from your device.</span>
+                    </div>
+                    <div class="import-source-actions">
+                        <button id="projectPickerBtn" type="button" class="workspace-primary-btn">Choose files</button>
+                        <button id="projectFolderPickerBtn" type="button" class="workspace-secondary-btn">Choose folder</button>
+                    </div>
+                    <div id="projectImportFormatHelp" class="import-format-help">LalGeo, ZIP, CSV, GeoJSON, KML, KMZ, GPX, shapefiles, and photos.</div>
+                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple aria-describedby="projectImportFormatHelp" style="display:none">
+                    <input id="projectFolderInput" type="file" multiple webkitdirectory aria-describedby="projectImportFormatHelp" style="display:none">
                 </div>
             </div>
 
@@ -7149,6 +7246,9 @@
         const layerContextMoveBottomBtn = document.getElementById("layerContextMoveBottomBtn");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
+        const projectFolderInput = document.getElementById("projectFolderInput");
+        const projectFolderPickerBtn = document.getElementById("projectFolderPickerBtn");
+        const projectImportDropTarget = document.getElementById("projectImportDropTarget");
         const projectStatus = document.getElementById("projectStatus");
         const dropZone = document.getElementById("dropZone");
         const shareButton = document.getElementById("shareMapBtn");
@@ -13498,6 +13598,7 @@
         });
 
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
+        projectFolderPickerBtn?.addEventListener("click", () => projectFolderInput?.click());
         layerImportPickerBtn?.addEventListener("click", () => projectFileInput.click());
         layerImportCancelBtn?.addEventListener("click", () => setLayerImportPanelVisibility(false));
         layerImportApiBtn?.addEventListener("click", handleApiEndpointImport);
@@ -13550,10 +13651,45 @@
             if (event.target === helpCenterModal) setHelpCenterVisibility(false);
         });
 
-        projectFileInput.addEventListener("change", async (event) => {
-            if (!event.target.files.length) return;
-            await handleSurveyFiles(Array.from(event.target.files));
-            event.target.value = "";
+        async function importSelectedProjectFiles(files) {
+            if (!files.length) return;
+            setProjectStatus(`Importing ${files.length} item${files.length === 1 ? "" : "s"}…`);
+            try {
+                await handleSurveyFiles(files);
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error?.message || "That project could not be imported.", "error");
+            }
+        }
+
+        [projectFileInput, projectFolderInput].filter(Boolean).forEach((input) => {
+            input.addEventListener("change", async (event) => {
+                await importSelectedProjectFiles(Array.from(event.target.files || []));
+                event.target.value = "";
+            });
+        });
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+            projectImportDropTarget?.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                projectImportDropTarget.classList.add("is-dragging");
+            });
+        });
+        ["dragleave", "drop"].forEach((eventName) => {
+            projectImportDropTarget?.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                projectImportDropTarget.classList.remove("is-dragging");
+            });
+        });
+        projectImportDropTarget?.addEventListener("drop", async (event) => {
+            const files = await extractFilesFromDataTransfer(event);
+            if (!files.length) {
+                setProjectStatus("No supported files were found in that drop.", "error");
+                return;
+            }
+            await importSelectedProjectFiles(files);
         });
         if (dropboxLinkParam && shareParam === "1") {
             dropboxUrlInput.value = dropboxLinkParam;
