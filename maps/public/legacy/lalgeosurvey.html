@@ -2480,6 +2480,16 @@
         color: rgba(238, 246, 251, 0.38);
         cursor: default;
     }
+    .menu-command[data-disabled-reason]::after {
+        content: attr(data-disabled-reason);
+        display: block;
+        margin-top: 2px;
+        color: #9ca3af;
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 1.25;
+        white-space: normal;
+    }
     .menu-shortcut {
         font-size: 11px;
         color: rgba(200, 214, 227, 0.72);
@@ -8797,8 +8807,22 @@
             mobileMenuPane.querySelectorAll("[data-mobile-menu-target]").forEach((button) => {
                 const target = document.getElementById(button.dataset.mobileMenuTarget || "");
                 const disabled = !target || Boolean(target.disabled);
+                if (button.hasAttribute("aria-label") && !button.dataset.enabledAriaLabel) {
+                    button.dataset.enabledAriaLabel = button.getAttribute("aria-label");
+                }
                 button.disabled = disabled;
                 button.classList.toggle("is-disabled", disabled);
+                const disabledReason = disabled ? target?.dataset.disabledReason || "This command is not available yet." : "";
+                if (disabledReason) {
+                    button.dataset.disabledReason = disabledReason;
+                    button.title = disabledReason;
+                    button.setAttribute("aria-label", `${button.textContent.trim()}. ${disabledReason}`);
+                } else {
+                    delete button.dataset.disabledReason;
+                    button.removeAttribute("title");
+                    if (button.dataset.enabledAriaLabel) button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
+                    else button.removeAttribute("aria-label");
+                }
             });
             const hasProject = Boolean(activeProjectRecord);
             mobileMenuPane.querySelectorAll("[data-map-type]").forEach((button) => {
@@ -8964,10 +8988,44 @@
                 [shareButton, hasProject],
                 [exportProjectBtn, hasProject]
             ];
+            const disabledReasons = new Map([
+                [menuOpenEditPanelBtn, "Create or open a project to use edit tools."],
+                [menuAddNewBtn, "Create or open a project with an editable layer first."],
+                [menuNewLayerBtn, "Create or open a project before adding a layer."],
+                [menuUndoBtn, "Make a local edit before using Undo."],
+                [menuRedoBtn, "Undo a local edit before using Redo."],
+                [menuToggleEditToolbarBtn, "Create or open a project to show editing controls."],
+                [menuToggleLayerToolbarBtn, "Create or open a project to show layer controls."],
+                [menuTogglePopoutsBtn, "Create or open a project to show map popouts."],
+                [menuShowBasemapPoisBtn, "Create or open a project to configure points of interest."],
+                [menuHistoryRecentBtn, "Create or open a project to build recent history."],
+                [menuCloseLayersBtn, "Open the Layers panel before closing it."],
+                [menuCloseDataPaneBtn, "Open Data Manager before closing it."],
+                [menuExportPdfBtn, "Create or open a project before exporting a map."],
+                [printButton, "Create or open a project before printing."],
+                [menuForceCloseBtn, "Open a project, panel, or menu before closing everything."],
+                [menuLogoutBtn, "Connect Dropbox before disconnecting it."],
+                [shareButton, "Create or open a project before sharing a link."],
+                [exportProjectBtn, "Create or open a project before exporting it."]
+            ]);
             commandState.forEach(([button, enabled]) => {
                 if (!button) return;
+                if (button.hasAttribute("aria-label") && !button.dataset.enabledAriaLabel) {
+                    button.dataset.enabledAriaLabel = button.getAttribute("aria-label");
+                }
                 button.disabled = !enabled;
                 button.classList.toggle("is-disabled", !enabled);
+                const reason = enabled ? "" : disabledReasons.get(button) || "This command is not available yet.";
+                if (reason) {
+                    button.dataset.disabledReason = reason;
+                    button.title = reason;
+                    button.setAttribute("aria-label", `${button.textContent.trim()}. ${reason}`);
+                } else {
+                    delete button.dataset.disabledReason;
+                    button.removeAttribute("title");
+                    if (button.dataset.enabledAriaLabel) button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
+                    else button.removeAttribute("aria-label");
+                }
             });
             updatePopoutsMenuState();
             syncMobileMenuCommandStates();
