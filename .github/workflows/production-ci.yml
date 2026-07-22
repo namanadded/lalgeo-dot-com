@@ -116,6 +116,10 @@ jobs:
       - name: Check cloud storage recovery contracts
         working-directory: maps
         run: npm run test:cloud-storage
+
+      - name: Check local workspace persistence recovery
+        working-directory: maps
+        run: npm run test:workspace-persistence
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization

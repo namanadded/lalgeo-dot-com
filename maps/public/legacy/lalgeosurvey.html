@@ -6952,6 +6952,7 @@
         </div>
     </div>
 
+    <script src="../js/workspace-persistence.js"></script>
     <script>
         const hostname = window.location.hostname;
 
@@ -9304,16 +9305,24 @@
         }
 
         function saveWorkspaceProjects() {
-            try {
-                localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(serializeWorkspaceProjectsForStorage()));
+            const persistence = window.LalGeoWorkspacePersistence;
+            const result = persistence
+                ? persistence.persistJsonAtomically(localStorage, WORKSPACE_STORAGE_KEY, serializeWorkspaceProjectsForStorage())
+                : { ok: false, error: { code: "unavailable", message: "Workspace persistence helper unavailable" } };
+            if (result.ok) {
+                try {
                 if (rememberLastSession && activeProjectRecord?.id) {
                     localStorage.setItem(WORKSPACE_ACTIVE_KEY, activeProjectRecord.id);
                 } else {
                     localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
                 }
-            } catch (error) {
-                console.warn("Unable to persist workspace projects", error);
+                } catch (error) {
+                    console.warn("Unable to persist active workspace selection", error);
+                }
+                return result;
             }
+            console.warn("Unable to persist workspace projects", result.error);
+            return result;
         }
 
         function setWorkspaceDirty(dirty = true) {
@@ -19343,13 +19352,24 @@
             if (!activeProjectRecord) return;
             if (!forceSave && !pendingChanges && !surveyNeedsSave && !workspaceDirty) return;
             syncActiveLayerFromSurveyState();
+            const result = saveWorkspaceProjects();
+            if (!result.ok) {
+                pendingChanges = true;
+                surveyNeedsSave = true;
+                workspaceDirty = true;
+                const guidance = result.error?.code === "quota"
+                    ? "Browser storage is full. Export the project package now, then remove older local projects before retrying."
+                    : "Browser storage is unavailable. Export the project package now and retry after storage access is restored.";
+                setProjectStatus(`Autosave failed; your current edits remain open but are not stored. ${guidance}`, "error");
+                updateHistoryButtons();
+                return;
+            }
             pendingChanges = false;
             surveyNeedsSave = false;
             if (activeProjectRecord?.metadata) {
                 activeProjectRecord.metadata.lastSavedAt = activeProjectRecord.metadata.updatedAt;
             }
             workspaceDirty = false;
-            saveWorkspaceProjects();
             setProjectStatus("Project autosaved to local browser storage.", "success");
             updateHistoryButtons();
         }
