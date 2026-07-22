@@ -128,6 +128,10 @@ jobs:
         working-directory: maps
         run: npm run test:workflow-ui
 
+      - name: Check maps print and PDF preparation
+        working-directory: maps
+        run: npm run test:print-export-preparation
+
       - name: Check maps control layout
         working-directory: maps
         run: npm run test:map-control-layout
