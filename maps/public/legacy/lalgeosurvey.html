@@ -7256,6 +7256,7 @@
         const mobileMenuPane = document.getElementById("mobileMenuPane");
         const mobileMenuPoisBtn = document.getElementById("mobileMenuPoisBtn");
         const mobileMenuGroups = Array.from(document.querySelectorAll("#mobileMenuPane .mobile-menu-group"));
+        let mobileMenuInvocationSource = null;
         const menuPaneEls = Array.from(document.querySelectorAll("[data-menu-pane]"));
         const dropboxUrlInput = document.getElementById("dropboxUrlInput");
         const dropboxLoadBtn = document.getElementById("dropboxLoadBtn");
@@ -12208,7 +12209,8 @@
                             return true;
                         }
                     }
-                ]
+                ],
+                returnFocusTo: mobileMenuInvocationSource || document.activeElement
             });
         }
 
@@ -13826,8 +13828,13 @@
             if (!target || target.disabled) return;
             event.preventDefault();
             event.stopPropagation();
+            mobileMenuInvocationSource = button;
             setToolbarMenuVisibility(false);
-            target.click();
+            try {
+                target.click();
+            } finally {
+                mobileMenuInvocationSource = null;
+            }
         });
         mobileMenuGroups.forEach((group) => {
             group.addEventListener("toggle", () => {

@@ -11,6 +11,7 @@ assert.match(source, /menuExportPdfBtn\?\.addEventListener\("click", \(\) => ope
 assert.match(source, /printButton\?\.addEventListener\("click", \(\) => openPrintPreparation\("print"\)\)/, "Print should open print preparation instead of printing immediately.");
 assert.doesNotMatch(source, /menuExportPdfBtn\?\.addEventListener\("click", \(\) => window\.print\(\)\)/, "Export Map must not bypass preparation.");
 assert.match(source, /@media print[\s\S]*?body > \*:not\(#map\):not\(#mapPrintHeader\)[\s\S]*?#mapPrintHeader[\s\S]*?#map \{[\s\S]*?position: fixed !important;/, "Print CSS should isolate the titled map and exclude application chrome.");
-assert.doesNotMatch(source, /returnFocusTo:\s*exporting \? menuExportPdfBtn : printButton/, "The shared modal should preserve its default actual-invoker focus target so mobile proxies do not return focus to hidden desktop controls.");
+assert.match(source, /let mobileMenuInvocationSource = null;[\s\S]*?returnFocusTo: mobileMenuInvocationSource \|\| document\.activeElement/, "The preparation dialog should restore focus to the real mobile proxy or desktop command that invoked it.");
+assert.match(source, /mobileMenuInvocationSource = button;[\s\S]*?try \{[\s\S]*?target\.click\(\);[\s\S]*?finally \{[\s\S]*?mobileMenuInvocationSource = null;/, "Mobile command proxying should preserve the invoking control only for the synchronous delegated action.");
 
 console.log("Print and PDF preparation checks passed.");
