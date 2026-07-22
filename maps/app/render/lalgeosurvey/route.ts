@@ -24,7 +24,8 @@ function mapkitTokenScript(request: Request) {
 }
 
 export async function GET(request: Request) {
-  const sourceResponse = await fetch(new URL("/legacy/lalgeosurvey.html", process.env.URL || "https://maps.lalgeo.com"), {
+  const deploymentUrl = new URL(request.url).origin || process.env.DEPLOY_PRIME_URL || process.env.URL;
+  const sourceResponse = await fetch(new URL("/legacy/lalgeosurvey.html", deploymentUrl), {
     cache: "no-store",
   });
 
