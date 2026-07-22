@@ -25,6 +25,7 @@
     "test:mobile-menu-organization": "node scripts/test-mobile-menu-organization.mjs",
     "test:mobile-feature-details": "node scripts/test-mobile-feature-details.mjs",
     "test:workflow-ui": "node scripts/test-workflow-ui.mjs",
+    "test:layer-import-journey": "node scripts/test-layer-import-journey.mjs",
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",

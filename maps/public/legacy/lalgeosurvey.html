@@ -3788,6 +3788,140 @@
         min-height: 42px;
         padding: 0 16px;
     }
+    .layer-import-sheet {
+        position: relative;
+        width: min(520px, 100%);
+        overflow: hidden;
+    }
+    .layer-import-header {
+        padding-right: 52px;
+    }
+    .layer-import-close {
+        position: absolute;
+        top: 18px;
+        right: 18px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid rgba(209, 213, 219, 0.82);
+        border-radius: 999px;
+        background: #fff;
+        color: #6b7280;
+        font-size: 24px;
+        line-height: 1;
+        cursor: pointer;
+        box-shadow: 0 4px 14px rgba(15, 23, 42, 0.1);
+    }
+    .layer-import-close:hover,
+    .layer-import-close:focus-visible {
+        background: #f3f4f6;
+        color: #374151;
+        outline: none;
+    }
+    .layer-import-choice {
+        width: 100%;
+        min-height: 112px;
+        margin-top: 18px;
+        padding: 18px;
+        display: grid;
+        grid-template-columns: 44px minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 14px;
+        border: 1px solid rgba(0, 122, 255, 0.24);
+        border-radius: 18px;
+        background: rgba(0, 122, 255, 0.06);
+        color: #374151;
+        text-align: left;
+        cursor: pointer;
+    }
+    .layer-import-choice:hover,
+    .layer-import-choice:focus-visible {
+        border-color: #007aff;
+        background: rgba(0, 122, 255, 0.1);
+        outline: none;
+    }
+    .layer-import-choice-icon {
+        width: 44px;
+        height: 44px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 12px;
+        background: #007aff;
+        color: #fff;
+        font-size: 24px;
+        font-weight: 500;
+    }
+    .layer-import-choice-copy {
+        display: grid;
+        gap: 4px;
+        min-width: 0;
+    }
+    .layer-import-choice-copy strong {
+        color: #1f2937;
+        font-size: 16px;
+    }
+    .layer-import-choice-copy span {
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.4;
+    }
+    .layer-import-choice-chevron {
+        color: #007aff;
+        font-size: 24px;
+    }
+    .layer-import-formats {
+        margin: 12px 0 4px;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.5;
+        text-align: center;
+    }
+    .layer-import-sheet .workflow-disclosure {
+        margin-top: 16px;
+    }
+    .layer-import-sheet .workspace-validation {
+        min-height: 20px;
+        margin-top: 14px;
+        color: #6b7280;
+    }
+    .layer-import-sheet .workspace-validation.success { color: #2e7d5b; }
+    .layer-import-sheet .workspace-validation.error { color: #b45353; }
+    @media (max-width: 600px) {
+        .workspace-modal-backdrop:has(.layer-import-sheet) {
+            align-items: flex-end;
+            padding: 0;
+        }
+        .layer-import-sheet {
+            width: 100%;
+            max-height: min(86dvh, 720px);
+            padding: 24px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+            border-radius: 24px 24px 0 0;
+        }
+        .layer-import-sheet::before {
+            content: "";
+            display: block;
+            width: 38px;
+            height: 5px;
+            margin: -10px auto 18px;
+            border-radius: 999px;
+            background: #d1d5db;
+        }
+        .layer-import-sheet h3 { font-size: 24px; }
+        .layer-import-close { top: 16px; right: 14px; }
+        .layer-import-choice {
+            min-height: 104px;
+            padding: 16px 14px;
+            grid-template-columns: 44px minmax(0, 1fr) 18px;
+        }
+        .layer-import-sheet .workspace-modal-actions {
+            display: none;
+        }
+    }
     .workflow-disclosure {
         margin-top: 12px;
         overflow: hidden;
@@ -6614,12 +6748,24 @@
             <span id="projectStatus">Create a project or open an existing one.</span>
         </div>
     </div>
-    <div id="layerImportModal" class="workspace-modal-backdrop" hidden>
-        <div class="workspace-modal">
-            <h3>Import Layer</h3>
-            <p class="workspace-panel-muted">Choose a file or connect a public URL.</p>
+    <div id="layerImportModal" class="workspace-modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="layerImportTitle" aria-describedby="layerImportDescription" hidden>
+        <div class="workspace-modal layer-import-sheet">
+            <div class="layer-import-header">
+                <h3 id="layerImportTitle">Add a layer</h3>
+                <p id="layerImportDescription" class="workspace-panel-muted">Bring GIS data into your current map.</p>
+            </div>
+            <button id="layerImportCloseBtn" type="button" class="layer-import-close" aria-label="Close add layer">×</button>
+            <button id="layerImportPickerBtn" type="button" class="layer-import-choice">
+                <span class="layer-import-choice-icon" aria-hidden="true">+</span>
+                <span class="layer-import-choice-copy">
+                    <strong>Choose files</strong>
+                    <span>Select one file, a shapefile set, or a project package.</span>
+                </span>
+                <span class="layer-import-choice-chevron" aria-hidden="true">›</span>
+            </button>
+            <p class="layer-import-formats">GeoJSON, CSV, KML, KMZ, GPX, JSON, LalGeo, images, and shapefiles</p>
             <details class="workflow-disclosure">
-                <summary>Import from URL</summary>
+                <summary>Use a public URL</summary>
                 <div class="workflow-disclosure-content">
                     <div class="workspace-field">
                         <label for="layerImportApiUrl">URL</label>
@@ -6634,20 +6780,10 @@
                             <option value="csv">CSV</option>
                         </select>
                     </div>
-                    <button id="layerImportApiBtn" type="button" class="workspace-secondary-btn">Import URL</button>
+                    <button id="layerImportApiBtn" type="button" class="workspace-primary-btn">Add from URL</button>
                 </div>
             </details>
-            <details class="workflow-disclosure">
-                <summary>Supported Formats</summary>
-                <div class="workflow-disclosure-content">
-                    <p class="workspace-panel-muted">GeoJSON, KML, KMZ, GPX, CSV, JSON, LalGeo, and zipped shapefiles.</p>
-                </div>
-            </details>
-            <div id="layerImportStatus" class="workspace-validation" role="status">Choose a file.</div>
-            <div class="workspace-modal-actions">
-                <button id="layerImportCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
-                <button id="layerImportPickerBtn" type="button" class="workspace-primary-btn">Choose File</button>
-            </div>
+            <div id="layerImportStatus" class="workspace-validation" role="status" aria-live="polite">No file selected.</div>
         </div>
     </div>
     <div id="helpCenterModal" class="workspace-modal-backdrop" hidden>
@@ -7224,6 +7360,7 @@
         const importPanel = document.getElementById("importPanel");
         const layerImportModal = document.getElementById("layerImportModal");
         const layerImportPickerBtn = document.getElementById("layerImportPickerBtn");
+        const layerImportCloseBtn = document.getElementById("layerImportCloseBtn");
         const layerImportCancelBtn = document.getElementById("layerImportCancelBtn");
         const layerImportStatus = document.getElementById("layerImportStatus");
         const layerImportApiUrl = document.getElementById("layerImportApiUrl");
@@ -7461,6 +7598,7 @@
             }
         }
         let isImportPanelVisible = false;
+        let layerImportReturnFocus = null;
         let editPanelPinned = false;
         let layerToolsPinned = false;
         let pointGeometryEditMode = false;
@@ -13500,6 +13638,10 @@
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
         layerImportPickerBtn?.addEventListener("click", () => projectFileInput.click());
         layerImportCancelBtn?.addEventListener("click", () => setLayerImportPanelVisibility(false));
+        layerImportCloseBtn?.addEventListener("click", () => setLayerImportPanelVisibility(false));
+        layerImportModal?.addEventListener("click", (event) => {
+            if (event.target === layerImportModal) setLayerImportPanelVisibility(false);
+        });
         layerImportApiBtn?.addEventListener("click", handleApiEndpointImport);
         layerImportApiUrl?.addEventListener("keydown", (event) => {
             if (event.key === "Enter") {
@@ -14378,6 +14520,11 @@
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
+                if (layerImportModal && !layerImportModal.hidden) {
+                    event.preventDefault();
+                    setLayerImportPanelVisibility(false);
+                    return;
+                }
                 if (sampleMapModal && !sampleMapModal.hidden) {
                     dismissSampleMapModal();
                     return;
@@ -20149,14 +20296,24 @@ function setImportPanelVisibility(show) {
         function setLayerImportPanelVisibility(show) {
             if (!layerImportModal) return;
             if (show) {
+                layerImportReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
                 setImportPanelVisibility(false);
             }
             layerImportModal.hidden = !show;
             toggleImportBtn?.classList.toggle("active", show);
             if (show) {
                 setToolbarMenuVisibility(true);
-                setProjectStatus("Choose a file to import.");
+                if (layerImportStatus) {
+                    layerImportStatus.textContent = "No file selected.";
+                    layerImportStatus.classList.remove("success", "error");
+                }
                 layerImportPickerBtn?.focus();
+            } else {
+                const returnTarget = layerImportReturnFocus?.isConnected && layerImportReturnFocus.getClientRects().length
+                    ? layerImportReturnFocus
+                    : [openDataManagerBtn, leftToolbarExpandBtn, sidebarToggleBtn].find((element) => element?.getClientRects().length);
+                returnTarget?.focus({ preventScroll: true });
+                layerImportReturnFocus = null;
             }
         }
 
