@@ -150,6 +150,9 @@ jobs:
         working-directory: maps
         run: npm run test:workflow-ui
 
+      - name: Check layer import journey
+        working-directory: maps
+        run: npm run test:layer-import-journey
       - name: Check maps print and PDF preparation
         working-directory: maps
         run: npm run test:print-export-preparation
