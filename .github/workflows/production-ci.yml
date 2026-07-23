@@ -156,6 +156,11 @@ jobs:
       - name: Check layer import journey
         working-directory: maps
         run: npm run test:layer-import-journey
+
+      - name: Check layer selection controls
+        working-directory: maps
+        run: npm run test:layer-selection-controls
+
       - name: Check maps print and PDF preparation
         working-directory: maps
         run: npm run test:print-export-preparation
