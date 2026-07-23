@@ -97,6 +97,10 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-project-onboarding
 
+      - name: Check project setup journey
+        working-directory: maps
+        run: npm run test:project-setup-journey
+
       - name: Check maps top menu accessibility
         working-directory: maps
         run: npm run test:top-menu-a11y
@@ -120,6 +124,9 @@ jobs:
       - name: Check cloud storage recovery contracts
         working-directory: maps
         run: npm run test:cloud-storage
+      - name: Check Dropbox upload content verification
+        working-directory: maps
+        run: npm run test:dropbox-content-hash
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization
@@ -127,6 +134,10 @@ jobs:
       - name: Check maps mobile feature details
         working-directory: maps
         run: npm run test:mobile-feature-details
+
+      - name: Check off-canvas panel accessibility
+        working-directory: maps
+        run: npm run test:off-canvas-panel-a11y
 
       - name: Check maps workflow UI
         working-directory: maps

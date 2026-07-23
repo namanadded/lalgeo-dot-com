@@ -3768,6 +3768,37 @@
         font-size: 28px;
         letter-spacing: -0.03em;
     }
+    .workspace-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    .workspace-modal-header h3 { margin: 0; }
+    .workspace-modal-close {
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+        font: 600 22px/1 ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+    }
+    .workspace-modal-close:hover,
+    .workspace-modal-close:focus-visible {
+        background: rgba(255,255,255,0.12);
+        outline: 2px solid #8ff0dc;
+        outline-offset: 2px;
+    }
+    .workspace-modal-intro {
+        margin: 6px 0 0;
+        color: #9fb1c2;
+        font-size: 14px;
+        line-height: 1.5;
+    }
     .workspace-form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -3787,6 +3818,21 @@
         text-transform: uppercase;
         color: #7dd3c8;
         font-weight: 700;
+    }
+    .workspace-field-help {
+        margin: 0;
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .workflow-summary-copy {
+        display: grid;
+        gap: 2px;
+    }
+    .workflow-summary-copy small {
+        color: #9fb1c2;
+        font-size: 12px;
+        font-weight: 500;
     }
     .workspace-modal-actions {
         display: flex;
@@ -4193,6 +4239,34 @@
         line-height: 1.55;
     }
     @media (max-width: 600px) {
+        #workspaceCreateModal {
+            align-items: flex-end;
+            padding: 0;
+        }
+        #workspaceCreateModal .workspace-modal {
+            width: 100%;
+            max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px)));
+            box-sizing: border-box;
+            overflow-y: auto;
+            padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+            border-right: 0;
+            border-bottom: 0;
+            border-left: 0;
+            border-radius: 24px 24px 0 0;
+        }
+        #workspaceCreateModal .workspace-modal-actions {
+            position: sticky;
+            bottom: calc(-18px - env(safe-area-inset-bottom, 0px));
+            margin: 18px -18px calc(-18px - env(safe-area-inset-bottom, 0px));
+            padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+            background: rgba(255,255,255,0.96);
+            border-top: 1px solid #e5e7eb;
+            backdrop-filter: blur(18px);
+        }
+        #workspaceCreateModal .workspace-modal-actions button {
+            min-height: 48px;
+            flex: 1 1 0;
+        }
         #workspaceHint {
             right: 12px;
             bottom: calc(72px + env(safe-area-inset-bottom, 0px));
@@ -5926,6 +6000,20 @@
         background: #f9fafb;
         border-color: #e5e7eb;
     }
+    .workspace-modal .workspace-modal-close {
+        background: #f3f4f6;
+        color: #6b7280;
+        border-color: #e5e7eb;
+    }
+    .workspace-modal .workspace-modal-close:hover,
+    .workspace-modal .workspace-modal-close:focus-visible {
+        background: #e5e7eb;
+        color: #374151;
+        outline-color: #007aff;
+    }
+    .workspace-modal .workspace-modal-intro,
+    .workspace-modal .workspace-field-help,
+    .workspace-modal .workflow-summary-copy small { color: #6b7280; }
     #importPanel .workflow-disclosure-content,
     .workspace-modal .workflow-disclosure-content,
     .layer-modal .workflow-disclosure-content { border-top-color: #e5e7eb; }
@@ -6701,17 +6789,25 @@
         </div>
     </div>
     <div id="workspaceCreateModal" class="workspace-modal-backdrop" hidden>
-        <div class="workspace-modal">
-            <h3>New Project</h3>
+        <div class="workspace-modal" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle" aria-describedby="createProjectIntro">
+            <div class="workspace-modal-header">
+                <div>
+                    <h3 id="createProjectTitle">New Project</h3>
+                    <p id="createProjectIntro" class="workspace-modal-intro">Name your map and choose what you’ll add first.</p>
+                </div>
+                <button id="createProjectCloseBtn" type="button" class="workspace-modal-close" aria-label="Close new project">×</button>
+            </div>
             <form id="createProjectForm" aria-describedby="createProjectHelp createProjectValidation">
                 <div class="workspace-form-grid">
                     <div class="workspace-field full">
                         <label for="createProjectName">Name</label>
-                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required aria-required="true" aria-label="Project name">
+                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required aria-required="true" aria-label="Project name" aria-describedby="createProjectNameHelp">
+                        <p id="createProjectNameHelp" class="workspace-field-help">You can rename the project later.</p>
                     </div>
                     <div class="workspace-field">
-                        <label for="createLayerName">First Layer</label>
-                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required aria-required="true" aria-label="Default layer name">
+                        <label for="createLayerName">First layer</label>
+                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required aria-required="true" aria-label="Default layer name" aria-describedby="createLayerNameHelp">
+                        <p id="createLayerNameHelp" class="workspace-field-help">A layer groups features with the same fields and shape.</p>
                     </div>
                     <div class="workspace-field">
                         <label for="createGeometryType">Geometry</label>
@@ -6723,7 +6819,7 @@
                     </div>
                 </div>
                 <details class="workflow-disclosure">
-                    <summary>Options</summary>
+                    <summary><span class="workflow-summary-copy"><span>More options</span><small>Description, workspace type, and storage</small></span></summary>
                     <div class="workflow-disclosure-content">
                         <div class="workspace-field">
                             <label for="createProjectDescription">Description</label>
@@ -6731,22 +6827,24 @@
                         </div>
                         <div class="workspace-field">
                             <label for="createProjectType">Workspace</label>
-                            <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type">
+                            <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type" aria-describedby="createProjectTypeHelp">
                                 <option value="Survey project">Survey</option>
                                 <option value="GIS workspace">GIS</option>
                             </select>
+                            <p id="createProjectTypeHelp" class="workspace-field-help">Survey keeps field collection simple. GIS starts with the full analysis workspace.</p>
                         </div>
                         <div class="workspace-field">
                             <label for="createStorageDestination">Save To</label>
-                            <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination">
+                            <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination" aria-describedby="createStorageHelp">
                                 <option value="web">This Browser</option>
                                 <option value="dropbox">Dropbox</option>
                             </select>
+                            <p id="createStorageHelp" class="workspace-field-help">Browser projects stay on this device. Dropbox sync requires a connection.</p>
                         </div>
                     </div>
                 </details>
                 <div id="createProjectHelp" class="sr-only">Enter a project name and first layer.</div>
-                <div id="createProjectValidation" class="workspace-validation" hidden>Enter a project name to continue.</div>
+                <div id="createProjectValidation" class="workspace-validation error" role="status" aria-live="polite" hidden>Enter a project name to continue.</div>
                 <div class="workspace-modal-actions">
                     <button id="createProjectCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
                     <button id="createProjectSubmitBtn" type="submit" class="workspace-primary-btn" disabled>Create</button>
@@ -6768,7 +6866,7 @@
             <div id="sidebar-content"></div>
         </div>
     </div>
-    <aside id="dataCatalogPane" aria-label="Dropbox project browser">
+    <aside id="dataCatalogPane" aria-label="Dropbox project browser" aria-hidden="true" inert>
         <div class="data-pane-header">
             <div>
                 <h3>Data Manager</h3>
@@ -6813,7 +6911,7 @@
         <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
     </div>
-    <div id="map" style="width: 100%; height: 100vh;"></div>
+    <div id="map" tabindex="0" aria-label="Map canvas" style="width: 100%; height: 100vh;"></div>
     <div id="mapLoadError" class="map-load-error" role="alert" hidden>
         <strong>Map could not load</strong>
         <p id="mapLoadErrorMessage">Refresh the page or check the MapKit configuration for this domain.</p>
@@ -6830,7 +6928,7 @@
     <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel point placement or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
-    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite">
+    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite" aria-hidden="true" inert>
         <div class="feature-drawer-header">
             <div>
                 <h3>Feature Details</h3>
@@ -7053,6 +7151,7 @@
         const emptyConnectDropboxBtn = document.getElementById("emptyConnectDropboxBtn");
         const createProjectModal = document.getElementById("workspaceCreateModal");
         const createProjectForm = document.getElementById("createProjectForm");
+        const createProjectCloseBtn = document.getElementById("createProjectCloseBtn");
         const createProjectCancelBtn = document.getElementById("createProjectCancelBtn");
         const createProjectSubmitBtn = document.getElementById("createProjectSubmitBtn");
         const createProjectNameInput = document.getElementById("createProjectName");
@@ -7062,6 +7161,7 @@
         const createGeometryTypeInput = document.getElementById("createGeometryType");
         const createStorageDestinationInput = document.getElementById("createStorageDestination");
         const createProjectValidation = document.getElementById("createProjectValidation");
+        let createProjectFormTouched = false;
         const projectSwitcher = document.getElementById("projectSwitcher");
         const projectList = document.getElementById("projectList");
         const layerList = document.getElementById("layerList");
@@ -10522,6 +10622,7 @@
                 createStorageDestinationInput.value = "web";
             }
             createProjectModal.hidden = false;
+            createProjectFormTouched = false;
             updateCreateProjectFormState();
             createProjectNameInput.focus();
         }
@@ -10531,8 +10632,12 @@
             const layerName = createLayerNameInput?.value?.trim() || "";
             const isValid = Boolean(projectName && layerName);
             if (createProjectSubmitBtn) createProjectSubmitBtn.disabled = !isValid;
-            if (createProjectValidation) createProjectValidation.hidden = isValid;
-            if (createProjectNameInput) createProjectNameInput.setAttribute("aria-invalid", projectName ? "false" : "true");
+            if (createProjectValidation) {
+                createProjectValidation.textContent = projectName ? "Enter a first layer name to continue." : "Enter a project name to continue.";
+                createProjectValidation.hidden = isValid || !createProjectFormTouched;
+            }
+            if (createProjectNameInput) createProjectNameInput.setAttribute("aria-invalid", createProjectFormTouched && !projectName ? "true" : "false");
+            if (createLayerNameInput) createLayerNameInput.setAttribute("aria-invalid", createProjectFormTouched && !layerName ? "true" : "false");
             return isValid;
         }
 
@@ -10620,9 +10725,22 @@
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
+        function setOffCanvasAccessibility(element, visible, returnFocus = null) {
+            if (!element) return;
+            if (!visible && element.contains(document.activeElement)) {
+                const focusTarget = returnFocus && !returnFocus.hidden && !returnFocus.disabled
+                    ? returnFocus
+                    : openDataManagerBtn;
+                focusTarget?.focus?.();
+            }
+            element.toggleAttribute("inert", !visible);
+            element.setAttribute("aria-hidden", visible ? "false" : "true");
+        }
+
         function setDataPaneVisibility(show) {
             dataPaneVisible = Boolean(show);
             dataCatalogPane?.classList.toggle("hidden-pane", !dataPaneVisible);
+            setOffCanvasAccessibility(dataCatalogPane, dataPaneVisible, openDataManagerBtn);
             openDataManagerBtn?.classList.toggle("active", dataPaneVisible);
             openDataManagerBtn?.setAttribute("aria-expanded", dataPaneVisible ? "true" : "false");
             if (featureDrawer) {
@@ -11214,7 +11332,10 @@
         }
 
         function closeFeatureDrawer({ clearSelection = false } = {}) {
-            if (featureDrawer) featureDrawer.classList.remove("open");
+            if (featureDrawer) {
+                featureDrawer.classList.remove("open");
+                setOffCanvasAccessibility(featureDrawer, false, mapElement);
+            }
             if (clearSelection) {
                 activeFeatureId = null;
                 activeSurveyAnnotation = null;
@@ -11512,6 +11633,7 @@
                 setProjectStatus("Feature details saved and closed.", "success");
             });
             featureDrawer.classList.add("open");
+            setOffCanvasAccessibility(featureDrawer, true);
         }
 
         function addLayerToActiveProject() {
@@ -14248,8 +14370,15 @@
             await openDropboxProjectPath(path);
         });
         createProjectCancelBtn?.addEventListener("click", closeCreateProjectModal);
-        createProjectNameInput?.addEventListener("input", updateCreateProjectFormState);
-        createLayerNameInput?.addEventListener("input", updateCreateProjectFormState);
+        createProjectCloseBtn?.addEventListener("click", closeCreateProjectModal);
+        createProjectNameInput?.addEventListener("input", () => {
+            createProjectFormTouched = true;
+            updateCreateProjectFormState();
+        });
+        createLayerNameInput?.addEventListener("input", () => {
+            createProjectFormTouched = true;
+            updateCreateProjectFormState();
+        });
         createProjectModal?.addEventListener("click", (event) => {
             if (event.target === createProjectModal) closeCreateProjectModal();
         });
