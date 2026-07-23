@@ -1,5 +1,6 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
 import { DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
+import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
 export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
@@ -279,6 +280,7 @@ export class LalGeoDropboxClient {
 
   async uploadLargeFile(contents, commit) {
     const client = this.client;
+    let expectedContentHash = null;
     const adapter = {
       async start(chunk) {
         const response = await client.filesUploadSessionStart({ close: false, contents: chunk });
@@ -299,6 +301,23 @@ export class LalGeoDropboxClient {
           contents: chunk,
         });
         return response.result || response;
+      },
+      async verifyCommit(blob, nextCommit) {
+        const previousRev = nextCommit.mode?.[".tag"] === "update" ? nextCommit.mode.update : null;
+        // An autorenamed add does not have a deterministic final path after its
+        // response is lost. Only revision-controlled updates can be proven here.
+        if (!previousRev) return null;
+        expectedContentHash ||= await computeDropboxContentHash(blob);
+        let response;
+        try {
+          response = await client.filesGetMetadata({ path: nextCommit.path });
+        } catch (error) {
+          const summary = String(error?.error?.error_summary || error?.message || "");
+          if (summary.includes("not_found")) return null;
+          throw error;
+        }
+        const metadata = response.result || response;
+        return isVerifiedDropboxUpdate(metadata, blob.size, nextCommit, expectedContentHash) ? metadata : null;
       },
       async lookupOffset(sessionId) {
         try {
