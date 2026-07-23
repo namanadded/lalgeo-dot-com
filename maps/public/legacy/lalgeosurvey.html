@@ -6215,6 +6215,73 @@
         stroke-linejoin: round;
     }
 
+    .map-print-header {
+        display: none;
+    }
+
+    .print-prep-summary {
+        display: grid;
+        gap: 10px;
+    }
+
+    .print-prep-summary strong {
+        color: var(--workspace-text, #172033);
+    }
+
+    .print-prep-note {
+        margin: 0;
+        color: var(--workspace-muted, #667085);
+        line-height: 1.5;
+    }
+
+    @media print {
+        @page {
+            margin: 0.45in;
+            size: landscape;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden !important;
+            background: #fff !important;
+        }
+
+        body > *:not(#map):not(#mapPrintHeader) {
+            display: none !important;
+        }
+
+        #mapPrintHeader {
+            display: block;
+            position: fixed;
+            inset: 0.08in 0.1in auto;
+            z-index: 100000;
+            padding: 8px 12px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.94);
+            color: #111827;
+            font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            box-shadow: 0 1px 6px rgba(15, 23, 42, 0.18);
+        }
+
+        #mapPrintTitle {
+            display: block;
+            font-size: 18px;
+        }
+
+        #mapPrintMeta {
+            display: block;
+            color: #475467;
+        }
+
+        #map {
+            position: fixed !important;
+            inset: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+        }
+    }
 </style>
     </head>
 <body>
@@ -7008,6 +7075,11 @@
         <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
         <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
     </div>
+    <div id="mapPrintHeader" class="map-print-header" aria-hidden="true">
+        <strong id="mapPrintTitle">LalGeo Map</strong>
+        <span id="mapPrintMeta"></span>
+    </div>
+    <div id="map" style="width: 100%; height: 100vh;"></div>
     <div id="map" tabindex="0" aria-label="Map canvas" style="width: 100%; height: 100vh;"></div>
     <div id="mapLoadError" class="map-load-error" role="alert" hidden>
         <strong>Map could not load</strong>
@@ -7386,6 +7458,8 @@
         const menuLogoutBtn = document.getElementById("menuLogoutBtn");
         const menuNewLayerBtn = document.getElementById("menuNewLayerBtn");
         const menuExportPdfBtn = document.getElementById("menuExportPdfBtn");
+        const mapPrintTitle = document.getElementById("mapPrintTitle");
+        const mapPrintMeta = document.getElementById("mapPrintMeta");
         const menuHistoryRecentBtn = document.getElementById("menuHistoryRecentBtn");
         const menuCloseLayersBtn = document.getElementById("menuCloseLayersBtn");
         const menuCloseDataPaneBtn = document.getElementById("menuCloseDataPaneBtn");
@@ -7393,6 +7467,7 @@
         const mobileMenuPane = document.getElementById("mobileMenuPane");
         const mobileMenuPoisBtn = document.getElementById("mobileMenuPoisBtn");
         const mobileMenuGroups = Array.from(document.querySelectorAll("#mobileMenuPane .mobile-menu-group"));
+        let mobileMenuInvocationSource = null;
         const menuPaneEls = Array.from(document.querySelectorAll("[data-menu-pane]"));
         const dropboxUrlInput = document.getElementById("dropboxUrlInput");
         const dropboxLoadBtn = document.getElementById("dropboxLoadBtn");
@@ -12415,7 +12490,8 @@
                             return true;
                         }
                     }
-                ]
+                ],
+                returnFocusTo: mobileMenuInvocationSource || document.activeElement
             });
         }
 
@@ -13712,6 +13788,46 @@
             });
         }
 
+        function openPrintPreparation(mode = "print") {
+            if (!activeProjectRecord) {
+                setProjectStatus("Create or open a project before printing or exporting a map.", "error");
+                return;
+            }
+            const exporting = mode === "pdf";
+            const projectName = String(activeProjectRecord.name || "Untitled project").trim();
+            const layerCount = activeProjectRecord.layers?.length || 0;
+            const featureCount = (activeProjectRecord.layers || []).reduce((total, layer) => total + (layer?.parsed?.rows?.length || 0), 0);
+            openLayerActionModal({
+                title: exporting ? "Export map as PDF" : "Print map",
+                description: exporting
+                    ? "Review the map, then choose Save as PDF in your browser's print destination."
+                    : "Review the map before opening your browser's print dialog.",
+                bodyHtml: `
+                    <div class="print-prep-summary">
+                        <div><strong>${escapeHtml(projectName)}</strong></div>
+                        <div>${layerCount} layer${layerCount === 1 ? "" : "s"} · ${featureCount} feature${featureCount === 1 ? "" : "s"}</div>
+                        <p class="print-prep-note">The map will print in landscape with the project title and a generated timestamp. Toolbars, panels, dialogs, and editing controls are excluded.</p>
+                        ${exporting ? `<p class="print-prep-note"><strong>PDF tip:</strong> select “Save as PDF” after the system dialog opens.</p>` : ""}
+                    </div>
+                `,
+                actions: [
+                    { label: "Cancel" },
+                    {
+                        label: exporting ? "Continue to PDF" : "Continue to print",
+                        primary: true,
+                        onClick: () => {
+                            if (mapPrintTitle) mapPrintTitle.textContent = projectName;
+                            if (mapPrintMeta) {
+                                mapPrintMeta.textContent = `${layerCount} layer${layerCount === 1 ? "" : "s"} · ${featureCount} feature${featureCount === 1 ? "" : "s"} · ${new Date().toLocaleString()}`;
+                            }
+                            window.setTimeout(() => window.print(), 0);
+                            return true;
+                        }
+                    }
+                ]
+            });
+        }
+
         function openRenameProjectModal() {
             if (!activeProjectRecord) return;
             const currentName = String(activeProjectRecord.name || "").trim();
@@ -14029,8 +14145,13 @@
             if (!target || target.disabled) return;
             event.preventDefault();
             event.stopPropagation();
+            mobileMenuInvocationSource = button;
             setToolbarMenuVisibility(false);
-            target.click();
+            try {
+                target.click();
+            } finally {
+                mobileMenuInvocationSource = null;
+            }
         });
         mobileMenuGroups.forEach((group) => {
             group.addEventListener("toggle", () => {
@@ -14075,7 +14196,7 @@
                 setProjectStatus("Dropbox is not connected.", "error");
             }
         });
-        menuExportPdfBtn?.addEventListener("click", () => window.print());
+        menuExportPdfBtn?.addEventListener("click", () => openPrintPreparation("pdf"));
         menuHistoryRecentBtn?.addEventListener("click", () => workspacePanelBtn?.click());
         menuCloseLayersBtn?.addEventListener("click", () => setSidebarVisibility(false));
         menuCloseDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
@@ -22640,7 +22761,7 @@ function setImportPanelVisibility(show) {
         searchIconBtn?.addEventListener("click", () => {
             setSearchExpanded(!toolbarSearchExpanded);
         });
-        document.getElementById("printButton").addEventListener("click", () => window.print());
+        printButton?.addEventListener("click", () => openPrintPreparation("print"));
         window.addEventListener("beforeunload", (event) => {
             if (pendingChanges) {
                 event.preventDefault();
