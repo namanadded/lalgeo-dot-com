@@ -54,6 +54,10 @@ jobs:
         working-directory: maps
         run: npm run test:button-type-safety
 
+      - name: Check disabled command explanations
+        working-directory: maps
+        run: npm run test:disabled-command-explanations
+
       - name: Check Dropbox status accessibility
         working-directory: maps
         run: npm run test:dropbox-status-a11y
@@ -93,6 +97,13 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-project-onboarding
 
+      - name: Check project import journey
+        working-directory: maps
+        run: npm run test:project-import-journey
+      - name: Check project setup journey
+        working-directory: maps
+        run: npm run test:project-setup-journey
+
       - name: Check maps top menu accessibility
         working-directory: maps
         run: npm run test:top-menu-a11y
@@ -120,6 +131,12 @@ jobs:
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
+      - name: Benchmark scoped cloud catalog discovery
+        working-directory: maps
+        run: npm run benchmark:cloud-catalog
+      - name: Check Dropbox upload content verification
+        working-directory: maps
+        run: npm run test:dropbox-content-hash
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization
@@ -128,9 +145,20 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-feature-details
 
+      - name: Check off-canvas panel accessibility
+        working-directory: maps
+        run: npm run test:off-canvas-panel-a11y
+
       - name: Check maps workflow UI
         working-directory: maps
         run: npm run test:workflow-ui
+
+      - name: Check layer import journey
+        working-directory: maps
+        run: npm run test:layer-import-journey
+      - name: Check maps print and PDF preparation
+        working-directory: maps
+        run: npm run test:print-export-preparation
 
       - name: Check maps control layout
         working-directory: maps
