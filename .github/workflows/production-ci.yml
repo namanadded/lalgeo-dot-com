@@ -128,6 +128,9 @@ jobs:
         working-directory: maps
         run: npm run test:cloud-storage
 
+      - name: Check local workspace persistence recovery
+        working-directory: maps
+        run: npm run test:workspace-persistence
       - name: Benchmark scoped cloud catalog discovery
         working-directory: maps
         run: npm run benchmark:cloud-catalog

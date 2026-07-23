@@ -35,6 +35,7 @@
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "test:cloud-storage": "node scripts/test-cloud-storage.mjs",
+    "test:workspace-persistence": "node scripts/test-workspace-persistence.mjs",
     "benchmark:cloud-catalog": "node scripts/benchmark-cloud-catalog.mjs",
     "test:dropbox-content-hash": "node scripts/test-dropbox-content-hash.mjs",
     "benchmark:large-projects": "node scripts/benchmark-large-projects.mjs",
