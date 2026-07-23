@@ -54,6 +54,10 @@ jobs:
         working-directory: maps
         run: npm run test:button-type-safety
 
+      - name: Check disabled command explanations
+        working-directory: maps
+        run: npm run test:disabled-command-explanations
+
       - name: Check Dropbox status accessibility
         working-directory: maps
         run: npm run test:dropbox-status-a11y
