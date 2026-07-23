@@ -97,6 +97,9 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-project-onboarding
 
+      - name: Check project import journey
+        working-directory: maps
+        run: npm run test:project-import-journey
       - name: Check project setup journey
         working-directory: maps
         run: npm run test:project-setup-journey
