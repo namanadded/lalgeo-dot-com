@@ -50,6 +50,10 @@ jobs:
         working-directory: maps
         run: npm run test:search-input-mobile
 
+      - name: Check maps search journey
+        working-directory: maps
+        run: npm run test:search-journey
+
       - name: Check maps button type safety
         working-directory: maps
         run: npm run test:button-type-safety
