@@ -5,7 +5,7 @@ const sourcePath = path.resolve("public/legacy/lalgeosurvey.html");
 const source = fs.readFileSync(sourcePath, "utf8");
 
 const checks = [
-  ["line and polygon overlays are interactive", /new mapkit\.(?:Polyline|Polygon)Overlay[\s\S]*?enabled:\s*true/],
+  ["line and polygon overlays respect layer selectability", /new mapkit\.(?:Polyline|Polygon)Overlay[\s\S]*?enabled:\s*isLayerSelectable\(layer\)/],
   ["overlays retain their feature selection target", /data:\s*\{\s*surveyFeatureAnnotation\s*\}/],
   ["overlay selection opens the shared feature drawer", /event\?\.overlay\?\.data\?\.surveyFeatureAnnotation[\s\S]*?showSurveyCallout\(surveyFeatureAnnotation\)/],
   ["closing details clears the selected overlay", /map\?\.selectedOverlay\?\.data\?\.surveyFeatureAnnotation[\s\S]*?map\.selectedOverlay\s*=\s*null/],
