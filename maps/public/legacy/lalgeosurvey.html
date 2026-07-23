@@ -6733,7 +6733,7 @@
             </button>
             <div class="toolbar-action-group toolbar-help-search-group" aria-label="Search controls">
                 <div class="search-pill collapsed" id="toolbarSearchShell">
-                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">
+                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search" aria-controls="searchInput" aria-expanded="false">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <circle cx="11" cy="11" r="6"></circle>
                             <path d="M16 16l4 4"></path>
@@ -21052,6 +21052,7 @@ function updateFloatingButtonLayer(panelOpen) {
         function setSearchExpanded(show) {
             toolbarSearchExpanded = Boolean(show);
             toolbarSearchShell?.classList.toggle("collapsed", !toolbarSearchExpanded);
+            document.getElementById("searchIconBtn")?.setAttribute("aria-expanded", toolbarSearchExpanded ? "true" : "false");
             if (toolbarSearchExpanded && window.matchMedia("(min-width: 701px)").matches) {
                 document.getElementById("searchInput")?.focus();
             }

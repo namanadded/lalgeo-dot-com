@@ -22,6 +22,18 @@ assert.match(searchInput, /\baria-activedescendant=["']/i);
 assert.match(searchInput, /\baria-describedby=["']searchStatus["']/i);
 assert.match(searchInput, /\bautocomplete=["']off["']/i);
 
+const searchToggle = legacyHtml.match(
+  /<button\b[^>]*\bid=["']searchIconBtn["'][^>]*>/i,
+)?.[0];
+assert.ok(searchToggle, "Expected the search disclosure button to exist.");
+assert.match(searchToggle, /\baria-controls=["']searchInput["']/i);
+assert.match(searchToggle, /\baria-expanded=["']false["']/i);
+assert.match(
+  legacyHtml,
+  /searchIconBtn["']\)\?\.setAttribute\(["']aria-expanded["'], toolbarSearchExpanded \? ["']true["'] : ["']false["']\)/,
+  "Expected the search disclosure state to stay synchronized.",
+);
+
 assert.match(
   legacyHtml,
   /id=["']searchStatus["'][^>]*role=["']status["'][^>]*aria-live=["']polite["']/i,
