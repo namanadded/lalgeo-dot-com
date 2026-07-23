@@ -61,6 +61,51 @@ assert.equal(result.rev, "test-rev-2");
 assert.deepEqual(remote, bytes, "interrupted upload resumes at provider-reported offset without data loss");
 assert.ok(calls.includes("lookup"), "interruption reconciles the remote cursor");
 
+let finishAttempts = 0;
+let verificationAttempts = 0;
+const committedMetadata = { rev: "test-rev-3", path: "/safe-test/committed.lal", size: blob.size };
+const responseLostAdapter = {
+  async start() { return { sessionId: "response-lost-session" }; },
+  async append() {},
+  async finish() {
+    finishAttempts += 1;
+    const error = new Error("connection closed after commit");
+    error.status = 503;
+    throw error;
+  },
+  async lookupOffset() { return blob.size; },
+  async verifyCommit(candidate, commit) {
+    verificationAttempts += 1;
+    assert.equal(candidate, blob);
+    assert.equal(commit.path, committedMetadata.path);
+    return committedMetadata;
+  },
+};
+const recoveredCommit = await cloud.uploadBlobResumably(responseLostAdapter, blob, {
+  chunkSize: 1_000_000,
+  attempts: 2,
+  baseDelayMs: 0,
+  sleep: async () => {},
+  provider: "mock",
+  commit: { path: committedMetadata.path },
+});
+assert.equal(recoveredCommit.rev, "test-rev-3");
+assert.equal(finishAttempts, 1, "an ambiguous finish is never blindly repeated");
+assert.equal(verificationAttempts, 1, "remote content verification resolves the lost response");
+
+const unverifiedAdapter = { ...responseLostAdapter, async verifyCommit() { return null; } };
+await assert.rejects(
+  cloud.uploadBlobResumably(unverifiedAdapter, blob, {
+    chunkSize: 1_000_000,
+    attempts: 1,
+    baseDelayMs: 0,
+    provider: "mock",
+    commit: { path: "/safe-test/not-committed.lal" },
+  }),
+  (error) => error.code === "unavailable",
+  "the original retryable failure remains visible when content cannot be verified",
+);
+
 for (const [error, code, retryable] of [
   [{ status: 401, message: "expired_access_token" }, "auth", false],
   [{ status: 409, message: "path conflict" }, "conflict", false],
@@ -111,3 +156,4 @@ assert.doesNotMatch(dropboxSource, /filesListFolder\(\{ path: scope\.path, recur
   "provider integration must honor each catalog scope's recursion boundary");
 
 console.log("Cloud storage contract: scoped catalog, resumable recovery, and error taxonomy passed.");
+console.log("Cloud storage contract: resumable recovery, ambiguous commit verification, and error taxonomy passed.");

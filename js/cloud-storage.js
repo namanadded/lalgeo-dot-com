@@ -144,9 +144,20 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
     } catch (error) {
       const normalized = normalizeCloudError(error, options.provider);
       if (!normalized.retryable) throw normalized;
-      // A failed finish may already have committed and closed the session. Surface
-      // the uncertainty so callers refresh metadata instead of creating a duplicate.
-      if (isLast) throw normalized;
+      // A failed finish may already have committed and closed the session. Providers
+      // that can verify remote content resolve that ambiguity without re-uploading.
+      if (isLast) {
+        if (typeof adapter.verifyCommit !== "function") throw normalized;
+        const committed = await retryCloudOperation(
+          () => adapter.verifyCommit(blob, options.commit),
+          retryOptions,
+        );
+        if (committed) {
+          options.onProgress?.({ loaded: blob.size, total: blob.size });
+          return committed;
+        }
+        throw normalized;
+      }
       const remoteOffset = await retryCloudOperation(() => adapter.lookupOffset(sessionId), retryOptions);
       if (!Number.isSafeInteger(remoteOffset) || remoteOffset < 0 || remoteOffset > blob.size) throw normalized;
       offset = remoteOffset;
