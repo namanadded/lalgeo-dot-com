@@ -49,6 +49,59 @@ export async function retryCloudOperation(operation, options = {}) {
   throw lastError;
 }
 
+function assertCatalogAdapter(adapter) {
+  for (const method of ["list", "continue"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Cloud catalog adapter requires ${method}().`);
+    }
+  }
+}
+
+/**
+ * Walk a provider catalog one page at a time without retaining provider pages.
+ * Scopes are deliberately explicit so a provider cannot silently widen a project
+ * listing to a user's entire cloud account.
+ */
+export async function collectCloudFiles(adapter, options = {}) {
+  assertCatalogAdapter(adapter);
+  const scopes = Array.isArray(options.scopes) ? options.scopes : [];
+  const accept = options.accept || (() => true);
+  const mapEntry = options.mapEntry || ((entry) => entry);
+  const keyOf = options.keyOf || ((entry) => entry?.id || entry?.pathLower || entry?.pathDisplay || entry?.name);
+  const rows = [];
+  const seen = new Set();
+  let pages = 0;
+  let examined = 0;
+
+  for (const scope of scopes) {
+    let cursor = null;
+    do {
+      let page;
+      try {
+        page = cursor ? await adapter.continue(cursor) : await adapter.list(scope);
+      } catch (error) {
+        if (adapter.isMissingScope?.(error, scope)) break;
+        throw error;
+      }
+      pages += 1;
+      const entries = Array.isArray(page?.entries) ? page.entries : [];
+      examined += entries.length;
+      for (const entry of entries) {
+        if (!accept(entry, scope)) continue;
+        const row = mapEntry(entry, scope);
+        const key = String(keyOf(row, entry, scope) || "").toLowerCase();
+        if (!key || seen.has(key)) continue;
+        seen.add(key);
+        rows.push(row);
+      }
+      cursor = page?.hasMore ? page.cursor : null;
+      options.onPage?.({ scope, pages, examined, matched: rows.length });
+    } while (cursor);
+  }
+
+  return { rows, stats: { pages, examined, matched: rows.length } };
+}
+
 function assertUploadAdapter(adapter) {
   for (const method of ["start", "append", "finish", "lookupOffset"]) {
     if (typeof adapter?.[method] !== "function") {
@@ -91,9 +144,20 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
     } catch (error) {
       const normalized = normalizeCloudError(error, options.provider);
       if (!normalized.retryable) throw normalized;
-      // A failed finish may already have committed and closed the session. Surface
-      // the uncertainty so callers refresh metadata instead of creating a duplicate.
-      if (isLast) throw normalized;
+      // A failed finish may already have committed and closed the session. Providers
+      // that can verify remote content resolve that ambiguity without re-uploading.
+      if (isLast) {
+        if (typeof adapter.verifyCommit !== "function") throw normalized;
+        const committed = await retryCloudOperation(
+          () => adapter.verifyCommit(blob, options.commit),
+          retryOptions,
+        );
+        if (committed) {
+          options.onProgress?.({ loaded: blob.size, total: blob.size });
+          return committed;
+        }
+        throw normalized;
+      }
       const remoteOffset = await retryCloudOperation(() => adapter.lookupOffset(sessionId), retryOptions);
       if (!Number.isSafeInteger(remoteOffset) || remoteOffset < 0 || remoteOffset > blob.size) throw normalized;
       offset = remoteOffset;

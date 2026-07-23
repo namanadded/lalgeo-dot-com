@@ -2480,6 +2480,16 @@
         color: rgba(238, 246, 251, 0.38);
         cursor: default;
     }
+    .menu-command[data-disabled-reason]::after {
+        content: attr(data-disabled-reason);
+        display: block;
+        margin-top: 2px;
+        color: #9ca3af;
+        font-size: 11px;
+        font-weight: 400;
+        line-height: 1.25;
+        white-space: normal;
+    }
     .menu-shortcut {
         font-size: 11px;
         color: rgba(200, 214, 227, 0.72);
@@ -3758,6 +3768,37 @@
         font-size: 28px;
         letter-spacing: -0.03em;
     }
+    .workspace-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+    }
+    .workspace-modal-header h3 { margin: 0; }
+    .workspace-modal-close {
+        flex: 0 0 auto;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.06);
+        color: inherit;
+        font: 600 22px/1 ui-sans-serif, system-ui, sans-serif;
+        cursor: pointer;
+    }
+    .workspace-modal-close:hover,
+    .workspace-modal-close:focus-visible {
+        background: rgba(255,255,255,0.12);
+        outline: 2px solid #8ff0dc;
+        outline-offset: 2px;
+    }
+    .workspace-modal-intro {
+        margin: 6px 0 0;
+        color: #9fb1c2;
+        font-size: 14px;
+        line-height: 1.5;
+    }
     .workspace-form-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
@@ -3777,6 +3818,21 @@
         text-transform: uppercase;
         color: #7dd3c8;
         font-weight: 700;
+    }
+    .workspace-field-help {
+        margin: 0;
+        color: #9fb1c2;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    .workflow-summary-copy {
+        display: grid;
+        gap: 2px;
+    }
+    .workflow-summary-copy small {
+        color: #9fb1c2;
+        font-size: 12px;
+        font-weight: 500;
     }
     .workspace-modal-actions {
         display: flex;
@@ -4183,6 +4239,34 @@
         line-height: 1.55;
     }
     @media (max-width: 600px) {
+        #workspaceCreateModal {
+            align-items: flex-end;
+            padding: 0;
+        }
+        #workspaceCreateModal .workspace-modal {
+            width: 100%;
+            max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px)));
+            box-sizing: border-box;
+            overflow-y: auto;
+            padding: 22px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+            border-right: 0;
+            border-bottom: 0;
+            border-left: 0;
+            border-radius: 24px 24px 0 0;
+        }
+        #workspaceCreateModal .workspace-modal-actions {
+            position: sticky;
+            bottom: calc(-18px - env(safe-area-inset-bottom, 0px));
+            margin: 18px -18px calc(-18px - env(safe-area-inset-bottom, 0px));
+            padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+            background: rgba(255,255,255,0.96);
+            border-top: 1px solid #e5e7eb;
+            backdrop-filter: blur(18px);
+        }
+        #workspaceCreateModal .workspace-modal-actions button {
+            min-height: 48px;
+            flex: 1 1 0;
+        }
         #workspaceHint {
             right: 12px;
             bottom: calc(72px + env(safe-area-inset-bottom, 0px));
@@ -4707,6 +4791,34 @@
     } */
 
     @media (max-width: 600px) {
+        #importPanel .import-panel-container {
+            width: 100%;
+            max-width: 100%;
+            padding: 14px 14px max(22px, env(safe-area-inset-bottom));
+        }
+        #importPanel .workspace-panel-header {
+            padding-right: 62px;
+        }
+        #importPanel #importPanelClose {
+            top: max(8px, env(safe-area-inset-top));
+            right: 10px;
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            padding: 0;
+            margin: 0;
+            font-size: 22px;
+        }
+        #importPanel #importPanelClose::after { content: none; }
+        #importPanel .import-source-actions {
+            grid-template-columns: 1fr;
+        }
+        #importPanel .import-source-actions button {
+            width: 100%;
+            min-height: 48px;
+            height: 48px;
+            font-size: 14px;
+        }
         .import-panel-container {
             position: fixed;
             max-width: 100%;
@@ -5758,6 +5870,8 @@
     }
     #importPanel .close-btn,
     #importPanelClose {
+        min-height: 44px;
+        height: 44px;
         background: #fff;
         color: #6b7280;
         border: 1px solid rgba(209, 213, 219, 0.82);
@@ -5806,6 +5920,64 @@
     }
     #importPanel .workspace-panel-section {
         border-top-color: #e5e7eb;
+    }
+    #importPanel .import-source-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid #dbe2ea;
+        border-radius: 16px;
+        background: #fff;
+        box-shadow: 0 6px 18px rgba(15, 23, 42, 0.08);
+        transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
+    }
+    #importPanel .import-source-card.is-dragging {
+        border-color: #0a84ff;
+        background: #f0f7ff;
+        box-shadow: 0 0 0 3px rgba(10, 132, 255, 0.14);
+    }
+    #importPanel .import-source-heading {
+        display: grid;
+        gap: 4px;
+    }
+    #importPanel .import-source-heading strong {
+        color: #1f2937;
+        font-size: 15px;
+    }
+    #importPanel .import-source-heading span,
+    #importPanel .import-format-help {
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    #importPanel .import-source-actions {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+    }
+    #importPanel .import-source-actions button {
+        min-height: 44px;
+        margin: 0;
+    }
+    #importPanel #projectStatus {
+        display: block;
+        min-height: 18px;
+        margin: 14px 2px 4px;
+        font-size: 12px;
+        line-height: 1.45;
+    }
+    #importPanel #projectStatus.success { color: #047857; }
+    #importPanel #projectStatus.error { color: #b91c1c; }
+    @media (max-width: 600px) {
+        #importPanel .import-source-actions {
+            grid-template-columns: 1fr;
+        }
+        #importPanel .import-source-actions button {
+            width: 100%;
+            min-height: 48px;
+            height: 48px;
+            font-size: 14px;
+        }
     }
     #importPanel input[type="url"],
     #importPanel input[type="file"],
@@ -5916,6 +6088,20 @@
         background: #f9fafb;
         border-color: #e5e7eb;
     }
+    .workspace-modal .workspace-modal-close {
+        background: #f3f4f6;
+        color: #6b7280;
+        border-color: #e5e7eb;
+    }
+    .workspace-modal .workspace-modal-close:hover,
+    .workspace-modal .workspace-modal-close:focus-visible {
+        background: #e5e7eb;
+        color: #374151;
+        outline-color: #007aff;
+    }
+    .workspace-modal .workspace-modal-intro,
+    .workspace-modal .workspace-field-help,
+    .workspace-modal .workflow-summary-copy small { color: #6b7280; }
     #importPanel .workflow-disclosure-content,
     .workspace-modal .workflow-disclosure-content,
     .layer-modal .workflow-disclosure-content { border-top-color: #e5e7eb; }
@@ -6604,8 +6790,8 @@
         <div class="import-panel-container">
             <div class="workspace-panel-header">
                 <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-                <h3>Projects</h3>
-                <p>Open, import, or export.</p>
+                <h3>Open a project</h3>
+                <p>Continue recent work or bring in map data.</p>
             </div>
 
             <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
@@ -6638,10 +6824,19 @@
             </details>
 
             <div class="import-section">
-                <div class="import-section-title section-header">Import</div>
-                <div class="import-stack">
-                    <button id="projectPickerBtn" type="button" class="workspace-primary-btn workflow-primary-choice">Choose Project File</button>
-                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple webkitdirectory style="display:none">
+                <div class="import-section-title section-header">Import from this device</div>
+                <div id="projectImportDropTarget" class="import-source-card">
+                    <div class="import-source-heading">
+                        <strong>Drop files here</strong>
+                        <span>Or choose files or a folder from your device.</span>
+                    </div>
+                    <div class="import-source-actions">
+                        <button id="projectPickerBtn" type="button" class="workspace-primary-btn">Choose files</button>
+                        <button id="projectFolderPickerBtn" type="button" class="workspace-secondary-btn">Choose folder</button>
+                    </div>
+                    <div id="projectImportFormatHelp" class="import-format-help">LalGeo, ZIP, CSV, GeoJSON, KML, KMZ, GPX, shapefiles, and photos.</div>
+                    <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple aria-describedby="projectImportFormatHelp" style="display:none">
+                    <input id="projectFolderInput" type="file" multiple webkitdirectory aria-describedby="projectImportFormatHelp" style="display:none">
                 </div>
             </div>
 
@@ -6758,17 +6953,25 @@
         </div>
     </div>
     <div id="workspaceCreateModal" class="workspace-modal-backdrop" hidden>
-        <div class="workspace-modal">
-            <h3>New Project</h3>
+        <div class="workspace-modal" role="dialog" aria-modal="true" aria-labelledby="createProjectTitle" aria-describedby="createProjectIntro">
+            <div class="workspace-modal-header">
+                <div>
+                    <h3 id="createProjectTitle">New Project</h3>
+                    <p id="createProjectIntro" class="workspace-modal-intro">Name your map and choose what you’ll add first.</p>
+                </div>
+                <button id="createProjectCloseBtn" type="button" class="workspace-modal-close" aria-label="Close new project">×</button>
+            </div>
             <form id="createProjectForm" aria-describedby="createProjectHelp createProjectValidation">
                 <div class="workspace-form-grid">
                     <div class="workspace-field full">
                         <label for="createProjectName">Name</label>
-                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required aria-required="true" aria-label="Project name">
+                        <input id="createProjectName" class="workspace-text-input" type="text" placeholder="Water Valve Inspections" required aria-required="true" aria-label="Project name" aria-describedby="createProjectNameHelp">
+                        <p id="createProjectNameHelp" class="workspace-field-help">You can rename the project later.</p>
                     </div>
                     <div class="workspace-field">
-                        <label for="createLayerName">First Layer</label>
-                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required aria-required="true" aria-label="Default layer name">
+                        <label for="createLayerName">First layer</label>
+                        <input id="createLayerName" class="workspace-text-input" type="text" placeholder="Points" value="Points" required aria-required="true" aria-label="Default layer name" aria-describedby="createLayerNameHelp">
+                        <p id="createLayerNameHelp" class="workspace-field-help">A layer groups features with the same fields and shape.</p>
                     </div>
                     <div class="workspace-field">
                         <label for="createGeometryType">Geometry</label>
@@ -6780,7 +6983,7 @@
                     </div>
                 </div>
                 <details class="workflow-disclosure">
-                    <summary>Options</summary>
+                    <summary><span class="workflow-summary-copy"><span>More options</span><small>Description, workspace type, and storage</small></span></summary>
                     <div class="workflow-disclosure-content">
                         <div class="workspace-field">
                             <label for="createProjectDescription">Description</label>
@@ -6788,22 +6991,24 @@
                         </div>
                         <div class="workspace-field">
                             <label for="createProjectType">Workspace</label>
-                            <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type">
+                            <select id="createProjectType" class="workspace-text-input" aria-label="Base workspace type" aria-describedby="createProjectTypeHelp">
                                 <option value="Survey project">Survey</option>
                                 <option value="GIS workspace">GIS</option>
                             </select>
+                            <p id="createProjectTypeHelp" class="workspace-field-help">Survey keeps field collection simple. GIS starts with the full analysis workspace.</p>
                         </div>
                         <div class="workspace-field">
                             <label for="createStorageDestination">Save To</label>
-                            <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination">
+                            <select id="createStorageDestination" class="workspace-text-input" aria-label="Storage destination" aria-describedby="createStorageHelp">
                                 <option value="web">This Browser</option>
                                 <option value="dropbox">Dropbox</option>
                             </select>
+                            <p id="createStorageHelp" class="workspace-field-help">Browser projects stay on this device. Dropbox sync requires a connection.</p>
                         </div>
                     </div>
                 </details>
                 <div id="createProjectHelp" class="sr-only">Enter a project name and first layer.</div>
-                <div id="createProjectValidation" class="workspace-validation" hidden>Enter a project name to continue.</div>
+                <div id="createProjectValidation" class="workspace-validation error" role="status" aria-live="polite" hidden>Enter a project name to continue.</div>
                 <div class="workspace-modal-actions">
                     <button id="createProjectCancelBtn" type="button" class="workspace-secondary-btn">Cancel</button>
                     <button id="createProjectSubmitBtn" type="submit" class="workspace-primary-btn" disabled>Create</button>
@@ -6825,7 +7030,7 @@
             <div id="sidebar-content"></div>
         </div>
     </div>
-    <aside id="dataCatalogPane" aria-label="Dropbox project browser">
+    <aside id="dataCatalogPane" aria-label="Dropbox project browser" aria-hidden="true" inert>
         <div class="data-pane-header">
             <div>
                 <h3>Data Manager</h3>
@@ -6875,6 +7080,7 @@
         <span id="mapPrintMeta"></span>
     </div>
     <div id="map" style="width: 100%; height: 100vh;"></div>
+    <div id="map" tabindex="0" aria-label="Map canvas" style="width: 100%; height: 100vh;"></div>
     <div id="mapLoadError" class="map-load-error" role="alert" hidden>
         <strong>Map could not load</strong>
         <p id="mapLoadErrorMessage">Refresh the page or check the MapKit configuration for this domain.</p>
@@ -6891,7 +7097,7 @@
     <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel point placement or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
-    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite">
+    <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite" aria-hidden="true" inert>
         <div class="feature-drawer-header">
             <div>
                 <h3>Feature Details</h3>
@@ -7114,6 +7320,7 @@
         const emptyConnectDropboxBtn = document.getElementById("emptyConnectDropboxBtn");
         const createProjectModal = document.getElementById("workspaceCreateModal");
         const createProjectForm = document.getElementById("createProjectForm");
+        const createProjectCloseBtn = document.getElementById("createProjectCloseBtn");
         const createProjectCancelBtn = document.getElementById("createProjectCancelBtn");
         const createProjectSubmitBtn = document.getElementById("createProjectSubmitBtn");
         const createProjectNameInput = document.getElementById("createProjectName");
@@ -7123,6 +7330,7 @@
         const createGeometryTypeInput = document.getElementById("createGeometryType");
         const createStorageDestinationInput = document.getElementById("createStorageDestination");
         const createProjectValidation = document.getElementById("createProjectValidation");
+        let createProjectFormTouched = false;
         const projectSwitcher = document.getElementById("projectSwitcher");
         const projectList = document.getElementById("projectList");
         const layerList = document.getElementById("layerList");
@@ -7220,6 +7428,9 @@
         const layerContextMoveBottomBtn = document.getElementById("layerContextMoveBottomBtn");
         const projectFileInput = document.getElementById("projectFileInput");
         const projectPickerBtn = document.getElementById("projectPickerBtn");
+        const projectFolderInput = document.getElementById("projectFolderInput");
+        const projectFolderPickerBtn = document.getElementById("projectFolderPickerBtn");
+        const projectImportDropTarget = document.getElementById("projectImportDropTarget");
         const projectStatus = document.getElementById("projectStatus");
         const dropZone = document.getElementById("dropZone");
         const shareButton = document.getElementById("shareMapBtn");
@@ -8871,8 +9082,22 @@
             mobileMenuPane.querySelectorAll("[data-mobile-menu-target]").forEach((button) => {
                 const target = document.getElementById(button.dataset.mobileMenuTarget || "");
                 const disabled = !target || Boolean(target.disabled);
+                if (button.hasAttribute("aria-label") && !button.dataset.enabledAriaLabel) {
+                    button.dataset.enabledAriaLabel = button.getAttribute("aria-label");
+                }
                 button.disabled = disabled;
                 button.classList.toggle("is-disabled", disabled);
+                const disabledReason = disabled ? target?.dataset.disabledReason || "This command is not available yet." : "";
+                if (disabledReason) {
+                    button.dataset.disabledReason = disabledReason;
+                    button.title = disabledReason;
+                    button.setAttribute("aria-label", `${button.textContent.trim()}. ${disabledReason}`);
+                } else {
+                    delete button.dataset.disabledReason;
+                    button.removeAttribute("title");
+                    if (button.dataset.enabledAriaLabel) button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
+                    else button.removeAttribute("aria-label");
+                }
             });
             const hasProject = Boolean(activeProjectRecord);
             mobileMenuPane.querySelectorAll("[data-map-type]").forEach((button) => {
@@ -9038,10 +9263,44 @@
                 [shareButton, hasProject],
                 [exportProjectBtn, hasProject]
             ];
+            const disabledReasons = new Map([
+                [menuOpenEditPanelBtn, "Create or open a project to use edit tools."],
+                [menuAddNewBtn, "Create or open a project with an editable layer first."],
+                [menuNewLayerBtn, "Create or open a project before adding a layer."],
+                [menuUndoBtn, "Make a local edit before using Undo."],
+                [menuRedoBtn, "Undo a local edit before using Redo."],
+                [menuToggleEditToolbarBtn, "Create or open a project to show editing controls."],
+                [menuToggleLayerToolbarBtn, "Create or open a project to show layer controls."],
+                [menuTogglePopoutsBtn, "Create or open a project to show map popouts."],
+                [menuShowBasemapPoisBtn, "Create or open a project to configure points of interest."],
+                [menuHistoryRecentBtn, "Create or open a project to build recent history."],
+                [menuCloseLayersBtn, "Open the Layers panel before closing it."],
+                [menuCloseDataPaneBtn, "Open Data Manager before closing it."],
+                [menuExportPdfBtn, "Create or open a project before exporting a map."],
+                [printButton, "Create or open a project before printing."],
+                [menuForceCloseBtn, "Open a project, panel, or menu before closing everything."],
+                [menuLogoutBtn, "Connect Dropbox before disconnecting it."],
+                [shareButton, "Create or open a project before sharing a link."],
+                [exportProjectBtn, "Create or open a project before exporting it."]
+            ]);
             commandState.forEach(([button, enabled]) => {
                 if (!button) return;
+                if (button.hasAttribute("aria-label") && !button.dataset.enabledAriaLabel) {
+                    button.dataset.enabledAriaLabel = button.getAttribute("aria-label");
+                }
                 button.disabled = !enabled;
                 button.classList.toggle("is-disabled", !enabled);
+                const reason = enabled ? "" : disabledReasons.get(button) || "This command is not available yet.";
+                if (reason) {
+                    button.dataset.disabledReason = reason;
+                    button.title = reason;
+                    button.setAttribute("aria-label", `${button.textContent.trim()}. ${reason}`);
+                } else {
+                    delete button.dataset.disabledReason;
+                    button.removeAttribute("title");
+                    if (button.dataset.enabledAriaLabel) button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
+                    else button.removeAttribute("aria-label");
+                }
             });
             updatePopoutsMenuState();
             syncMobileMenuCommandStates();
@@ -10538,6 +10797,7 @@
                 createStorageDestinationInput.value = "web";
             }
             createProjectModal.hidden = false;
+            createProjectFormTouched = false;
             updateCreateProjectFormState();
             createProjectNameInput.focus();
         }
@@ -10547,8 +10807,12 @@
             const layerName = createLayerNameInput?.value?.trim() || "";
             const isValid = Boolean(projectName && layerName);
             if (createProjectSubmitBtn) createProjectSubmitBtn.disabled = !isValid;
-            if (createProjectValidation) createProjectValidation.hidden = isValid;
-            if (createProjectNameInput) createProjectNameInput.setAttribute("aria-invalid", projectName ? "false" : "true");
+            if (createProjectValidation) {
+                createProjectValidation.textContent = projectName ? "Enter a first layer name to continue." : "Enter a project name to continue.";
+                createProjectValidation.hidden = isValid || !createProjectFormTouched;
+            }
+            if (createProjectNameInput) createProjectNameInput.setAttribute("aria-invalid", createProjectFormTouched && !projectName ? "true" : "false");
+            if (createLayerNameInput) createLayerNameInput.setAttribute("aria-invalid", createProjectFormTouched && !layerName ? "true" : "false");
             return isValid;
         }
 
@@ -10636,9 +10900,22 @@
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
+        function setOffCanvasAccessibility(element, visible, returnFocus = null) {
+            if (!element) return;
+            if (!visible && element.contains(document.activeElement)) {
+                const focusTarget = returnFocus && !returnFocus.hidden && !returnFocus.disabled
+                    ? returnFocus
+                    : openDataManagerBtn;
+                focusTarget?.focus?.();
+            }
+            element.toggleAttribute("inert", !visible);
+            element.setAttribute("aria-hidden", visible ? "false" : "true");
+        }
+
         function setDataPaneVisibility(show) {
             dataPaneVisible = Boolean(show);
             dataCatalogPane?.classList.toggle("hidden-pane", !dataPaneVisible);
+            setOffCanvasAccessibility(dataCatalogPane, dataPaneVisible, openDataManagerBtn);
             openDataManagerBtn?.classList.toggle("active", dataPaneVisible);
             openDataManagerBtn?.setAttribute("aria-expanded", dataPaneVisible ? "true" : "false");
             if (featureDrawer) {
@@ -11230,7 +11507,10 @@
         }
 
         function closeFeatureDrawer({ clearSelection = false } = {}) {
-            if (featureDrawer) featureDrawer.classList.remove("open");
+            if (featureDrawer) {
+                featureDrawer.classList.remove("open");
+                setOffCanvasAccessibility(featureDrawer, false, mapElement);
+            }
             if (clearSelection) {
                 activeFeatureId = null;
                 activeSurveyAnnotation = null;
@@ -11528,6 +11808,7 @@
                 setProjectStatus("Feature details saved and closed.", "success");
             });
             featureDrawer.classList.add("open");
+            setOffCanvasAccessibility(featureDrawer, true);
         }
 
         function addLayerToActiveProject() {
@@ -13613,6 +13894,7 @@
         });
 
         projectPickerBtn.addEventListener("click", () => projectFileInput.click());
+        projectFolderPickerBtn?.addEventListener("click", () => projectFolderInput?.click());
         layerImportPickerBtn?.addEventListener("click", () => projectFileInput.click());
         layerImportCancelBtn?.addEventListener("click", () => setLayerImportPanelVisibility(false));
         layerImportApiBtn?.addEventListener("click", handleApiEndpointImport);
@@ -13665,10 +13947,45 @@
             if (event.target === helpCenterModal) setHelpCenterVisibility(false);
         });
 
-        projectFileInput.addEventListener("change", async (event) => {
-            if (!event.target.files.length) return;
-            await handleSurveyFiles(Array.from(event.target.files));
-            event.target.value = "";
+        async function importSelectedProjectFiles(files) {
+            if (!files.length) return;
+            setProjectStatus(`Importing ${files.length} item${files.length === 1 ? "" : "s"}…`);
+            try {
+                await handleSurveyFiles(files);
+            } catch (error) {
+                console.error(error);
+                setProjectStatus(error?.message || "That project could not be imported.", "error");
+            }
+        }
+
+        [projectFileInput, projectFolderInput].filter(Boolean).forEach((input) => {
+            input.addEventListener("change", async (event) => {
+                await importSelectedProjectFiles(Array.from(event.target.files || []));
+                event.target.value = "";
+            });
+        });
+
+        ["dragenter", "dragover"].forEach((eventName) => {
+            projectImportDropTarget?.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                projectImportDropTarget.classList.add("is-dragging");
+            });
+        });
+        ["dragleave", "drop"].forEach((eventName) => {
+            projectImportDropTarget?.addEventListener(eventName, (event) => {
+                event.preventDefault();
+                event.stopPropagation();
+                projectImportDropTarget.classList.remove("is-dragging");
+            });
+        });
+        projectImportDropTarget?.addEventListener("drop", async (event) => {
+            const files = await extractFilesFromDataTransfer(event);
+            if (!files.length) {
+                setProjectStatus("No supported files were found in that drop.", "error");
+                return;
+            }
+            await importSelectedProjectFiles(files);
         });
         if (dropboxLinkParam && shareParam === "1") {
             dropboxUrlInput.value = dropboxLinkParam;
@@ -14310,8 +14627,15 @@
             await openDropboxProjectPath(path);
         });
         createProjectCancelBtn?.addEventListener("click", closeCreateProjectModal);
-        createProjectNameInput?.addEventListener("input", updateCreateProjectFormState);
-        createLayerNameInput?.addEventListener("input", updateCreateProjectFormState);
+        createProjectCloseBtn?.addEventListener("click", closeCreateProjectModal);
+        createProjectNameInput?.addEventListener("input", () => {
+            createProjectFormTouched = true;
+            updateCreateProjectFormState();
+        });
+        createLayerNameInput?.addEventListener("input", () => {
+            createProjectFormTouched = true;
+            updateCreateProjectFormState();
+        });
         createProjectModal?.addEventListener("click", (event) => {
             if (event.target === createProjectModal) closeCreateProjectModal();
         });
