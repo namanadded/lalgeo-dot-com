@@ -3138,6 +3138,88 @@
         line-height: 1.45;
         color: #97aabd;
     }
+    .sidebar-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-tab {
+        min-height: 44px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: #97aabd;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .sidebar-tab:hover,
+    .sidebar-tab:focus-visible {
+        color: #eef6fb;
+        outline: none;
+    }
+    .sidebar-tab.active {
+        background: rgba(92, 200, 192, 0.14);
+        color: #8ff0dc;
+        box-shadow: inset 0 0 0 1px rgba(92, 200, 192, 0.2);
+    }
+    .selection-pane-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .selection-pane-actions .mini-btn {
+        min-height: 40px;
+    }
+    .selection-layer-list {
+        display: grid;
+        gap: 8px;
+    }
+    .selection-layer-row {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        min-height: 54px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.04);
+        color: #eef6fb;
+        cursor: pointer;
+    }
+    .selection-layer-row:hover {
+        background: rgba(255,255,255,0.07);
+    }
+    .selection-layer-row input {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        accent-color: #38b2a6;
+    }
+    .selection-layer-copy {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+    }
+    .selection-layer-name {
+        overflow: hidden;
+        color: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .selection-layer-meta {
+        color: #97aabd;
+        font-size: 12px;
+    }
     .layer-pane-row {
         display: flex;
         align-items: center;
@@ -5857,6 +5939,34 @@
         border-color: #d1d5db;
         color: transparent;
     }
+    #sidebar .sidebar-tabs {
+        background: #f3f4f6;
+        border-color: #e5e7eb;
+    }
+    #sidebar .sidebar-tab {
+        color: #6b7280;
+    }
+    #sidebar .sidebar-tab:hover,
+    #sidebar .sidebar-tab:focus-visible {
+        color: #374151;
+    }
+    #sidebar .sidebar-tab.active {
+        background: #fff;
+        color: #374151;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+    #sidebar .selection-layer-row {
+        background: #fff;
+        border-color: #e5e7eb;
+        color: #374151;
+    }
+    #sidebar .selection-layer-row:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+    #sidebar .selection-layer-meta {
+        color: #6b7280;
+    }
     .workspace-badge,
     .workspace-pill {
         background: #f3f4f6;
@@ -7163,6 +7273,10 @@
                 </div>
                 <button id="closeSidebar" type="button" class="sidebar-close-btn" aria-label="Close workspace sidebar">×</button>
             </div>
+            <div id="sidebarTabs" class="sidebar-tabs" role="tablist" aria-label="Layer panel views">
+                <button id="sidebarLayersTab" type="button" class="sidebar-tab active" role="tab" data-sidebar-tab="layers" aria-selected="true" aria-controls="sidebar-content">Layers</button>
+                <button id="sidebarSelectionTab" type="button" class="sidebar-tab" role="tab" data-sidebar-tab="selection" aria-selected="false" aria-controls="sidebar-content">Selection</button>
+            </div>
             <div id="sidebar-content"></div>
         </div>
     </div>
@@ -7503,6 +7617,7 @@
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
+        const sidebarTabs = document.getElementById("sidebarTabs");
         const layersMapBtn = document.getElementById("layersMapBtn");
         const toolbarLayersBtn = document.getElementById("toolbarLayersBtn");
         const toolbarBasemapBtn = document.getElementById("toolbarBasemapBtn");
@@ -8162,6 +8277,7 @@
         const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
         let sidebarVisible = false;
+        let activeSidebarTab = "layers";
         let dataPaneVisible = false;
         let rememberLastSession = true;
         let hideWorkspaceEmptyStateForever = false;
@@ -8504,6 +8620,13 @@
                 && annotation.surveyPoint.rowIndex === rowIndex
             ));
             if (matched) return matched;
+            const overlayAnnotation = surveyOverlays
+                .map((overlay) => overlay?.data?.surveyFeatureAnnotation)
+                .find((annotation) => (
+                    annotation?.surveyPoint?.layerId === layer?.id
+                    && annotation.surveyPoint.rowIndex === rowIndex
+                ));
+            if (overlayAnnotation) return overlayAnnotation;
             const fallback = rowAnnotationMap.get(rowIndex) || null;
             if (!fallback?.surveyPoint?.layerId || fallback.surveyPoint.layerId === layer?.id) return fallback;
             return null;
@@ -8514,7 +8637,7 @@
             const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(clientX, clientY));
             if (!coordinate) return null;
             const clientPoint = new DOMPoint(clientX, clientY);
-            const visibleLayers = (activeProjectRecord.layers || []).filter((layer) => layer.visible !== false);
+            const visibleLayers = (activeProjectRecord.layers || []).filter((layer) => layer.visible !== false && isLayerSelectable(layer));
             for (let layerIndex = 0; layerIndex < visibleLayers.length; layerIndex += 1) {
                 const layer = ensureLayerStructure(visibleLayers[layerIndex]);
                 const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
@@ -8794,6 +8917,7 @@
         function ensureLayerStructure(layer) {
             if (!layer) return layer;
             layer.geometryType = normalizeLayerGeometryType(layer.geometryType || layer?.parsed?.geometryType || "point");
+            layer.selectable = layer.selectable !== false;
             if (!Array.isArray(layer.schema) || !layer.schema.length) {
                 layer.schema = createSchemaFromParsed(layer.parsed, layer.geometryType);
             }
@@ -8898,6 +9022,7 @@
                 name,
                 geometryType: normalizedGeometry,
                 visible: true,
+                selectable: true,
                 styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry, styleDefaults || {}),
                 schema,
                 fields: schema.map((field) => field.name),
@@ -8963,6 +9088,7 @@
                 name,
                 geometryType: normalizedGeometry,
                 visible: true,
+                selectable: true,
                 styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry, styleDefaults),
                 schema: [
                     ...defaultSchema,
@@ -10109,11 +10235,105 @@
             }
         }
 
+        function isLayerSelectable(layer) {
+            return Boolean(layer) && layer.selectable !== false;
+        }
+
+        function updateRenderedLayerSelectability(layerId) {
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            const enabled = isLayerSelectable(layer);
+            surveyAnnotations.forEach((annotation) => {
+                if (annotation?.surveyPoint?.layerId !== layerId) return;
+                try {
+                    annotation.enabled = enabled;
+                } catch {}
+            });
+            surveyOverlays.forEach((overlay) => {
+                if (overlay?.data?.surveyFeatureAnnotation?.surveyPoint?.layerId !== layerId) return;
+                try {
+                    overlay.enabled = enabled;
+                } catch {}
+            });
+            if (!enabled && activeSurveyAnnotation?.surveyPoint?.layerId === layerId) {
+                hideSurveyCallout();
+            }
+        }
+
+        function setLayerSelectable(layerId, selectable, { render = true } = {}) {
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            layer.selectable = Boolean(selectable);
+            updateRenderedLayerSelectability(layerId);
+            markActiveProjectUpdated();
+            scheduleLocalAutosave();
+            if (render) renderActiveProjectSidebar();
+        }
+
+        function setAllLayersSelectable(selectable) {
+            const layers = activeProjectRecord?.layers || [];
+            layers.forEach((layer) => setLayerSelectable(layer.id, selectable, { render: false }));
+            renderActiveProjectSidebar();
+            setProjectStatus(
+                selectable ? "All layers can be selected on the map." : "Map feature selection is turned off for all layers.",
+                "success"
+            );
+        }
+
+        function setSidebarTab(tabName) {
+            activeSidebarTab = tabName === "selection" ? "selection" : "layers";
+            sidebarTabs?.querySelectorAll("[data-sidebar-tab]").forEach((button) => {
+                const active = button.dataset.sidebarTab === activeSidebarTab;
+                button.classList.toggle("active", active);
+                button.setAttribute("aria-selected", active ? "true" : "false");
+                button.tabIndex = active ? 0 : -1;
+            });
+            renderActiveProjectSidebar();
+        }
+
         function renderActiveProjectSidebar() {
             if (!sidebarContent) return;
+            sidebarTabs?.querySelectorAll("[data-sidebar-tab]").forEach((button) => {
+                const active = button.dataset.sidebarTab === activeSidebarTab;
+                button.classList.toggle("active", active);
+                button.setAttribute("aria-selected", active ? "true" : "false");
+                button.tabIndex = active ? 0 : -1;
+            });
             if (!activeProjectRecord) {
+                sidebarContent.setAttribute("role", "tabpanel");
+                sidebarContent.setAttribute("aria-labelledby", activeSidebarTab === "selection" ? "sidebarSelectionTab" : "sidebarLayersTab");
                 sidebarContent.innerHTML = `
                     <p class="layer-pane-helper">Create or open a project from File to manage layers here.</p>
+                `;
+                return;
+            }
+            const layers = activeProjectRecord.layers || [];
+            sidebarContent.setAttribute("role", "tabpanel");
+            sidebarContent.setAttribute("aria-labelledby", activeSidebarTab === "selection" ? "sidebarSelectionTab" : "sidebarLayersTab");
+            if (activeSidebarTab === "selection") {
+                sidebarContent.innerHTML = `
+                    <div class="workspace-sidebar-section selection-pane">
+                        <p class="layer-pane-helper">Choose which layers respond when you tap or click map features. New layers are selectable by default.</p>
+                        <div class="selection-pane-actions" role="group" aria-label="Selection shortcuts">
+                            <button type="button" class="mini-btn" data-selection-all>All</button>
+                            <button type="button" class="mini-btn" data-selection-none>None</button>
+                        </div>
+                        <div class="selection-layer-list">
+                            ${layers.map((item) => {
+                                const featureCount = item.features?.length ?? item.parsed?.records?.length ?? 0;
+                                const geometryType = normalizeLayerGeometryType(item.geometryType || "point");
+                                return `
+                                    <label class="selection-layer-row">
+                                        <input type="checkbox" data-layer-selectable="${escapeHtml(item.id)}" ${isLayerSelectable(item) ? "checked" : ""}>
+                                        <span class="selection-layer-copy">
+                                            <span class="selection-layer-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+                                            <span class="selection-layer-meta">${escapeHtml(geometryType)} · ${featureCount.toLocaleString()} ${featureCount === 1 ? "feature" : "features"}</span>
+                                        </span>
+                                    </label>
+                                `;
+                            }).join("") || `<p class="layer-pane-helper">Add a layer to configure map selection.</p>`}
+                        </div>
+                    </div>
                 `;
                 return;
             }
@@ -10121,7 +10341,7 @@
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
                     <p class="layer-pane-helper">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
-                    ${(activeProjectRecord.layers || []).map((item, index, list) => `
+                    ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
                             <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
@@ -11497,6 +11717,7 @@
             let bestDistance = Infinity;
             surveyAnnotations.forEach((annotation) => {
                 if (!annotation?.surveyPoint?.coordinate && !annotation?.coordinate) return;
+                if (!isLayerSelectable(getLayerById(annotation?.surveyPoint?.layerId))) return;
                 const point = map.convertCoordinateToPointOnPage(annotation.coordinate || annotation.surveyPoint.coordinate);
                 if (!point) return;
                 const distance = Math.hypot(point.x - clientX, point.y - clientY);
@@ -14911,7 +15132,36 @@
         });
         bindLayerReorderList(layerList);
         bindLayerReorderList(sidebarContent);
+        sidebarTabs?.addEventListener("click", (event) => {
+            const tab = event.target.closest("[data-sidebar-tab]");
+            if (!tab) return;
+            setSidebarTab(tab.dataset.sidebarTab);
+        });
+        sidebarTabs?.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const nextTab = activeSidebarTab === "layers" ? "selection" : "layers";
+            setSidebarTab(nextTab);
+            sidebarTabs.querySelector(`[data-sidebar-tab="${nextTab}"]`)?.focus();
+        });
+        sidebarContent?.addEventListener("change", (event) => {
+            const checkbox = event.target.closest("[data-layer-selectable]");
+            if (!checkbox) return;
+            setLayerSelectable(checkbox.dataset.layerSelectable, checkbox.checked);
+            setProjectStatus(
+                checkbox.checked ? "Layer can now be selected on the map." : "Layer selection is turned off.",
+                "success"
+            );
+        });
         sidebarContent?.addEventListener("click", (event) => {
+            if (event.target.closest("[data-selection-all]")) {
+                setAllLayersSelectable(true);
+                return;
+            }
+            if (event.target.closest("[data-selection-none]")) {
+                setAllLayersSelectable(false);
+                return;
+            }
             const moveLayerButton = event.target.closest("[data-layer-move]");
             if (moveLayerButton) {
                 event.preventDefault();
@@ -19103,6 +19353,7 @@
                 }
                 const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(coord, {
+                    enabled: isLayerSelectable(layer),
                     color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
                     glyphText: getSymbolGlyphValue(attributes.symbol_shape || layer?.styleDefaults?.symbol_shape),
                     title: markerTitle
@@ -19159,7 +19410,7 @@
             };
             if (geometryType === "line") {
                 overlay = new mapkit.PolylineOverlay(coords, {
-                    enabled: true,
+                    enabled: isLayerSelectable(layer),
                     data: { surveyFeatureAnnotation },
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
                 });
@@ -19167,7 +19418,7 @@
                 const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
                 const rings = getGeometryRingsCoordinates(feature).map((ring) => getClosedPolygonCoordinates(ring));
                 overlay = new mapkit.PolygonOverlay(rings.length ? rings : [getClosedPolygonCoordinates(coords)], {
-                    enabled: true,
+                    enabled: isLayerSelectable(layer),
                     data: { surveyFeatureAnnotation },
                     style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
                 });
@@ -19181,6 +19432,7 @@
             const repCoord = shouldShowMarker ? representativeCoordinate : null;
             if (repCoord) {
                 const marker = new mapkit.MarkerAnnotation(repCoord, {
+                    enabled: isLayerSelectable(layer),
                     color: overlayColor,
                     glyphText: geometryType === "line" ? "━" : "▣",
                     title: markerTitle
@@ -19363,7 +19615,7 @@
                     const feature = features[index];
                     coords.push(...renderFeatureGeometryOnMap(feature, layer, {
                         interactive,
-                        rowIndex: interactive ? index : null,
+                        rowIndex: index,
                         projectName,
                         markerFeatureSet
                     }));
@@ -21374,6 +21626,12 @@ function setImportPanelVisibility(show) {
 
         map.addEventListener("select", (event) => {
             if (event?.annotation?.surveyPoint) {
+                if (!isLayerSelectable(getLayerById(event.annotation.surveyPoint.layerId))) {
+                    try {
+                        event.annotation.selected = false;
+                    } catch {}
+                    return;
+                }
                 if (suppressAnnotationDetailOpen) {
                     activeSurveyAnnotation = event.annotation;
                     activeFeatureId = event.annotation.surveyPoint.pointId || event.annotation.surveyPoint.rowIndex;
@@ -21401,6 +21659,12 @@ function setImportPanelVisibility(show) {
             }
             const surveyFeatureAnnotation = event?.overlay?.data?.surveyFeatureAnnotation;
             if (surveyFeatureAnnotation?.surveyPoint) {
+                if (!isLayerSelectable(getLayerById(surveyFeatureAnnotation.surveyPoint.layerId))) {
+                    try {
+                        event.overlay.selected = false;
+                    } catch {}
+                    return;
+                }
                 showSurveyCallout(surveyFeatureAnnotation);
                 return;
             }

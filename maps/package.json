@@ -30,6 +30,7 @@
     "test:off-canvas-panel-a11y": "node scripts/test-off-canvas-panel-a11y.mjs",
     "test:workflow-ui": "node scripts/test-workflow-ui.mjs",
     "test:layer-import-journey": "node scripts/test-layer-import-journey.mjs",
+    "test:layer-selection-controls": "node scripts/test-layer-selection-controls.mjs",
     "test:print-export-preparation": "node scripts/test-print-export-preparation.mjs",
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
