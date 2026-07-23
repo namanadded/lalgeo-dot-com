@@ -59,5 +59,10 @@ assert.match(
   /sidebarContent\?\.addEventListener\("change",[\s\S]*?data-layer-selectable[\s\S]*?setLayerSelectable\(checkbox\.dataset\.layerSelectable, checkbox\.checked\)/,
   "Selection checkboxes should update their corresponding layers."
 );
+assert.match(
+  source,
+  /@media \(max-width: 600px\)[\s\S]*?#sidebar \{[\s\S]*?z-index:\s*1300;/,
+  "The mobile layer panel should stack above floating toolbar controls."
+);
 
 console.log("Layer selection controls checks passed.");
