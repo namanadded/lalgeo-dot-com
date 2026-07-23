@@ -35,6 +35,7 @@
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
+    "test:production-module-integrity": "node scripts/test-production-module-integrity.mjs",
     "test:cloud-storage": "node scripts/test-cloud-storage.mjs",
     "test:workspace-persistence": "node scripts/test-workspace-persistence.mjs",
     "benchmark:cloud-catalog": "node scripts/benchmark-cloud-catalog.mjs",
