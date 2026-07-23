@@ -3,6 +3,7 @@ import path from "node:path";
 
 const sourcePath = path.resolve("public/legacy/lalgeosurvey.html");
 const source = fs.readFileSync(sourcePath, "utf8");
+const mapRootCount = (source.match(/\bid="map"/g) || []).length;
 
 const checks = [
   ["closed Data Manager is absent from the accessibility tree and tab order on first paint", /id="dataCatalogPane"[^>]*aria-hidden="true"[^>]*inert/],
@@ -16,9 +17,13 @@ const checks = [
 ];
 
 const failures = checks.filter(([, pattern]) => !pattern.test(source));
+if (mapRootCount !== 1) {
+  failures.unshift([`exactly one map root is present (found ${mapRootCount})`]);
+}
 if (failures.length) {
   failures.forEach(([label]) => console.error(`FAIL: ${label}`));
   process.exit(1);
 }
 
+console.log("PASS: exactly one map root is present");
 checks.forEach(([label]) => console.log(`PASS: ${label}`));
