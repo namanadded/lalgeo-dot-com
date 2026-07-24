@@ -153,6 +153,10 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-feature-details
 
+      - name: Check feature editor accessible names
+        working-directory: maps
+        run: npm run test:feature-editor-labels
+
       - name: Check off-canvas panel accessibility
         working-directory: maps
         run: npm run test:off-canvas-panel-a11y

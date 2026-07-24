@@ -12116,15 +12116,16 @@
                 </details>
             `;
             const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name) && !isSystemFieldName(field.name));
-            const fields = attributeFields.map((field) => {
+            const fields = attributeFields.map((field, fieldIndex) => {
                 const value = feature.attributes?.[field.name] ?? "";
                 const isLocked = !editable || field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
                 const fieldKey = String(field.name || "").trim().toLowerCase();
+                const fieldControlId = `feature-drawer-field-${rowIndex}-${fieldIndex}`;
                 if (field.type === "dropdown") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
-                            <select data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
+                            <select id="${fieldControlId}" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
                                 <option value="">Select…</option>
                                 ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
@@ -12134,8 +12135,8 @@
                 if (fieldKey === "notes" || fieldKey === "description") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
-                            <textarea class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
+                            <textarea id="${fieldControlId}" class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
                         </div>
                     `;
                 }
@@ -12143,9 +12144,9 @@
                     const phoneHref = String(value || "").replace(/[^\d+]/g, "");
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
                             <div class="feature-drawer-inline-control">
-                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <input id="${fieldControlId}" type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                                 <button type="button" class="feature-drawer-icon-btn" data-feature-action="phone" data-feature-value="${escapeHtml(phoneHref)}" aria-label="Call or copy phone number" title="Call phone number">☎</button>
                             </div>
                         </div>
@@ -12154,9 +12155,9 @@
                 if (fieldKey === "website") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
                             <div class="feature-drawer-inline-control">
-                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <input id="${fieldControlId}" type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                                 <button type="button" class="feature-drawer-icon-btn" data-feature-action="website" data-feature-value="${escapeHtml(String(value))}" aria-label="Open website" title="Open website">↗</button>
                             </div>
                         </div>
@@ -12164,8 +12165,8 @@
                 }
                 return `
                     <div class="feature-drawer-field">
-                        <label>${escapeHtml(field.name)}</label>
-                        <input type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                        <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
+                        <input id="${fieldControlId}" type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                     </div>
                 `;
             }).join("");
@@ -14212,6 +14213,15 @@
             });
         }
 
+        function getLayerFeatureCount(layer) {
+            const counts = [
+                layer?.features?.length,
+                layer?.parsed?.records?.length,
+                layer?.parsed?.rows?.length
+            ].filter(Number.isFinite);
+            return counts.length ? Math.max(...counts) : 0;
+        }
+
         function openPrintPreparation(mode = "print") {
             if (!activeProjectRecord) {
                 setProjectStatus("Create or open a project before printing or exporting a map.", "error");
@@ -14220,7 +14230,7 @@
             const exporting = mode === "pdf";
             const projectName = String(activeProjectRecord.name || "Untitled project").trim();
             const layerCount = activeProjectRecord.layers?.length || 0;
-            const featureCount = (activeProjectRecord.layers || []).reduce((total, layer) => total + (layer?.parsed?.rows?.length || 0), 0);
+            const featureCount = (activeProjectRecord.layers || []).reduce((total, layer) => total + getLayerFeatureCount(layer), 0);
             openLayerActionModal({
                 title: exporting ? "Export map as PDF" : "Print map",
                 description: exporting
@@ -20553,7 +20563,8 @@
             const isLocked = schemaField?.locked === true || isCoordinateField(header, currentSurveyData) || isAutoManagedField(header);
             if (isLocked) return escapeHtml(value);
             const options = dropdownFieldOptions[header] || schemaField?.options || [];
-            const attrs = `class="table-cell-editor" data-table-field="${escapeHtml(header)}" data-row-index="${rowIndex}"`;
+            const controlLabel = `${header || "Attribute"}, feature ${rowIndex + 1}`;
+            const attrs = `class="table-cell-editor" data-table-field="${escapeHtml(header)}" data-row-index="${rowIndex}" aria-label="${escapeHtml(controlLabel)}"`;
             if (options.length) {
                 return `
                     <select ${attrs}>
