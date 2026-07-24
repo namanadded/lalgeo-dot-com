@@ -7,6 +7,8 @@ const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/rende
 const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
 const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
 const malformedPolygonGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-polygon.geojson", import.meta.url), "utf8"));
+const complexSurveyCsv = readFileSync(new URL("../fixtures/interoperability/complex-survey.csv", import.meta.url), "utf8");
+const malformedSurveyCsv = readFileSync(new URL("../fixtures/interoperability/malformed-survey.csv", import.meta.url), "utf8");
 
 class CdpSocket {
   constructor(url) {
@@ -289,6 +291,33 @@ try {
       format: "GPX"
     });
     assert(gpxPayload.geospatialLayers.length === 2, "GPX imports waypoint and track layers");
+
+    const complexCsvPayload = parseSurveyCSV(${JSON.stringify(complexSurveyCsv)});
+    assert(complexCsvPayload.records.length === 2, "CSV imports all response rows");
+    assert(complexCsvPayload.records[0].Name === "Café, rivière 🌊", "CSV preserves quoted commas and Unicode");
+    assert(complexCsvPayload.records[0].Notes === 'First line,\\nsecond line with "quoted" text', "CSV preserves embedded newlines and escaped quotes");
+    assert(complexCsvPayload.records[0]["Inspected At"] === "2026-07-23T08:15:00-06:00", "CSV preserves date strings");
+    assert(complexCsvPayload.records[0].Nullable === "", "CSV preserves empty fields without shifting columns");
+    assert(complexCsvPayload.records[0]["Field 08"] === "A08", "CSV preserves large field sets through the final column");
+    assert(complexCsvPayload.archiveRecords[0].Name === "Archived, feature", "CSV preserves quoted archive attributes");
+    const complexCsvRoundTrip = parseSurveyCSV(Papa.unparse([
+      ["Responses"],
+      complexCsvPayload.headers,
+      ...complexCsvPayload.records.map((record) => complexCsvPayload.headers.map((header) => record[header])),
+      ["Archive"],
+      complexCsvPayload.archiveHeaders,
+      ...complexCsvPayload.archiveRecords.map((record) => complexCsvPayload.archiveHeaders.map((header) => record[header]))
+    ]));
+    assert(complexCsvRoundTrip.records[0].Notes === complexCsvPayload.records[0].Notes, "CSV import-export-import preserves multiline attributes");
+    assert(complexCsvRoundTrip.archiveRecords[0]["Field 08"] === "C08", "CSV round trip preserves archive field sets");
+
+    let malformedCsvMessage = "";
+    try {
+      parseSurveyCSV(${JSON.stringify(malformedSurveyCsv)});
+    } catch (error) {
+      malformedCsvMessage = error.message;
+    }
+    assert(malformedCsvMessage.includes("CSV has an unclosed quoted field"), "malformed CSV explains how to fix an unclosed quote");
 
     activeProjectRecord = createProjectRecord({ name: "Append Target", layers: [createLayerRecord({ name: "Points", geometryType: "point" })] });
     activeLayerId = activeProjectRecord.activeLayerId;
