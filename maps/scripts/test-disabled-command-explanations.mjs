@@ -16,10 +16,11 @@ for (const [button, reason] of [
   assert.ok(source.includes(`[${button}, "${reason}"]`), `${button} should explain its prerequisite`);
 }
 
-assert.match(source, /button\.dataset\.disabledReason = reason;[\s\S]*?button\.title = reason;[\s\S]*?button\.setAttribute\("aria-label", `\$\{button\.textContent\.trim\(\)\}\. \$\{reason\}`\)/, "Desktop commands should expose one reason visually, on hover, and to assistive technology.");
-assert.match(source, /const disabledReason = disabled \? target\?\.dataset\.disabledReason[\s\S]*?button\.dataset\.disabledReason = disabledReason;[\s\S]*?button\.title = disabledReason;/, "Mobile proxy commands should inherit the target explanation.");
+assert.match(source, /function setCommandAvailabilityState\(button, enabled, disabledReason = ""\)[\s\S]*?button\.dataset\.disabledReason = reason;[\s\S]*?button\.title = reason;[\s\S]*?button\.setAttribute\("aria-label", `\$\{button\.textContent\.trim\(\)\}\. \$\{reason\}`\)/, "Commands should expose one reason visually, on hover, and to assistive technology.");
+assert.match(source, /const disabledReason = disabled \? target\?\.dataset\.disabledReason[\s\S]*?setCommandAvailabilityState\(button, !disabled, disabledReason\)/, "Mobile proxy commands should inherit the target explanation through the shared state synchronizer.");
 assert.match(source, /\.menu-command\[data-disabled-reason\]::after\s*\{[\s\S]*?content:\s*attr\(data-disabled-reason\)/, "Disabled reasons should be visibly rendered rather than relying on color or hover.");
-assert.match(source, /delete button\.dataset\.disabledReason;[\s\S]*?button\.removeAttribute\("title"\)/, "Explanations should clear when commands become available.");
-assert.match(source, /button\.dataset\.enabledAriaLabel = button\.getAttribute\("aria-label"\)[\s\S]*?button\.setAttribute\("aria-label", button\.dataset\.enabledAriaLabel\)/, "Existing accessible names should return when commands become available.");
+assert.match(source, /if \(!\("enabledAriaLabel" in button\.dataset\)\) \{[\s\S]*?button\.dataset\.enabledAriaLabel = button\.getAttribute\("aria-label"\) \|\| "";/, "The enabled accessible name should be captured exactly once, including the absence of an explicit label.");
+assert.match(source, /delete button\.dataset\.disabledReason;[\s\S]*?button\.removeAttribute\("title"\)[\s\S]*?if \(button\.dataset\.enabledAriaLabel\)[\s\S]*?button\.setAttribute\("aria-label", button\.dataset\.enabledAriaLabel\)[\s\S]*?else \{[\s\S]*?button\.removeAttribute\("aria-label"\)/, "Enabled commands should clear explanations and restore either their original explicit label or their text-derived name.");
+assert.match(source, /commandState\.forEach\(\(\[button, enabled\]\)[\s\S]*?setCommandAvailabilityState\(button, enabled, reason\)/, "Desktop menu commands should use the shared state synchronizer.");
 
 console.log("Disabled command explanation checks passed.");
