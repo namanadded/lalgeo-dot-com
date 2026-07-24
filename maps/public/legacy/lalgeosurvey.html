@@ -5544,6 +5544,27 @@
             width: auto;
             max-height: calc(100dvh - var(--mobile-panel-safe-top) - 16px);
         }
+        .measurement-panel,
+        .advanced-gis-panel,
+        .floating-toolbar {
+            top: var(--mobile-panel-safe-top) !important;
+        }
+        .measurement-panel,
+        .advanced-gis-panel {
+            left: var(--mobile-panel-edge-gap);
+            right: var(--mobile-panel-edge-gap);
+            width: auto;
+            max-height: calc(100dvh - var(--mobile-panel-safe-top) - 16px);
+            box-sizing: border-box;
+            overflow-y: auto;
+        }
+        .floating-toolbar {
+            left: var(--mobile-panel-edge-gap);
+            right: var(--mobile-panel-edge-gap);
+            width: auto !important;
+            max-width: none;
+            box-sizing: border-box;
+        }
         #customBasemapAttribution {
             left: 10px;
             bottom: calc(58px + env(safe-area-inset-bottom, 0px));
@@ -15119,6 +15140,14 @@
             group?.classList.toggle("expanded", expanded);
             rightToolbarExpandBtn.classList.toggle("active", expanded);
             rightToolbarExpandBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+        });
+        toolbar?.querySelector(".toolbar-quick-actions")?.addEventListener("click", (event) => {
+            if (!window.matchMedia("(max-width: 600px)").matches) return;
+            if (!event.target.closest("button")) return;
+            const group = rightToolbarExpandBtn?.closest(".toolbar-right");
+            group?.classList.remove("expanded");
+            rightToolbarExpandBtn?.classList.remove("active");
+            rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
         });
         editPanelToggleBtn?.addEventListener("click", (event) => {
             event.preventDefault();

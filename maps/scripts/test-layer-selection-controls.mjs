@@ -84,5 +84,15 @@ assert.match(
   /--mobile-panel-safe-top:\s*calc\(env\(safe-area-inset-top,\s*0px\) \+ 116px\);[\s\S]*?#sidebar \{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\);[\s\S]*?#dataCatalogPane \{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\);/,
   "Mobile Layers and Data Manager panels should share a safe top edge below the floating controls."
 );
+assert.match(
+  source,
+  /\.measurement-panel,[\s\S]*?\.advanced-gis-panel,[\s\S]*?\.floating-toolbar \{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\) !important;[\s\S]*?max-height:\s*calc\(100dvh - var\(--mobile-panel-safe-top\) - 16px\);/,
+  "Mobile measurement, Advanced GIS, edit, and layer tool panels should use the same unobstructed top edge."
+);
+assert.match(
+  source,
+  /toolbar\?\.querySelector\("\.toolbar-quick-actions"\)\?\.addEventListener\("click",[\s\S]*?max-width: 600px[\s\S]*?group\?\.classList\.remove\("expanded"\)[\s\S]*?aria-expanded", "false"/,
+  "Choosing a mobile quick action should collapse the icon strip before its panel is displayed."
+);
 
 console.log("Layer selection controls checks passed.");
