@@ -40,6 +40,7 @@
     "test:cloud-storage": "node scripts/test-cloud-storage.mjs",
     "test:workspace-persistence": "node scripts/test-workspace-persistence.mjs",
     "benchmark:cloud-catalog": "node scripts/benchmark-cloud-catalog.mjs",
+    "benchmark:cloud-recovery": "node scripts/benchmark-cloud-recovery.mjs",
     "test:dropbox-content-hash": "node scripts/test-dropbox-content-hash.mjs",
     "benchmark:large-projects": "node scripts/benchmark-large-projects.mjs",
     "benchmark:cloud-verification": "node scripts/benchmark-cloud-verification.mjs",
