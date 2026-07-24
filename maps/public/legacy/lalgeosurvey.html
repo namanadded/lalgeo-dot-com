@@ -18896,38 +18896,95 @@
 
         function parseGpxText(text) {
             const doc = new DOMParser().parseFromString(text, "application/xml");
+            if (doc.getElementsByTagName("parsererror").length) {
+                throw new Error("GPX is not valid XML. Check that all tags are closed and try again.");
+            }
             const features = [];
-            Array.from(doc.getElementsByTagName("wpt")).forEach((wpt) => {
-                const lat = Number(wpt.getAttribute("lat"));
-                const lon = Number(wpt.getAttribute("lon"));
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-                const name = wpt.getElementsByTagName("name")[0]?.textContent?.trim() || "";
-                features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "Point", coordinates: [lon, lat] } });
-            });
-            const readTrack = (container, tagName) => {
-                Array.from(container.getElementsByTagName(tagName)).forEach((segment) => {
-                    const coords = Array.from(segment.getElementsByTagName("trkpt")).map((pt) => {
-                        const lat = Number(pt.getAttribute("lat"));
-                        const lon = Number(pt.getAttribute("lon"));
-                        return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : null;
-                    }).filter(Boolean);
-                    if (coords.length >= 2) {
-                        const name = container.getElementsByTagName("name")[0]?.textContent?.trim() || "";
-                        features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "LineString", coordinates: coords } });
-                    }
-                });
+            const childText = (element, tagName) => Array.from(element?.children || [])
+                .find((child) => child.localName === tagName)?.textContent?.trim() || "";
+            const commonProperties = (element) => {
+                const fields = {
+                    name: childText(element, "name"),
+                    description: childText(element, "desc"),
+                    comment: childText(element, "cmt"),
+                    symbol: childText(element, "sym"),
+                    gpx_type: childText(element, "type")
+                };
+                return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== ""));
             };
-            Array.from(doc.getElementsByTagName("trk")).forEach((track) => readTrack(track, "trkseg"));
-            Array.from(doc.getElementsByTagName("rte")).forEach((route) => {
-                const coords = Array.from(route.getElementsByTagName("rtept")).map((pt) => {
-                    const lat = Number(pt.getAttribute("lat"));
-                    const lon = Number(pt.getAttribute("lon"));
-                    return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : null;
-                }).filter(Boolean);
-                if (coords.length >= 2) {
-                    const name = route.getElementsByTagName("name")[0]?.textContent?.trim() || "";
-                    features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "LineString", coordinates: coords } });
+            const readCoordinate = (element, label) => {
+                const latText = element.getAttribute("lat");
+                const lonText = element.getAttribute("lon");
+                const lat = Number(latText);
+                const lon = Number(lonText);
+                if (latText === null || lonText === null || !Number.isFinite(lat) || !Number.isFinite(lon)
+                    || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    throw new Error(`${label} has an invalid latitude or longitude. Use decimal WGS84 coordinates within latitude -90 to 90 and longitude -180 to 180.`);
                 }
+                return [lon, lat];
+            };
+            const vertexProperties = (points) => {
+                const elevations = points.map((point) => childText(point, "ele") || null);
+                const times = points.map((point) => childText(point, "time") || null);
+                const properties = {};
+                if (elevations.some((value) => value !== null)) properties.gpx_elevations = JSON.stringify(elevations);
+                if (times.some((value) => value !== null)) properties.gpx_times = JSON.stringify(times);
+                return properties;
+            };
+            Array.from(doc.getElementsByTagName("wpt")).forEach((wpt, waypointIndex) => {
+                const properties = {
+                    ...commonProperties(wpt),
+                    elevation: childText(wpt, "ele") || undefined,
+                    time: childText(wpt, "time") || undefined,
+                    gpx_feature: "waypoint"
+                };
+                Object.keys(properties).forEach((key) => properties[key] === undefined && delete properties[key]);
+                features.push({
+                    type: "Feature",
+                    properties,
+                    geometry: { type: "Point", coordinates: readCoordinate(wpt, `GPX waypoint ${waypointIndex + 1}`) }
+                });
+            });
+            Array.from(doc.getElementsByTagName("trk")).forEach((track, trackIndex) => {
+                const segments = Array.from(track.children || []).filter((child) => child.localName === "trkseg");
+                segments.forEach((segment, segmentIndex) => {
+                    const points = Array.from(segment.children || []).filter((child) => child.localName === "trkpt");
+                    if (points.length < 2) {
+                        throw new Error(`GPX track ${trackIndex + 1}, segment ${segmentIndex + 1} needs at least two track points.`);
+                    }
+                    const coords = points.map((point, pointIndex) => readCoordinate(
+                        point,
+                        `GPX track ${trackIndex + 1}, segment ${segmentIndex + 1}, point ${pointIndex + 1}`
+                    ));
+                    features.push({
+                        type: "Feature",
+                        properties: {
+                            ...commonProperties(track),
+                            ...vertexProperties(points),
+                            gpx_feature: "track",
+                            gpx_track: trackIndex + 1,
+                            gpx_segment: segmentIndex + 1
+                        },
+                        geometry: { type: "LineString", coordinates: coords }
+                    });
+                });
+            });
+            Array.from(doc.getElementsByTagName("rte")).forEach((route, routeIndex) => {
+                const points = Array.from(route.children || []).filter((child) => child.localName === "rtept");
+                if (points.length < 2) {
+                    throw new Error(`GPX route ${routeIndex + 1} needs at least two route points.`);
+                }
+                const coords = points.map((point, pointIndex) => readCoordinate(point, `GPX route ${routeIndex + 1}, point ${pointIndex + 1}`));
+                features.push({
+                    type: "Feature",
+                    properties: {
+                        ...commonProperties(route),
+                        ...vertexProperties(points),
+                        gpx_feature: "route",
+                        gpx_route: routeIndex + 1
+                    },
+                    geometry: { type: "LineString", coordinates: coords }
+                });
             });
             return { type: "FeatureCollection", features };
         }
