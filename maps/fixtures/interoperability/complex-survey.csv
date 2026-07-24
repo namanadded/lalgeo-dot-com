@@ -1,0 +1,11 @@
+Question,Type,Choices
+Status,Dropdown,Active|Paused|Archived
+Notes,Text,
+Responses
+ID,Latitude,Longitude,Name,Notes,Inspected At,Nullable,Field 01,Field 02,Field 03,Field 04,Field 05,Field 06,Field 07,Field 08
+pt-001,51.0447,-114.0719,"Café, rivière 🌊","First line,
+second line with ""quoted"" text",2026-07-23T08:15:00-06:00,,A01,A02,A03,A04,A05,A06,A07,A08
+pt-002,51.0500,-114.0800,普通话,"plain value",2026-07-23,,B01,B02,B03,B04,B05,B06,B07,B08
+Archive
+ID,Latitude,Longitude,Name,Notes,Inspected At,Nullable,Field 01,Field 02,Field 03,Field 04,Field 05,Field 06,Field 07,Field 08
+old-001,51.0400,-114.0600,"Archived, feature","kept intact",2025-12-31T23:59:59Z,,C01,C02,C03,C04,C05,C06,C07,C08
