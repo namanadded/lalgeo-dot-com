@@ -1,6 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
 import { collectCloudFiles, DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
-import { DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
 import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";

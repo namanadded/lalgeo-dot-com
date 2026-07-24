@@ -132,6 +132,10 @@ jobs:
         working-directory: maps
         run: npm run test:cloud-storage
 
+      - name: Check production module integrity
+        working-directory: maps
+        run: npm run test:production-module-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
