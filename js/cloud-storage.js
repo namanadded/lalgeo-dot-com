@@ -32,18 +32,28 @@ export function normalizeCloudError(error, provider = "unknown") {
   });
 }
 
+function throwIfCloudOperationAborted(signal) {
+  if (!signal?.aborted) return;
+  if (typeof signal.throwIfAborted === "function") signal.throwIfAborted();
+  const error = new Error("Cloud storage operation aborted");
+  error.name = "AbortError";
+  throw error;
+}
+
 export async function retryCloudOperation(operation, options = {}) {
   const attempts = Math.max(1, options.attempts || 4);
   const baseDelayMs = Math.max(0, options.baseDelayMs ?? 250);
   const sleep = options.sleep || ((delay) => new Promise((resolve) => setTimeout(resolve, delay)));
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    throwIfCloudOperationAborted(options.signal);
     try {
       return await operation(attempt);
     } catch (error) {
       lastError = normalizeCloudError(error, options.provider);
       if (!lastError.retryable || attempt === attempts) throw lastError;
       await sleep(baseDelayMs * (2 ** (attempt - 1)));
+      throwIfCloudOperationAborted(options.signal);
     }
   }
   throw lastError;
@@ -113,16 +123,21 @@ function assertUploadAdapter(adapter) {
 export async function uploadBlobResumably(adapter, blob, options = {}) {
   assertUploadAdapter(adapter);
   const chunkSize = Math.max(256 * 1024, options.chunkSize || DEFAULT_CHUNK_SIZE);
+  const recoverySleep = options.sleep || ((delay) => new Promise((resolve) => setTimeout(resolve, delay)));
   const retryOptions = {
     attempts: options.attempts,
     baseDelayMs: options.baseDelayMs,
-    sleep: options.sleep,
+    sleep: recoverySleep,
     provider: options.provider,
+    signal: options.signal,
   };
+  const maxNoProgressRecoveries = Math.max(1, options.maxNoProgressRecoveries || 4);
   let sessionId = options.sessionId || null;
   let offset = Math.max(0, options.offset || 0);
+  let noProgressRecoveries = 0;
 
   if (!sessionId) {
+    throwIfCloudOperationAborted(options.signal);
     const firstEnd = Math.min(chunkSize, blob.size);
     const result = await retryCloudOperation(() => adapter.start(blob.slice(0, firstEnd)), retryOptions);
     sessionId = result.sessionId;
@@ -130,6 +145,7 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
   }
 
   while (offset < blob.size) {
+    throwIfCloudOperationAborted(options.signal);
     const end = Math.min(offset + chunkSize, blob.size);
     const isLast = end === blob.size;
     try {
@@ -140,6 +156,7 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
         : await adapter.append(sessionId, offset, blob.slice(offset, end));
       if (isLast) return result;
       offset = end;
+      noProgressRecoveries = 0;
       options.onProgress?.({ loaded: offset, total: blob.size });
     } catch (error) {
       const normalized = normalizeCloudError(error, options.provider);
@@ -159,7 +176,31 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
         throw normalized;
       }
       const remoteOffset = await retryCloudOperation(() => adapter.lookupOffset(sessionId), retryOptions);
-      if (!Number.isSafeInteger(remoteOffset) || remoteOffset < 0 || remoteOffset > blob.size) throw normalized;
+      if (!Number.isSafeInteger(remoteOffset) || remoteOffset < offset || remoteOffset > blob.size) throw normalized;
+      if (remoteOffset === offset) {
+        noProgressRecoveries += 1;
+        options.onRecovery?.({
+          attempt: noProgressRecoveries,
+          maxAttempts: maxNoProgressRecoveries,
+          offset,
+          total: blob.size,
+        });
+        if (noProgressRecoveries >= maxNoProgressRecoveries) {
+          throw new CloudStorageError(
+            `Upload made no progress after ${noProgressRecoveries} recovery attempts.`,
+            {
+              cause: normalized,
+              code: normalized.code,
+              provider: normalized.provider,
+              retryable: normalized.retryable,
+              details: { ...normalized.details, offset, attempts: noProgressRecoveries },
+            },
+          );
+        }
+        await retryOptions.sleep(retryOptions.baseDelayMs * (2 ** (noProgressRecoveries - 1)));
+      } else {
+        noProgressRecoveries = 0;
+      }
       offset = remoteOffset;
     }
   }
