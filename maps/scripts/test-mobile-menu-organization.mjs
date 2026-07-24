@@ -67,7 +67,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function syncMobileMenuCommandStates\(\)[\s\S]*?data-mobile-menu-target[\s\S]*?button\.disabled = disabled;[\s\S]*?data-map-type[\s\S]*?button\.disabled = !hasProject;/,
+  /function syncMobileMenuCommandStates\(\)[\s\S]*?data-mobile-menu-target[\s\S]*?setCommandAvailabilityState\(button, !disabled, disabledReason\);[\s\S]*?data-map-type[\s\S]*?button\.disabled = !hasProject;/,
   "Unified mobile commands should mirror desktop availability and project state.",
 );
 assert.match(

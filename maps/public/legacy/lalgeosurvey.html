@@ -5460,6 +5460,7 @@
             bottom: auto;
             padding: 14px;
             border-radius: 18px;
+            z-index: 1300;
         }
         .sidebar-shell {
             gap: 8px;
@@ -5824,6 +5825,66 @@
     }
     #toolbar #toolbarSearchShell.has-search-text #collapseSearchBtn {
         display: inline-flex;
+    }
+    #searchResultsList {
+        position: fixed;
+        z-index: 1700;
+        margin: 0;
+        padding: 6px;
+        max-height: min(360px, calc(100dvh - 120px));
+        overflow-y: auto;
+        list-style: none;
+        color: #111827;
+        background: rgba(255, 255, 255, 0.96);
+        border: 1px solid rgba(15, 23, 42, 0.12);
+        border-radius: 14px;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.22);
+        backdrop-filter: blur(22px) saturate(140%);
+        -webkit-backdrop-filter: blur(22px) saturate(140%);
+    }
+    #searchResultsList[hidden] {
+        display: none;
+    }
+    .search-result-option {
+        display: grid;
+        gap: 2px;
+        min-height: 48px;
+        padding: 9px 12px;
+        border-radius: 10px;
+        cursor: pointer;
+        outline: none;
+    }
+    .search-result-option + .search-result-option {
+        margin-top: 2px;
+    }
+    .search-result-option:hover,
+    .search-result-option[aria-selected="true"] {
+        background: #ecfdf9;
+    }
+    .search-result-option:focus-visible {
+        box-shadow: inset 0 0 0 2px #0f766e;
+    }
+    .search-result-title {
+        color: #111827;
+        font-size: 14px;
+        font-weight: 700;
+        line-height: 1.25;
+    }
+    .search-result-subtitle {
+        color: #4b5563;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    @media (max-width: 700px) {
+        #searchResultsList {
+            max-height: min(52dvh, 420px);
+            padding: 6px;
+            border-radius: 14px;
+        }
+        .search-result-option {
+            min-height: 52px;
+            padding: 10px 12px;
+        }
     }
     .toolbar-left.expanded .app-menubar,
     .toolbar-right.expanded .toolbar-quick-actions {
@@ -6673,13 +6734,13 @@
             </button>
             <div class="toolbar-action-group toolbar-help-search-group" aria-label="Search controls">
                 <div class="search-pill collapsed" id="toolbarSearchShell">
-                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search">
+                    <button id="searchIconBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Open search" aria-controls="searchInput" aria-expanded="false">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <circle cx="11" cy="11" r="6"></circle>
                             <path d="M16 16l4 4"></path>
                         </svg>
                     </button>
-                    <input type="text" id="searchInput" inputmode="search" enterkeyhint="search" placeholder="Search location or project" aria-label="Search" />
+                    <input type="text" id="searchInput" inputmode="search" enterkeyhint="search" placeholder="Search places" aria-label="Search places" role="combobox" aria-autocomplete="list" aria-controls="searchResultsList" aria-expanded="false" aria-activedescendant="" aria-describedby="searchStatus" autocomplete="off" />
                     <button id="collapseSearchBtn" type="button" class="toolbar-btn ghost search-toggle-btn" aria-label="Clear search" style="display:none;">
                         <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                             <path d="M6 6l12 12"></path>
@@ -6687,6 +6748,7 @@
                         </svg>
                     </button>
                 </div>
+                <div id="searchStatus" class="sr-only" role="status" aria-live="polite">Type at least two characters to search.</div>
             </div>
         </div>
     </div>
@@ -9338,6 +9400,29 @@
             updateMapTypeControls(activeProjectRecord);
         }
 
+        function setCommandAvailabilityState(button, enabled, disabledReason = "") {
+            if (!button) return;
+            if (!("enabledAriaLabel" in button.dataset)) {
+                button.dataset.enabledAriaLabel = button.getAttribute("aria-label") || "";
+            }
+            button.disabled = !enabled;
+            button.classList.toggle("is-disabled", !enabled);
+            if (!enabled) {
+                const reason = disabledReason || "This command is not available yet.";
+                button.dataset.disabledReason = reason;
+                button.title = reason;
+                button.setAttribute("aria-label", `${button.textContent.trim()}. ${reason}`);
+                return;
+            }
+            delete button.dataset.disabledReason;
+            button.removeAttribute("title");
+            if (button.dataset.enabledAriaLabel) {
+                button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
+            } else {
+                button.removeAttribute("aria-label");
+            }
+        }
+
         function syncMobileMenuCommandStates() {
             if (!mobileMenuPane) return;
             if (!mobileMenuGroups.some((group) => group.open) && mobileMenuGroups[0]) {
@@ -9346,22 +9431,8 @@
             mobileMenuPane.querySelectorAll("[data-mobile-menu-target]").forEach((button) => {
                 const target = document.getElementById(button.dataset.mobileMenuTarget || "");
                 const disabled = !target || Boolean(target.disabled);
-                if (button.hasAttribute("aria-label") && !button.dataset.enabledAriaLabel) {
-                    button.dataset.enabledAriaLabel = button.getAttribute("aria-label");
-                }
-                button.disabled = disabled;
-                button.classList.toggle("is-disabled", disabled);
                 const disabledReason = disabled ? target?.dataset.disabledReason || "This command is not available yet." : "";
-                if (disabledReason) {
-                    button.dataset.disabledReason = disabledReason;
-                    button.title = disabledReason;
-                    button.setAttribute("aria-label", `${button.textContent.trim()}. ${disabledReason}`);
-                } else {
-                    delete button.dataset.disabledReason;
-                    button.removeAttribute("title");
-                    if (button.dataset.enabledAriaLabel) button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
-                    else button.removeAttribute("aria-label");
-                }
+                setCommandAvailabilityState(button, !disabled, disabledReason);
             });
             const hasProject = Boolean(activeProjectRecord);
             mobileMenuPane.querySelectorAll("[data-map-type]").forEach((button) => {
@@ -9549,22 +9620,8 @@
             ]);
             commandState.forEach(([button, enabled]) => {
                 if (!button) return;
-                if (button.hasAttribute("aria-label") && !button.dataset.enabledAriaLabel) {
-                    button.dataset.enabledAriaLabel = button.getAttribute("aria-label");
-                }
-                button.disabled = !enabled;
-                button.classList.toggle("is-disabled", !enabled);
                 const reason = enabled ? "" : disabledReasons.get(button) || "This command is not available yet.";
-                if (reason) {
-                    button.dataset.disabledReason = reason;
-                    button.title = reason;
-                    button.setAttribute("aria-label", `${button.textContent.trim()}. ${reason}`);
-                } else {
-                    delete button.dataset.disabledReason;
-                    button.removeAttribute("title");
-                    if (button.dataset.enabledAriaLabel) button.setAttribute("aria-label", button.dataset.enabledAriaLabel);
-                    else button.removeAttribute("aria-label");
-                }
+                setCommandAvailabilityState(button, enabled, reason);
             });
             updatePopoutsMenuState();
             syncMobileMenuCommandStates();
@@ -20991,6 +21048,7 @@ function updateFloatingButtonLayer(panelOpen) {
         function setSearchExpanded(show) {
             toolbarSearchExpanded = Boolean(show);
             toolbarSearchShell?.classList.toggle("collapsed", !toolbarSearchExpanded);
+            document.getElementById("searchIconBtn")?.setAttribute("aria-expanded", toolbarSearchExpanded ? "true" : "false");
             if (toolbarSearchExpanded && window.matchMedia("(min-width: 701px)").matches) {
                 document.getElementById("searchInput")?.focus();
             }
@@ -21904,27 +21962,29 @@ function setImportPanelVisibility(show) {
             }
         });
 
+        const searchStatus = document.getElementById("searchStatus");
         const resultsList = document.createElement("ul");
-        Object.assign(resultsList.style, {
-            position: "absolute",
-            top: "0",
-            left: "0",
-            zIndex: "1700",
-            backgroundColor: "#fff",
-            color: "#0f172a",
-            border: "1px solid rgba(15, 23, 42, 0.12)",
-            listStyle: "none",
-            padding: "6px 0",
-            margin: "0",
-            width: "260px",
-            maxHeight: "300px",
-            overflowY: "auto",
-            fontSize: "14px",
-            boxShadow: "0 16px 36px rgba(15, 23, 42, 0.24)",
-            borderRadius: "12px",
-            display: "none"
-        });
+        resultsList.id = "searchResultsList";
+        resultsList.setAttribute("role", "listbox");
+        resultsList.setAttribute("aria-label", "Search suggestions");
+        resultsList.hidden = true;
         document.body.appendChild(resultsList);
+        let activeSearchResultIndex = -1;
+        let renderedSearchResults = [];
+
+        function setSearchStatus(message) {
+            if (searchStatus) searchStatus.textContent = message;
+        }
+
+        function setSearchResultsExpanded(expanded) {
+            const show = Boolean(expanded);
+            resultsList.hidden = !show;
+            searchField.setAttribute("aria-expanded", show ? "true" : "false");
+            if (!show) {
+                activeSearchResultIndex = -1;
+                searchField.setAttribute("aria-activedescendant", "");
+            }
+        }
 
         function positionSearchSuggestions() {
             const anchor = document.getElementById("toolbarSearchShell") || searchField;
@@ -21941,7 +22001,7 @@ function setImportPanelVisibility(show) {
             resultsList.style.width = `${Math.round(width)}px`;
         }
         window.addEventListener("resize", () => {
-            if (resultsList.style.display === "block") {
+            if (!resultsList.hidden) {
                 positionSearchSuggestions();
             }
         });
@@ -22565,39 +22625,58 @@ function setImportPanelVisibility(show) {
 
         function hideSearchResults() {
             resultsList.innerHTML = "";
-            resultsList.style.display = "none";
+            renderedSearchResults = [];
+            setSearchResultsExpanded(false);
+        }
+
+        function setActiveSearchResult(index) {
+            const options = Array.from(resultsList.querySelectorAll('[role="option"]'));
+            if (!options.length) return;
+            activeSearchResultIndex = (index + options.length) % options.length;
+            options.forEach((option, optionIndex) => {
+                option.setAttribute("aria-selected", optionIndex === activeSearchResultIndex ? "true" : "false");
+            });
+            const activeOption = options[activeSearchResultIndex];
+            searchField.setAttribute("aria-activedescendant", activeOption.id);
+            activeOption.scrollIntoView({ block: "nearest" });
+        }
+
+        async function chooseSearchResult(index) {
+            const result = renderedSearchResults[index];
+            if (!result) return;
+            const title = getAutocompleteTitle(result);
+            searchField.value = title;
+            updateSearchClearControls();
+            setSearchResultsExpanded(false);
+            setSearchStatus(`Opening ${title}.`);
+            await selectAutocompleteResult(result);
+            setSearchStatus(`${title} shown on the map.`);
         }
 
         function renderSearchSuggestions(results) {
             resultsList.innerHTML = "";
-            if (!results.length) {
-                resultsList.style.display = "none";
+            renderedSearchResults = results.filter(result => getAutocompleteTitle(result));
+            if (!renderedSearchResults.length) {
+                setSearchResultsExpanded(false);
+                setSearchStatus("No places found. Try a different name or address.");
                 return;
             }
-            results.forEach(result => {
+            renderedSearchResults.forEach((result, index) => {
                 const title = getAutocompleteTitle(result);
                 const subtitle = getAutocompleteSubtitle(result);
-                if (!title) return;
                 const li = document.createElement("li");
-                li.style.padding = "10px 14px";
-                li.style.cursor = "pointer";
-                li.style.borderBottom = "1px solid rgba(15, 23, 42, 0.08)";
-                li.style.backgroundColor = "#fff";
-                li.style.color = "#0f172a";
-                li.innerHTML = `<strong style="display:block;color:#020617;font-weight:700;line-height:1.25;">${escapeHtml(title)}</strong><small style="display:block;color:#334155;line-height:1.35;margin-top:2px;">${escapeHtml(subtitle)}</small>`;
-                li.addEventListener("click", async () => {
-                    resultsList.style.display = "none";
-                    searchField.value = title;
-                    await selectAutocompleteResult(result);
-                });
+                li.id = `searchResultOption-${index}`;
+                li.className = "search-result-option";
+                li.setAttribute("role", "option");
+                li.setAttribute("aria-selected", "false");
+                li.innerHTML = `<span class="search-result-title">${escapeHtml(title)}</span>${subtitle ? `<span class="search-result-subtitle">${escapeHtml(subtitle)}</span>` : ""}`;
+                li.addEventListener("pointerdown", (event) => event.preventDefault());
+                li.addEventListener("click", () => void chooseSearchResult(index));
                 resultsList.appendChild(li);
             });
-            if (!resultsList.children.length) {
-                resultsList.style.display = "none";
-                return;
-            }
             positionSearchSuggestions();
-            resultsList.style.display = "block";
+            setSearchResultsExpanded(true);
+            setSearchStatus(`${renderedSearchResults.length} suggestions available. Use the arrow keys to review them.`);
         }
 
         function searchPlaces(query) {
@@ -22627,16 +22706,19 @@ function setImportPanelVisibility(show) {
             if (query.length < 2) {
                 latestSearchSequence += 1;
                 hideSearchResults();
+                setSearchStatus(query ? "Type one more character to search." : "Type at least two characters to search.");
                 return;
             }
             const sequence = latestSearchSequence + 1;
             latestSearchSequence = sequence;
+            setSearchStatus("Searching…");
             searchInputTimer = window.setTimeout(() => {
                 const callback = (error, data) => {
                     if (sequence !== latestSearchSequence) return;
                     if (error) {
                         console.warn("Map search autocomplete failed:", error);
                         hideSearchResults();
+                        setSearchStatus("Search is unavailable right now. Try again.");
                         return;
                     }
                     renderSearchSuggestions(getAutocompleteResults(data));
@@ -22669,16 +22751,52 @@ function setImportPanelVisibility(show) {
             }
             document.getElementById("sidebar-content").innerHTML = ""; // Clear sidebar content
             window.currentRouteData = null; // Optionally reset route data
+            setSearchStatus("Search cleared.");
+            searchField.focus();
         });
 
 
         searchField.addEventListener("keydown", function (e) {
+            if (e.key === "ArrowDown" && !resultsList.hidden) {
+                e.preventDefault();
+                setActiveSearchResult(activeSearchResultIndex + 1);
+                return;
+            }
+            if (e.key === "ArrowUp" && !resultsList.hidden) {
+                e.preventDefault();
+                setActiveSearchResult(activeSearchResultIndex - 1);
+                return;
+            }
+            if (e.key === "Escape") {
+                e.preventDefault();
+                if (!resultsList.hidden) {
+                    hideSearchResults();
+                    setSearchStatus("Suggestions closed.");
+                } else if (!searchField.value) {
+                    setSearchExpanded(false);
+                }
+                return;
+            }
             if (e.key === "Enter") {
+                if (!resultsList.hidden && activeSearchResultIndex >= 0) {
+                    e.preventDefault();
+                    void chooseSearchResult(activeSearchResultIndex);
+                    return;
+                }
+                setSearchStatus("Searching…");
                 search.search(searchField.value, async (error, data) => {
-                    if (error || !data?.places?.length) return;
+                    if (error) {
+                        setSearchStatus("Search is unavailable right now. Try again.");
+                        return;
+                    }
+                    if (!data?.places?.length) {
+                        setSearchStatus("No places found. Try a different name or address.");
+                        return;
+                    }
                     const place = data.places[0];
                     await selectSearchPlace(place);
                     hideSearchResults();
+                    setSearchStatus(`${place.name || searchField.value} shown on the map.`);
                 }, { region: map.region });
             }
         });
