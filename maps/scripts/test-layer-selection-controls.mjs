@@ -51,6 +51,11 @@ assert.match(
 );
 assert.match(
   source,
+  /function showSurveyCallout\(annotation, options = \{\}\)[\s\S]*?activateLayerForFeatureInspection\(annotation\.surveyPoint\.layerId\);[\s\S]*?setTableRowSelection\(annotation\.surveyPoint\.rowIndex\);/,
+  "Selecting a rendered feature, including a live API feature, should update the table's real selection state."
+);
+assert.match(
+  source,
   /new mapkit\.MarkerAnnotation\(coord, \{[\s\S]*?enabled: isLayerSelectable\(layer\),[\s\S]*?new mapkit\.PolylineOverlay\(coords, \{[\s\S]*?enabled: isLayerSelectable\(layer\),[\s\S]*?new mapkit\.PolygonOverlay\([\s\S]*?enabled: isLayerSelectable\(layer\),/,
   "Points, lines, and polygons should all respect layer selectability."
 );
@@ -58,6 +63,26 @@ assert.match(
   source,
   /sidebarContent\?\.addEventListener\("change",[\s\S]*?data-layer-selectable[\s\S]*?setLayerSelectable\(checkbox\.dataset\.layerSelectable, checkbox\.checked\)/,
   "Selection checkboxes should update their corresponding layers."
+);
+assert.match(
+  source,
+  /id="layerContextLabelsBtn"[\s\S]*?data-layer-context-action="labels"[\s\S]*?role="menuitemcheckbox"[\s\S]*?aria-checked="false"/,
+  "The layer context menu should expose a checkbox-style label visibility control."
+);
+assert.match(
+  source,
+  /function ensureLayerLabelSettings\(layer\)[\s\S]*?enabled: previous\.enabled === true,/,
+  "Layer labels should default to off unless they were explicitly enabled."
+);
+assert.match(
+  source,
+  /if \(action === "labels"\)[\s\S]*?enabled: !labelSettings\.enabled[\s\S]*?updateAnnotationLabels\(\);[\s\S]*?scheduleLocalAutosave\(\);/,
+  "The layer context menu should toggle labels, refresh the map, and persist the choice."
+);
+assert.match(
+  source,
+  /--mobile-panel-safe-top:\s*calc\(env\(safe-area-inset-top,\s*0px\) \+ 116px\);[\s\S]*?#sidebar \{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\);[\s\S]*?#dataCatalogPane \{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\);/,
+  "Mobile Layers and Data Manager panels should share a safe top edge below the floating controls."
 );
 
 console.log("Layer selection controls checks passed.");
