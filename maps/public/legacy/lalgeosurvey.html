@@ -12116,15 +12116,16 @@
                 </details>
             `;
             const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name) && !isSystemFieldName(field.name));
-            const fields = attributeFields.map((field) => {
+            const fields = attributeFields.map((field, fieldIndex) => {
                 const value = feature.attributes?.[field.name] ?? "";
                 const isLocked = !editable || field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
                 const fieldKey = String(field.name || "").trim().toLowerCase();
+                const fieldControlId = `feature-drawer-field-${rowIndex}-${fieldIndex}`;
                 if (field.type === "dropdown") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
-                            <select data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
+                            <select id="${fieldControlId}" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
                                 <option value="">Select…</option>
                                 ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
@@ -12134,8 +12135,8 @@
                 if (fieldKey === "notes" || fieldKey === "description") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
-                            <textarea class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
+                            <textarea id="${fieldControlId}" class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
                         </div>
                     `;
                 }
@@ -12143,9 +12144,9 @@
                     const phoneHref = String(value || "").replace(/[^\d+]/g, "");
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
                             <div class="feature-drawer-inline-control">
-                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <input id="${fieldControlId}" type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                                 <button type="button" class="feature-drawer-icon-btn" data-feature-action="phone" data-feature-value="${escapeHtml(phoneHref)}" aria-label="Call or copy phone number" title="Call phone number">☎</button>
                             </div>
                         </div>
@@ -12154,9 +12155,9 @@
                 if (fieldKey === "website") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
+                            <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
                             <div class="feature-drawer-inline-control">
-                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <input id="${fieldControlId}" type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                                 <button type="button" class="feature-drawer-icon-btn" data-feature-action="website" data-feature-value="${escapeHtml(String(value))}" aria-label="Open website" title="Open website">↗</button>
                             </div>
                         </div>
@@ -12164,8 +12165,8 @@
                 }
                 return `
                     <div class="feature-drawer-field">
-                        <label>${escapeHtml(field.name)}</label>
-                        <input type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                        <label for="${fieldControlId}">${escapeHtml(field.name)}</label>
+                        <input id="${fieldControlId}" type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                     </div>
                 `;
             }).join("");
@@ -14212,6 +14213,15 @@
             });
         }
 
+        function getLayerFeatureCount(layer) {
+            const counts = [
+                layer?.features?.length,
+                layer?.parsed?.records?.length,
+                layer?.parsed?.rows?.length
+            ].filter(Number.isFinite);
+            return counts.length ? Math.max(...counts) : 0;
+        }
+
         function openPrintPreparation(mode = "print") {
             if (!activeProjectRecord) {
                 setProjectStatus("Create or open a project before printing or exporting a map.", "error");
@@ -14220,7 +14230,7 @@
             const exporting = mode === "pdf";
             const projectName = String(activeProjectRecord.name || "Untitled project").trim();
             const layerCount = activeProjectRecord.layers?.length || 0;
-            const featureCount = (activeProjectRecord.layers || []).reduce((total, layer) => total + (layer?.parsed?.rows?.length || 0), 0);
+            const featureCount = (activeProjectRecord.layers || []).reduce((total, layer) => total + getLayerFeatureCount(layer), 0);
             openLayerActionModal({
                 title: exporting ? "Export map as PDF" : "Print map",
                 description: exporting
@@ -18896,38 +18906,95 @@
 
         function parseGpxText(text) {
             const doc = new DOMParser().parseFromString(text, "application/xml");
+            if (doc.getElementsByTagName("parsererror").length) {
+                throw new Error("GPX is not valid XML. Check that all tags are closed and try again.");
+            }
             const features = [];
-            Array.from(doc.getElementsByTagName("wpt")).forEach((wpt) => {
-                const lat = Number(wpt.getAttribute("lat"));
-                const lon = Number(wpt.getAttribute("lon"));
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return;
-                const name = wpt.getElementsByTagName("name")[0]?.textContent?.trim() || "";
-                features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "Point", coordinates: [lon, lat] } });
-            });
-            const readTrack = (container, tagName) => {
-                Array.from(container.getElementsByTagName(tagName)).forEach((segment) => {
-                    const coords = Array.from(segment.getElementsByTagName("trkpt")).map((pt) => {
-                        const lat = Number(pt.getAttribute("lat"));
-                        const lon = Number(pt.getAttribute("lon"));
-                        return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : null;
-                    }).filter(Boolean);
-                    if (coords.length >= 2) {
-                        const name = container.getElementsByTagName("name")[0]?.textContent?.trim() || "";
-                        features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "LineString", coordinates: coords } });
-                    }
-                });
+            const childText = (element, tagName) => Array.from(element?.children || [])
+                .find((child) => child.localName === tagName)?.textContent?.trim() || "";
+            const commonProperties = (element) => {
+                const fields = {
+                    name: childText(element, "name"),
+                    description: childText(element, "desc"),
+                    comment: childText(element, "cmt"),
+                    symbol: childText(element, "sym"),
+                    gpx_type: childText(element, "type")
+                };
+                return Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== ""));
             };
-            Array.from(doc.getElementsByTagName("trk")).forEach((track) => readTrack(track, "trkseg"));
-            Array.from(doc.getElementsByTagName("rte")).forEach((route) => {
-                const coords = Array.from(route.getElementsByTagName("rtept")).map((pt) => {
-                    const lat = Number(pt.getAttribute("lat"));
-                    const lon = Number(pt.getAttribute("lon"));
-                    return Number.isFinite(lat) && Number.isFinite(lon) ? [lon, lat] : null;
-                }).filter(Boolean);
-                if (coords.length >= 2) {
-                    const name = route.getElementsByTagName("name")[0]?.textContent?.trim() || "";
-                    features.push({ type: "Feature", properties: name ? { name } : {}, geometry: { type: "LineString", coordinates: coords } });
+            const readCoordinate = (element, label) => {
+                const latText = element.getAttribute("lat");
+                const lonText = element.getAttribute("lon");
+                const lat = Number(latText);
+                const lon = Number(lonText);
+                if (latText === null || lonText === null || !Number.isFinite(lat) || !Number.isFinite(lon)
+                    || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    throw new Error(`${label} has an invalid latitude or longitude. Use decimal WGS84 coordinates within latitude -90 to 90 and longitude -180 to 180.`);
                 }
+                return [lon, lat];
+            };
+            const vertexProperties = (points) => {
+                const elevations = points.map((point) => childText(point, "ele") || null);
+                const times = points.map((point) => childText(point, "time") || null);
+                const properties = {};
+                if (elevations.some((value) => value !== null)) properties.gpx_elevations = JSON.stringify(elevations);
+                if (times.some((value) => value !== null)) properties.gpx_times = JSON.stringify(times);
+                return properties;
+            };
+            Array.from(doc.getElementsByTagName("wpt")).forEach((wpt, waypointIndex) => {
+                const properties = {
+                    ...commonProperties(wpt),
+                    elevation: childText(wpt, "ele") || undefined,
+                    time: childText(wpt, "time") || undefined,
+                    gpx_feature: "waypoint"
+                };
+                Object.keys(properties).forEach((key) => properties[key] === undefined && delete properties[key]);
+                features.push({
+                    type: "Feature",
+                    properties,
+                    geometry: { type: "Point", coordinates: readCoordinate(wpt, `GPX waypoint ${waypointIndex + 1}`) }
+                });
+            });
+            Array.from(doc.getElementsByTagName("trk")).forEach((track, trackIndex) => {
+                const segments = Array.from(track.children || []).filter((child) => child.localName === "trkseg");
+                segments.forEach((segment, segmentIndex) => {
+                    const points = Array.from(segment.children || []).filter((child) => child.localName === "trkpt");
+                    if (points.length < 2) {
+                        throw new Error(`GPX track ${trackIndex + 1}, segment ${segmentIndex + 1} needs at least two track points.`);
+                    }
+                    const coords = points.map((point, pointIndex) => readCoordinate(
+                        point,
+                        `GPX track ${trackIndex + 1}, segment ${segmentIndex + 1}, point ${pointIndex + 1}`
+                    ));
+                    features.push({
+                        type: "Feature",
+                        properties: {
+                            ...commonProperties(track),
+                            ...vertexProperties(points),
+                            gpx_feature: "track",
+                            gpx_track: trackIndex + 1,
+                            gpx_segment: segmentIndex + 1
+                        },
+                        geometry: { type: "LineString", coordinates: coords }
+                    });
+                });
+            });
+            Array.from(doc.getElementsByTagName("rte")).forEach((route, routeIndex) => {
+                const points = Array.from(route.children || []).filter((child) => child.localName === "rtept");
+                if (points.length < 2) {
+                    throw new Error(`GPX route ${routeIndex + 1} needs at least two route points.`);
+                }
+                const coords = points.map((point, pointIndex) => readCoordinate(point, `GPX route ${routeIndex + 1}, point ${pointIndex + 1}`));
+                features.push({
+                    type: "Feature",
+                    properties: {
+                        ...commonProperties(route),
+                        ...vertexProperties(points),
+                        gpx_feature: "route",
+                        gpx_route: routeIndex + 1
+                    },
+                    geometry: { type: "LineString", coordinates: coords }
+                });
             });
             return { type: "FeatureCollection", features };
         }
@@ -19191,84 +19258,14 @@
                 if (cell === undefined || cell === null) return "";
                 return String(cell).replace(/\u00a0/g, " ").replace(/\r/g, "").replace(/^\ufeff/, "").trim();
             };
-
-            // Manual responses-based parsing to avoid malformed row detection
-            const manualParse = () => {
-                const lines = csvText.split(/\r?\n/).map(line => line.trim());
-                const respIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "responses");
-                const archiveIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "archive");
-                if (respIndex === -1 || !lines[respIndex + 1]) return null;
-
-                const questionMeta = {};
-                for (let i = 0; i < respIndex; i++) {
-                    const cols = lines[i].split(",");
-                    const q = cleanCell(cols[0]);
-                    if (!q || /^question$/i.test(q)) continue;
-                    const t = cleanCell(cols[1]);
-                    const c = cleanCell(cols[2]);
-                    if (!t) continue;
-                    questionMeta[q] = {
-                        type: t,
-                        normalizedType: t.toLowerCase(),
-                        choices: c ? c.split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean) : []
-                    };
-                }
-
-                const headerLine = lines[respIndex + 1];
-                const headers = headerLine.split(",").map(cleanCell);
-                const dataLines = [];
-                for (let i = respIndex + 2; i < lines.length; i++) {
-                    if (archiveIndex !== -1 && i >= archiveIndex) break;
-                    const line = lines[i];
-                    if (!line || !line.trim()) break;
-                    dataLines.push(line);
-                }
-                const records = dataLines.map(line => {
-                    const cols = line.split(",");
-                    const entry = {};
-                    headers.forEach((h, idx) => {
-                        entry[h || `Field_${idx}`] = cleanCell(cols[idx]);
-                    });
-                    return entry;
-                });
-                const latKey = headers.find(h => /lat/i.test(h));
-                const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
-                const archiveHeaders = archiveIndex !== -1 && lines[archiveIndex + 1]
-                    ? lines[archiveIndex + 1].split(",").map(cleanCell)
-                    : headers;
-                const archiveRecords = [];
-                if (archiveIndex !== -1) {
-                    for (let i = archiveIndex + 2; i < lines.length; i++) {
-                        const line = lines[i];
-                        if (!line || !line.trim()) break;
-                        const cols = line.split(",");
-                        const entry = {};
-                        archiveHeaders.forEach((h, idx) => {
-                            entry[h || `Field_${idx}`] = cleanCell(cols[idx]);
-                        });
-                        archiveRecords.push(entry);
-                    }
-                }
-                if (!latKey || !lonKey || !records.length) return null;
-                return {
-                    headers,
-                    records,
-                    latKey,
-                    lonKey,
-                    questionMeta,
-                    pointMeta: records.map(() => ({ id: generateSurveyPointId(), version: 1 })),
-                    archiveRecords,
-                    archiveHeaders,
-                    archivePointMeta: archiveRecords.map(() => ({ id: generateSurveyPointId(), version: 1 }))
-                };
-            };
-
-            const manualResult = manualParse();
-            if (manualResult) {
-                return manualResult;
+            const parsed = Papa.parse(String(csvText || "").replace(/^\ufeff/, ""), { skipEmptyLines: "greedy" });
+            const fatalError = (parsed.errors || []).find((error) => (
+                error?.code === "MissingQuotes" || error?.type === "Quotes"
+            ));
+            if (fatalError) {
+                const rowNumber = Number.isInteger(fatalError.row) ? ` near row ${fatalError.row + 1}` : "";
+                throw new Error(`CSV has an unclosed quoted field${rowNumber}. Close the quote and try again.`);
             }
-
-            const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
 
             const responsesRowIndex = rows.findIndex(row => cleanCell(row?.[0] || "").toLowerCase() === "responses");
@@ -19324,6 +19321,10 @@
                 }
                 dataRows.push(row);
             }
+            const invalidDataRow = dataRows.findIndex((row) => row.length !== headers.length);
+            if (invalidDataRow !== -1) {
+                throw new Error(`CSV response row ${invalidDataRow + 1} has ${dataRows[invalidDataRow].length} fields; expected ${headers.length}. Check commas and quotes.`);
+            }
             const records = dataRows.map(row => {
                 const entry = {};
                 headers.forEach((header, idx) => {
@@ -19351,6 +19352,10 @@
                         continue;
                     }
                     archiveDataRows.push(row);
+                }
+                const invalidArchiveRow = archiveDataRows.findIndex((row) => row.length !== archiveHeaders.length);
+                if (invalidArchiveRow !== -1) {
+                    throw new Error(`CSV archive row ${invalidArchiveRow + 1} has ${archiveDataRows[invalidArchiveRow].length} fields; expected ${archiveHeaders.length}. Check commas and quotes.`);
                 }
                 archiveRecords = archiveDataRows.map(row => {
                     const entry = {};
@@ -20615,7 +20620,8 @@
             const isLocked = schemaField?.locked === true || isCoordinateField(header, currentSurveyData) || isAutoManagedField(header);
             if (isLocked) return escapeHtml(value);
             const options = dropdownFieldOptions[header] || schemaField?.options || [];
-            const attrs = `class="table-cell-editor" data-table-field="${escapeHtml(header)}" data-row-index="${rowIndex}"`;
+            const controlLabel = `${header || "Attribute"}, feature ${rowIndex + 1}`;
+            const attrs = `class="table-cell-editor" data-table-field="${escapeHtml(header)}" data-row-index="${rowIndex}" aria-label="${escapeHtml(controlLabel)}"`;
             if (options.length) {
                 return `
                     <select ${attrs}>

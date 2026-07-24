@@ -7,6 +7,10 @@ const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/rende
 const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
 const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
 const malformedPolygonGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-polygon.geojson", import.meta.url), "utf8"));
+const complexSurveyCsv = readFileSync(new URL("../fixtures/interoperability/complex-survey.csv", import.meta.url), "utf8");
+const malformedSurveyCsv = readFileSync(new URL("../fixtures/interoperability/malformed-survey.csv", import.meta.url), "utf8");
+const complexGpx = readFileSync(new URL("../fixtures/interoperability/complex-field-collection.gpx", import.meta.url), "utf8");
+const malformedGpx = readFileSync(new URL("../fixtures/interoperability/malformed-track-point.gpx", import.meta.url), "utf8");
 
 class CdpSocket {
   constructor(url) {
@@ -289,6 +293,61 @@ try {
       format: "GPX"
     });
     assert(gpxPayload.geospatialLayers.length === 2, "GPX imports waypoint and track layers");
+
+    const complexCsvPayload = parseSurveyCSV(${JSON.stringify(complexSurveyCsv)});
+    assert(complexCsvPayload.records.length === 2, "CSV imports all response rows");
+    assert(complexCsvPayload.records[0].Name === "Café, rivière 🌊", "CSV preserves quoted commas and Unicode");
+    assert(complexCsvPayload.records[0].Notes === 'First line,\\nsecond line with "quoted" text', "CSV preserves embedded newlines and escaped quotes");
+    assert(complexCsvPayload.records[0]["Inspected At"] === "2026-07-23T08:15:00-06:00", "CSV preserves date strings");
+    assert(complexCsvPayload.records[0].Nullable === "", "CSV preserves empty fields without shifting columns");
+    assert(complexCsvPayload.records[0]["Field 08"] === "A08", "CSV preserves large field sets through the final column");
+    assert(complexCsvPayload.archiveRecords[0].Name === "Archived, feature", "CSV preserves quoted archive attributes");
+    const complexCsvRoundTrip = parseSurveyCSV(Papa.unparse([
+      ["Responses"],
+      complexCsvPayload.headers,
+      ...complexCsvPayload.records.map((record) => complexCsvPayload.headers.map((header) => record[header])),
+      ["Archive"],
+      complexCsvPayload.archiveHeaders,
+      ...complexCsvPayload.archiveRecords.map((record) => complexCsvPayload.archiveHeaders.map((header) => record[header]))
+    ]));
+    assert(complexCsvRoundTrip.records[0].Notes === complexCsvPayload.records[0].Notes, "CSV import-export-import preserves multiline attributes");
+    assert(complexCsvRoundTrip.archiveRecords[0]["Field 08"] === "C08", "CSV round trip preserves archive field sets");
+
+    let malformedCsvMessage = "";
+    try {
+      parseSurveyCSV(${JSON.stringify(malformedSurveyCsv)});
+    } catch (error) {
+      malformedCsvMessage = error.message;
+    }
+    assert(malformedCsvMessage.includes("CSV has an unclosed quoted field"), "malformed CSV explains how to fix an unclosed quote");
+
+    const complexGpxPayload = buildGeoJsonPayload(parseGpxText(${JSON.stringify(complexGpx)}), {
+      projectName: "Complex GPX",
+      fileName: "complex-field-collection.gpx",
+      format: "GPX"
+    });
+    const complexGpxPointLayer = complexGpxPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const complexGpxLineLayer = complexGpxPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    assert(complexGpxPointLayer.features[0].attributes.name === "Station α", "GPX preserves Unicode waypoint names");
+    assert(complexGpxPointLayer.features[0].attributes.comment === "Valve, north side", "GPX preserves waypoint comments");
+    assert(complexGpxPointLayer.features[0].attributes.elevation === "1048.25", "GPX preserves waypoint elevation");
+    assert(complexGpxPointLayer.features[0].attributes.time === "2026-07-24T14:31:02Z", "GPX preserves waypoint timestamps");
+    assert(complexGpxLineLayer.features.length === 3, "GPX keeps two track segments and one route distinct");
+    assert(complexGpxLineLayer.features[0].attributes.gpx_segment === 1 && complexGpxLineLayer.features[1].attributes.gpx_segment === 2, "GPX records track segment identity");
+    assert(complexGpxLineLayer.features[0].attributes.gpx_elevations === '["1048.25","1049.5"]', "GPX preserves per-vertex elevations");
+    assert(complexGpxLineLayer.features[0].attributes.gpx_times === '["2026-07-24T14:31:02Z","2026-07-24T14:32:03Z"]', "GPX preserves per-vertex timestamps");
+    const complexGpxExport = layerToGeoJson(complexGpxLineLayer);
+    const complexGpxRoundTrip = buildGeoJsonPayload(complexGpxExport, { format: "GPX GeoJSON round trip" });
+    assert(complexGpxRoundTrip.geospatialLayers[0].features.length === 3, "GPX import-export-import round trip preserves line features");
+    assert(complexGpxRoundTrip.geospatialLayers[0].features[1].attributes.gpx_segment === 2, "GPX round trip preserves segment attributes");
+
+    let malformedGpxMessage = "";
+    try {
+      parseGpxText(${JSON.stringify(malformedGpx)});
+    } catch (error) {
+      malformedGpxMessage = error.message;
+    }
+    assert(malformedGpxMessage === "GPX track 1, segment 1, point 2 has an invalid latitude or longitude. Use decimal WGS84 coordinates within latitude -90 to 90 and longitude -180 to 180.", "malformed GPX identifies the exact invalid track point");
 
     activeProjectRecord = createProjectRecord({ name: "Append Target", layers: [createLayerRecord({ name: "Points", geometryType: "point" })] });
     activeLayerId = activeProjectRecord.activeLayerId;
