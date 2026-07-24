@@ -28,6 +28,7 @@
     "test:map-control-layout": "node scripts/test-map-control-layout.mjs",
     "test:mobile-menu-organization": "node scripts/test-mobile-menu-organization.mjs",
     "test:mobile-feature-details": "node scripts/test-mobile-feature-details.mjs",
+    "test:feature-details-journey": "node scripts/test-feature-details-journey.mjs",
     "test:off-canvas-panel-a11y": "node scripts/test-off-canvas-panel-a11y.mjs",
     "test:workflow-ui": "node scripts/test-workflow-ui.mjs",
     "test:layer-import-journey": "node scripts/test-layer-import-journey.mjs",

@@ -4684,6 +4684,24 @@
         display: grid;
         gap: 12px;
     }
+    .feature-drawer-intro {
+        display: grid;
+        gap: 4px;
+        padding: 2px 0 4px;
+    }
+    .feature-drawer-feature-name {
+        margin: 0;
+        color: #374151;
+        font-size: 17px;
+        line-height: 1.3;
+        overflow-wrap: anywhere;
+    }
+    .feature-drawer-status {
+        margin: 0;
+        color: #6b7280;
+        font-size: 13px;
+        line-height: 1.45;
+    }
     .feature-drawer-section {
         display: grid;
         gap: 10px;
@@ -4719,6 +4737,38 @@
         color: #eef6fb;
         padding: 10px 12px;
         font-size: 14px;
+    }
+    .feature-drawer-value-list {
+        display: grid;
+        gap: 0;
+        border-top: 1px solid #e5e7eb;
+    }
+    .feature-drawer-value-row {
+        display: grid;
+        grid-template-columns: minmax(88px, 0.42fr) minmax(0, 1fr);
+        gap: 14px;
+        align-items: start;
+        padding: 12px 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+    .feature-drawer-value-label {
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+    }
+    .feature-drawer-value {
+        min-width: 0;
+        color: #374151;
+        font-size: 14px;
+        line-height: 1.45;
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+    }
+    .feature-drawer-value.empty {
+        color: #9ca3af;
+        font-style: italic;
     }
     .feature-drawer-field textarea {
         min-height: 90px;
@@ -5570,6 +5620,10 @@
         }
         .feature-drawer-actions .workspace-inline-actions {
             flex-wrap: wrap;
+        }
+        .feature-drawer-value-row {
+            grid-template-columns: minmax(82px, 0.38fr) minmax(0, 1fr);
+            gap: 12px;
         }
 
         #toolbar input[type="text"] {
@@ -12091,10 +12145,16 @@
             const featureId = attrs.ID || feature.id || `feature-${rowIndex + 1}`;
             const featureDate = attrs.Date || "";
             const featureTimeZone = attrs.TimeZone || getProjectTimeZone();
-            const editable = editSessionActive && canEditAttributes() && !isArchiveView;
+            const attributesCanBeEdited = canEditAttributes() && !isArchiveView;
+            const editable = editSessionActive && attributesCanBeEdited;
+            const canStartEditing = !editable && attributesCanBeEdited;
             const latValue = attrs.Latitude ?? feature.geometry?.lat ?? "";
             const lonValue = attrs.Longitude ?? feature.geometry?.lng ?? "";
             const coordinateText = [latValue, lonValue].filter((value) => value !== "" && value !== null && value !== undefined).join(", ");
+            const featureDisplayName = ["Name", "Title", "Label", "Address"]
+                .map((key) => attrs[key])
+                .find((value) => String(value || "").trim())
+                || `${layer.name} feature ${rowIndex + 1}`;
             featureDrawerMeta.innerHTML = `
                 <span class="workspace-badge">${escapeHtml(layer.name)}</span>
                 <span class="feature-drawer-mode-pill ${editable ? "editing" : ""}">${editable ? "Editing" : "Read only"}</span>
@@ -12116,15 +12176,16 @@
                 </details>
             `;
             const attributeFields = (layer.schema || getDefaultLayerSchema()).filter((field) => !isLayerStyleFieldName(field.name) && !isSystemFieldName(field.name));
-            const fields = attributeFields.map((field) => {
+            const editableFields = attributeFields.map((field, fieldIndex) => {
                 const value = feature.attributes?.[field.name] ?? "";
                 const isLocked = !editable || field.locked === true || isCoordinateField(field.name, currentSurveyData) || isAutoManagedField(field.name);
                 const fieldKey = String(field.name || "").trim().toLowerCase();
+                const fieldId = `featureDrawerField-${fieldIndex}`;
                 if (field.type === "dropdown") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
-                            <select data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
+                            <label for="${fieldId}">${escapeHtml(field.name)}</label>
+                            <select id="${fieldId}" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "disabled" : ""}>
                                 <option value="">Select…</option>
                                 ${(field.options || []).map((option) => `<option value="${escapeHtml(option)}" ${String(value) === option ? "selected" : ""}>${escapeHtml(option)}</option>`).join("")}
                             </select>
@@ -12134,8 +12195,8 @@
                 if (fieldKey === "notes" || fieldKey === "description") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
-                            <textarea class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
+                            <label for="${fieldId}">${escapeHtml(field.name)}</label>
+                            <textarea id="${fieldId}" class="feature-notes-input" data-feature-field="${escapeHtml(field.name)}" ${isLocked ? "readonly" : ""}>${escapeHtml(String(value))}</textarea>
                         </div>
                     `;
                 }
@@ -12143,9 +12204,9 @@
                     const phoneHref = String(value || "").replace(/[^\d+]/g, "");
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
+                            <label for="${fieldId}">${escapeHtml(field.name)}</label>
                             <div class="feature-drawer-inline-control">
-                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <input id="${fieldId}" type="tel" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                                 <button type="button" class="feature-drawer-icon-btn" data-feature-action="phone" data-feature-value="${escapeHtml(phoneHref)}" aria-label="Call or copy phone number" title="Call phone number">☎</button>
                             </div>
                         </div>
@@ -12154,9 +12215,9 @@
                 if (fieldKey === "website") {
                     return `
                         <div class="feature-drawer-field">
-                            <label>${escapeHtml(field.name)}</label>
+                            <label for="${fieldId}">${escapeHtml(field.name)}</label>
                             <div class="feature-drawer-inline-control">
-                                <input type="text" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                                <input id="${fieldId}" type="url" inputmode="url" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
                                 <button type="button" class="feature-drawer-icon-btn" data-feature-action="website" data-feature-value="${escapeHtml(String(value))}" aria-label="Open website" title="Open website">↗</button>
                             </div>
                         </div>
@@ -12164,8 +12225,19 @@
                 }
                 return `
                     <div class="feature-drawer-field">
-                        <label>${escapeHtml(field.name)}</label>
-                        <input type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                        <label for="${fieldId}">${escapeHtml(field.name)}</label>
+                        <input id="${fieldId}" type="${field.type === "number" ? "number" : "text"}" data-feature-field="${escapeHtml(field.name)}" value="${escapeHtml(String(value))}" ${isLocked ? "readonly" : ""}>
+                    </div>
+                `;
+            }).join("");
+            const attributeSummary = attributeFields.map((field) => {
+                const value = feature.attributes?.[field.name];
+                const displayValue = value === "" || value === null || value === undefined ? "Not set" : String(value);
+                const emptyClass = displayValue === "Not set" ? " empty" : "";
+                return `
+                    <div class="feature-drawer-value-row">
+                        <div class="feature-drawer-value-label">${escapeHtml(field.name)}</div>
+                        <div class="feature-drawer-value${emptyClass}">${escapeHtml(displayValue)}</div>
                     </div>
                 `;
             }).join("");
@@ -12180,15 +12252,28 @@
             ` : "";
             featureDrawerBody.innerHTML = `
                 <div class="feature-drawer-form">
+                    <div class="feature-drawer-intro">
+                        <h4 class="feature-drawer-feature-name">${escapeHtml(featureDisplayName)}</h4>
+                        <p class="feature-drawer-status" role="status">${editable ? "Editing. Changes save automatically." : "Review this feature’s attributes."}</p>
+                    </div>
                     ${systemDetails}
                     ${imageSection}
-                    ${fields}
+                    ${editable
+                        ? editableFields
+                        : `<div class="feature-drawer-value-list" aria-label="Feature attributes">${attributeSummary || `<div class="feature-drawer-empty">This feature has no visible attributes.</div>`}</div>`
+                    }
                     <div class="feature-drawer-actions">
                         <div class="workspace-inline-actions">
-                            <button id="featureDrawerDone" type="button" class="mini-btn primary">Done</button>
+                            ${canStartEditing ? `<button id="featureDrawerEdit" type="button" class="mini-btn primary">Edit feature</button>` : ""}
+                            <button id="featureDrawerDone" type="button" class="mini-btn${canStartEditing ? "" : " primary"}">Close</button>
                             ${editable ? `<button id="featureDrawerDelete" type="button" class="mini-btn danger feature-drawer-delete" aria-label="Delete feature" title="Delete feature">🗑</button>` : ""}
                         </div>
-                        <span class="workspace-panel-muted">${editable ? "Changes autosave to your workspace." : "Turn on edit mode to edit attributes or delete this feature."}</span>
+                        <span class="workspace-panel-muted">${editable
+                            ? "Edits are saved to this browser workspace."
+                            : canStartEditing
+                            ? "Choose Edit feature to update attributes or delete this feature."
+                            : "This feature is read only."
+                        }</span>
                     </div>
                 </div>
             `;
@@ -12224,12 +12309,18 @@
                 if (!editable) return;
                 deleteActivePoint();
             });
+            featureDrawerBody.querySelector("#featureDrawerEdit")?.addEventListener("click", () => {
+                setEditSessionActive(true);
+                window.requestAnimationFrame(() => {
+                    featureDrawerBody.querySelector("[data-feature-field]:not([readonly]):not(:disabled)")?.focus();
+                });
+            });
             featureDrawerBody.querySelector("#featureDrawerPhotoBtn")?.addEventListener("click", () => {
                 openImageModal(featureImageSrc, featureImageTitle);
             });
             featureDrawerBody.querySelector("#featureDrawerDone")?.addEventListener("click", () => {
                 hideSurveyCallout();
-                setProjectStatus("Feature details saved and closed.", "success");
+                setProjectStatus(editable ? "Feature details saved and closed." : "Feature details closed.", "success");
             });
             featureDrawer.classList.add("open");
             setOffCanvasAccessibility(featureDrawer, true);
