@@ -19134,84 +19134,14 @@
                 if (cell === undefined || cell === null) return "";
                 return String(cell).replace(/\u00a0/g, " ").replace(/\r/g, "").replace(/^\ufeff/, "").trim();
             };
-
-            // Manual responses-based parsing to avoid malformed row detection
-            const manualParse = () => {
-                const lines = csvText.split(/\r?\n/).map(line => line.trim());
-                const respIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "responses");
-                const archiveIndex = lines.findIndex(line => cleanCell(line.split(",")[0]).toLowerCase() === "archive");
-                if (respIndex === -1 || !lines[respIndex + 1]) return null;
-
-                const questionMeta = {};
-                for (let i = 0; i < respIndex; i++) {
-                    const cols = lines[i].split(",");
-                    const q = cleanCell(cols[0]);
-                    if (!q || /^question$/i.test(q)) continue;
-                    const t = cleanCell(cols[1]);
-                    const c = cleanCell(cols[2]);
-                    if (!t) continue;
-                    questionMeta[q] = {
-                        type: t,
-                        normalizedType: t.toLowerCase(),
-                        choices: c ? c.split(/\s*\|\s*/).map(x => x.trim()).filter(Boolean) : []
-                    };
-                }
-
-                const headerLine = lines[respIndex + 1];
-                const headers = headerLine.split(",").map(cleanCell);
-                const dataLines = [];
-                for (let i = respIndex + 2; i < lines.length; i++) {
-                    if (archiveIndex !== -1 && i >= archiveIndex) break;
-                    const line = lines[i];
-                    if (!line || !line.trim()) break;
-                    dataLines.push(line);
-                }
-                const records = dataLines.map(line => {
-                    const cols = line.split(",");
-                    const entry = {};
-                    headers.forEach((h, idx) => {
-                        entry[h || `Field_${idx}`] = cleanCell(cols[idx]);
-                    });
-                    return entry;
-                });
-                const latKey = headers.find(h => /lat/i.test(h));
-                const lonKey = headers.find(h => /(lon|lng|long)/i.test(h));
-                const archiveHeaders = archiveIndex !== -1 && lines[archiveIndex + 1]
-                    ? lines[archiveIndex + 1].split(",").map(cleanCell)
-                    : headers;
-                const archiveRecords = [];
-                if (archiveIndex !== -1) {
-                    for (let i = archiveIndex + 2; i < lines.length; i++) {
-                        const line = lines[i];
-                        if (!line || !line.trim()) break;
-                        const cols = line.split(",");
-                        const entry = {};
-                        archiveHeaders.forEach((h, idx) => {
-                            entry[h || `Field_${idx}`] = cleanCell(cols[idx]);
-                        });
-                        archiveRecords.push(entry);
-                    }
-                }
-                if (!latKey || !lonKey || !records.length) return null;
-                return {
-                    headers,
-                    records,
-                    latKey,
-                    lonKey,
-                    questionMeta,
-                    pointMeta: records.map(() => ({ id: generateSurveyPointId(), version: 1 })),
-                    archiveRecords,
-                    archiveHeaders,
-                    archivePointMeta: archiveRecords.map(() => ({ id: generateSurveyPointId(), version: 1 }))
-                };
-            };
-
-            const manualResult = manualParse();
-            if (manualResult) {
-                return manualResult;
+            const parsed = Papa.parse(String(csvText || "").replace(/^\ufeff/, ""), { skipEmptyLines: "greedy" });
+            const fatalError = (parsed.errors || []).find((error) => (
+                error?.code === "MissingQuotes" || error?.type === "Quotes"
+            ));
+            if (fatalError) {
+                const rowNumber = Number.isInteger(fatalError.row) ? ` near row ${fatalError.row + 1}` : "";
+                throw new Error(`CSV has an unclosed quoted field${rowNumber}. Close the quote and try again.`);
             }
-
-            const parsed = Papa.parse(csvText.trim(), { skipEmptyLines: true });
             const rows = parsed.data;
 
             const responsesRowIndex = rows.findIndex(row => cleanCell(row?.[0] || "").toLowerCase() === "responses");
@@ -19267,6 +19197,10 @@
                 }
                 dataRows.push(row);
             }
+            const invalidDataRow = dataRows.findIndex((row) => row.length !== headers.length);
+            if (invalidDataRow !== -1) {
+                throw new Error(`CSV response row ${invalidDataRow + 1} has ${dataRows[invalidDataRow].length} fields; expected ${headers.length}. Check commas and quotes.`);
+            }
             const records = dataRows.map(row => {
                 const entry = {};
                 headers.forEach((header, idx) => {
@@ -19294,6 +19228,10 @@
                         continue;
                     }
                     archiveDataRows.push(row);
+                }
+                const invalidArchiveRow = archiveDataRows.findIndex((row) => row.length !== archiveHeaders.length);
+                if (invalidArchiveRow !== -1) {
+                    throw new Error(`CSV archive row ${invalidArchiveRow + 1} has ${archiveDataRows[invalidArchiveRow].length} fields; expected ${archiveHeaders.length}. Check commas and quotes.`);
                 }
                 archiveRecords = archiveDataRows.map(row => {
                     const entry = {};
