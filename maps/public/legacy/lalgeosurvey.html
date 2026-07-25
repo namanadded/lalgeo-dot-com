@@ -5007,6 +5007,10 @@
     } */
 
     @media (max-width: 600px) {
+        body {
+            --mobile-panel-safe-top: calc(env(safe-area-inset-top, 0px) + 116px);
+        }
+
         #importPanel .import-panel-container {
             width: 100%;
             max-width: 100%;
@@ -5319,11 +5323,11 @@
 
         #settingsPanel {
             position: fixed;
-            top: calc(env(safe-area-inset-top, 0px) + 116px);
+            top: var(--mobile-panel-safe-top);
             left: max(10px, env(safe-area-inset-left, 0px));
             right: max(10px, env(safe-area-inset-right, 0px));
             width: auto;
-            max-height: min(70dvh, calc(100dvh - 132px));
+            max-height: min(70dvh, calc(100dvh - var(--mobile-panel-safe-top) - 16px));
             box-sizing: border-box;
             overflow-y: auto;
             border-radius: 20px;
@@ -5453,10 +5457,10 @@
         }
         #sidebar {
             width: auto;
-            max-height: min(440px, calc(100dvh - 84px));
+            max-height: min(440px, calc(100dvh - var(--mobile-panel-safe-top) - 16px));
             left: 8px;
             right: 8px;
-            top: 64px;
+            top: var(--mobile-panel-safe-top);
             bottom: auto;
             padding: 14px;
             border-radius: 18px;
@@ -5472,11 +5476,24 @@
             padding: 8px;
         }
         #dataCatalogPane {
-            top: 64px;
+            top: var(--mobile-panel-safe-top);
             left: 8px;
             right: 8px;
             width: auto;
-            max-height: calc(100dvh - 84px);
+            max-height: calc(100dvh - var(--mobile-panel-safe-top) - 16px);
+        }
+        .measurement-panel,
+        .advanced-gis-panel {
+            position: fixed;
+            top: var(--mobile-panel-safe-top);
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            width: auto;
+            max-height: calc(100dvh - var(--mobile-panel-safe-top) - 16px);
+            box-sizing: border-box;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
         }
         #surveyTablePanel {
             max-height: 58vh;
@@ -12975,6 +12992,9 @@
 
         function setAdvancedGisVisible(show) {
             if (!advancedGisPanel) return;
+            if (show && window.matchMedia("(max-width: 600px)").matches) {
+                topToolbarViewModel.collapseOverflow("right");
+            }
             advancedGisPanel.hidden = !show;
             advancedGisBtn?.classList.toggle("active", Boolean(show));
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
@@ -17272,6 +17292,9 @@
         function setMeasurementActive(active) {
             measurementActive = Boolean(active);
             if (measurementActive) {
+                if (window.matchMedia("(max-width: 600px)").matches) {
+                    topToolbarViewModel.collapseOverflow("right");
+                }
                 if (isAddingSurveyPoint) exitAddSurveyPointMode();
                 hideSurveyCallout();
                 closeFeatureDrawer({ clearSelection: false });
