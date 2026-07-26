@@ -19917,11 +19917,11 @@
             activateLayerForFeatureInspection(annotation.surveyPoint.layerId);
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
+                syncMapFeatureToTableSelection(annotation.surveyPoint.rowIndex);
+            }
             refreshAnnotationStyles();
             isCalloutEditing = canEditAttributes() && Boolean(options.forceEdit);
-            if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
-                setActiveTableRow(annotation.surveyPoint.rowIndex);
-            }
             renderSelectedFeatureInspector();
             renderFeatureDrawer();
             syncEditPanelState();
@@ -20432,6 +20432,24 @@
             showAllRowsBtn?.classList.toggle("active", tableRowFilterMode === "all");
         }
 
+        function syncMapFeatureToTableSelection(rowIndex) {
+            const rowCount = currentSurveyData?.records?.length || 0;
+            if (isArchiveView || !Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= rowCount) return;
+            selectedTableRows = new Set([rowIndex]);
+            lastSelectedTableRow = rowIndex;
+            const tableOpen = Boolean(
+                surveyTablePanel?.classList.contains("open")
+                && surveyTableWrapper
+                && !surveyTableWrapper.hidden
+            );
+            if (tableOpen) {
+                updateSurveyTable();
+            } else {
+                setActiveTableRow(rowIndex);
+                updateSurveySelectionControls();
+            }
+        }
+
         function clearTableSelection({ update = true } = {}) {
             selectedTableRows = new Set();
             lastSelectedTableRow = null;
@@ -20709,6 +20727,15 @@
                     return true;
                 });
             const renderedRecords = filteredRecords.slice(0, MAX_RENDERED_TABLE_ROWS);
+            let activeRowPinned = false;
+            if (activeRowIndex !== null && !renderedRecords.some(({ index }) => index === activeRowIndex)) {
+                const activeRecord = filteredRecords.find(({ index }) => index === activeRowIndex);
+                if (activeRecord) {
+                    renderedRecords.unshift(activeRecord);
+                    if (renderedRecords.length > MAX_RENDERED_TABLE_ROWS) renderedRecords.pop();
+                    activeRowPinned = true;
+                }
+            }
             const hiddenRowCount = Math.max(0, filteredRecords.length - renderedRecords.length);
             const bodyRows = renderedRecords.map(({ record, index }) => {
                 const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
@@ -20728,7 +20755,7 @@
                 return `<tr data-row-index="${index}"${rowClass}>${cells}${actionCell}</tr>`;
             }).join("");
             const limitNotice = hiddenRowCount
-                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows. The full layer remains loaded.</div>`
+                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows.${activeRowPinned ? " The selected feature is pinned at the top." : ""} The full layer remains loaded.</div>`
                 : "";
             surveyTable.innerHTML = `
                 ${limitNotice}
