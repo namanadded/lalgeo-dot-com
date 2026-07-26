@@ -93,6 +93,69 @@ assert.equal(recoveredCommit.rev, "test-rev-3");
 assert.equal(finishAttempts, 1, "an ambiguous finish is never blindly repeated");
 assert.equal(verificationAttempts, 1, "remote content verification resolves the lost response");
 
+let stalledAppendCalls = 0;
+let stalledLookupCalls = 0;
+const recoveryEvents = [];
+await assert.rejects(
+  cloud.uploadBlobResumably({
+    async start() { return { sessionId: "stalled-session" }; },
+    async append() {
+      stalledAppendCalls += 1;
+      const error = new Error("upload endpoint unavailable");
+      error.status = 503;
+      throw error;
+    },
+    async finish() { throw new Error("finish should not be reached"); },
+    async lookupOffset() {
+      stalledLookupCalls += 1;
+      return 1_000_000;
+    },
+  }, blob, {
+    chunkSize: 1_000_000,
+    maxNoProgressRecoveries: 3,
+    baseDelayMs: 0,
+    sleep: async () => {},
+    provider: "mock",
+    commit: { path: "/safe-test/stalled.lal" },
+    onRecovery: (event) => recoveryEvents.push(event),
+  }),
+  (error) => error.code === "unavailable"
+    && error.details.offset === 1_000_000
+    && error.details.attempts === 3,
+  "a healthy cursor endpoint cannot hide an indefinitely stalled upload",
+);
+assert.equal(stalledAppendCalls, 3, "the no-progress recovery budget bounds append attempts");
+assert.equal(stalledLookupCalls, 3, "each failed append reconciles exactly once");
+assert.deepEqual(recoveryEvents.map((event) => event.attempt), [1, 2, 3]);
+
+const controller = new AbortController();
+let cancellationAppendCalls = 0;
+await assert.rejects(
+  cloud.uploadBlobResumably({
+    async start() { return { sessionId: "cancel-session" }; },
+    async append() {
+      cancellationAppendCalls += 1;
+      const error = new Error("offline");
+      error.status = 503;
+      throw error;
+    },
+    async finish() { throw new Error("finish should not be reached"); },
+    async lookupOffset() {
+      controller.abort(new DOMException("user cancelled", "AbortError"));
+      return 1_000_000;
+    },
+  }, blob, {
+    chunkSize: 1_000_000,
+    baseDelayMs: 0,
+    sleep: async () => {},
+    signal: controller.signal,
+    provider: "mock",
+  }),
+  (error) => error.name === "AbortError",
+  "callers can cancel a resumable upload during recovery",
+);
+assert.equal(cancellationAppendCalls, 1);
+
 const unverifiedAdapter = { ...responseLostAdapter, async verifyCommit() { return null; } };
 await assert.rejects(
   cloud.uploadBlobResumably(unverifiedAdapter, blob, {

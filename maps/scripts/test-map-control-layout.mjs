@@ -55,5 +55,20 @@ assert.match(
   /const targetPoint = moved[\s\S]*?\? dropPoint[\s\S]*?: new DOMPoint\(mapRect\.left \+ mapRect\.width \/ 2, mapRect\.top \+ mapRect\.height \/ 2\);/,
   "Tapping Look Around should target the visible map center while retaining drag-to-street precision.",
 );
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?--mobile-panel-safe-top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?\.measurement-panel,\s*\.advanced-gis-panel\s*{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\);[\s\S]*?max-height:\s*calc\(100dvh\s*-\s*var\(--mobile-panel-safe-top\)\s*-\s*16px\);/,
+  "Measurement and Advanced GIS must share the mobile safe top boundary and remain scrollable within the viewport.",
+);
+assert.match(
+  legacyHtml,
+  /function setAdvancedGisVisible\(show\)\s*{[\s\S]*?show && window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  "Opening Advanced GIS on mobile must collapse the quick-action strip.",
+);
+assert.match(
+  legacyHtml,
+  /function setMeasurementActive\(active\)\s*{[\s\S]*?measurementActive = Boolean\(active\);[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  "Opening Measurement on mobile must collapse the quick-action strip.",
+);
 
 console.log("Map control layout checks passed.");

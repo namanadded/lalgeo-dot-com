@@ -142,6 +142,9 @@ jobs:
       - name: Benchmark scoped cloud catalog discovery
         working-directory: maps
         run: npm run benchmark:cloud-catalog
+      - name: Benchmark bounded cloud upload recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-recovery
       - name: Check Dropbox upload content verification
         working-directory: maps
         run: npm run test:dropbox-content-hash
@@ -152,6 +155,10 @@ jobs:
       - name: Check maps mobile feature details
         working-directory: maps
         run: npm run test:mobile-feature-details
+
+      - name: Check feature editor accessible names
+        working-directory: maps
+        run: npm run test:feature-editor-labels
 
       - name: Check feature details journey
         working-directory: maps
