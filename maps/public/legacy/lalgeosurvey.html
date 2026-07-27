@@ -1591,6 +1591,123 @@
         font-weight: 700;
         cursor: pointer;
     }
+    .location-status-card {
+        position: fixed;
+        top: 74px;
+        right: 16px;
+        z-index: 1680;
+        width: min(340px, calc(100vw - 32px));
+        box-sizing: border-box;
+        padding: 14px;
+        border: 1px solid rgba(148, 163, 184, 0.34);
+        border-radius: 16px;
+        background: rgba(255, 255, 255, 0.96);
+        color: #172033;
+        box-shadow: 0 18px 44px rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(18px);
+    }
+    .location-status-card[hidden] { display: none; }
+    .location-status-header {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+    }
+    .location-status-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 32px;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        background: #e9f3ff;
+        color: #0877e1;
+        font-size: 18px;
+    }
+    .location-status-card[data-state="loading"] .location-status-icon {
+        animation: locationPulse 1.25s ease-in-out infinite;
+    }
+    .location-status-card[data-state="error"] .location-status-icon {
+        background: #fff0ef;
+        color: #c2413b;
+    }
+    .location-status-copy { min-width: 0; flex: 1; }
+    .location-status-copy strong {
+        display: block;
+        margin: 0 0 3px;
+        font-size: 14px;
+        line-height: 1.35;
+    }
+    .location-status-copy p {
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .location-status-close {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 36px;
+        width: 36px;
+        height: 36px;
+        margin: -6px -6px 0 0;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: #667085;
+        font-size: 22px;
+        cursor: pointer;
+    }
+    .location-status-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+        margin-top: 12px;
+    }
+    .location-status-actions button {
+        min-height: 40px;
+        padding: 8px 14px;
+        border: 1px solid #d0d5dd;
+        border-radius: 10px;
+        background: #fff;
+        color: #344054;
+        font: inherit;
+        font-weight: 650;
+        cursor: pointer;
+    }
+    .location-status-actions button[data-primary="true"] {
+        border-color: #0877e1;
+        background: #0877e1;
+        color: #fff;
+    }
+    .location-status-close:focus-visible,
+    .location-status-actions button:focus-visible {
+        outline: 3px solid rgba(10, 132, 255, 0.28);
+        outline-offset: 2px;
+    }
+    @keyframes locationPulse {
+        0%, 100% { transform: scale(1); opacity: 1; }
+        50% { transform: scale(0.88); opacity: 0.58; }
+    }
+    @media (max-width: 600px) {
+        .location-status-card {
+            top: calc(64px + env(safe-area-inset-top, 0px));
+            left: 12px;
+            right: 12px;
+            width: auto;
+            padding: 14px;
+        }
+        .location-status-close {
+            width: 44px;
+            height: 44px;
+            margin: -8px -8px 0 0;
+        }
+        .location-status-actions button { min-height: 44px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+        .location-status-card[data-state="loading"] .location-status-icon { animation: none; }
+    }
     .layer-render-progress {
         position: fixed;
         left: 50%;
@@ -7472,6 +7589,20 @@
         <p id="mapLoadErrorMessage">Refresh the page or check the MapKit configuration for this domain.</p>
         <button id="mapLoadErrorReloadBtn" type="button">Reload map</button>
     </div>
+    <section id="locationStatusCard" class="location-status-card" role="status" aria-live="polite" aria-atomic="true" data-state="idle" hidden>
+        <div class="location-status-header">
+            <span id="locationStatusIcon" class="location-status-icon" aria-hidden="true">⌖</span>
+            <div class="location-status-copy">
+                <strong id="locationStatusTitle">Finding your location…</strong>
+                <p id="locationStatusMessage">Your browser may ask for permission.</p>
+            </div>
+            <button id="locationStatusClose" type="button" class="location-status-close" aria-label="Dismiss location status">×</button>
+        </div>
+        <div id="locationStatusActions" class="location-status-actions" hidden>
+            <button id="locationRetryBtn" type="button" data-primary="true">Try again</button>
+            <button id="locationRecenterBtn" type="button" data-primary="true" hidden>Recenter</button>
+        </div>
+    </section>
     <button id="layersMapBtn" type="button" hidden aria-label="Open layers panel" aria-controls="sidebar" aria-expanded="false" title="Layers">
         <span class="layers-map-icon" aria-hidden="true"><span></span><span></span><span></span></span>
     </button>
@@ -7872,6 +8003,14 @@
         const mapLoadErrorMessage = document.getElementById("mapLoadErrorMessage");
         const mapLoadErrorReloadBtn = document.getElementById("mapLoadErrorReloadBtn");
         const myLocationBtn = document.getElementById("myLocationBtn");
+        const locationStatusCard = document.getElementById("locationStatusCard");
+        const locationStatusIcon = document.getElementById("locationStatusIcon");
+        const locationStatusTitle = document.getElementById("locationStatusTitle");
+        const locationStatusMessage = document.getElementById("locationStatusMessage");
+        const locationStatusClose = document.getElementById("locationStatusClose");
+        const locationStatusActions = document.getElementById("locationStatusActions");
+        const locationRetryBtn = document.getElementById("locationRetryBtn");
+        const locationRecenterBtn = document.getElementById("locationRecenterBtn");
         const surveyTablePanel = document.getElementById("surveyTablePanel");
         const surveyTableToggle = document.getElementById("surveyTableToggle");
         const surveyTableToggleIcon = document.getElementById("surveyTableToggleIcon");
@@ -15414,6 +15553,11 @@
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
+                if (locationStatusCard && !locationStatusCard.hidden) {
+                    event.preventDefault();
+                    hideLocationStatus({ restoreFocus: true });
+                    return;
+                }
                 if (layerImportModal && !layerImportModal.hidden) {
                     event.preventDefault();
                     setLayerImportPanelVisibility(false);
@@ -22985,28 +23129,96 @@ function setImportPanelVisibility(show) {
             finalizeGeometryFeaturePlacement();
         });
 
-        let hasCenteredOnce = false;
-        document.getElementById("myLocationBtn").addEventListener("click", () => {
-            if (!navigator.geolocation) {
-                alert("Geolocation is not supported by your browser.");
-                return;
+        let locationRequestInFlight = null;
+
+        function setLocationStatus(state, title, message) {
+            if (!locationStatusCard) return;
+            locationStatusCard.hidden = false;
+            locationStatusCard.dataset.state = state;
+            locationStatusCard.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+            if (locationStatusIcon) locationStatusIcon.textContent = state === "error" ? "!" : state === "success" ? "✓" : "⌖";
+            if (locationStatusTitle) locationStatusTitle.textContent = title;
+            if (locationStatusMessage) locationStatusMessage.textContent = message;
+            if (locationStatusActions) locationStatusActions.hidden = state === "loading";
+            if (locationRetryBtn) locationRetryBtn.hidden = state !== "error";
+            if (locationRecenterBtn) locationRecenterBtn.hidden = state !== "success";
+        }
+
+        function hideLocationStatus({ restoreFocus = false } = {}) {
+            if (!locationStatusCard) return;
+            locationStatusCard.hidden = true;
+            locationStatusCard.dataset.state = "idle";
+            locationStatusCard.setAttribute("aria-busy", "false");
+            if (restoreFocus) myLocationBtn?.focus();
+        }
+
+        function getLocationErrorMessage(error) {
+            if (error?.code === 1) {
+                return "Location access is off. Allow it in your browser settings, then try again.";
             }
-            navigator.geolocation.watchPosition(
-                (position) => {
-                    const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
-                    myLocationCoord = coord;
-                    saveLastKnownLocation(coord);
-                    showUserLocation(coord);
-                    if (!hasCenteredOnce) {
-                        map.region = new mapkit.CoordinateRegion(coord, new mapkit.CoordinateSpan(0.01, 0.01));
-                        hasCenteredOnce = true;
-                    }
-                },
-                () => {
-                    alert("Unable to retrieve your location.");
-                }
-            );
+            if (error?.code === 2) {
+                return "Your location is temporarily unavailable. Check your connection and try again.";
+            }
+            if (error?.code === 3) {
+                return "Finding your location took too long. Move near a window or try again.";
+            }
+            return "We couldn’t find your location. Check browser permissions and try again.";
+        }
+
+        function centerMapOnLocation(coord) {
+            if (!coord || !map) return;
+            map.region = new mapkit.CoordinateRegion(coord, new mapkit.CoordinateSpan(0.01, 0.01));
+        }
+
+        function requestMapLocation({ center = true, announce = true } = {}) {
+            if (myLocationCoord) {
+                showUserLocation(myLocationCoord);
+                if (center) centerMapOnLocation(myLocationCoord);
+                if (announce) setLocationStatus("success", "Location found", "Your position is marked on the map.");
+                return Promise.resolve(myLocationCoord);
+            }
+            if (locationRequestInFlight) return locationRequestInFlight;
+            if (!navigator.geolocation) {
+                const error = new Error("Geolocation unsupported");
+                if (announce) setLocationStatus("error", "Location isn’t available", "This browser doesn’t support location services.");
+                return Promise.reject(error);
+            }
+            if (announce) setLocationStatus("loading", "Finding your location…", "Your browser may ask for permission.");
+            locationRequestInFlight = new Promise((resolve, reject) => {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
+                        myLocationCoord = coord;
+                        saveLastKnownLocation(coord);
+                        showUserLocation(coord);
+                        if (center) centerMapOnLocation(coord);
+                        if (announce) setLocationStatus("success", "Location found", "Your position is marked on the map.");
+                        resolve(coord);
+                    },
+                    (error) => {
+                        if (announce) setLocationStatus("error", "Location unavailable", getLocationErrorMessage(error));
+                        reject(error);
+                    },
+                    { enableHighAccuracy: true, timeout: 12000, maximumAge: 60000 }
+                );
+            }).finally(() => {
+                locationRequestInFlight = null;
+            });
+            return locationRequestInFlight;
+        }
+
+        myLocationBtn?.addEventListener("click", () => {
+            requestMapLocation().catch(() => {});
         });
+        locationRetryBtn?.addEventListener("click", () => {
+            myLocationCoord = null;
+            requestMapLocation().catch(() => {});
+        });
+        locationRecenterBtn?.addEventListener("click", () => {
+            centerMapOnLocation(myLocationCoord);
+            setLocationStatus("success", "Map recentered", "Your position is centered on the map.");
+        });
+        locationStatusClose?.addEventListener("click", () => hideLocationStatus({ restoreFocus: true }));
 
         function computeBounds(coords) {
             let minLat = coords[0].latitude, maxLat = coords[0].latitude;
@@ -23036,25 +23248,10 @@ function setImportPanelVisibility(show) {
 
         function getDirections(destLat, destLon) {
             if (!myLocationCoord) {
-                // Try to request location permission and get the location
-                if (navigator.geolocation) {
-                    navigator.geolocation.getCurrentPosition(
-                        (position) => {
-                            const coord = new mapkit.Coordinate(position.coords.latitude, position.coords.longitude);
-                            myLocationCoord = coord;
-                            showUserLocation(coord);
-                            // Now, retry the directions with the updated location
-                            getDirections(destLat, destLon);
-                        },
-                        (error) => {
-                            alert("Unable to retrieve your location. Please allow location access.");
-                            console.error("Geolocation error:", error);
-                        }
-                    );
-                } else {
-                    alert("Geolocation is not supported by your browser.");
-                }
-                return; // Exit for now; will retry after location is retrieved
+                requestMapLocation({ center: false })
+                    .then(() => getDirections(destLat, destLon))
+                    .catch((error) => console.error("Geolocation error:", error));
+                return;
             }
 
             const directions = new mapkit.Directions();
