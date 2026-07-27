@@ -8,6 +8,53 @@ async function importModule(path) {
 
 const cloud = await importModule("../../js/cloud-storage.js");
 const dropboxSource = await readFile(new URL("../../js/dropbox-api.js", import.meta.url), "utf8");
+
+const safeDownloadBytes = new Uint8Array(1_500_000).map((_, index) => index % 239);
+let downloadAttempts = 0;
+const downloadRetries = [];
+const verifiedDownload = await cloud.downloadBlobVerified({
+  async download() {
+    downloadAttempts += 1;
+    const bytesForAttempt = downloadAttempts === 1 ? safeDownloadBytes.slice(0, -17) : safeDownloadBytes;
+    return {
+      blob: new Blob([bytesForAttempt]),
+      metadata: { size: safeDownloadBytes.byteLength, checksum: "safe-checksum" },
+    };
+  },
+  getSize: ({ metadata }) => metadata.size,
+  async verify({ metadata }) { return metadata.checksum === "safe-checksum"; },
+}, "/safe-test/download.lal", {
+  provider: "mock",
+  maxBytes: 2_000_000,
+  onRetry: (event) => downloadRetries.push(event.error.code),
+});
+assert.equal(verifiedDownload.blob.size, safeDownloadBytes.byteLength);
+assert.equal(downloadAttempts, 2, "a truncated response is discarded and fetched once more");
+assert.deepEqual(downloadRetries, ["integrity"]);
+
+await assert.rejects(
+  cloud.downloadBlobVerified({
+    async download() { return { blob: new Blob([safeDownloadBytes]), metadata: { size: safeDownloadBytes.length } }; },
+    getSize: ({ metadata }) => metadata.size,
+    async verify() { return false; },
+  }, "/safe-test/corrupt.lal", { provider: "mock", attempts: 2 }),
+  (error) => error.code === "integrity" && error.retryable,
+  "content that repeatedly fails verification never reaches project parsing",
+);
+
+await assert.rejects(
+  cloud.downloadBlobVerified({
+    async download() { return { blob: new Blob([safeDownloadBytes]), metadata: { size: safeDownloadBytes.length } }; },
+    getSize: ({ metadata }) => metadata.size,
+    async verify() { return true; },
+  }, "/safe-test/oversize.lal", { provider: "mock", maxBytes: 1_000_000 }),
+  (error) => error.code === "too_large" && !error.retryable,
+  "declared or actual files over the safe open limit are rejected before parsing",
+);
+assert.match(dropboxSource, /downloadBlobVerified\(/);
+assert.match(dropboxSource, /computeDropboxContentHash\(blob\) === file\.content_hash/,
+  "Dropbox opens must verify the provider content hash");
+
 const bytes = new Uint8Array(2_500_000).map((_, index) => index % 251);
 const blob = new Blob([bytes]);
 let remote = new Uint8Array(0);

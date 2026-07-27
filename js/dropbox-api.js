@@ -1,5 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
-import { collectCloudFiles, DEFAULT_RESUMABLE_THRESHOLD, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
+import { collectCloudFiles, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
 import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
@@ -7,6 +7,7 @@ export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
 export const TOKEN_STORAGE_SESSION_KEY = "lalgeo_dropbox_access_token_session";
 export const CHOOSER_APP_KEY_KEY = "lalgeo_dropbox_chooser_app_key";
 export const SURVEY_DROPBOX_CONNECTED_KEY = "lalgeo_survey_dropbox_connected";
+export const DEFAULT_MAX_CLOUD_OPEN_BYTES = 512 * 1024 * 1024;
 const PROJECT_EXTENSIONS = new Set(["lal", "zip"]);
 const PROJECT_SCAN_SCOPES = [
   { path: "/LalGeoDB", recursive: true },
@@ -46,6 +47,7 @@ export class LalGeoDropboxClient {
     this.profile = null;
     this.resumableThreshold = options.resumableThreshold || DEFAULT_RESUMABLE_THRESHOLD;
     this.chunkSize = options.chunkSize;
+    this.maxOpenBytes = options.maxOpenBytes || DEFAULT_MAX_CLOUD_OPEN_BYTES;
   }
 
   setAccessToken(token, persist = true) {
@@ -229,9 +231,27 @@ export class LalGeoDropboxClient {
   }
 
   async loadLayer(path) {
-    const response = await this.client.filesDownload({ path });
-    const result = response.result || response;
-    const buffer = await extractArrayBuffer(result.fileBlob || result.fileBinary || response.fileBlob || response.fileBinary);
+    const client = this.client;
+    const download = await downloadBlobVerified({
+      async download(downloadPath) {
+        const response = await client.filesDownload({ path: downloadPath });
+        const result = response.result || response;
+        return {
+          file: result,
+          blob: asBlob(result.fileBlob || result.fileBinary || response.fileBlob || response.fileBinary),
+        };
+      },
+      getSize: ({ file }) => file.size,
+      async verify({ file, blob }) {
+        if (!file.content_hash) return false;
+        return await computeDropboxContentHash(blob) === file.content_hash;
+      },
+    }, path, {
+      provider: "dropbox",
+      maxBytes: this.maxOpenBytes,
+    });
+    const result = download.file;
+    const buffer = await download.blob.arrayBuffer();
     const layer = await parseLalArrayBuffer(buffer, result.name || path.split("/").pop() || "layer.lal");
     layer.revision = {
       ...(layer.revision || {}),
@@ -442,5 +462,11 @@ async function extractArrayBuffer(blobLike) {
   if (blobLike instanceof ArrayBuffer) return blobLike;
   if (blobLike?.arrayBuffer) return blobLike.arrayBuffer();
   if (blobLike?.buffer) return blobLike.buffer;
+  throw new Error("Unable to read Dropbox file contents.");
+}
+
+function asBlob(blobLike) {
+  if (blobLike instanceof Blob) return blobLike;
+  if (blobLike instanceof ArrayBuffer || ArrayBuffer.isView(blobLike)) return new Blob([blobLike]);
   throw new Error("Unable to read Dropbox file contents.");
 }
