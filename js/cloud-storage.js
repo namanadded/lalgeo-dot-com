@@ -59,6 +59,74 @@ export async function retryCloudOperation(operation, options = {}) {
   throw lastError;
 }
 
+function assertDownloadAdapter(adapter) {
+  for (const method of ["download", "getSize", "verify"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Verified download adapter requires ${method}().`);
+    }
+  }
+}
+
+/**
+ * Download and verify provider content before callers parse or replace local state.
+ * Integrity failures are retryable because a truncated transport response can be
+ * transient, but the unverified bytes are never returned to project logic.
+ */
+export async function downloadBlobVerified(adapter, request, options = {}) {
+  assertDownloadAdapter(adapter);
+  const attempts = Math.max(1, options.attempts || 2);
+  const maxBytes = Math.max(1, options.maxBytes || Number.MAX_SAFE_INTEGER);
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    throwIfCloudOperationAborted(options.signal);
+    try {
+      const result = await adapter.download(request);
+      const blob = result?.blob;
+      const declaredSize = Number(adapter.getSize(result));
+      const actualSize = Number(blob?.size);
+      if (!Number.isSafeInteger(actualSize) || actualSize < 0) {
+        throw new CloudStorageError("Cloud provider returned unreadable file contents.", {
+          code: "integrity",
+          provider: options.provider,
+          retryable: true,
+        });
+      }
+      if (actualSize > maxBytes || (Number.isSafeInteger(declaredSize) && declaredSize > maxBytes)) {
+        throw new CloudStorageError(`Cloud file exceeds the ${maxBytes}-byte safe open limit.`, {
+          code: "too_large",
+          provider: options.provider,
+          retryable: false,
+          details: { actualSize, declaredSize, maxBytes },
+        });
+      }
+      if (Number.isSafeInteger(declaredSize) && declaredSize !== actualSize) {
+        throw new CloudStorageError("Cloud download byte count does not match provider metadata.", {
+          code: "integrity",
+          provider: options.provider,
+          retryable: true,
+          details: { actualSize, declaredSize },
+        });
+      }
+      if (!await adapter.verify(result)) {
+        throw new CloudStorageError("Cloud download failed provider content verification.", {
+          code: "integrity",
+          provider: options.provider,
+          retryable: true,
+          details: { actualSize, declaredSize },
+        });
+      }
+      options.onVerified?.({ attempt, bytes: actualSize });
+      return result;
+    } catch (error) {
+      lastError = normalizeCloudError(error, options.provider);
+      if (!lastError.retryable || attempt === attempts) throw lastError;
+      options.onRetry?.({ attempt, maxAttempts: attempts, error: lastError });
+    }
+  }
+  throw lastError;
+}
+
 function assertCatalogAdapter(adapter) {
   for (const method of ["list", "continue"]) {
     if (typeof adapter?.[method] !== "function") {
