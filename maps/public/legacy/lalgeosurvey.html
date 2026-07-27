@@ -7551,9 +7551,9 @@
                 <span id="surveySelectionSummary">0 selected</span>
                 <button id="selectAllRowsBtn" type="button" class="panel-action-btn">Select all</button>
                 <button id="clearSelectedRowsBtn" type="button" class="panel-action-btn">Clear selection</button>
-                <button id="showSelectedRowsBtn" type="button" class="panel-action-btn">Show selected</button>
-                <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn">Show unselected</button>
-                <button id="showAllRowsBtn" type="button" class="panel-action-btn">Show all</button>
+                <button id="showSelectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false">Show selected</button>
+                <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false">Show unselected</button>
+                <button id="showAllRowsBtn" type="button" class="panel-action-btn" aria-pressed="true">Show all</button>
             </div>
         </div>
         <div id="surveyFieldControls" hidden>
@@ -20419,17 +20419,56 @@
             return Papa.unparse({ fields: currentSurveyData.headers, data: rows });
         }
 
+        function setSelectionFilterButtonState(button, { active, disabled, disabledReason }) {
+            if (!button) return;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", String(active));
+            button.disabled = disabled;
+            if (disabled && disabledReason) {
+                button.title = disabledReason;
+                button.setAttribute("aria-label", `${button.textContent.trim()}. ${disabledReason}`);
+            } else {
+                button.removeAttribute("title");
+                button.removeAttribute("aria-label");
+            }
+        }
+
+        function normalizeTableRowFilterMode(rowCount, selectedCount) {
+            const selectedFilterIsEmpty = tableRowFilterMode === "selected" && selectedCount === 0;
+            const unselectedFilterIsEmpty = tableRowFilterMode === "unselected" && selectedCount === rowCount;
+            if (selectedFilterIsEmpty || unselectedFilterIsEmpty || rowCount === 0) {
+                tableRowFilterMode = "all";
+            }
+        }
+
         function updateSurveySelectionControls() {
             if (!surveySelectionControls || !surveySelectionSummary) return;
             const count = selectedTableRows.size;
             const rowCount = (isArchiveView ? archiveData?.records : currentSurveyData?.records)?.length || 0;
+            normalizeTableRowFilterMode(rowCount, count);
             surveySelectionControls.hidden = rowCount === 0 && tableRowFilterMode === "all";
             surveySelectionSummary.textContent = `${count} selected`;
             if (clearSelectedRowsBtn) clearSelectedRowsBtn.disabled = count === 0;
             if (selectAllRowsBtn) selectAllRowsBtn.disabled = rowCount === 0 || count === rowCount;
-            showSelectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "selected");
-            showUnselectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "unselected");
-            showAllRowsBtn?.classList.toggle("active", tableRowFilterMode === "all");
+            setSelectionFilterButtonState(showSelectedRowsBtn, {
+                active: tableRowFilterMode === "selected",
+                disabled: count === 0,
+                disabledReason: "Select one or more features before showing selected rows."
+            });
+            setSelectionFilterButtonState(showUnselectedRowsBtn, {
+                active: tableRowFilterMode === "unselected",
+                disabled: rowCount === 0 || count === rowCount,
+                disabledReason: rowCount === 0
+                    ? "Add a feature before filtering the table."
+                    : "All features are selected; clear at least one selection first."
+            });
+            setSelectionFilterButtonState(showAllRowsBtn, {
+                active: tableRowFilterMode === "all",
+                disabled: rowCount === 0 || tableRowFilterMode === "all",
+                disabledReason: rowCount === 0
+                    ? "Add a feature before filtering the table."
+                    : "All rows are already shown."
+            });
         }
 
         function syncMapFeatureToTableSelection(rowIndex) {
@@ -20719,6 +20758,7 @@
                 ? activeSurveyAnnotation.surveyPoint.rowIndex
                 : null;
             selectedTableRows = new Set(Array.from(selectedTableRows).filter((index) => index >= 0 && index < (dataset.records || []).length));
+            normalizeTableRowFilterMode((dataset.records || []).length, selectedTableRows.size);
             const filteredRecords = (dataset.records || [])
                 .map((record, index) => ({ record, index }))
                 .filter(({ index }) => {
