@@ -18474,8 +18474,26 @@
                 group.entries.set(info.extension, entry);
                 groups.set(info.key, group);
             });
-            const group = Array.from(groups.values()).find((item) => item.entries.has("shp"));
-            if (!group) return zipSource;
+            const shapeGroups = Array.from(groups.values()).filter((item) => item.entries.has("shp"));
+            if (!shapeGroups.length) return zipSource;
+            if (shapeGroups.length > 1) {
+                throw new Error("Shapefile ZIP contains more than one .shp dataset. Put each shapefile in a separate ZIP and import them one at a time.");
+            }
+            const group = shapeGroups[0];
+            if (!group.entries.has("dbf")) {
+                throw new Error(`Shapefile ${group.basename}.shp is missing its matching .dbf attribute table. Add ${group.basename}.dbf to the ZIP and try again.`);
+            }
+            const projectionEntry = group.entries.get("prj");
+            if (projectionEntry && !(await projectionEntry.async("string")).trim()) {
+                throw new Error(`Shapefile ${group.basename}.prj is empty. Replace it with the dataset's coordinate-system definition and try again.`);
+            }
+            if (!projectionEntry) {
+                const header = await group.entries.get("shp").async("arraybuffer");
+                const bounds = readShapefileBounds(header);
+                if (!bounds || !shapefileBoundsFitWgs84(bounds)) {
+                    throw new Error(`Shapefile ${group.basename}.shp appears to use projected coordinates but has no .prj file. Add the matching .prj so coordinates can be transformed to WGS84.`);
+                }
+            }
             const normalized = new JSZip();
             for (const extension of ["shp", "shx", "dbf", "prj", "cpg"]) {
                 const entry = group.entries.get(extension);
@@ -18484,6 +18502,74 @@
                 }
             }
             return await normalized.generateAsync({ type: "arraybuffer" });
+        }
+
+        function readShapefileBounds(source) {
+            const buffer = source instanceof ArrayBuffer
+                ? source
+                : source?.buffer?.slice(source.byteOffset || 0, (source.byteOffset || 0) + source.byteLength);
+            if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 100) return null;
+            const view = new DataView(buffer);
+            if (view.getInt32(0, false) !== 9994 || view.getInt32(28, true) !== 1000) return null;
+            const bounds = {
+                xmin: view.getFloat64(36, true),
+                ymin: view.getFloat64(44, true),
+                xmax: view.getFloat64(52, true),
+                ymax: view.getFloat64(60, true)
+            };
+            return Object.values(bounds).every(Number.isFinite) ? bounds : null;
+        }
+
+        function shapefileBoundsFitWgs84(bounds) {
+            return bounds
+                && bounds.xmin >= -180
+                && bounds.xmax <= 180
+                && bounds.ymin >= -90
+                && bounds.ymax <= 90
+                && bounds.xmin <= bounds.xmax
+                && bounds.ymin <= bounds.ymax;
+        }
+
+        function assertGeoJsonUsesWgs84(input, datasetName = "Shapefile") {
+            const collection = normalizeFeatureCollection(input);
+            const visitCoordinates = (coordinates, path) => {
+                if (!Array.isArray(coordinates)) {
+                    throw new Error(`${datasetName} contains invalid coordinates at ${path}.`);
+                }
+                if (coordinates.length >= 2 && !Array.isArray(coordinates[0])) {
+                    const longitude = Number(coordinates[0]);
+                    const latitude = Number(coordinates[1]);
+                    if (!Number.isFinite(longitude) || !Number.isFinite(latitude) || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+                        throw new Error(`${datasetName} coordinates could not be transformed to WGS84 at ${path}. Check that the .prj file matches the .shp file.`);
+                    }
+                    return;
+                }
+                coordinates.forEach((part, index) => visitCoordinates(part, `${path}.${index + 1}`));
+            };
+            collection.features.forEach((feature, featureIndex) => {
+                const geometry = feature?.geometry;
+                if (!geometry) return;
+                if (geometry.type === "GeometryCollection") {
+                    (geometry.geometries || []).forEach((part, partIndex) => visitCoordinates(part.coordinates, `feature ${featureIndex + 1}, geometry ${partIndex + 1}`));
+                    return;
+                }
+                visitCoordinates(geometry.coordinates, `feature ${featureIndex + 1}`);
+            });
+            return input;
+        }
+
+        function normalizeShapefileAttributeValues(input) {
+            const normalizeValue = (value) => value instanceof Date
+                ? value.toISOString().slice(0, 10)
+                : value;
+            const collection = normalizeFeatureCollection(input);
+            collection.features.forEach((feature) => {
+                if (!feature?.properties) return;
+                feature.properties = Object.fromEntries(
+                    Object.entries(feature.properties).map(([key, value]) => [key, normalizeValue(value)])
+                );
+            });
+            return input;
         }
 
         function loadScriptOnce(src, globalName) {
@@ -18515,7 +18601,8 @@
             const shp = await loadScriptOnce("https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js", "shp");
             if (!shp) throw new Error("Shapefile parser unavailable.");
             const buffer = await readFileAsArrayBuffer(file);
-            return await shp(await normalizeShapefileZip(buffer));
+            const parsed = await shp(await normalizeShapefileZip(buffer));
+            return normalizeShapefileAttributeValues(assertGeoJsonUsesWgs84(parsed));
         }
 
         function normalizeFeatureCollection(input) {
