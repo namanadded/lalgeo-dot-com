@@ -136,6 +136,10 @@ jobs:
         working-directory: maps
         run: npm run test:production-module-integrity
 
+      - name: Check Shapefile CRS and attribute integrity
+        working-directory: maps
+        run: npm run test:shapefile-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
