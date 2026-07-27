@@ -6000,6 +6000,97 @@
         transform-origin: top right;
         animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
     }
+    @media (min-width: 601px) {
+        #toolbar .toolbar-quick-actions {
+            gap: 0;
+            padding: 5px 7px;
+            border-radius: 12px;
+        }
+        #toolbar .toolbar-action-group {
+            position: relative;
+            gap: 2px;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group {
+            margin-left: 10px;
+            padding-left: 11px;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before,
+        #toolbar #toolbarLayersBtn::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 1px;
+            height: 20px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.22);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
+            left: 0;
+        }
+        #toolbar #toolbarLayersBtn {
+            position: relative;
+            margin-left: 10px;
+        }
+        #toolbar #toolbarLayersBtn::before {
+            left: -6px;
+        }
+        #toolbar .menu-bar-btn.quick-action {
+            width: auto;
+            min-width: 28px;
+            height: 28px;
+            gap: 5px;
+            padding: 0 7px;
+            color: #6b7280;
+            background: transparent;
+            border: 0;
+            border-radius: 7px;
+            box-shadow: none;
+        }
+        #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #myLocationBtn .quick-action-label,
+        #toolbar #toolbarLayersBtn .quick-action-label,
+        #toolbar #toolbarBasemapBtn .quick-action-label,
+        #toolbar #measureToolBtn .quick-action-label,
+        #toolbar #advancedGisBtn .quick-action-label {
+            display: inline;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.01em;
+        }
+        #toolbar .menu-bar-btn.quick-action:hover:not(:disabled) {
+            color: #374151;
+            background: rgba(15, 23, 42, 0.055);
+            border: 0;
+            box-shadow: none;
+        }
+        #toolbar .menu-bar-btn.quick-action.active,
+        #toolbar .menu-bar-btn.quick-action[aria-expanded="true"] {
+            color: #374151;
+            background: rgba(15, 23, 42, 0.075);
+            border: 0;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        #toolbar #undoBtn,
+        #toolbar #redoBtn {
+            width: 26px;
+            min-width: 26px;
+            gap: 0;
+            padding: 0;
+        }
+        #toolbar #undoBtn .quick-action-label,
+        #toolbar #redoBtn .quick-action-label {
+            display: none !important;
+        }
+    }
     @keyframes toolbarMenuAppear {
         from {
             opacity: 0;
@@ -6723,7 +6814,7 @@
                         </span>
                         <span class="quick-action-label">Add</span>
                     </button>
-                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
+                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Undo" title="Undo">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M9 7H4v5"></path>
@@ -6732,7 +6823,7 @@
                         </span>
                         <span class="quick-action-label">Undo</span>
                     </button>
-                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
+                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Redo" title="Redo">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M15 7h5v5"></path>
@@ -6788,7 +6879,7 @@
                         </span>
                         <span class="quick-action-label">Measure</span>
                     </button>
-                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Advanced GIS">
+                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Tools">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
@@ -6797,7 +6888,7 @@
                                 <path d="M12 11L5 7"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">GIS</span>
+                        <span class="quick-action-label">Tools</span>
                     </button>
                 </div>
             </div>

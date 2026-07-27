@@ -21,6 +21,9 @@ const leftToggle = getTagById("leftToolbarExpand");
 const menuCommands = getTagById("toolbarMenuCommands");
 const rightToggle = getTagById("rightToolbarExpand");
 const quickActions = getTagById("quickActionBar");
+const undoButton = getTagById("undoBtn");
+const redoButton = getTagById("redoBtn");
+const advancedGisButton = getTagById("advancedGisBtn");
 const editingGroup = legacyHtml.match(
   /<div class="toolbar-action-group toolbar-editing-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-map-group"/,
 )?.[0];
@@ -156,20 +159,12 @@ assert.match(
   /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>[\s\S]*?id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
   "Editing group should read as Draw, Add, Undo, Redo.",
 );
+assertAttribute(undoButton, "aria-label", "Undo", "Icon-only Undo must retain its accessible name.");
+assertAttribute(redoButton, "aria-label", "Redo", "Icon-only Redo must retain its accessible name.");
 assert.match(
   mapGroup,
   /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
   "Map group should read as Locate, Layers, Basemap.",
-);
-assert.match(
-  legacyHtml,
-  /@media \(min-width:\s*1600px\)\s*{[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?#toolbar \.quick-action-label\s*{[\s\S]*?display:\s*inline;[\s\S]*?white-space:\s*nowrap;/,
-  "Toolbar quick action labels should appear only on genuinely wide screens with enough room.",
-);
-assert.match(
-  legacyHtml,
-  /@media \(min-width:\s*601px\) and \(max-width:\s*1599px\)\s*{[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*36px;[\s\S]*?min-width:\s*36px;[\s\S]*?height:\s*36px;[\s\S]*?padding:\s*0;[\s\S]*?gap:\s*0;/,
-  "Regular desktop widths should use consistent icon-only action buttons without compressed labels.",
 );
 assert.match(
   legacyHtml,
@@ -199,7 +194,18 @@ assert.match(
 assert.match(
   toolsGroup,
   /id="measureToolBtn"[\s\S]*?id="advancedGisBtn"/,
-  "Measure and GIS controls should remain available outside the primary Map group.",
+  "Measure and Tools controls should remain available outside the primary Map group.",
+);
+assertAttribute(
+  advancedGisButton,
+  "aria-label",
+  "Open advanced GIS tools",
+  "Renaming GIS to Tools must preserve the existing accessible description.",
+);
+assert.match(
+  toolsGroup,
+  /id="advancedGisBtn"[\s\S]*?<span class="quick-action-label">Tools<\/span>/,
+  "The advanced GIS control should be presented as Tools without changing its panel target.",
 );
 assert.doesNotMatch(
   legacyHtml,
@@ -216,12 +222,6 @@ assert.match(
   /menuAppHelpBtn\?\.addEventListener\("click", \(\) => setHelpCenterVisibility\(true\)\)/,
   "Hamburger Help Center item should open the existing help center.",
 );
-assert.match(
-  legacyHtml,
-  /\.toolbar-quick-actions\s*{[\s\S]*?gap:\s*14px;/,
-  "Logical toolbar groups should have additional spacing between them.",
-);
-
 assert.match(
   legacyHtml,
   /leftToolbarExpandBtn\.setAttribute\("aria-expanded",\s*expanded\s*\?\s*"true"\s*:\s*"false"\)/,
@@ -280,8 +280,28 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /#toolbar \.brand-menu-btn,[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border:\s*1px\s+solid\s+rgba\(209,\s*213,\s*219,\s*0\.24\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.025\);/,
-  "Toolbar buttons should use lighter chrome with reduced border contrast.",
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*5px\s+7px;[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*28px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
+  "Desktop quick actions should share one compact container and remain borderless at rest.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #measureToolBtn \.quick-action-label,[\s\S]*?#toolbar #advancedGisBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
+  "Named desktop tools should retain their icon-and-text presentation.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-action-group \+ \.toolbar-action-group::before,[\s\S]*?#toolbar #toolbarLayersBtn::before\s*{[\s\S]*?width:\s*1px;[\s\S]*?height:\s*20px;/,
+  "Desktop toolbar sections should be divided into Editing, Navigation, Map Display, and Utilities.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.menu-bar-btn\.quick-action\.active,[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\[aria-expanded="true"\]\s*{[\s\S]*?background:\s*rgba\(15,\s*23,\s*42,\s*0\.075\);/,
+  "An active tool or open panel should receive a subtle selected background.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar #undoBtn,[\s\S]*?#toolbar #redoBtn\s*{[\s\S]*?width:\s*26px;[\s\S]*?padding:\s*0;[\s\S]*?#toolbar #undoBtn \.quick-action-label,[\s\S]*?#toolbar #redoBtn \.quick-action-label\s*{[\s\S]*?display:\s*none !important;/,
+  "Undo and Redo should remain compact icon-only controls on desktop.",
 );
 assert.match(
   legacyHtml,
