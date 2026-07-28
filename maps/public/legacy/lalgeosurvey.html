@@ -799,6 +799,17 @@
         cursor: pointer;
         font-weight: 900;
     }
+    .measurement-action-label-desktop,
+    .measurement-hint-desktop,
+    .measurement-result-secondary-desktop {
+        display: none;
+    }
+    .measurement-mode-switch {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        gap: 8px;
+    }
     .edit-panel-header {
         align-self: stretch;
         min-width: 42px;
@@ -6548,6 +6559,175 @@
             padding: 7px 8px;
             border-radius: 9px;
         }
+        #measurementPanel {
+            box-sizing: border-box;
+            width: min(318px, calc(100vw - 28px));
+            padding: 11px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+        }
+        #measurementPanel .measurement-panel-header {
+            margin-bottom: 8px;
+            padding-left: 2px;
+        }
+        #measurementPanel .measurement-panel-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        #measurementPanel .measurement-close {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #9ca3af;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        #measurementPanel .measurement-close:hover,
+        #measurementPanel .measurement-close:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #measurementPanel .measurement-panel-row {
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 9px;
+        }
+        #measurementPanel .measurement-mode-switch {
+            box-sizing: border-box;
+            gap: 2px;
+            min-width: 0;
+            height: 28px;
+            padding: 2px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #measurementPanel .measurement-mode-btn {
+            min-width: 0;
+            height: 24px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #7b8490;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-mode-btn:hover,
+        #measurementPanel .measurement-mode-btn:focus-visible {
+            outline: none;
+            color: #4b5563;
+        }
+        #measurementPanel .measurement-mode-btn.active {
+            border-color: transparent;
+            background: #fff;
+            color: #374151;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        }
+        #measurementPanel #measurementUnitSelect {
+            flex: 0 0 auto;
+            height: 28px;
+            min-width: 82px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 11px;
+            font-weight: 650;
+            padding: 0 24px 0 8px;
+        }
+        #measurementPanel .measurement-result {
+            min-height: 0;
+            padding: 3px 2px 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #measurementPanel .measurement-result strong {
+            margin: 0;
+            color: #1f2937;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+        }
+        #measurementPanel .measurement-result-secondary {
+            margin-top: 3px;
+            color: #8b949e;
+            font-size: 11px;
+        }
+        #measurementPanel .measurement-result-secondary-mobile,
+        #measurementPanel .measurement-hint-mobile,
+        #measurementPanel .measurement-action-label-mobile {
+            display: none;
+        }
+        #measurementPanel .measurement-result-secondary-desktop,
+        #measurementPanel .measurement-hint-desktop,
+        #measurementPanel .measurement-action-label-desktop {
+            display: block;
+        }
+        #measurementPanel .measurement-result-secondary-desktop[hidden],
+        #measurementPanel .measurement-hint-desktop[hidden] {
+            display: none;
+        }
+        #measurementPanel .measurement-hint {
+            margin: 4px 2px 9px;
+            color: #8b949e;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #measurementPanel .measurement-actions {
+            justify-content: flex-end;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(209, 213, 219, 0.6);
+        }
+        #measurementPanel .measurement-actions button {
+            height: 28px;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 7px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-actions button:hover:not(:disabled),
+        #measurementPanel .measurement-actions button:focus-visible:not(:disabled) {
+            outline: none;
+            background: rgba(15, 23, 42, 0.09);
+        }
+        #measurementPanel .measurement-actions button.primary {
+            border-color: transparent;
+            background: #0f766e;
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(15, 118, 110, 0.2);
+        }
+        #measurementPanel .measurement-actions button.primary:hover:not(:disabled),
+        #measurementPanel .measurement-actions button.primary:focus-visible:not(:disabled) {
+            background: #0d6962;
+        }
+        #measurementPanel #measurementClearBtn {
+            background: transparent;
+            color: #8b5f5f;
+        }
+        #measurementPanel #measurementClearBtn:hover:not(:disabled),
+        #measurementPanel #measurementClearBtn:focus-visible:not(:disabled) {
+            background: rgba(153, 27, 27, 0.055);
+            color: #7f1d1d;
+        }
+        #measurementPanel .measurement-actions button:disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
     }
     .workspace-badge,
     .workspace-pill {
@@ -7322,22 +7502,31 @@
             <button id="measurementCloseBtn" type="button" class="measurement-close" aria-label="Close measurement tools">×</button>
         </div>
         <div class="measurement-panel-row">
-            <button id="measurementDistanceModeBtn" type="button" class="measurement-mode-btn active">Distance</button>
-            <button id="measurementAreaModeBtn" type="button" class="measurement-mode-btn">Area</button>
+            <div class="measurement-mode-switch" role="group" aria-label="Measurement type">
+                <button id="measurementDistanceModeBtn" type="button" class="measurement-mode-btn active" aria-pressed="true">Distance</button>
+                <button id="measurementAreaModeBtn" type="button" class="measurement-mode-btn" aria-pressed="false">Area</button>
+            </div>
             <select id="measurementUnitSelect" aria-label="Measurement units">
                 <option value="metric">Metric</option>
                 <option value="imperial">Imperial</option>
             </select>
         </div>
         <div id="measurementResult" class="measurement-result">
-            <strong>0 m</strong>
-            Click the map to start measuring.
+            <strong class="measurement-result-value">0 m</strong>
+            <div class="measurement-result-secondary measurement-result-secondary-mobile">Segments: 0<br>Points: 0</div>
         </div>
-        <p id="measurementHint" class="measurement-hint">Distance mode: click two or more points. Double-click or Finish to complete.</p>
+        <p id="measurementHint" class="measurement-hint measurement-hint-desktop">Click the map to begin.</p>
+        <p id="measurementHintMobile" class="measurement-hint measurement-hint-mobile">Distance mode: click two or more points. Double-click or Finish to complete.</p>
         <div class="measurement-actions">
-            <button id="measurementUndoPointBtn" type="button">Undo point</button>
-            <button id="measurementFinishBtn" type="button" class="primary">Finish</button>
-            <button id="measurementClearBtn" type="button">Clear</button>
+            <button id="measurementUndoPointBtn" type="button" aria-label="Undo last measurement point">
+                <span class="measurement-action-label-desktop">Undo</span>
+                <span class="measurement-action-label-mobile">Undo point</span>
+            </button>
+            <button id="measurementFinishBtn" type="button" class="primary" aria-label="Finish measurement">
+                <span class="measurement-action-label-desktop">Done</span>
+                <span class="measurement-action-label-mobile">Finish</span>
+            </button>
+            <button id="measurementClearBtn" type="button" aria-label="Clear measurement">Clear</button>
         </div>
     </div>
     <div id="advancedGisPanel" class="advanced-gis-panel" role="region" hidden aria-label="Advanced GIS tools">
@@ -8181,6 +8370,7 @@
         const measurementUnitSelect = document.getElementById("measurementUnitSelect");
         const measurementResult = document.getElementById("measurementResult");
         const measurementHint = document.getElementById("measurementHint");
+        const measurementHintMobile = document.getElementById("measurementHintMobile");
         const measurementUndoPointBtn = document.getElementById("measurementUndoPointBtn");
         const measurementFinishBtn = document.getElementById("measurementFinishBtn");
         const measurementClearBtn = document.getElementById("measurementClearBtn");
@@ -17957,30 +18147,52 @@
             measureToolBtn?.setAttribute("aria-expanded", measurementActive ? "true" : "false");
             measurementDistanceModeBtn?.classList.toggle("active", measurementMode === "distance");
             measurementAreaModeBtn?.classList.toggle("active", measurementMode === "area");
+            measurementDistanceModeBtn?.setAttribute("aria-pressed", measurementMode === "distance" ? "true" : "false");
+            measurementAreaModeBtn?.setAttribute("aria-pressed", measurementMode === "area" ? "true" : "false");
             if (measurementUnitSelect) measurementUnitSelect.value = measurementUnits;
             const metrics = getMeasurementMetrics(true);
+            const pointCount = measurementCoordinates.length;
             if (measurementResult) {
+                let value = "";
+                let desktopSecondary = "";
+                let mobileSecondary = "";
                 if (measurementMode === "area") {
-                    measurementResult.innerHTML = `
-                        <strong>${formatMeasurementArea(metrics.area)}</strong>
-                        <div>Perimeter: ${formatMeasurementDistance(metrics.perimeter)}</div>
-                        <div>Points: ${measurementCoordinates.length}</div>
-                    `;
+                    value = formatMeasurementArea(metrics.area);
+                    desktopSecondary = pointCount
+                        ? `${formatMeasurementDistance(metrics.perimeter)} perimeter · ${pointCount} ${pointCount === 1 ? "point" : "points"}`
+                        : "";
+                    mobileSecondary = `Perimeter: ${formatMeasurementDistance(metrics.perimeter)}<br>Points: ${pointCount}`;
                 } else {
-                    measurementResult.innerHTML = `
-                        <strong>${formatMeasurementDistance(metrics.distance)}</strong>
-                        <div>Segments: ${Math.max(0, metrics.coords.length - 1)}</div>
-                        <div>Points: ${measurementCoordinates.length}</div>
-                    `;
+                    const segmentCount = Math.max(0, metrics.coords.length - 1);
+                    value = formatMeasurementDistance(metrics.distance);
+                    desktopSecondary = segmentCount
+                        ? `${segmentCount} ${segmentCount === 1 ? "segment" : "segments"}`
+                        : "";
+                    mobileSecondary = `Segments: ${segmentCount}<br>Points: ${pointCount}`;
                 }
+                measurementResult.innerHTML = `
+                    <strong class="measurement-result-value">${value}</strong>
+                    <div class="measurement-result-secondary measurement-result-secondary-desktop" ${desktopSecondary ? "" : "hidden"}>${desktopSecondary}</div>
+                    <div class="measurement-result-secondary measurement-result-secondary-mobile">${mobileSecondary}</div>
+                `;
             }
             if (measurementHint) {
-                measurementHint.textContent = measurementMode === "area"
+                const desktopHint = measurementFinished
+                    ? ""
+                    : pointCount
+                        ? "Click to add points. Double-click to finish."
+                        : "Click the map to begin.";
+                measurementHint.textContent = desktopHint;
+                measurementHint.hidden = !desktopHint;
+            }
+            if (measurementHintMobile) {
+                measurementHintMobile.textContent = measurementMode === "area"
                     ? "Area mode: click three or more points. Double-click or Finish to close and calculate."
                     : "Distance mode: click two or more points. Double-click or Finish to complete.";
             }
-            if (measurementUndoPointBtn) measurementUndoPointBtn.disabled = !measurementCoordinates.length;
-            if (measurementFinishBtn) measurementFinishBtn.disabled = measurementMode === "area" ? measurementCoordinates.length < 3 : measurementCoordinates.length < 2;
+            if (measurementUndoPointBtn) measurementUndoPointBtn.disabled = measurementFinished || !pointCount;
+            if (measurementFinishBtn) measurementFinishBtn.disabled = measurementFinished || (measurementMode === "area" ? pointCount < 3 : pointCount < 2);
+            if (measurementClearBtn) measurementClearBtn.disabled = !pointCount;
             renderMeasurementGraphics();
         }
 
