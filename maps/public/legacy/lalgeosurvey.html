@@ -6728,6 +6728,86 @@
             opacity: 0.38;
             cursor: default;
         }
+        #toolbarMenuTray[data-active-menu="basemap"] {
+            box-sizing: border-box;
+            width: 188px;
+            min-width: 188px;
+            max-width: 188px;
+            gap: 0;
+            padding: 6px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(209, 213, 219, 0.72);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+            backdrop-filter: blur(16px) saturate(135%);
+            -webkit-backdrop-filter: blur(16px) saturate(135%);
+        }
+        #desktopBasemapMenu {
+            gap: 0;
+        }
+        .basemap-popover-title {
+            padding: 5px 7px 7px;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .basemap-menu-section {
+            display: grid;
+            gap: 1px;
+        }
+        .basemap-menu-section + .basemap-menu-section {
+            margin-top: 5px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(209, 213, 219, 0.6);
+        }
+        .basemap-menu-section-label {
+            padding: 1px 7px 3px;
+            color: #9ca3af;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+        #desktopBasemapMenu .basemap-menu-item {
+            display: grid;
+            grid-template-columns: 14px minmax(0, 1fr);
+            align-items: center;
+            justify-content: initial;
+            gap: 5px;
+            min-height: 30px;
+            padding: 0 7px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #5f6874;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        #desktopBasemapMenu .basemap-menu-item:hover,
+        #desktopBasemapMenu .basemap-menu-item:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+            color: #374151;
+        }
+        #desktopBasemapMenu .basemap-menu-item.active {
+            background: transparent;
+            color: #374151;
+            font-weight: 650;
+        }
+        #desktopBasemapMenu .basemap-menu-check {
+            color: #0f766e;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            opacity: 0;
+        }
+        #desktopBasemapMenu .basemap-menu-item.active .basemap-menu-check {
+            opacity: 1;
+        }
+        #desktopBasemapMenu .basemap-menu-item[data-disabled-reason]::after {
+            display: none;
+        }
     }
     .workspace-badge,
     .workspace-pill {
@@ -7728,6 +7808,31 @@
             </div>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
+        <div id="desktopBasemapMenu" class="menu-dropdown-section basemap-menu-pane" data-menu-pane="basemap" role="menu" aria-label="Basemap" hidden>
+            <div class="basemap-popover-title">Basemap</div>
+            <div id="desktopBasemapStyleList" class="basemap-menu-section" role="group" aria-label="Map style">
+                <div class="basemap-menu-section-label">Map style</div>
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="standard" role="menuitemradio" aria-checked="false">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Standard</span>
+                </button>
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="satellite" role="menuitemradio" aria-checked="false">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Satellite</span>
+                </button>
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="hybrid" role="menuitemradio" aria-checked="false">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Hybrid</span>
+                </button>
+            </div>
+            <div class="basemap-menu-section" role="group" aria-label="Map details">
+                <div class="basemap-menu-section-label">Map details</div>
+                <button id="desktopBasemapPoisBtn" type="button" class="menu-command basemap-menu-item" data-basemap-pois-proxy role="menuitemcheckbox" aria-checked="true">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Points of Interest</span>
+                </button>
+            </div>
+        </div>
         <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
         <div class="menu-dropdown-section" data-menu-pane="window" hidden></div>
         <div class="menu-dropdown-section" data-menu-pane="help" hidden>
@@ -8520,6 +8625,8 @@
         const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
         const menuMapTypeBtn = document.getElementById("menuMapTypeBtn");
         const menuMapTypeList = document.getElementById("menuMapTypeList");
+        const desktopBasemapStyleList = document.getElementById("desktopBasemapStyleList");
+        const desktopBasemapPoisBtn = document.getElementById("desktopBasemapPoisBtn");
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
         const menuSettingsBtn = document.getElementById("menuSettingsBtn");
@@ -10146,7 +10253,10 @@
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
-            const basemapActive = toolbarMenuVisible && toolbarMenuKey === "view" && menuMapTypeList && !menuMapTypeList.hidden;
+            const basemapActive = toolbarMenuVisible && (
+                toolbarMenuKey === "basemap"
+                || (toolbarMenuKey === "view" && menuMapTypeList && !menuMapTypeList.hidden)
+            );
             toolbarBasemapBtn?.classList.toggle("active", Boolean(basemapActive));
             toolbarBasemapBtn?.setAttribute("aria-expanded", basemapActive ? "true" : "false");
             const mobileMenuActive = toolbarMenuVisible && toolbarMenuKey === "mobile";
@@ -10215,6 +10325,13 @@
             }
             const trayWidth = Math.min(340, Math.max(190, toolbarMenuTray.offsetWidth || 190));
             const maxLeft = Math.max(10, window.innerWidth - trayWidth - 10);
+            if (toolbarMenuKey === "basemap") {
+                const basemapLeft = Math.min(Math.max(10, buttonRect.right - trayWidth), maxLeft);
+                toolbarMenuTray.style.left = `${basemapLeft}px`;
+                toolbarMenuTray.style.right = "auto";
+                toolbarMenuTray.style.top = `${Math.round(buttonRect.bottom + 8)}px`;
+                return;
+            }
             const left = Math.min(Math.max(10, buttonRect.left), maxLeft);
             toolbarMenuTray.style.left = `${left}px`;
             toolbarMenuTray.style.right = "auto";
@@ -10224,7 +10341,10 @@
         function openToolbarMenu(menuKey, button = null) {
             toolbarMenuKey = menuKey;
             toolbarMenuVisible = true;
-            if (toolbarMenuTray) toolbarMenuTray.hidden = false;
+            if (toolbarMenuTray) {
+                toolbarMenuTray.hidden = false;
+                toolbarMenuTray.dataset.activeMenu = menuKey;
+            }
             menuPaneEls.forEach((pane) => {
                 pane.hidden = pane.dataset.menuPane !== menuKey;
             });
@@ -10373,6 +10493,7 @@
                 [menuToggleLayerToolbarBtn, hasProject],
                 [menuTogglePopoutsBtn, hasProject],
                 [menuShowBasemapPoisBtn, hasProject],
+                [desktopBasemapPoisBtn, hasProject],
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
                 [menuSettingsBtn, true],
@@ -10401,6 +10522,7 @@
                 [menuToggleLayerToolbarBtn, "Create or open a project to show layer controls."],
                 [menuTogglePopoutsBtn, "Create or open a project to show map popouts."],
                 [menuShowBasemapPoisBtn, "Create or open a project to configure points of interest."],
+                [desktopBasemapPoisBtn, "Create or open a project to configure points of interest."],
                 [menuHistoryRecentBtn, "Create or open a project to build recent history."],
                 [menuCloseLayersBtn, "Open the Layers panel before closing it."],
                 [menuCloseDataPaneBtn, "Open Data Manager before closing it."],
@@ -10852,6 +10974,8 @@
             menuShowBasemapPoisBtn.setAttribute("aria-pressed", visible ? "true" : "false");
             const label = menuShowBasemapPoisBtn.querySelector("span");
             if (label) label.textContent = `${visible ? "✓" : ""} Show POIs in Basemap`;
+            desktopBasemapPoisBtn?.classList.toggle("active", visible);
+            desktopBasemapPoisBtn?.setAttribute("aria-checked", visible ? "true" : "false");
         }
 
         function updateMapTypeControls(project = activeProjectRecord) {
@@ -10865,6 +10989,11 @@
                     label.textContent = `${type === selectedType ? "✓ " : ""}${base}`;
                 }
                 button.classList.toggle("active", type === selectedType);
+            });
+            desktopBasemapStyleList?.querySelectorAll("[data-map-type]").forEach((button) => {
+                const selected = button.getAttribute("data-map-type") === selectedType;
+                button.classList.toggle("active", selected);
+                button.setAttribute("aria-checked", selected ? "true" : "false");
             });
             mobileMenuPane?.querySelectorAll("[data-map-type]").forEach((button) => {
                 const selected = button.getAttribute("data-map-type") === selectedType;
@@ -15546,15 +15675,19 @@
             setSidebarVisibility(!sidebarVisible);
         }
         function openBasemapControls() {
-            const anchor = window.matchMedia("(min-width: 601px)").matches
+            const desktop = window.matchMedia("(min-width: 601px)").matches;
+            const anchor = desktop
                 ? (toolbarMoreBtn || toolbarBasemapBtn || settingsBtn)
                 : (toolbarBasemapBtn || settingsBtn);
-            openToolbarMenu("view", anchor);
-            if (menuMapTypeList) menuMapTypeList.hidden = false;
-            menuMapTypeBtn?.setAttribute("aria-expanded", "true");
+            openToolbarMenu(desktop ? "basemap" : "view", anchor);
+            if (!desktop) {
+                if (menuMapTypeList) menuMapTypeList.hidden = false;
+                menuMapTypeBtn?.setAttribute("aria-expanded", "true");
+            }
             toolbarBasemapBtn?.classList.add("active");
             toolbarBasemapBtn?.setAttribute("aria-expanded", "true");
             updateMapTypeControls(activeProjectRecord);
+            updateBasemapPoisMenuState();
         }
         layersMapBtn?.addEventListener("click", toggleLayersPanel);
         toolbarLayersBtn?.addEventListener("click", toggleLayersPanel);
@@ -15575,6 +15708,12 @@
                 if (menuMapTypeList) menuMapTypeList.hidden = !expanded;
                 menuMapTypeBtn?.setAttribute("aria-expanded", expanded ? "true" : "false");
                 updateMapTypeControls(activeProjectRecord);
+                return;
+            }
+            if (event.target.closest("[data-basemap-pois-proxy]")) {
+                event.preventDefault();
+                event.stopPropagation();
+                menuShowBasemapPoisBtn?.click();
                 return;
             }
             const mapTypeButton = event.target.closest("[data-map-type]");
@@ -22097,7 +22236,10 @@ function updateFloatingButtonLayer(panelOpen) {
 
         function setToolbarMenuVisibility(show) {
             toolbarMenuVisible = Boolean(show);
-            if (toolbarMenuTray) toolbarMenuTray.hidden = !toolbarMenuVisible;
+            if (toolbarMenuTray) {
+                toolbarMenuTray.hidden = !toolbarMenuVisible;
+                if (!toolbarMenuVisible) delete toolbarMenuTray.dataset.activeMenu;
+            }
             if (!toolbarMenuVisible) {
                 menuPaneEls.forEach((pane) => pane.hidden = true);
                 if (menuToolbarsList) menuToolbarsList.hidden = true;

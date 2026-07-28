@@ -62,8 +62,33 @@ assertContains(
   "Toolbar Layers button should use the same behavior as the existing map layers button.",
 );
 assertContains(
-  /function openBasemapControls\(\) \{[\s\S]*?window\.matchMedia\("\(min-width: 601px\)"\)\.matches[\s\S]*?\(toolbarMoreBtn \|\| toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\("view", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
-  "Toolbar Basemap should retain its existing controls while anchoring the desktop menu to More.",
+  /function openBasemapControls\(\) \{[\s\S]*?const desktop = window\.matchMedia\("\(min-width: 601px\)"\)\.matches;[\s\S]*?\(toolbarMoreBtn \|\| toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\(desktop \? "basemap" : "view", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
+  "Toolbar Basemap should open its focused desktop pane while preserving the existing mobile View path.",
+);
+assertContains(
+  /id="desktopBasemapMenu"[^>]*data-menu-pane="basemap"[^>]*role="menu"[^>]*aria-label="Basemap"[\s\S]*?Map style[\s\S]*?data-map-type="standard"[^>]*role="menuitemradio"[\s\S]*?>Standard<[\s\S]*?data-map-type="satellite"[^>]*role="menuitemradio"[\s\S]*?>Satellite<[\s\S]*?data-map-type="hybrid"[^>]*role="menuitemradio"[\s\S]*?>Hybrid<[\s\S]*?Map details[\s\S]*?id="desktopBasemapPoisBtn"[^>]*role="menuitemcheckbox"[\s\S]*?>Points of Interest</s,
+  "Desktop Basemap should directly expose three exclusive map styles and the POI toggle.",
+);
+assertContains(
+  /desktopBasemapStyleList\?\.querySelectorAll\("\[data-map-type\]"\)[\s\S]*?button\.classList\.toggle\("active", selected\);[\s\S]*?button\.setAttribute\("aria-checked", selected \? "true" : "false"\);/s,
+  "Desktop Basemap should synchronize visible and accessible map-style selection.",
+);
+assertContains(
+  /desktopBasemapPoisBtn\?\.classList\.toggle\("active", visible\);[\s\S]*?desktopBasemapPoisBtn\?\.setAttribute\("aria-checked", visible \? "true" : "false"\);/s,
+  "Desktop Basemap should synchronize the POI checkable row.",
+);
+assertContains(
+  /event\.target\.closest\("\[data-basemap-pois-proxy\]"\)[\s\S]*?menuShowBasemapPoisBtn\?\.click\(\);/s,
+  "Desktop Basemap POI should delegate to the existing POI action.",
+);
+const desktopBasemapMarkup = legacyHtml.match(
+  /<div id="desktopBasemapMenu"[\s\S]*?<\/div>\s*<div class="menu-dropdown-section" data-menu-pane="history"/,
+)?.[0] ?? "";
+assert.ok(desktopBasemapMarkup, "Desktop Basemap pane should be present.");
+assert.doesNotMatch(
+  desktopBasemapMarkup,
+  /Layer List|Layer Manager|Toolbars|Popouts|My Location|Map Type|Satellite \/ Ortho Photo|Hybrid Satellite/,
+  "Desktop Basemap should exclude unrelated View actions and legacy nested labels.",
 );
 assertContains(
   /#editFloatingPanel\s*\{[\s\S]*?opacity:\s*0;[\s\S]*?transform:\s*translateY\(-8px\)\s*scale\(0\.985\);[\s\S]*?transition:[\s\S]*?opacity 180ms[\s\S]*?transform 180ms/s,
