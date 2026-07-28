@@ -566,6 +566,9 @@
         display: none;
     }
     #editFloatingPanel {
+        width: min(430px, calc(100vw - 28px));
+        align-items: stretch;
+        flex-direction: column;
         opacity: 0;
         transform: translateY(-8px) scale(0.985);
         pointer-events: none;
@@ -800,18 +803,16 @@
         font-weight: 900;
     }
     .edit-panel-header {
-        align-self: stretch;
-        min-width: 42px;
-        min-height: 0;
+        min-height: 52px;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         gap: 6px;
-        padding: 0 8px;
-        border-right: 1px solid #e5e7eb;
-        border-bottom: 0;
+        padding: 0 10px 0 16px;
+        border-right: 0;
+        border-bottom: 1px solid #e5e7eb;
         background: #fff;
-        border-radius: 12px 0 0 12px;
+        border-radius: 12px 12px 0 0;
         cursor: grab;
         user-select: none;
     }
@@ -822,26 +823,17 @@
         cursor: grabbing;
     }
     .edit-panel-title {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 18px;
-        height: 24px;
-        overflow: hidden;
-        text-indent: -999px;
-        font-size: 0;
+        display: block;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        text-indent: 0;
+        font-size: 15px;
+        font-weight: 800;
         color: #374151;
     }
     .edit-panel-title::before {
-        content: "";
-        width: 14px;
-        height: 14px;
-        border-radius: 4px;
-        background:
-            radial-gradient(circle at 3px 3px, #9ca3af 1.8px, transparent 2px),
-            radial-gradient(circle at 10px 3px, #9ca3af 1.8px, transparent 2px),
-            radial-gradient(circle at 3px 10px, #9ca3af 1.8px, transparent 2px),
-            radial-gradient(circle at 10px 10px, #9ca3af 1.8px, transparent 2px);
+        content: none;
     }
     .edit-panel-actions {
         display: inline-flex;
@@ -849,8 +841,8 @@
         gap: 4px;
     }
     .edit-panel-icon-btn {
-        width: 28px;
-        height: 28px;
+        width: 44px;
+        height: 44px;
         border: 1px solid rgba(203, 213, 225, 0.9);
         border-radius: 999px;
         background: #fff;
@@ -870,48 +862,42 @@
         outline: none;
     }
     .edit-panel-body {
-        flex: 1 1 auto;
-        min-width: 0;
-        min-height: 42px;
-        padding: 4px 8px;
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: thin;
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+        overflow: visible;
     }
     .edit-panel-field {
-        display: flex;
-        align-items: center;
-        flex: 1 1 clamp(150px, 24vw, 260px);
-        min-width: 0;
+        display: grid;
         gap: 6px;
     }
     .edit-panel-field label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip: auto;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
     }
     .toolbar-layer-select {
         flex: 1 1 auto;
         min-width: 0;
-        max-width: 260px;
-        height: 32px;
-        border-radius: 999px;
-        font-size: 12px;
+        max-width: none;
+        height: 44px;
+        border-radius: 10px;
+        font-size: 14px;
         font-weight: 700;
         padding-top: 0;
         padding-bottom: 0;
     }
     .workspace-text-input.toolbar-layer-select {
         width: 100%;
-        height: 32px;
-        padding: 0 32px 0 12px;
-        font-size: 12px;
-        line-height: 32px;
+        height: 44px;
+        padding: 0 36px 0 12px;
+        font-size: 14px;
+        line-height: 44px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -919,11 +905,11 @@
     .edit-panel-status {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         gap: 7px;
-        height: 32px;
-        min-height: 32px;
-        padding: 0 6px 0 10px;
+        min-height: 48px;
+        height: auto;
+        padding: 4px 4px 4px 14px;
         border: 1px solid #e5e7eb;
         border-radius: 999px;
         background: #f9fafb;
@@ -932,13 +918,9 @@
         white-space: nowrap;
     }
     #editPanelStatusText {
-        max-width: 74px;
+        max-width: none;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-    .floating-toolbar.docked #editPanelStatusText,
-    .floating-toolbar.compact #editPanelStatusText {
-        display: none;
     }
     .edit-panel-status-dot {
         width: 8px;
@@ -952,26 +934,24 @@
         box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.18);
     }
     .edit-panel-grid {
-        display: flex;
-        align-items: center;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 6px;
-        flex-wrap: nowrap;
     }
     .geometry-tool-group {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: nowrap;
+        display: grid;
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
     }
     .geometry-tool-section {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        flex-wrap: nowrap;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
     }
     .geometry-tool-section + .geometry-tool-section {
-        padding-left: 7px;
-        border-left: 1px solid #e5e7eb;
+        padding-left: 0;
+        border-left: 0;
     }
     .geometry-tool-group[hidden] {
         display: none;
@@ -997,22 +977,34 @@
     }
     .edit-tool-btn {
         position: relative;
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
-        min-height: 32px;
-        padding: 0;
-        border-radius: 999px;
+        width: auto;
+        height: auto;
+        min-width: 44px;
+        min-height: 48px;
+        padding: 7px 8px;
+        border-radius: 10px;
         border: 1px solid rgba(203, 213, 225, 0.92);
         background: linear-gradient(180deg, #fff, #f8fafc);
         color: #4b5563;
         display: inline-flex;
         align-items: center;
+        flex-direction: column;
         justify-content: center;
+        gap: 3px;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
         cursor: pointer;
         font-size: 18px;
         line-height: 1;
+    }
+    .edit-tool-label {
+        display: block;
+        max-width: 100%;
+        color: currentColor;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+        text-align: center;
     }
     .edit-tool-btn:hover,
     .edit-tool-btn:focus-visible,
@@ -1138,7 +1130,11 @@
         margin: 0 2px;
     }
     .edit-panel-helper {
-        display: none;
+        display: block;
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.45;
     }
     .menu-nested-section {
         padding-left: 14px;
@@ -1165,34 +1161,37 @@
         cursor: grabbing !important;
     }
     @media (max-width: 700px) {
-        .floating-toolbar {
-            top: 88px;
-            right: 10px;
-            max-width: calc(100vw - 20px);
+        #editFloatingPanel {
+            position: fixed;
+            top: auto !important;
+            right: max(8px, env(safe-area-inset-right, 0px)) !important;
+            bottom: max(8px, env(safe-area-inset-bottom, 0px));
+            left: max(8px, env(safe-area-inset-left, 0px)) !important;
+            width: auto !important;
+            max-width: none;
+            max-height: min(62dvh, 540px);
+            overflow: hidden;
+            border-radius: 20px;
         }
-        .floating-toolbar.docked {
-            height: 44px;
+        #editFloatingPanel .edit-panel-header {
+            flex: 0 0 auto;
+            cursor: default;
         }
-        .toolbar-layer-select {
-            max-width: 210px;
+        #editFloatingPanel .edit-panel-body {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
         }
-        .edit-panel-field {
-            flex-basis: clamp(130px, 36vw, 210px);
+        #editPanelPinBtn {
+            display: none;
         }
-        .edit-panel-body {
-            gap: 5px;
+        .edit-panel-grid,
+        .geometry-tool-section {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .edit-tool-btn {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
-        }
-        .edit-panel-body {
-            min-height: 50px;
-        }
-        .geometry-tool-section + .geometry-tool-section {
-            padding-left: 6px;
+            min-height: 52px;
         }
         .edit-selected-badge {
             height: 32px;
@@ -7266,29 +7265,29 @@
         </div>
     </div>
     <div class="map-controls"></div>
-    <div id="editFloatingPanel" class="floating-toolbar" hidden aria-label="Edit toolbar">
+    <section id="editFloatingPanel" class="floating-toolbar" hidden role="region" aria-labelledby="editPanelTitle" aria-describedby="editPanelHelp">
         <div id="editPanelDragHandle" class="edit-panel-header">
-            <span class="edit-panel-title">Edit Tools</span>
+            <span id="editPanelTitle" class="edit-panel-title">Edit features</span>
             <span class="edit-panel-actions">
                 <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Dock edit toolbar below menu" title="Dock below menu">⇥</button>
                 <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit toolbar" title="Close">×</button>
             </span>
         </div>
         <div class="edit-panel-body">
-            <div id="editPanelStatus" class="edit-panel-status">
+            <div id="editPanelStatus" class="edit-panel-status" role="status" aria-live="polite">
                 <span><span class="edit-panel-status-dot" aria-hidden="true"></span> <span id="editPanelStatusText">Editing stopped</span></span>
-                <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span></button>
+                <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span><span class="edit-tool-label">Start</span></button>
             </div>
             <div class="edit-panel-field">
                 <label for="editPanelLayerSelect">Layer</label>
                 <select id="editPanelLayerSelect" class="workspace-text-input toolbar-layer-select"></select>
             </div>
             <div class="edit-panel-grid">
-                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↶</span></button>
-                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↷</span></button>
-                <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span></button>
-                <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
-                <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
+                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↶</span><span class="edit-tool-label">Undo</span></button>
+                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↷</span><span class="edit-tool-label">Redo</span></button>
+                <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span><span class="edit-tool-label">Add feature</span></button>
+                <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span><span class="edit-tool-label">Attributes</span></button>
+                <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span><span class="edit-tool-label">Geometry</span></button>
             </div>
             <div id="editPanelGeometryTools" class="geometry-tool-group" hidden>
                 <span id="editPanelSelectedBadge" class="edit-selected-badge" title="Selected editable features">0</span>
@@ -7311,7 +7310,7 @@
             </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
-    </div>
+    </section>
     <div id="layerToolsPanel" class="floating-toolbar" hidden aria-label="Layer tools toolbar">
         <div id="layerToolsDragHandle" class="edit-panel-header">
             <span class="edit-panel-title">Layer Tools</span>
@@ -10884,7 +10883,7 @@
             if (editPanelSessionBtn) {
                 editPanelSessionBtn.dataset.tooltip = editSessionActive ? "Stop editing" : "Start editing";
                 editPanelSessionBtn.setAttribute("aria-label", editSessionActive ? "Stop editing" : "Start editing");
-                editPanelSessionBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${editSessionActive ? "■" : "▶"}</span>`;
+                editPanelSessionBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${editSessionActive ? "■" : "▶"}</span><span class="edit-tool-label">${editSessionActive ? "Stop" : "Start"}</span>`;
                 editPanelSessionBtn.classList.toggle("red", editSessionActive);
             }
             if (editPanelAddFeatureBtn) editPanelAddFeatureBtn.disabled = !canEdit;
@@ -10977,7 +10976,7 @@
                 const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? (geometryTraceMode ? `Trace ${geometryType} vertex` : `Add ${geometryType} vertex`) : "Add feature";
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
-                editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span>`;
+                editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span><span class="edit-tool-label">${canFinishGeometry ? "Finish" : isAddingSurveyPoint ? "Add vertex" : "Add feature"}</span>`;
                 if (isAddingSurveyPoint) {
                     setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : geometryTraceMode ? "Tracing" : "Drawing");
                 } else {
@@ -15184,7 +15183,10 @@
             event.stopPropagation();
             setEditSessionActive(!editSessionActive);
         });
-        editPanelCloseBtn?.addEventListener("click", () => setEditSessionActive(false));
+        editPanelCloseBtn?.addEventListener("click", () => {
+            setEditSessionActive(false);
+            window.setTimeout(() => (editPanelToggleBtn?.offsetParent ? editPanelToggleBtn : leftToolbarExpandBtn)?.focus(), 200);
+        });
         editPanelPinBtn?.addEventListener("click", () => {
             if (!editFloatingPanel) return;
             if (editPanelPinned) {
@@ -15685,6 +15687,12 @@
                 if (isAddingSurveyPoint) {
                     exitAddSurveyPointMode();
                     setProjectStatus("Point placement cancelled.", "success");
+                    return;
+                }
+                if (editSessionActive) {
+                    event.preventDefault();
+                    setEditSessionActive(false);
+                    window.setTimeout(() => (editPanelToggleBtn?.offsetParent ? editPanelToggleBtn : leftToolbarExpandBtn)?.focus(), 200);
                     return;
                 }
                 if (!createProjectModal.hidden) {
