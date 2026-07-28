@@ -136,6 +136,10 @@ jobs:
         working-directory: maps
         run: npm run test:production-module-integrity
 
+      - name: Check Shapefile CRS and attribute integrity
+        working-directory: maps
+        run: npm run test:shapefile-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
@@ -148,6 +152,9 @@ jobs:
       - name: Check Dropbox upload content verification
         working-directory: maps
         run: npm run test:dropbox-content-hash
+      - name: Benchmark verified cloud downloads
+        working-directory: maps
+        run: npm run benchmark:cloud-download
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization
@@ -179,6 +186,10 @@ jobs:
       - name: Check layer selection controls
         working-directory: maps
         run: npm run test:layer-selection-controls
+
+      - name: Check table selection filter states
+        working-directory: maps
+        run: npm run test:table-selection-filter-states
 
       - name: Check maps print and PDF preparation
         working-directory: maps
