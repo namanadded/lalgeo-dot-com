@@ -23,4 +23,22 @@ assert.match(
   "New overlays should immediately receive the correct selected or default style."
 );
 
+assert.match(
+  legacyHtml,
+  /function syncMapFeatureToTableSelection\(rowIndex\)[\s\S]*?selectedTableRows = new Set\(\[rowIndex\]\);[\s\S]*?updateSurveySelectionControls\(\);/,
+  "Selecting a feature on the map should synchronize the table selection count."
+);
+
+assert.match(
+  legacyHtml,
+  /function showSurveyCallout\(annotation[\s\S]*?syncMapFeatureToTableSelection\(annotation\.surveyPoint\.rowIndex\);/,
+  "Opening Feature Details from the map should select the corresponding table row."
+);
+
+assert.match(
+  legacyHtml,
+  /const renderedRecords = filteredRecords\.slice\(0, MAX_RENDERED_TABLE_ROWS\);[\s\S]*?renderedRecords\.unshift\(activeRecord\);[\s\S]*?The selected feature is pinned at the top\./,
+  "A selected feature outside the table render limit should be pinned into the visible rows."
+);
+
 console.log("Feature selection highlight checks passed.");

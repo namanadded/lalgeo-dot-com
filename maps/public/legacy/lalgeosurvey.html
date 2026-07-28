@@ -7734,9 +7734,9 @@
                 <span id="surveySelectionSummary">0 selected</span>
                 <button id="selectAllRowsBtn" type="button" class="panel-action-btn">Select all</button>
                 <button id="clearSelectedRowsBtn" type="button" class="panel-action-btn">Clear selection</button>
-                <button id="showSelectedRowsBtn" type="button" class="panel-action-btn">Show selected</button>
-                <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn">Show unselected</button>
-                <button id="showAllRowsBtn" type="button" class="panel-action-btn">Show all</button>
+                <button id="showSelectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false">Show selected</button>
+                <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false">Show unselected</button>
+                <button id="showAllRowsBtn" type="button" class="panel-action-btn" aria-pressed="true">Show all</button>
             </div>
         </div>
         <div id="surveyFieldControls" hidden>
@@ -18657,8 +18657,26 @@
                 group.entries.set(info.extension, entry);
                 groups.set(info.key, group);
             });
-            const group = Array.from(groups.values()).find((item) => item.entries.has("shp"));
-            if (!group) return zipSource;
+            const shapeGroups = Array.from(groups.values()).filter((item) => item.entries.has("shp"));
+            if (!shapeGroups.length) return zipSource;
+            if (shapeGroups.length > 1) {
+                throw new Error("Shapefile ZIP contains more than one .shp dataset. Put each shapefile in a separate ZIP and import them one at a time.");
+            }
+            const group = shapeGroups[0];
+            if (!group.entries.has("dbf")) {
+                throw new Error(`Shapefile ${group.basename}.shp is missing its matching .dbf attribute table. Add ${group.basename}.dbf to the ZIP and try again.`);
+            }
+            const projectionEntry = group.entries.get("prj");
+            if (projectionEntry && !(await projectionEntry.async("string")).trim()) {
+                throw new Error(`Shapefile ${group.basename}.prj is empty. Replace it with the dataset's coordinate-system definition and try again.`);
+            }
+            if (!projectionEntry) {
+                const header = await group.entries.get("shp").async("arraybuffer");
+                const bounds = readShapefileBounds(header);
+                if (!bounds || !shapefileBoundsFitWgs84(bounds)) {
+                    throw new Error(`Shapefile ${group.basename}.shp appears to use projected coordinates but has no .prj file. Add the matching .prj so coordinates can be transformed to WGS84.`);
+                }
+            }
             const normalized = new JSZip();
             for (const extension of ["shp", "shx", "dbf", "prj", "cpg"]) {
                 const entry = group.entries.get(extension);
@@ -18667,6 +18685,74 @@
                 }
             }
             return await normalized.generateAsync({ type: "arraybuffer" });
+        }
+
+        function readShapefileBounds(source) {
+            const buffer = source instanceof ArrayBuffer
+                ? source
+                : source?.buffer?.slice(source.byteOffset || 0, (source.byteOffset || 0) + source.byteLength);
+            if (!(buffer instanceof ArrayBuffer) || buffer.byteLength < 100) return null;
+            const view = new DataView(buffer);
+            if (view.getInt32(0, false) !== 9994 || view.getInt32(28, true) !== 1000) return null;
+            const bounds = {
+                xmin: view.getFloat64(36, true),
+                ymin: view.getFloat64(44, true),
+                xmax: view.getFloat64(52, true),
+                ymax: view.getFloat64(60, true)
+            };
+            return Object.values(bounds).every(Number.isFinite) ? bounds : null;
+        }
+
+        function shapefileBoundsFitWgs84(bounds) {
+            return bounds
+                && bounds.xmin >= -180
+                && bounds.xmax <= 180
+                && bounds.ymin >= -90
+                && bounds.ymax <= 90
+                && bounds.xmin <= bounds.xmax
+                && bounds.ymin <= bounds.ymax;
+        }
+
+        function assertGeoJsonUsesWgs84(input, datasetName = "Shapefile") {
+            const collection = normalizeFeatureCollection(input);
+            const visitCoordinates = (coordinates, path) => {
+                if (!Array.isArray(coordinates)) {
+                    throw new Error(`${datasetName} contains invalid coordinates at ${path}.`);
+                }
+                if (coordinates.length >= 2 && !Array.isArray(coordinates[0])) {
+                    const longitude = Number(coordinates[0]);
+                    const latitude = Number(coordinates[1]);
+                    if (!Number.isFinite(longitude) || !Number.isFinite(latitude) || longitude < -180 || longitude > 180 || latitude < -90 || latitude > 90) {
+                        throw new Error(`${datasetName} coordinates could not be transformed to WGS84 at ${path}. Check that the .prj file matches the .shp file.`);
+                    }
+                    return;
+                }
+                coordinates.forEach((part, index) => visitCoordinates(part, `${path}.${index + 1}`));
+            };
+            collection.features.forEach((feature, featureIndex) => {
+                const geometry = feature?.geometry;
+                if (!geometry) return;
+                if (geometry.type === "GeometryCollection") {
+                    (geometry.geometries || []).forEach((part, partIndex) => visitCoordinates(part.coordinates, `feature ${featureIndex + 1}, geometry ${partIndex + 1}`));
+                    return;
+                }
+                visitCoordinates(geometry.coordinates, `feature ${featureIndex + 1}`);
+            });
+            return input;
+        }
+
+        function normalizeShapefileAttributeValues(input) {
+            const normalizeValue = (value) => value instanceof Date
+                ? value.toISOString().slice(0, 10)
+                : value;
+            const collection = normalizeFeatureCollection(input);
+            collection.features.forEach((feature) => {
+                if (!feature?.properties) return;
+                feature.properties = Object.fromEntries(
+                    Object.entries(feature.properties).map(([key, value]) => [key, normalizeValue(value)])
+                );
+            });
+            return input;
         }
 
         function loadScriptOnce(src, globalName) {
@@ -18698,7 +18784,8 @@
             const shp = await loadScriptOnce("https://cdn.jsdelivr.net/npm/shpjs@6.1.0/dist/shp.min.js", "shp");
             if (!shp) throw new Error("Shapefile parser unavailable.");
             const buffer = await readFileAsArrayBuffer(file);
-            return await shp(await normalizeShapefileZip(buffer));
+            const parsed = await shp(await normalizeShapefileZip(buffer));
+            return normalizeShapefileAttributeValues(assertGeoJsonUsesWgs84(parsed));
         }
 
         function normalizeFeatureCollection(input) {
@@ -20100,11 +20187,11 @@
             activateLayerForFeatureInspection(annotation.surveyPoint.layerId);
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
+            if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
+                syncMapFeatureToTableSelection(annotation.surveyPoint.rowIndex);
+            }
             refreshAnnotationStyles();
             isCalloutEditing = canEditAttributes() && Boolean(options.forceEdit);
-            if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
-                setActiveTableRow(annotation.surveyPoint.rowIndex);
-            }
             renderSelectedFeatureInspector();
             renderFeatureDrawer();
             syncEditPanelState();
@@ -20602,17 +20689,74 @@
             return Papa.unparse({ fields: currentSurveyData.headers, data: rows });
         }
 
+        function setSelectionFilterButtonState(button, { active, disabled, disabledReason }) {
+            if (!button) return;
+            button.classList.toggle("active", active);
+            button.setAttribute("aria-pressed", String(active));
+            button.disabled = disabled;
+            if (disabled && disabledReason) {
+                button.title = disabledReason;
+                button.setAttribute("aria-label", `${button.textContent.trim()}. ${disabledReason}`);
+            } else {
+                button.removeAttribute("title");
+                button.removeAttribute("aria-label");
+            }
+        }
+
+        function normalizeTableRowFilterMode(rowCount, selectedCount) {
+            const selectedFilterIsEmpty = tableRowFilterMode === "selected" && selectedCount === 0;
+            const unselectedFilterIsEmpty = tableRowFilterMode === "unselected" && selectedCount === rowCount;
+            if (selectedFilterIsEmpty || unselectedFilterIsEmpty || rowCount === 0) {
+                tableRowFilterMode = "all";
+            }
+        }
+
         function updateSurveySelectionControls() {
             if (!surveySelectionControls || !surveySelectionSummary) return;
             const count = selectedTableRows.size;
             const rowCount = (isArchiveView ? archiveData?.records : currentSurveyData?.records)?.length || 0;
+            normalizeTableRowFilterMode(rowCount, count);
             surveySelectionControls.hidden = rowCount === 0 && tableRowFilterMode === "all";
             surveySelectionSummary.textContent = `${count} selected`;
             if (clearSelectedRowsBtn) clearSelectedRowsBtn.disabled = count === 0;
             if (selectAllRowsBtn) selectAllRowsBtn.disabled = rowCount === 0 || count === rowCount;
-            showSelectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "selected");
-            showUnselectedRowsBtn?.classList.toggle("active", tableRowFilterMode === "unselected");
-            showAllRowsBtn?.classList.toggle("active", tableRowFilterMode === "all");
+            setSelectionFilterButtonState(showSelectedRowsBtn, {
+                active: tableRowFilterMode === "selected",
+                disabled: count === 0,
+                disabledReason: "Select one or more features before showing selected rows."
+            });
+            setSelectionFilterButtonState(showUnselectedRowsBtn, {
+                active: tableRowFilterMode === "unselected",
+                disabled: rowCount === 0 || count === rowCount,
+                disabledReason: rowCount === 0
+                    ? "Add a feature before filtering the table."
+                    : "All features are selected; clear at least one selection first."
+            });
+            setSelectionFilterButtonState(showAllRowsBtn, {
+                active: tableRowFilterMode === "all",
+                disabled: rowCount === 0 || tableRowFilterMode === "all",
+                disabledReason: rowCount === 0
+                    ? "Add a feature before filtering the table."
+                    : "All rows are already shown."
+            });
+        }
+
+        function syncMapFeatureToTableSelection(rowIndex) {
+            const rowCount = currentSurveyData?.records?.length || 0;
+            if (isArchiveView || !Number.isInteger(rowIndex) || rowIndex < 0 || rowIndex >= rowCount) return;
+            selectedTableRows = new Set([rowIndex]);
+            lastSelectedTableRow = rowIndex;
+            const tableOpen = Boolean(
+                surveyTablePanel?.classList.contains("open")
+                && surveyTableWrapper
+                && !surveyTableWrapper.hidden
+            );
+            if (tableOpen) {
+                updateSurveyTable();
+            } else {
+                setActiveTableRow(rowIndex);
+                updateSurveySelectionControls();
+            }
         }
 
         function clearTableSelection({ update = true } = {}) {
@@ -20884,6 +21028,7 @@
                 ? activeSurveyAnnotation.surveyPoint.rowIndex
                 : null;
             selectedTableRows = new Set(Array.from(selectedTableRows).filter((index) => index >= 0 && index < (dataset.records || []).length));
+            normalizeTableRowFilterMode((dataset.records || []).length, selectedTableRows.size);
             const filteredRecords = (dataset.records || [])
                 .map((record, index) => ({ record, index }))
                 .filter(({ index }) => {
@@ -20892,6 +21037,15 @@
                     return true;
                 });
             const renderedRecords = filteredRecords.slice(0, MAX_RENDERED_TABLE_ROWS);
+            let activeRowPinned = false;
+            if (activeRowIndex !== null && !renderedRecords.some(({ index }) => index === activeRowIndex)) {
+                const activeRecord = filteredRecords.find(({ index }) => index === activeRowIndex);
+                if (activeRecord) {
+                    renderedRecords.unshift(activeRecord);
+                    if (renderedRecords.length > MAX_RENDERED_TABLE_ROWS) renderedRecords.pop();
+                    activeRowPinned = true;
+                }
+            }
             const hiddenRowCount = Math.max(0, filteredRecords.length - renderedRecords.length);
             const bodyRows = renderedRecords.map(({ record, index }) => {
                 const annotation = isArchiveView ? null : rowAnnotationMap.get(index);
@@ -20911,7 +21065,7 @@
                 return `<tr data-row-index="${index}"${rowClass}>${cells}${actionCell}</tr>`;
             }).join("");
             const limitNotice = hiddenRowCount
-                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows. The full layer remains loaded.</div>`
+                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows.${activeRowPinned ? " The selected feature is pinned at the top." : ""} The full layer remains loaded.</div>`
                 : "";
             surveyTable.innerHTML = `
                 ${limitNotice}

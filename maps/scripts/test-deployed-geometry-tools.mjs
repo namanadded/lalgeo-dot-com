@@ -11,6 +11,9 @@ const complexSurveyCsv = readFileSync(new URL("../fixtures/interoperability/comp
 const malformedSurveyCsv = readFileSync(new URL("../fixtures/interoperability/malformed-survey.csv", import.meta.url), "utf8");
 const complexGpx = readFileSync(new URL("../fixtures/interoperability/complex-field-collection.gpx", import.meta.url), "utf8");
 const malformedGpx = readFileSync(new URL("../fixtures/interoperability/malformed-track-point.gpx", import.meta.url), "utf8");
+const complexShapefile = readFileSync(new URL("../fixtures/interoperability/complex-web-mercator.zip", import.meta.url)).toString("base64");
+const projectedShapefileWithoutPrj = readFileSync(new URL("../fixtures/interoperability/projected-missing-prj.zip", import.meta.url)).toString("base64");
+const shapefileWithoutAttributes = readFileSync(new URL("../fixtures/interoperability/missing-attributes.zip", import.meta.url)).toString("base64");
 
 class CdpSocket {
   constructor(url) {
@@ -271,6 +274,39 @@ try {
     });
     assert(kmlHolesPayload.geospatialLayers[0].features[0].geometry.rings.length === 2, "KML import preserves inner boundaries");
     assert(kmlHolesPayload.geospatialLayers[0].features[0].attributes.name === "Parcelle Été 🌲", "KML import preserves Unicode attributes");
+
+    const fileFromBase64 = (base64, name) => {
+      const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+      return new File([bytes], name, { type: "application/zip" });
+    };
+    const complexShapefilePayload = await buildGeospatialPayload([
+      fileFromBase64(${JSON.stringify(complexShapefile)}, "complex-web-mercator.zip")
+    ]);
+    const complexShapefileLayer = complexShapefilePayload.geospatialLayers[0];
+    assert(complexShapefileLayer.features.length === 2, "projected Shapefile imports every feature");
+    assert(Math.abs(complexShapefileLayer.features[0].geometry.lat - 51.0447) < 0.00001 && Math.abs(complexShapefileLayer.features[0].geometry.lng + 114.0719) < 0.00001, "Shapefile .prj transforms Web Mercator coordinates to WGS84");
+    assert(complexShapefileLayer.features[0].attributes.NAME === "Café rivière", "Shapefile preserves UTF-8 attributes declared by .cpg");
+    assert(complexShapefileLayer.features[0].attributes.INSPECTED === "2026-07-27", "Shapefile preserves DBF dates");
+    assert(complexShapefileLayer.features[0].attributes.FIELD_12 === "A12", "Shapefile preserves large DBF field sets");
+    const complexShapefileExport = layerToGeoJson(complexShapefileLayer);
+    const complexShapefileRoundTrip = buildGeoJsonPayload(complexShapefileExport, { format: "Shapefile GeoJSON round trip" });
+    assert(complexShapefileRoundTrip.geospatialLayers[0].features[1].attributes.NAME === "Montréal α", "Shapefile import-export-import preserves Unicode attributes");
+
+    let projectedWithoutPrjMessage = "";
+    try {
+      await normalizeShapefileZip(await fileFromBase64(${JSON.stringify(projectedShapefileWithoutPrj)}, "projected-missing-prj.zip").arrayBuffer());
+    } catch (error) {
+      projectedWithoutPrjMessage = error.message;
+    }
+    assert(projectedWithoutPrjMessage.includes("appears to use projected coordinates but has no .prj file"), "projected Shapefile without .prj explains how to prevent misplaced geometry");
+
+    let missingDbfMessage = "";
+    try {
+      await normalizeShapefileZip(await fileFromBase64(${JSON.stringify(shapefileWithoutAttributes)}, "missing-attributes.zip").arrayBuffer());
+    } catch (error) {
+      missingDbfMessage = error.message;
+    }
+    assert(missingDbfMessage.includes("missing its matching .dbf attribute table"), "Shapefile without .dbf blocks silent attribute loss");
 
     let malformedPolygonMessage = "";
     try {
