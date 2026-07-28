@@ -3138,6 +3138,10 @@
         line-height: 1.45;
         color: #97aabd;
     }
+    .layer-pane-helper-desktop,
+    .layer-visibility-icon {
+        display: none;
+    }
     .sidebar-tabs {
         display: grid;
         grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -6342,6 +6346,208 @@
     }
     #sidebar .selection-layer-meta {
         color: #6b7280;
+    }
+    @media (min-width: 601px) {
+        #sidebar {
+            width: 286px;
+            max-height: calc(100vh - 100px);
+            padding: 11px;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+        #sidebar .sidebar-shell {
+            min-height: 0;
+            max-height: calc(100vh - 122px);
+            gap: 8px;
+        }
+        #sidebar .sidebar-topbar {
+            flex: 0 0 auto;
+            align-items: center;
+            gap: 8px;
+            padding: 0 1px 1px 3px;
+            border-bottom: 0;
+        }
+        #sidebar .sidebar-heading {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        #sidebar .sidebar-subheading {
+            display: none;
+        }
+        #sidebar .sidebar-close-btn {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            min-height: 28px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #9ca3af;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        #sidebar .sidebar-close-btn:hover,
+        #sidebar .sidebar-close-btn:focus-visible {
+            border-color: transparent;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #sidebar .sidebar-tabs {
+            flex: 0 0 auto;
+            gap: 2px;
+            padding: 2px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #sidebar .sidebar-tab {
+            min-height: 28px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #sidebar .sidebar-tab.active {
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #sidebar-content {
+            min-height: 0;
+            max-height: min(420px, calc(100vh - 186px));
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #sidebar .workspace-sidebar-section {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: 0;
+        }
+        #sidebar .layer-pane-helper {
+            margin: 1px 4px 5px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #8b949e;
+        }
+        #sidebar .layer-pane-helper-mobile {
+            display: none;
+        }
+        #sidebar .layer-pane-helper-desktop {
+            display: block;
+        }
+        #sidebar .layer-pane-row {
+            display: grid;
+            grid-template-columns: 18px 26px minmax(0, 1fr) 28px;
+            align-items: center;
+            gap: 5px;
+            min-height: 38px;
+            margin-top: 2px;
+            padding: 4px 5px;
+            border-color: transparent;
+            border-radius: 9px;
+            background: transparent;
+        }
+        #sidebar .layer-pane-row:hover {
+            border-color: transparent;
+            background: rgba(15, 23, 42, 0.045);
+        }
+        #sidebar .layer-pane-row.active {
+            border-color: transparent;
+            background: rgba(56, 178, 166, 0.09);
+            box-shadow: inset 2px 0 0 rgba(56, 178, 166, 0.58);
+        }
+        #sidebar .layer-drag-handle {
+            width: 18px;
+            min-width: 18px;
+            height: 28px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #a1a8b2;
+            font-size: 12px;
+            font-weight: 650;
+            letter-spacing: -3px;
+        }
+        #sidebar .layer-drag-handle:hover {
+            background: rgba(15, 23, 42, 0.045);
+            color: #6b7280;
+        }
+        #sidebar .layer-visibility-toggle {
+            width: 26px;
+            height: 26px;
+            flex-basis: 26px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #52606d;
+        }
+        #sidebar .layer-visibility-toggle:hover,
+        #sidebar .layer-visibility-toggle:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #sidebar .layer-visibility-toggle.is-off {
+            border-color: transparent;
+            background: transparent;
+            color: #9ca3af;
+        }
+        #sidebar .layer-visibility-check {
+            display: none;
+        }
+        #sidebar .layer-visibility-icon {
+            display: block;
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+        }
+        #sidebar .layer-pane-name {
+            font-size: 13px;
+            font-weight: 650;
+        }
+        #sidebar .layer-pane-actions {
+            width: 28px;
+            margin: 0;
+            gap: 0;
+        }
+        #sidebar .layer-pane-actions .layer-order-btn {
+            display: none;
+        }
+        #sidebar .layer-pane-actions .mobile-context-trigger {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #8b949e;
+            box-shadow: none;
+        }
+        #sidebar .layer-pane-actions .mobile-context-trigger:hover,
+        #sidebar .layer-pane-actions .mobile-context-trigger:focus-visible {
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #sidebar .selection-pane-actions {
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+        #sidebar .selection-pane-actions .mini-btn {
+            min-height: 30px;
+            padding: 5px 8px;
+            border-radius: 8px;
+        }
+        #sidebar .selection-layer-list {
+            gap: 4px;
+        }
+        #sidebar .selection-layer-row {
+            min-height: 44px;
+            gap: 8px;
+            padding: 7px 8px;
+            border-radius: 9px;
+        }
     }
     .workspace-badge,
     .workspace-pill {
@@ -10794,11 +11000,19 @@
             const layer = getActiveLayerRecord();
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
-                    <p class="layer-pane-helper">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
+                    <p class="layer-pane-helper layer-pane-helper-desktop">Drag layers to change drawing order.</p>
+                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
                     ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
-                            <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
+                            <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">
+                                <span class="layer-visibility-check" aria-hidden="true">✓</span>
+                                <svg class="layer-visibility-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"></path>
+                                    <circle cx="12" cy="12" r="2.5"></circle>
+                                    ${item.visible === false ? '<path d="M4 4l16 16"></path>' : ""}
+                                </svg>
+                            </button>
                             <div class="layer-pane-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
                             <div class="layer-pane-actions">
                                 <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
