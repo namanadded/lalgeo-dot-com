@@ -76,5 +76,30 @@ assert.match(
   /#advancedGisPanel \{[\s\S]*?width:\s*min\(318px,[\s\S]*?overflow:\s*hidden;[\s\S]*?#advancedGisPanel \.advanced-gis-desktop-content \{[\s\S]*?overflow-y:\s*auto;/,
   "The desktop Advanced GIS inspector should be compact with a fixed header and scrollable command area."
 );
+assert.match(
+  legacyHtml,
+  /@media \(min-width: 601px\)[\s\S]*?--map-ui-radius-surface:\s*14px;[\s\S]*?--map-ui-radius-control:\s*8px;[\s\S]*?--map-ui-radius-utility:\s*7px;[\s\S]*?--map-ui-control-height:\s*30px;[\s\S]*?--map-ui-menu-row-height:\s*32px;[\s\S]*?--map-ui-elevation:\s*0 10px 28px rgba\(15, 23, 42, 0\.13\);/,
+  "Desktop map tools should share a compact radius, control-size, and elevation token set."
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-quick-actions,[\s\S]*?#sidebar,[\s\S]*?#measurementPanel,[\s\S]*?#advancedGisPanel,[\s\S]*?#toolbar \.toolbar-more-popover,[\s\S]*?#toolbarMenuTray\[data-active-menu="basemap"\],[\s\S]*?#layerContextMenu \{[\s\S]*?border-radius:\s*var\(--map-ui-radius-surface\);[\s\S]*?box-shadow:\s*var\(--map-ui-elevation\);[\s\S]*?backdrop-filter:\s*blur\(20px\) saturate\(145%\);/,
+  "Toolbar-related desktop surfaces should use the same radius, shadow, and translucent treatment."
+);
+assert.match(
+  legacyHtml,
+  /#sidebar \.sidebar-tabs,[\s\S]*?#measurementPanel \.measurement-mode-switch \{[\s\S]*?height:\s*var\(--map-ui-control-height\);[\s\S]*?border-radius:\s*var\(--map-ui-radius-control\);[\s\S]*?#sidebar \.sidebar-tab\.active,[\s\S]*?#measurementPanel \.measurement-mode-btn\.active \{[\s\S]*?box-shadow:\s*0 1px 3px rgba\(15, 23, 42, 0\.11\);/,
+  "Layers and Measure should share one compact segmented-control treatment."
+);
+assert.match(
+  legacyHtml,
+  /#sidebar \.sidebar-close-btn,[\s\S]*?#measurementPanel \.measurement-close,[\s\S]*?#advancedGisPanel \.measurement-close \{[\s\S]*?width:\s*28px;[\s\S]*?border-radius:\s*var\(--map-ui-radius-utility\);[\s\S]*?background:\s*transparent;/,
+  "Desktop inspector close buttons should share the same quiet utility-control styling."
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.menu-bar-btn\.quick-action:focus-visible,[\s\S]*?#desktopBasemapMenu \.basemap-menu-item:focus-visible,[\s\S]*?#measurementPanel \.measurement-actions button:focus-visible,[\s\S]*?#advancedGisPanel \.advanced-gis-command:focus-visible,[\s\S]*?#layerContextMenu \.context-menu-btn:focus-visible \{[\s\S]*?outline:\s*2px solid var\(--map-ui-focus\);/,
+  "Toolbar controls, menus, and inspectors should retain one consistent keyboard focus treatment."
+);
 
 console.log("Tool panel region accessibility checks passed.");

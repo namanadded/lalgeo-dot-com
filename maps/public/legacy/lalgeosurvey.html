@@ -6995,6 +6995,435 @@
         #desktopBasemapMenu .basemap-menu-item[data-disabled-reason]::after {
             display: none;
         }
+        :root {
+            --map-ui-radius-surface: 14px;
+            --map-ui-radius-control: 8px;
+            --map-ui-radius-utility: 7px;
+            --map-ui-space-1: 2px;
+            --map-ui-space-2: 4px;
+            --map-ui-space-3: 6px;
+            --map-ui-space-4: 8px;
+            --map-ui-space-5: 10px;
+            --map-ui-space-6: 12px;
+            --map-ui-control-height: 30px;
+            --map-ui-menu-row-height: 32px;
+            --map-ui-icon-size: 16px;
+            --map-ui-surface: rgba(255, 255, 255, 0.94);
+            --map-ui-toolbar-surface: rgba(255, 255, 255, 0.84);
+            --map-ui-border: rgba(209, 213, 219, 0.58);
+            --map-ui-divider: rgba(209, 213, 219, 0.52);
+            --map-ui-hover: rgba(15, 23, 42, 0.055);
+            --map-ui-pressed: rgba(15, 23, 42, 0.09);
+            --map-ui-selected: rgba(15, 23, 42, 0.08);
+            --map-ui-elevation: 0 10px 28px rgba(15, 23, 42, 0.13);
+            --map-ui-focus: rgba(15, 118, 110, 0.42);
+            --map-ui-title: #1f2937;
+            --map-ui-text: #4b5563;
+            --map-ui-muted: #8b949e;
+            --map-ui-disabled-opacity: 0.48;
+            --map-ui-motion: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        #toolbar .toolbar-quick-actions,
+        #sidebar,
+        #measurementPanel,
+        #advancedGisPanel,
+        #toolbar .toolbar-more-popover,
+        #toolbarMenuTray[data-active-menu="basemap"],
+        #layerContextMenu {
+            border: 1px solid var(--map-ui-border);
+            border-radius: var(--map-ui-radius-surface);
+            box-shadow: var(--map-ui-elevation);
+            backdrop-filter: blur(20px) saturate(145%);
+            -webkit-backdrop-filter: blur(20px) saturate(145%);
+        }
+        #toolbar .toolbar-quick-actions {
+            gap: 0;
+            padding: var(--map-ui-space-2) var(--map-ui-space-3);
+            background: var(--map-ui-toolbar-surface);
+        }
+        #sidebar,
+        #measurementPanel,
+        #advancedGisPanel,
+        #toolbar .toolbar-more-popover,
+        #toolbarMenuTray[data-active-menu="basemap"],
+        #layerContextMenu {
+            background: var(--map-ui-surface);
+        }
+        #sidebar,
+        #measurementPanel {
+            padding: var(--map-ui-space-5);
+        }
+
+        #toolbar .toolbar-action-group {
+            gap: var(--map-ui-space-1);
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group {
+            margin-left: var(--map-ui-space-5);
+            padding-left: var(--map-ui-space-6);
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
+            height: 18px;
+            background: var(--map-ui-divider);
+        }
+        #toolbar .menu-bar-btn.quick-action {
+            min-width: var(--map-ui-control-height);
+            height: var(--map-ui-control-height);
+            gap: var(--map-ui-space-2);
+            padding: 0 7px;
+            border-radius: var(--map-ui-radius-control);
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #toolbar #undoBtn,
+        #toolbar #redoBtn {
+            width: 28px;
+            min-width: 28px;
+            height: var(--map-ui-control-height);
+        }
+        #toolbar .toolbar-icon,
+        #toolbar .quick-action-icon {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            flex-basis: var(--map-ui-icon-size);
+        }
+        #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #addSurveyPointBtn .quick-action-label,
+        #toolbar #myLocationBtn .quick-action-label,
+        #toolbar #toolbarLayersBtn .quick-action-label,
+        #toolbar #toolbarMoreBtn .quick-action-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+        #toolbar .menu-bar-btn.quick-action:hover:not(:disabled),
+        #toolbar .toolbar-more-item:hover,
+        #desktopBasemapMenu .basemap-menu-item:hover,
+        #advancedGisPanel .advanced-gis-command:hover:not(:disabled),
+        #sidebar .layer-pane-row:hover,
+        #sidebar .layer-drag-handle:hover,
+        #sidebar .layer-visibility-toggle:hover,
+        #sidebar .layer-pane-actions .mobile-context-trigger:hover,
+        #layerContextMenu .context-menu-btn:hover:not(:disabled) {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-title);
+            border-color: transparent;
+            box-shadow: none;
+        }
+        #toolbar .menu-bar-btn.quick-action.active,
+        #toolbar .menu-bar-btn.quick-action[aria-expanded="true"],
+        #toolbar .toolbar-more-item.active {
+            background: var(--map-ui-selected);
+            color: var(--map-ui-title);
+            box-shadow: none;
+        }
+        #toolbar .menu-bar-btn.quick-action:active:not(:disabled),
+        #toolbar .toolbar-more-item:active,
+        #desktopBasemapMenu .basemap-menu-item:active,
+        #advancedGisPanel .advanced-gis-command:active:not(:disabled),
+        #layerContextMenu .context-menu-btn:active:not(:disabled) {
+            background: var(--map-ui-pressed);
+            transform: scale(0.98);
+        }
+        #toolbar .menu-bar-btn.quick-action:disabled,
+        #advancedGisPanel .advanced-gis-command:disabled,
+        #measurementPanel .measurement-actions button:disabled,
+        #layerContextMenu .context-menu-btn:disabled {
+            opacity: var(--map-ui-disabled-opacity);
+            cursor: default;
+        }
+
+        #toolbar .toolbar-more-popover,
+        #toolbarMenuTray[data-active-menu="basemap"],
+        #layerContextMenu {
+            padding: var(--map-ui-space-3);
+        }
+        #toolbar .toolbar-more-popover,
+        #layerContextMenu {
+            gap: var(--map-ui-space-1);
+        }
+        #toolbar .toolbar-more-item,
+        #desktopBasemapMenu .basemap-menu-item,
+        #layerContextMenu .context-menu-btn {
+            box-sizing: border-box;
+            min-height: var(--map-ui-menu-row-height);
+            gap: 7px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: var(--map-ui-radius-control);
+            background: transparent;
+            box-shadow: none;
+            color: var(--map-ui-text);
+            font-size: 12px;
+            font-weight: 550;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #toolbar .toolbar-more-item .toolbar-icon {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            flex-basis: var(--map-ui-icon-size);
+        }
+        #desktopBasemapMenu .basemap-menu-item {
+            grid-template-columns: var(--map-ui-icon-size) minmax(0, 1fr);
+        }
+        #desktopBasemapMenu .basemap-menu-check {
+            width: var(--map-ui-icon-size);
+            text-align: center;
+        }
+        .basemap-popover-title {
+            padding: var(--map-ui-space-2) var(--map-ui-space-4) var(--map-ui-space-3);
+            color: var(--map-ui-title);
+            font-size: 13px;
+            font-weight: 650;
+        }
+        .basemap-menu-section + .basemap-menu-section {
+            margin-top: var(--map-ui-space-2);
+            padding-top: var(--map-ui-space-3);
+            border-top-color: var(--map-ui-divider);
+        }
+        .basemap-menu-section-label,
+        #advancedGisPanel .advanced-gis-section-heading {
+            padding-left: var(--map-ui-space-4);
+            padding-right: var(--map-ui-space-4);
+            color: var(--map-ui-muted);
+            font-size: 10px;
+            font-weight: 650;
+            letter-spacing: 0.09em;
+        }
+
+        #sidebar .sidebar-topbar,
+        #measurementPanel .measurement-panel-header,
+        #advancedGisPanel .measurement-panel-header {
+            align-items: center;
+            gap: var(--map-ui-space-4);
+        }
+        #sidebar .sidebar-topbar,
+        #measurementPanel .measurement-panel-header {
+            box-sizing: border-box;
+            min-height: 30px;
+            margin: 0 0 var(--map-ui-space-4);
+            padding: 0 var(--map-ui-space-1);
+        }
+        #advancedGisPanel .measurement-panel-header {
+            min-height: 46px;
+            margin: 0;
+            padding: var(--map-ui-space-3) var(--map-ui-space-5);
+            border-bottom-color: var(--map-ui-divider);
+            background: transparent;
+        }
+        #sidebar .sidebar-heading,
+        #measurementPanel .measurement-panel-title,
+        #advancedGisPanel .measurement-panel-title {
+            color: var(--map-ui-title);
+            font-size: 15px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        #advancedGisPanel .advanced-gis-layer-context-desktop,
+        #measurementPanel .measurement-result-secondary,
+        #measurementPanel .measurement-hint,
+        #sidebar .layer-pane-helper {
+            color: var(--map-ui-muted);
+            font-size: 11px;
+            font-weight: 500;
+        }
+        #sidebar .sidebar-close-btn,
+        #measurementPanel .measurement-close,
+        #advancedGisPanel .measurement-close {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            min-height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: var(--map-ui-radius-utility);
+            background: transparent;
+            color: var(--map-ui-muted);
+            box-shadow: none;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #sidebar .sidebar-close-btn:hover,
+        #measurementPanel .measurement-close:hover,
+        #advancedGisPanel .measurement-close:hover {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-text);
+        }
+        #sidebar .sidebar-close-btn:active,
+        #measurementPanel .measurement-close:active,
+        #advancedGisPanel .measurement-close:active {
+            background: var(--map-ui-pressed);
+            transform: scale(0.96);
+        }
+
+        #sidebar .sidebar-tabs,
+        #measurementPanel .measurement-mode-switch {
+            box-sizing: border-box;
+            height: var(--map-ui-control-height);
+            min-height: var(--map-ui-control-height);
+            gap: var(--map-ui-space-1);
+            padding: var(--map-ui-space-1);
+            border: 0;
+            border-radius: var(--map-ui-radius-control);
+            background: var(--map-ui-hover);
+        }
+        #sidebar .sidebar-tab,
+        #measurementPanel .measurement-mode-btn {
+            box-sizing: border-box;
+            min-height: 26px;
+            height: 26px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #7b8490;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        #sidebar .sidebar-tab.active,
+        #measurementPanel .measurement-mode-btn.active {
+            background: #fff;
+            color: var(--map-ui-title);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #measurementPanel #measurementUnitSelect {
+            height: var(--map-ui-control-height);
+            border-radius: var(--map-ui-radius-control);
+            background: var(--map-ui-hover);
+            font-weight: 600;
+        }
+
+        #sidebar .sidebar-shell {
+            gap: var(--map-ui-space-4);
+        }
+        #sidebar .layer-pane-row {
+            min-height: 38px;
+            gap: var(--map-ui-space-3);
+            padding: var(--map-ui-space-2) var(--map-ui-space-3);
+            border-radius: var(--map-ui-radius-control);
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion);
+        }
+        #sidebar .layer-pane-row.active {
+            background: rgba(15, 118, 110, 0.07);
+            box-shadow: inset 2px 0 0 rgba(15, 118, 110, 0.48);
+        }
+        #sidebar .layer-drag-handle,
+        #sidebar .layer-visibility-toggle,
+        #sidebar .layer-pane-actions .mobile-context-trigger {
+            border-radius: var(--map-ui-radius-utility);
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion);
+        }
+        #sidebar .layer-pane-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #sidebar .layer-visibility-icon {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            stroke-width: 1.7;
+        }
+
+        #measurementPanel .measurement-panel-row {
+            gap: var(--map-ui-space-4);
+            margin-bottom: var(--map-ui-space-4);
+        }
+        #measurementPanel .measurement-result {
+            padding: var(--map-ui-space-1) var(--map-ui-space-1) 0;
+        }
+        #measurementPanel .measurement-result strong {
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-hint {
+            margin: var(--map-ui-space-2) var(--map-ui-space-1) var(--map-ui-space-4);
+        }
+        #measurementPanel .measurement-actions {
+            gap: var(--map-ui-space-3);
+            padding-top: var(--map-ui-space-4);
+            border-top-color: var(--map-ui-divider);
+        }
+        #measurementPanel .measurement-actions button {
+            height: 28px;
+            padding: 0 var(--map-ui-space-4);
+            border-radius: var(--map-ui-radius-utility);
+            font-weight: 600;
+            box-shadow: none;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+
+        #advancedGisPanel .advanced-gis-desktop-content {
+            padding: var(--map-ui-space-3) var(--map-ui-space-4) var(--map-ui-space-5);
+        }
+        #advancedGisPanel .advanced-gis-command-section {
+            padding: var(--map-ui-space-4) 0;
+        }
+        #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
+            border-top-color: var(--map-ui-divider);
+        }
+        #advancedGisPanel .advanced-gis-command-list {
+            gap: var(--map-ui-space-1);
+        }
+        #advancedGisPanel .advanced-gis-command {
+            min-height: var(--map-ui-menu-row-height);
+            gap: 7px;
+            padding: 0 var(--map-ui-space-4);
+            border-radius: var(--map-ui-radius-control);
+            font-size: 12px;
+            font-weight: 550;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #advancedGisPanel .advanced-gis-command-icon,
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+        }
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            stroke-width: 1.7;
+        }
+        #advancedGisPanel .advanced-gis-subcommands {
+            gap: var(--map-ui-space-1);
+            margin: var(--map-ui-space-1) 0 var(--map-ui-space-1) 18px;
+            border-left-color: var(--map-ui-divider);
+        }
+        #advancedGisPanel .advanced-gis-subcommands .advanced-gis-command {
+            min-height: 30px;
+        }
+
+        #toolbar .menu-bar-btn.quick-action:focus-visible,
+        #toolbar .toolbar-more-item:focus-visible,
+        #desktopBasemapMenu .basemap-menu-item:focus-visible,
+        #sidebar .sidebar-close-btn:focus-visible,
+        #sidebar .sidebar-tab:focus-visible,
+        #sidebar .layer-drag-handle:focus-visible,
+        #sidebar .layer-visibility-toggle:focus-visible,
+        #sidebar .layer-pane-actions .mobile-context-trigger:focus-visible,
+        #measurementPanel .measurement-close:focus-visible,
+        #measurementPanel .measurement-mode-btn:focus-visible,
+        #measurementPanel #measurementUnitSelect:focus-visible,
+        #measurementPanel .measurement-actions button:focus-visible,
+        #advancedGisPanel .measurement-close:focus-visible,
+        #advancedGisPanel .advanced-gis-command:focus-visible,
+        #layerContextMenu .context-menu-btn:focus-visible {
+            outline: 2px solid var(--map-ui-focus);
+            outline-offset: 1px;
+            box-shadow: none;
+        }
     }
     .workspace-badge,
     .workspace-pill {
