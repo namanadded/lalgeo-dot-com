@@ -1155,6 +1155,10 @@
     .edit-panel-helper {
         display: none;
     }
+    .draw-context-desktop,
+    .add-action-popover {
+        display: none;
+    }
     .menu-nested-section {
         padding-left: 14px;
         border-left: 1px solid #e5e7eb;
@@ -7405,6 +7409,236 @@
             min-height: 30px;
         }
 
+        #editFloatingPanel,
+        #addActionPopover {
+            border: 1px solid var(--map-ui-border);
+            border-radius: var(--map-ui-radius-surface);
+            background: var(--map-ui-surface);
+            box-shadow: var(--map-ui-elevation);
+            backdrop-filter: blur(20px) saturate(145%);
+            -webkit-backdrop-filter: blur(20px) saturate(145%);
+        }
+        #editFloatingPanel {
+            display: block;
+            width: min(310px, calc(100vw - 24px));
+            min-height: 0;
+            overflow: hidden;
+        }
+        #editFloatingPanel[hidden] {
+            display: none;
+        }
+        #editFloatingPanel .edit-panel-header {
+            box-sizing: border-box;
+            min-width: 0;
+            min-height: 42px;
+            justify-content: space-between;
+            padding: var(--map-ui-space-3) var(--map-ui-space-5);
+            border: 0;
+            border-bottom: 1px solid var(--map-ui-divider);
+            border-radius: 0;
+            background: transparent;
+            cursor: grab;
+        }
+        #editFloatingPanel .edit-panel-title {
+            justify-content: flex-start;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            text-indent: 0;
+            color: var(--map-ui-title);
+            font-size: 15px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        #editFloatingPanel .edit-panel-title::before {
+            display: none;
+        }
+        #editFloatingPanel #editPanelPinBtn,
+        #editFloatingPanel .edit-panel-body-mobile {
+            display: none;
+        }
+        #editFloatingPanel #editPanelCloseBtn {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: var(--map-ui-radius-utility);
+            background: transparent;
+            color: var(--map-ui-muted);
+            box-shadow: none;
+        }
+        #editFloatingPanel #editPanelCloseBtn:hover {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-text);
+        }
+        .draw-context-desktop {
+            display: block;
+            padding: var(--map-ui-space-5);
+        }
+        .draw-context-state[hidden] {
+            display: none;
+        }
+        .draw-context-geometry {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+            gap: var(--map-ui-space-2);
+            padding: var(--map-ui-space-1);
+            border-radius: var(--map-ui-radius-control);
+            background: var(--map-ui-hover);
+        }
+        .draw-geometry-choice {
+            box-sizing: border-box;
+            min-width: 0;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--map-ui-space-2);
+            padding: 0 var(--map-ui-space-3);
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--map-ui-text);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--map-ui-motion), color var(--map-ui-motion);
+        }
+        .draw-geometry-choice svg,
+        .add-action-menu-item svg {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            flex: 0 0 var(--map-ui-icon-size);
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.7;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .draw-geometry-choice:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--map-ui-title);
+        }
+        .draw-geometry-choice[aria-pressed="true"] {
+            background: #fff;
+            color: var(--map-ui-title);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        .draw-geometry-choice:disabled {
+            opacity: var(--map-ui-disabled-opacity);
+            cursor: default;
+        }
+        .draw-context-hint {
+            min-height: 16px;
+            margin: var(--map-ui-space-4) var(--map-ui-space-1) 0;
+            color: var(--map-ui-muted);
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .draw-context-actions,
+        .draw-selection-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--map-ui-space-3);
+            margin-top: var(--map-ui-space-4);
+        }
+        .draw-selection-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+        .draw-context-action {
+            min-height: 28px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: var(--map-ui-radius-utility);
+            background: transparent;
+            color: var(--map-ui-text);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        .draw-context-action:hover:not(:disabled) {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-title);
+        }
+        .draw-context-action.primary {
+            background: #0f766e;
+            color: #fff;
+        }
+        .draw-context-action.primary:hover:not(:disabled) {
+            background: #115e59;
+            color: #fff;
+        }
+        .draw-context-action.danger {
+            margin-left: auto;
+            color: #b42318;
+        }
+        .draw-context-action.danger:hover:not(:disabled) {
+            background: rgba(180, 35, 24, 0.08);
+            color: #912018;
+        }
+        .draw-context-action:disabled {
+            opacity: var(--map-ui-disabled-opacity);
+            cursor: default;
+        }
+        .draw-selection-title {
+            margin: 0;
+            color: var(--map-ui-title);
+            font-size: 12px;
+            font-weight: 650;
+        }
+        #addActionPopover {
+            position: fixed;
+            z-index: 1220;
+            width: 176px;
+            padding: var(--map-ui-space-3);
+        }
+        #addActionPopover[hidden] {
+            display: none;
+        }
+        #addActionPopover:not([hidden]) {
+            display: block;
+        }
+        .add-action-popover-title {
+            padding: var(--map-ui-space-2) var(--map-ui-space-4) var(--map-ui-space-3);
+            color: var(--map-ui-title);
+            font-size: 13px;
+            font-weight: 650;
+        }
+        .add-action-menu-item {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: var(--map-ui-menu-row-height);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: var(--map-ui-radius-control);
+            background: transparent;
+            color: var(--map-ui-text);
+            font-size: 12px;
+            font-weight: 550;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color var(--map-ui-motion), color var(--map-ui-motion);
+        }
+        .add-action-menu-item:hover {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-title);
+        }
+        body.draw-mode-active #map,
+        body.draw-mode-active #map * {
+            cursor: crosshair;
+        }
+
         #toolbar .menu-bar-btn.quick-action:focus-visible,
         #toolbar .toolbar-more-item:focus-visible,
         #desktopBasemapMenu .basemap-menu-item:focus-visible,
@@ -7419,6 +7653,10 @@
         #measurementPanel .measurement-actions button:focus-visible,
         #advancedGisPanel .measurement-close:focus-visible,
         #advancedGisPanel .advanced-gis-command:focus-visible,
+        #editFloatingPanel #editPanelCloseBtn:focus-visible,
+        #editFloatingPanel .draw-geometry-choice:focus-visible,
+        #editFloatingPanel .draw-context-action:focus-visible,
+        #addActionPopover .add-action-menu-item:focus-visible,
         #layerContextMenu .context-menu-btn:focus-visible {
             outline: 2px solid var(--map-ui-focus);
             outline-offset: 1px;
@@ -8026,7 +8264,7 @@
         <div class="toolbar-right">
             <div id="quickActionBar" class="toolbar-quick-actions">
                 <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
-                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" title="Draw">
+                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" aria-controls="editFloatingPanel" aria-expanded="false" title="Draw">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M4 20h4"></path>
@@ -8590,13 +8828,51 @@
     <div class="map-controls"></div>
     <div id="editFloatingPanel" class="floating-toolbar" hidden aria-label="Edit toolbar">
         <div id="editPanelDragHandle" class="edit-panel-header">
-            <span class="edit-panel-title">Edit Tools</span>
+            <span id="drawContextTitle" class="edit-panel-title">Draw</span>
             <span class="edit-panel-actions">
                 <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Dock edit toolbar below menu" title="Dock below menu">⇥</button>
                 <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit toolbar" title="Close">×</button>
             </span>
         </div>
-        <div class="edit-panel-body">
+        <div id="drawContextDesktop" class="draw-context-desktop">
+            <div id="drawContextChooser" class="draw-context-state">
+                <div class="draw-context-geometry" role="group" aria-label="Drawing geometry">
+                    <button id="drawPointTypeBtn" type="button" class="draw-geometry-choice" data-draw-geometry="point" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>Point</span>
+                    </button>
+                    <button id="drawLineTypeBtn" type="button" class="draw-geometry-choice" data-draw-geometry="line" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="17" r="2"></circle><circle cx="19" cy="7" r="2"></circle><path d="M7 16l10-8"></path></svg>
+                        <span>Line</span>
+                    </button>
+                    <button id="drawPolygonTypeBtn" type="button" class="draw-geometry-choice" data-draw-geometry="polygon" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l2-11 10-2 3 10-8 5-7-2z"></path></svg>
+                        <span>Polygon</span>
+                    </button>
+                </div>
+                <p id="drawContextChooserHint" class="draw-context-hint">Choose a drawing tool.</p>
+            </div>
+            <div id="drawContextActive" class="draw-context-state" hidden>
+                <p id="drawContextActiveHint" class="draw-context-hint">Click the map to begin.</p>
+                <div class="draw-context-actions" role="group" aria-label="Drawing actions">
+                    <button id="drawContextUndoBtn" type="button" class="draw-context-action secondary" disabled>Undo</button>
+                    <button id="drawContextDoneBtn" type="button" class="draw-context-action primary" disabled>Done</button>
+                    <button id="drawContextCancelBtn" type="button" class="draw-context-action quiet">Cancel</button>
+                </div>
+            </div>
+            <div id="drawSelectionContext" class="draw-context-state draw-selection-context" hidden>
+                <p id="drawSelectionTitle" class="draw-selection-title">Selected Feature</p>
+                <div class="draw-selection-actions" role="group" aria-label="Selected feature actions">
+                    <button id="drawSelectionPropertiesBtn" type="button" class="draw-context-action secondary">Properties</button>
+                    <button id="drawSelectionEditBtn" type="button" class="draw-context-action secondary">Edit</button>
+                    <button id="drawSelectionDuplicateBtn" type="button" class="draw-context-action secondary">Duplicate</button>
+                    <button id="drawSelectionMergeBtn" type="button" class="draw-context-action secondary" hidden>Merge</button>
+                    <button id="drawSelectionClearBtn" type="button" class="draw-context-action quiet">Clear</button>
+                    <button id="drawSelectionDeleteBtn" type="button" class="draw-context-action danger">Delete</button>
+                </div>
+            </div>
+        </div>
+        <div class="edit-panel-body edit-panel-body-mobile">
             <div id="editPanelStatus" class="edit-panel-status">
                 <span><span class="edit-panel-status-dot" aria-hidden="true"></span> <span id="editPanelStatusText">Editing stopped</span></span>
                 <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span></button>
@@ -8633,6 +8909,21 @@
             </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
+    </div>
+    <div id="addActionPopover" class="add-action-popover" role="menu" aria-label="Add" hidden>
+        <div class="add-action-popover-title">Add</div>
+        <button id="addNewFeatureMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            <span>New Feature</span>
+        </button>
+        <button id="addImportDataMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg>
+            <span>Import Data…</span>
+        </button>
+        <button id="addLayerMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4-8 4-8-4 8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M12 13v8"></path><path d="M8 17h8"></path></svg>
+            <span>Add Layer…</span>
+        </button>
     </div>
     <div id="layerToolsPanel" class="floating-toolbar" hidden aria-label="Layer tools toolbar">
         <div id="layerToolsDragHandle" class="edit-panel-header">
@@ -9010,7 +9301,7 @@
         <h4>Start editing</h4>
         <p>Click Add New, then click on the map to place your first feature.</p>
     </div>
-    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel point placement or close panels.</div>
+    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to start adding a feature. Press Escape to cancel drawing or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
     <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite" aria-hidden="true" inert>
@@ -9334,6 +9625,26 @@
         const editPanelEditVerticesBtn = document.getElementById("editPanelEditVerticesBtn");
         const editPanelSplitGeometryBtn = document.getElementById("editPanelSplitGeometryBtn");
         const editPanelHelp = document.getElementById("editPanelHelp");
+        const drawContextTitle = document.getElementById("drawContextTitle");
+        const drawContextChooser = document.getElementById("drawContextChooser");
+        const drawContextActive = document.getElementById("drawContextActive");
+        const drawContextActiveHint = document.getElementById("drawContextActiveHint");
+        const drawSelectionContext = document.getElementById("drawSelectionContext");
+        const drawSelectionTitle = document.getElementById("drawSelectionTitle");
+        const drawGeometryChoiceButtons = Array.from(document.querySelectorAll("[data-draw-geometry]"));
+        const drawContextUndoBtn = document.getElementById("drawContextUndoBtn");
+        const drawContextDoneBtn = document.getElementById("drawContextDoneBtn");
+        const drawContextCancelBtn = document.getElementById("drawContextCancelBtn");
+        const drawSelectionPropertiesBtn = document.getElementById("drawSelectionPropertiesBtn");
+        const drawSelectionEditBtn = document.getElementById("drawSelectionEditBtn");
+        const drawSelectionDuplicateBtn = document.getElementById("drawSelectionDuplicateBtn");
+        const drawSelectionMergeBtn = document.getElementById("drawSelectionMergeBtn");
+        const drawSelectionClearBtn = document.getElementById("drawSelectionClearBtn");
+        const drawSelectionDeleteBtn = document.getElementById("drawSelectionDeleteBtn");
+        const addActionPopover = document.getElementById("addActionPopover");
+        const addNewFeatureMenuBtn = document.getElementById("addNewFeatureMenuBtn");
+        const addImportDataMenuBtn = document.getElementById("addImportDataMenuBtn");
+        const addLayerMenuBtn = document.getElementById("addLayerMenuBtn");
         const layerToolsPanel = document.getElementById("layerToolsPanel");
         const layerToolsDragHandle = document.getElementById("layerToolsDragHandle");
         const layerToolsPinBtn = document.getElementById("layerToolsPinBtn");
@@ -11892,7 +12203,11 @@
             if (hasProject) {
                 renderActiveProjectSidebar();
                 const featureCount = (layer?.parsed?.records || []).length;
-                if (!featureCount) showWorkspaceHint("Click 'Add New' then click anywhere on the map to start collecting data.");
+                if (!featureCount) {
+                    showWorkspaceHint(isDesktopDrawFlow()
+                        ? "Choose Draw, then select a geometry tool."
+                        : "Tap Add, then tap the map to start collecting data.");
+                }
                 else hideWorkspaceHint();
             } else {
                 hideWorkspaceHint();
@@ -12240,6 +12555,157 @@
             editToolbarTooltip.style.top = `${Math.round(top)}px`;
         }
 
+        function isDesktopDrawFlow() {
+            return window.matchMedia("(min-width: 601px)").matches;
+        }
+
+        function getEditableLayerForGeometry(geometryType) {
+            const normalized = normalizeLayerGeometryType(geometryType);
+            const layers = activeProjectRecord?.layers || [];
+            const current = getActiveLayerRecord();
+            if (current && canEditLayer(current) && normalizeLayerGeometryType(current.geometryType) === normalized) {
+                return current;
+            }
+            return layers.find((layer) => canEditLayer(layer) && normalizeLayerGeometryType(layer.geometryType) === normalized) || null;
+        }
+
+        function positionAddActionPopover() {
+            if (!addActionPopover || !addSurveyPointBtn || addActionPopover.hidden) return;
+            const anchor = addSurveyPointBtn.getBoundingClientRect();
+            const popover = addActionPopover.getBoundingClientRect();
+            const left = Math.max(8, Math.min(anchor.left, window.innerWidth - popover.width - 8));
+            addActionPopover.style.left = `${Math.round(left)}px`;
+            addActionPopover.style.top = `${Math.round(anchor.bottom + 8)}px`;
+        }
+
+        function positionDesktopDrawPanel() {
+            if (!isDesktopDrawFlow() || !editFloatingPanel || editFloatingPanel.hidden || !editPanelToggleBtn) return;
+            editFloatingPanel.classList.remove("docked");
+            const anchor = editPanelToggleBtn.getBoundingClientRect();
+            const panel = editFloatingPanel.getBoundingClientRect();
+            const left = Math.max(8, Math.min(anchor.left, window.innerWidth - panel.width - 8));
+            editFloatingPanel.style.left = `${Math.round(left)}px`;
+            editFloatingPanel.style.top = `${Math.round(anchor.bottom + 8)}px`;
+            editFloatingPanel.style.right = "auto";
+            editFloatingPanel.style.width = "";
+            editFloatingPanel.style.transform = "";
+        }
+
+        function setAddActionPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
+            if (!addActionPopover || !addSurveyPointBtn || !isDesktopDrawFlow()) return;
+            const nextVisible = Boolean(show);
+            addActionPopover.hidden = !nextVisible;
+            addSurveyPointBtn.classList.toggle("active", nextVisible);
+            addSurveyPointBtn.setAttribute("aria-expanded", nextVisible ? "true" : "false");
+            if (nextVisible) {
+                setToolbarMoreVisibility(false);
+                positionAddActionPopover();
+                if (focusFirst) addNewFeatureMenuBtn?.focus();
+            } else if (restoreFocus) {
+                addSurveyPointBtn.focus();
+            }
+        }
+
+        function undoCurrentDrawingVertex() {
+            if (!isAddingSurveyPoint || !drawingVertices.length || getActiveLayerGeometryType() === "point") return;
+            drawingVertices.pop();
+            drawingCursorCoordinate = null;
+            updateDrawingPreviewOverlay();
+            updateMapAddHintText();
+            showWorkspaceHint(getGeometryDrawingHint());
+            setProjectStatus(drawingVertices.length ? "Last drawing point removed." : "Drawing reset. Click the map to begin.", "success");
+            syncEditPanelState();
+        }
+
+        function startDesktopDrawingGeometry(geometryType) {
+            const targetLayer = getEditableLayerForGeometry(geometryType);
+            if (!targetLayer) {
+                setProjectStatus(`Add an editable ${geometryType} layer before drawing.`, "error");
+                return;
+            }
+            if (measurementActive) setMeasurementActive(false);
+            if (targetLayer.id !== activeLayerId) switchToLayer(targetLayer.id, { revealTable: false });
+            if (!editSessionActive) setEditSessionActive(true, { layerId: targetLayer.id });
+            setPointGeometryEditMode(false);
+            setGeometryVertexEditMode(false);
+            clearSplitPreview();
+            if (isAddingSurveyPoint) exitAddSurveyPointMode();
+            geometryTraceMode = false;
+            toggleAddSurveyPointMode();
+            syncEditPanelState();
+        }
+
+        function syncDesktopDrawContext() {
+            if (!isDesktopDrawFlow()) {
+                document.body.classList.remove("draw-mode-active");
+                editFloatingPanel?.setAttribute("aria-label", "Edit toolbar");
+                if (addSurveyPointBtn) {
+                    addSurveyPointBtn.setAttribute("aria-label", "Add a new feature to the active layer");
+                    addSurveyPointBtn.removeAttribute("aria-haspopup");
+                    addSurveyPointBtn.removeAttribute("aria-controls");
+                    addSurveyPointBtn.removeAttribute("aria-expanded");
+                }
+                return;
+            }
+            editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
+            if (addSurveyPointBtn) {
+                addSurveyPointBtn.setAttribute("aria-label", "Add content");
+                addSurveyPointBtn.setAttribute("aria-haspopup", "menu");
+                addSurveyPointBtn.setAttribute("aria-controls", "addActionPopover");
+                if (!addSurveyPointBtn.hasAttribute("aria-expanded")) addSurveyPointBtn.setAttribute("aria-expanded", "false");
+            }
+            const geometryType = getActiveLayerGeometryType();
+            const geometryLabel = geometryType === "line" ? "Line" : geometryType === "polygon" ? "Polygon" : "Point";
+            const selectedCount = selectedTableRows?.size || (getSelectedEditableFeatureContext() ? 1 : 0);
+            const showSelection = !isAddingSurveyPoint && selectedCount > 0;
+            if (drawContextChooser) drawContextChooser.hidden = isAddingSurveyPoint || showSelection;
+            if (drawContextActive) drawContextActive.hidden = !isAddingSurveyPoint;
+            if (drawSelectionContext) drawSelectionContext.hidden = !showSelection;
+            if (drawContextTitle) {
+                drawContextTitle.textContent = isAddingSurveyPoint
+                    ? `Drawing ${geometryLabel}`
+                    : showSelection
+                        ? (selectedCount === 1 ? "Selected Feature" : `${selectedCount} Features Selected`)
+                        : "Draw";
+            }
+            drawGeometryChoiceButtons.forEach((button) => {
+                const type = button.dataset.drawGeometry;
+                const available = Boolean(getEditableLayerForGeometry(type));
+                button.hidden = !available;
+                button.disabled = !available;
+                button.setAttribute("aria-pressed", !isAddingSurveyPoint && type === geometryType ? "true" : "false");
+                button.title = available ? `Draw ${type}` : `No editable ${type} layer`;
+            });
+            const canFinish = isAddingSurveyPoint
+                && geometryType !== "point"
+                && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
+            if (drawContextActiveHint) {
+                drawContextActiveHint.textContent = drawingVertices.length
+                    ? "Click to add points. Double-click to finish."
+                    : "Click the map to begin.";
+            }
+            if (drawContextUndoBtn) {
+                drawContextUndoBtn.hidden = geometryType === "point";
+                drawContextUndoBtn.disabled = geometryType === "point" || !drawingVertices.length;
+            }
+            if (drawContextDoneBtn) {
+                drawContextDoneBtn.hidden = geometryType === "point";
+                drawContextDoneBtn.disabled = !canFinish;
+            }
+            if (drawSelectionTitle) {
+                drawSelectionTitle.textContent = selectedCount === 1 ? "Selected Feature" : `${selectedCount} Features Selected`;
+            }
+            const singleSelection = selectedCount === 1;
+            if (drawSelectionPropertiesBtn) drawSelectionPropertiesBtn.hidden = !singleSelection;
+            if (drawSelectionEditBtn) drawSelectionEditBtn.hidden = !singleSelection;
+            if (drawSelectionDeleteBtn) drawSelectionDeleteBtn.hidden = !singleSelection;
+            if (drawSelectionMergeBtn) {
+                drawSelectionMergeBtn.hidden = selectedCount < 2;
+                drawSelectionMergeBtn.disabled = selectedCount < 2 || geometryType === "point";
+            }
+            document.body.classList.toggle("draw-mode-active", isAddingSurveyPoint);
+        }
+
         function syncEditPanelState() {
             const layerId = getEditPanelLayerId();
             const layer = layerId ? getLayerById(layerId) : null;
@@ -12358,10 +12824,12 @@
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
                 editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span>`;
-                if (isAddingSurveyPoint) {
-                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding" : geometryTraceMode ? "Tracing" : "Drawing");
-                } else {
-                    setAddNewButtonLabel("Add");
+                if (!isDesktopDrawFlow()) {
+                    if (isAddingSurveyPoint) {
+                        setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding" : geometryTraceMode ? "Tracing" : "Drawing");
+                    } else {
+                        setAddNewButtonLabel("Add");
+                    }
                 }
             }
             editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
@@ -12376,6 +12844,7 @@
             editFloatingPanel?.classList.toggle("compact", true);
             menuToggleEditToolbarBtn?.querySelector("span") && (menuToggleEditToolbarBtn.querySelector("span").textContent = `${editSessionActive ? "✓ " : ""}Edit Tools`);
             menuToggleLayerToolbarBtn?.querySelector("span") && (menuToggleLayerToolbarBtn.querySelector("span").textContent = `${layerToolsPanel && !layerToolsPanel.hidden ? "✓ " : ""}Layer Tools`);
+            syncDesktopDrawContext();
             updateAdvancedGisPanelState();
         }
 
@@ -12392,13 +12861,14 @@
                 editFloatingPanel.classList.remove("toolbar-dismissing");
                 window.requestAnimationFrame(() => {
                     editFloatingPanel?.classList.add("toolbar-visible");
+                    positionDesktopDrawPanel();
                 });
                 const targetLayerId = layerId || getEditPanelLayerId();
                 renderEditPanelLayerOptions(targetLayerId);
                 if (targetLayerId && targetLayerId !== activeLayerId) {
                     switchToLayer(targetLayerId, { revealTable: false });
                 }
-                if (editPanelPinned) dockEditPanel();
+                if (editPanelPinned && !isDesktopDrawFlow()) dockEditPanel();
                 syncEditPanelState();
             } else {
                 editFloatingPanel.classList.remove("toolbar-visible");
@@ -16178,6 +16648,7 @@
         menuAppHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
         toolbarMoreBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
+            setAddActionPopoverVisibility(false);
             setToolbarMoreVisibility(Boolean(toolbarMorePopover?.hidden));
         });
         toolbarMoreBtn?.addEventListener("keydown", (event) => {
@@ -16210,8 +16681,32 @@
                 syncToolbarMoreState();
             });
         });
+        addSurveyPointBtn?.addEventListener("keydown", (event) => {
+            if (!isDesktopDrawFlow() || !["ArrowDown", "Enter", " "].includes(event.key)) return;
+            event.preventDefault();
+            setAddActionPopoverVisibility(true, { focusFirst: true });
+        });
+        addActionPopover?.addEventListener("keydown", (event) => {
+            const items = [addNewFeatureMenuBtn, addImportDataMenuBtn, addLayerMenuBtn].filter(Boolean);
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setAddActionPopoverVisibility(false, { restoreFocus: true });
+                return;
+            }
+            if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
+            event.preventDefault();
+            const currentIndex = items.indexOf(document.activeElement);
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            const nextIndex = currentIndex < 0
+                ? (direction > 0 ? 0 : items.length - 1)
+                : (currentIndex + direction + items.length) % items.length;
+            items[nextIndex]?.focus();
+        });
         [editPanelToggleBtn, addSurveyPointBtn, undoBtn, redoBtn, myLocationBtn, toolbarLayersBtn].forEach((button) => {
-            button?.addEventListener("click", () => setToolbarMoreVisibility(false));
+            button?.addEventListener("click", () => {
+                setToolbarMoreVisibility(false);
+                if (button !== addSurveyPointBtn) setAddActionPopoverVisibility(false);
+            });
         });
         const toolbarMoreStateObserver = new MutationObserver(syncToolbarMoreState);
         [toolbarBasemapBtn, measureToolBtn, advancedGisBtn].forEach((button) => {
@@ -16373,6 +16868,12 @@
             if (settingsPanel && !settingsPanel.hidden) {
                 positionSettingsPanel();
             }
+            if (addActionPopover && !addActionPopover.hidden) {
+                if (isDesktopDrawFlow()) positionAddActionPopover();
+                else setAddActionPopoverVisibility(false);
+            }
+            syncDesktopDrawContext();
+            positionDesktopDrawPanel();
         });
         checkDropboxConnectionStatus({ refreshList: true });
         loadWorkspaceProjects();
@@ -16729,6 +17230,7 @@
         editPanelToggleBtn?.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
+            if (!editSessionActive && measurementActive) setMeasurementActive(false);
             setEditSessionActive(!editSessionActive);
         });
         editPanelCloseBtn?.addEventListener("click", () => setEditSessionActive(false));
@@ -16793,6 +17295,67 @@
         editPanelSquareBtn?.addEventListener("click", () => createViewportPolygonShape("square"));
         editPanelEditVerticesBtn?.addEventListener("click", editSelectedGeometryVertices);
         editPanelSplitGeometryBtn?.addEventListener("click", splitSelectedGeometry);
+        drawGeometryChoiceButtons.forEach((button) => {
+            button.addEventListener("click", () => startDesktopDrawingGeometry(button.dataset.drawGeometry || "point"));
+        });
+        drawContextUndoBtn?.addEventListener("click", undoCurrentDrawingVertex);
+        drawContextDoneBtn?.addEventListener("click", () => {
+            const geometryType = getActiveLayerGeometryType();
+            if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
+                finalizeGeometryFeaturePlacement();
+            }
+        });
+        drawContextCancelBtn?.addEventListener("click", () => {
+            if (!isAddingSurveyPoint) return;
+            exitAddSurveyPointMode();
+            setProjectStatus("Drawing cancelled.", "success");
+        });
+        drawSelectionPropertiesBtn?.addEventListener("click", () => {
+            const rowIndex = getActiveSelectionIndexes()[0];
+            if (!Number.isInteger(rowIndex)) return;
+            previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+        });
+        drawSelectionEditBtn?.addEventListener("click", () => {
+            const context = getSelectedEditableFeatureContext();
+            if (!context) return;
+            if (context.geometryType === "point") {
+                startEditPanelGeometryEdit();
+            } else {
+                editSelectedGeometryVertices();
+            }
+        });
+        drawSelectionDuplicateBtn?.addEventListener("click", duplicateSelectedFeatures);
+        drawSelectionMergeBtn?.addEventListener("click", mergeSelectedFeatures);
+        drawSelectionClearBtn?.addEventListener("click", () => {
+            clearTableSelection();
+            syncEditPanelState();
+            setProjectStatus("Selection cleared.", "success");
+        });
+        drawSelectionDeleteBtn?.addEventListener("click", () => {
+            if (activeSurveyAnnotation) {
+                deleteActivePoint();
+                return;
+            }
+            const rowIndex = getActiveSelectionIndexes()[0];
+            if (Number.isInteger(rowIndex)) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                window.requestAnimationFrame(() => deleteActivePoint());
+            }
+        });
+        addNewFeatureMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            if (measurementActive) setMeasurementActive(false);
+            setEditSessionActive(true);
+            startEditPanelAddFeature();
+        });
+        addImportDataMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            toggleImportBtn?.click();
+        });
+        addLayerMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            addLayerToActiveProject();
+        });
         layerToolsAddLayerBtn?.addEventListener("click", addLayerToActiveProject);
         layerToolsPropertiesBtn?.addEventListener("click", () => {
             const layerId = layerToolsLayerSelect?.value || getEditPanelLayerId();
@@ -16873,6 +17436,8 @@
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
             const insideToolbarMoreMenu = toolbarMoreMenu?.contains(event.target);
+            const insideAddActionPopover = addActionPopover?.contains(event.target);
+            const onAddActionButton = addSurveyPointBtn?.contains(event.target);
             const insideSettingsPanel = settingsPanel?.contains(event.target);
             const onSettingsButton = menuSettingsBtn?.contains(event.target);
             if (!event.target.closest(".toolbar-left")) {
@@ -16886,6 +17451,9 @@
             }
             if (toolbarMorePopover && !toolbarMorePopover.hidden && !insideToolbarMoreMenu) {
                 setToolbarMoreVisibility(false);
+            }
+            if (addActionPopover && !addActionPopover.hidden && !insideAddActionPopover && !onAddActionButton) {
+                setAddActionPopoverVisibility(false);
             }
             if (!settingsPanel?.hidden && !insideSettingsPanel && !onSettingsButton) {
                 setSettingsPanelVisibility(false);
@@ -17195,6 +17763,16 @@
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
+                if (addActionPopover && !addActionPopover.hidden) {
+                    event.preventDefault();
+                    setAddActionPopoverVisibility(false, { restoreFocus: true });
+                    return;
+                }
+                if (toolbarMorePopover && !toolbarMorePopover.hidden) {
+                    event.preventDefault();
+                    setToolbarMoreVisibility(false, { restoreFocus: true });
+                    return;
+                }
                 if (layerImportModal && !layerImportModal.hidden) {
                     event.preventDefault();
                     setLayerImportPanelVisibility(false);
@@ -17220,17 +17798,25 @@
                     setSettingsPanelVisibility(false);
                     return;
                 }
+                if (isAddingSurveyPoint) {
+                    event.preventDefault();
+                    exitAddSurveyPointMode();
+                    setProjectStatus("Drawing cancelled.", "success");
+                    return;
+                }
+                if (selectedTableRows?.size || activeSurveyAnnotation) {
+                    event.preventDefault();
+                    clearTableSelection();
+                    syncEditPanelState();
+                    setProjectStatus("Selection cleared.", "success");
+                    return;
+                }
                 if (sidebarVisible) {
                     setSidebarVisibility(false);
                     return;
                 }
                 if (dataPaneVisible && window.innerWidth <= 980) {
                     setDataPaneVisibility(false);
-                    return;
-                }
-                if (isAddingSurveyPoint) {
-                    exitAddSurveyPointMode();
-                    setProjectStatus("Point placement cancelled.", "success");
                     return;
                 }
                 if (!createProjectModal.hidden) {
@@ -17248,6 +17834,18 @@
                 if (featureDrawer?.classList.contains("open")) {
                     hideSurveyCallout();
                 }
+                return;
+            }
+            if (
+                event.key === "Enter"
+                && isDesktopDrawFlow()
+                && isAddingSurveyPoint
+                && getActiveLayerGeometryType() !== "point"
+                && hasEnoughVerticesForGeometry(getActiveLayerGeometryType(), drawingVertices)
+                && !isInteractiveField(event.target)
+            ) {
+                event.preventDefault();
+                finalizeGeometryFeaturePlacement();
                 return;
             }
             if (!event.defaultPrevented && primaryModifier && key === "n") {
@@ -17429,9 +18027,15 @@
             }
         });
 
-        addSurveyPointBtn.addEventListener("click", () => {
+        addSurveyPointBtn.addEventListener("click", (event) => {
             if (!currentSurveyData) {
                 setProjectStatus("Open a project before adding points.", "error");
+                return;
+            }
+            if (isDesktopDrawFlow()) {
+                event.preventDefault();
+                event.stopPropagation();
+                setAddActionPopoverVisibility(addActionPopover?.hidden !== false);
                 return;
             }
             toggleAddSurveyPointMode();
@@ -17578,9 +18182,11 @@
             const wasTracing = geometryTraceMode;
             isAddingSurveyPoint = !isAddingSurveyPoint;
             if (!isAddingSurveyPoint) geometryTraceMode = false;
-            addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
-            addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding" : "Add");
+            if (!isDesktopDrawFlow()) {
+                addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
+                addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
+                setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding" : "Add");
+            }
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) {
                 updateMapAddHintText(geometryType);
@@ -18796,9 +19402,11 @@
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
             geometryTraceMode = false;
-            addSurveyPointBtn.classList.remove("active");
-            addSurveyPointBtn.setAttribute("aria-pressed", "false");
-            setAddNewButtonLabel("Add");
+            if (!isDesktopDrawFlow()) {
+                addSurveyPointBtn.classList.remove("active");
+                addSurveyPointBtn.setAttribute("aria-pressed", "false");
+                setAddNewButtonLabel("Add");
+            }
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             drawingVertices = [];
@@ -19203,7 +19811,11 @@
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
                 }
-                if (isAddingSurveyPoint) exitAddSurveyPointMode();
+                if (editSessionActive) {
+                    setEditSessionActive(false);
+                } else if (isAddingSurveyPoint) {
+                    exitAddSurveyPointMode();
+                }
                 hideSurveyCallout();
                 closeFeatureDrawer({ clearSelection: false });
                 measurementFinished = false;
@@ -22360,6 +22972,7 @@
                     : "All rows are already shown."
             });
             updateAdvancedGisPanelState();
+            syncDesktopDrawContext();
         }
 
         function syncMapFeatureToTableSelection(rowIndex) {
