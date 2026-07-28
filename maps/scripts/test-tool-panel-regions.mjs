@@ -46,5 +46,35 @@ assert.match(
   /measurementUndoPointBtn\.disabled = measurementFinished \|\| !pointCount;[\s\S]*?measurementFinishBtn\.disabled = measurementFinished \|\|[\s\S]*?measurementClearBtn\.disabled = !pointCount;/,
   "Measurement actions should be disabled according to the current measurement state."
 );
+assert.match(
+  legacyHtml,
+  /class="advanced-gis-desktop-content"[\s\S]*?>Selection<[\s\S]*?>Select All<[\s\S]*?>Select Visible<[\s\S]*?>Select by Attribute…<[\s\S]*?>Invert Selection<[\s\S]*?>Clear Selection<[\s\S]*?>Geometry<[\s\S]*?>Buffer…<[\s\S]*?>Merge<[\s\S]*?>Simplify…<[\s\S]*?id="advancedGisMoreBtn"[\s\S]*?>More<[\s\S]*?>Data<[\s\S]*?>Style by Attribute…<[\s\S]*?id="advancedGisExportBtn"[\s\S]*?>Export…<[\s\S]*?>Download for Offline Use…</,
+  "Desktop Advanced GIS should present compact Selection, Geometry, and Data command sections."
+);
+assert.match(
+  legacyHtml,
+  /id="advancedGisMoreBtn"[^>]*aria-expanded="false"[^>]*aria-controls="advancedGisMoreCommands"[\s\S]*?id="advancedGisMoreCommands"[^>]*hidden[\s\S]*?data-gis-tool="duplicate"[\s\S]*?data-gis-tool="move-layer"[\s\S]*?data-gis-tool="densify"[\s\S]*?data-gis-tool="cut-hole"[\s\S]*?data-gis-tool="bearing"/,
+  "Less-common geometry commands should remain available through the More disclosure."
+);
+assert.match(
+  legacyHtml,
+  /class="advanced-gis-mobile-content"[\s\S]*?>Layer GeoJSON<[\s\S]*?>Selected<[\s\S]*?>Layer CSV<[\s\S]*?>All<[\s\S]*?>Visible<[\s\S]*?>By Field<[\s\S]*?>Cut Hole<[\s\S]*?>Offline Pack</,
+  "The existing mobile Advanced GIS grid and labels should remain available."
+);
+assert.match(
+  legacyHtml,
+  /const enabledTools = \{[\s\S]*?merge:\s*editable && geometryType !== "point" && count >= 2,[\s\S]*?"cut-hole":\s*editable && geometryType === "polygon" && count === 1,[\s\S]*?"export-selected":\s*hasLayer && count > 0,/,
+  "Selection-dependent desktop commands should react to geometry and selection state."
+);
+assert.match(
+  legacyHtml,
+  /const pointHiddenTools = new Set\(\["merge", "simplify", "densify", "topology"\]\);[\s\S]*?const polygonOnlyTools = new Set\(\["cut-hole"\]\);[\s\S]*?const lineOnlyTools = new Set\(\["bearing"\]\);/,
+  "Desktop geometry commands should hide operations that do not apply to the active geometry type."
+);
+assert.match(
+  legacyHtml,
+  /#advancedGisPanel \{[\s\S]*?width:\s*min\(318px,[\s\S]*?overflow:\s*hidden;[\s\S]*?#advancedGisPanel \.advanced-gis-desktop-content \{[\s\S]*?overflow-y:\s*auto;/,
+  "The desktop Advanced GIS inspector should be compact with a fixed header and scrollable command area."
+);
 
 console.log("Tool panel region accessibility checks passed.");
