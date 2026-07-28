@@ -263,6 +263,31 @@ assert.match(
   /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;[\s\S]*?z-index:\s*1270;/,
   "Expanded mobile tools must open in a separate safe-area row below the floating controls and scroll instead of being clipped.",
 );
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*5px\s+7px;[\s\S]*?border-radius:\s*12px;[\s\S]*?#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*36px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
+  "Expanded mobile tools should share one compact glass container with borderless controls.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar \.toolbar-right\.expanded #measureToolBtn \.quick-action-label,[\s\S]*?#toolbar \.toolbar-right\.expanded #advancedGisBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;[\s\S]*?white-space:\s*nowrap;/,
+  "Named mobile tools should retain the same icon-and-text presentation as desktop.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded \.toolbar-action-group \+ \.toolbar-action-group::before,[\s\S]*?#toolbar \.toolbar-right\.expanded #toolbarLayersBtn::before\s*{[\s\S]*?height:\s*24px;/,
+  "Expanded mobile tools should preserve the four visual toolbar sections.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\.active,[\s\S]*?#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\[aria-expanded="true"\]\s*{[\s\S]*?background:\s*rgba\(15,\s*23,\s*42,\s*0\.075\);/,
+  "Open mobile tool panels should use the same selected treatment as desktop.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded #undoBtn,[\s\S]*?#toolbar \.toolbar-right\.expanded #redoBtn\s*{[\s\S]*?width:\s*36px;[\s\S]*?#toolbar \.toolbar-right\.expanded #undoBtn \.quick-action-label,[\s\S]*?#toolbar \.toolbar-right\.expanded #redoBtn \.quick-action-label\s*{[\s\S]*?display:\s*none !important;/,
+  "Mobile Undo and Redo should remain compact icon-only controls.",
+);
 assert.doesNotMatch(
   legacyHtml,
   /id="(?:leftToolbarExpand|rightToolbarExpand)"[^>]*>(?:&gt;|&lt;)/,
