@@ -24,8 +24,12 @@ const quickActions = getTagById("quickActionBar");
 const undoButton = getTagById("undoBtn");
 const redoButton = getTagById("redoBtn");
 const advancedGisButton = getTagById("advancedGisBtn");
+const moreButton = getTagById("toolbarMoreBtn");
 const editingGroup = legacyHtml.match(
-  /<div class="toolbar-action-group toolbar-editing-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-map-group"/,
+  /<div class="toolbar-action-group toolbar-editing-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-history-group"/,
+)?.[0];
+const historyGroup = legacyHtml.match(
+  /<div class="toolbar-action-group toolbar-history-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-map-group"/,
 )?.[0];
 const mapGroup = legacyHtml.match(
   /<div class="toolbar-action-group toolbar-map-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-tools-group"/,
@@ -147,6 +151,7 @@ assert.match(
   "Right toolbar overflow target must remain the quick actions group.",
 );
 assert.ok(editingGroup, "Toolbar must include a dedicated Editing control group.");
+assert.ok(historyGroup, "Toolbar must include a compact Undo and Redo group.");
 assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
 assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
 assert.doesNotMatch(
@@ -156,15 +161,38 @@ assert.doesNotMatch(
 );
 assert.match(
   editingGroup,
-  /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>[\s\S]*?id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
-  "Editing group should read as Draw, Add, Undo, Redo.",
+  /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>/,
+  "Editing group should contain Draw and Add.",
+);
+assert.match(
+  historyGroup,
+  /id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
+  "Undo and Redo should form their own compact history group.",
 );
 assertAttribute(undoButton, "aria-label", "Undo", "Icon-only Undo must retain its accessible name.");
 assertAttribute(redoButton, "aria-label", "Redo", "Icon-only Redo must retain its accessible name.");
 assert.match(
   mapGroup,
-  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
-  "Map group should read as Locate, Layers, Basemap.",
+  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarMoreBtn"[\s\S]*?<span class="quick-action-label">More<\/span>[\s\S]*?id="toolbarBasemapBtn"/,
+  "Desktop map group should present Locate, Layers, and More before the mobile Basemap control.",
+);
+assertAttribute(moreButton, "aria-haspopup", "menu", "More must expose its popup-menu behavior.");
+assertAttribute(moreButton, "aria-controls", "toolbarMorePopover", "More must identify its popover.");
+assertAttribute(moreButton, "aria-expanded", "false", "More must default to its collapsed state.");
+assert.match(
+  mapGroup,
+  /id="toolbarMorePopover"[^>]*role="menu"[\s\S]*?id="toolbarMoreBasemapItem"[^>]*data-toolbar-target="toolbarBasemapBtn"[\s\S]*?<span>Basemap<\/span>[\s\S]*?id="toolbarMoreMeasureItem"[^>]*data-toolbar-target="measureToolBtn"[\s\S]*?<span>Measure<\/span>[\s\S]*?id="toolbarMoreGisItem"[^>]*data-toolbar-target="advancedGisBtn"[\s\S]*?<span>Advanced GIS<\/span>/,
+  "More popover should expose Basemap, Measure, and Advanced GIS using the existing controls as targets.",
+);
+assert.match(
+  legacyHtml,
+  /toolbarMoreItems\.forEach\(\(item\) => \{[\s\S]*?const target = document\.getElementById\(item\.dataset\.toolbarTarget \|\| ""\);[\s\S]*?target\?\.click\(\);/,
+  "More items must forward to existing toolbar controls instead of duplicating tool logic.",
+);
+assert.match(
+  legacyHtml,
+  /const toolbarMoreStateObserver = new MutationObserver\(syncToolbarMoreState\);[\s\S]*?\[toolbarBasemapBtn, measureToolBtn, advancedGisBtn\][\s\S]*?attributeFilter: \["class", "aria-expanded", "aria-pressed"\]/,
+  "More must persist an active state while any child tool is active.",
 );
 assert.match(
   legacyHtml,
@@ -173,8 +201,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?justify-content:\s*safe center;[\s\S]*?flex-wrap:\s*nowrap;[\s\S]*?overflow-x:\s*auto;[\s\S]*?scrollbar-width:\s*none;[\s\S]*?#toolbar \.toolbar-action-group\s*{[\s\S]*?flex:\s*0\s+0\s+auto;/,
-  "Desktop toolbar groups should keep their intrinsic width and scroll safely instead of crushing icons and labels.",
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*4px\s+6px;[\s\S]*?overflow:\s*visible;/,
+  "The compact desktop toolbar should allow the More popover to render outside its glass surface.",
 );
 assert.doesNotMatch(
   legacyHtml,
@@ -265,6 +293,11 @@ assert.match(
 );
 assert.match(
   legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-more-menu\s*{[\s\S]*?display:\s*none !important;/,
+  "The desktop More menu must stay out of the existing mobile toolbar.",
+);
+assert.match(
+  legacyHtml,
   /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*5px\s+7px;[\s\S]*?border-radius:\s*12px;[\s\S]*?#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*36px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
   "Expanded mobile tools should share one compact glass container with borderless controls.",
 );
@@ -305,18 +338,33 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*5px\s+7px;[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*28px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*4px\s+6px;[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*28px;[\s\S]*?gap:\s*4px;[\s\S]*?padding:\s*0\s+6px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
   "Desktop quick actions should share one compact container and remain borderless at rest.",
 );
 assert.match(
   legacyHtml,
-  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #measureToolBtn \.quick-action-label,[\s\S]*?#toolbar #advancedGisBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
-  "Named desktop tools should retain their icon-and-text presentation.",
+  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #addSurveyPointBtn \.quick-action-label,[\s\S]*?#toolbar #toolbarMoreBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
+  "Draw, Add, Locate, Layers, and More should retain icon-and-text presentation.",
 );
 assert.match(
   legacyHtml,
-  /#toolbar \.toolbar-action-group \+ \.toolbar-action-group::before,[\s\S]*?#toolbar #toolbarLayersBtn::before\s*{[\s\S]*?width:\s*1px;[\s\S]*?height:\s*20px;/,
-  "Desktop toolbar sections should be divided into Editing, Navigation, Map Display, and Utilities.",
+  /#toolbar \.toolbar-action-group \+ \.toolbar-action-group::before\s*{[\s\S]*?width:\s*1px;[\s\S]*?height:\s*20px;/,
+  "Desktop toolbar should divide Editing, History, and Map control groups.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-map-group #toolbarBasemapBtn,[\s\S]*?#toolbar \.toolbar-tools-group\s*{[\s\S]*?display:\s*none;/,
+  "Basemap, Measure, and GIS should leave the directly visible desktop toolbar.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-more-popover\s*{[\s\S]*?width:\s*176px;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.94\);[\s\S]*?backdrop-filter:\s*blur\(24px\)\s+saturate\(145%\);/,
+  "More should use a compact Apple-style translucent popover.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar\.more-tools-open\s*{[\s\S]*?z-index:\s*1400;[\s\S]*?toolbar\?\.classList\.toggle\("more-tools-open", visible\);/,
+  "Opening More should temporarily lift the toolbar above overlapping workspace surfaces.",
 );
 assert.match(
   legacyHtml,
@@ -327,6 +375,11 @@ assert.match(
   legacyHtml,
   /#toolbar #undoBtn,[\s\S]*?#toolbar #redoBtn\s*{[\s\S]*?width:\s*26px;[\s\S]*?padding:\s*0;[\s\S]*?#toolbar #undoBtn \.quick-action-label,[\s\S]*?#toolbar #redoBtn \.quick-action-label\s*{[\s\S]*?display:\s*none !important;/,
   "Undo and Redo should remain compact icon-only controls on desktop.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /setAddNewButtonLabel\("Add New"\)/,
+  "The desktop Add control should not revert to the old Add New label.",
 );
 assert.match(
   legacyHtml,

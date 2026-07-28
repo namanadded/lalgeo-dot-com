@@ -62,8 +62,8 @@ assertContains(
   "Toolbar Layers button should use the same behavior as the existing map layers button.",
 );
 assertContains(
-  /function openBasemapControls\(\) \{[\s\S]*?openToolbarMenu\("view", toolbarBasemapBtn \|\| settingsBtn\);[\s\S]*?menuMapTypeList\) menuMapTypeList\.hidden = false;[\s\S]*?\}[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
-  "Toolbar Basemap button should open the existing map type controls.",
+  /function openBasemapControls\(\) \{[\s\S]*?window\.matchMedia\("\(min-width: 601px\)"\)\.matches[\s\S]*?\(toolbarMoreBtn \|\| toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\("view", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
+  "Toolbar Basemap should retain its existing controls while anchoring the desktop menu to More.",
 );
 assertContains(
   /#editFloatingPanel\s*\{[\s\S]*?opacity:\s*0;[\s\S]*?transform:\s*translateY\(-8px\)\s*scale\(0\.985\);[\s\S]*?transition:[\s\S]*?opacity 180ms[\s\S]*?transform 180ms/s,

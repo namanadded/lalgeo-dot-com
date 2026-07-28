@@ -6001,9 +6001,13 @@
         animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
     }
     @media (min-width: 601px) {
+        #toolbar.more-tools-open {
+            z-index: 1400;
+        }
         #toolbar .toolbar-quick-actions {
             gap: 0;
-            padding: 5px 7px;
+            padding: 4px 6px;
+            overflow: visible;
             border-radius: 12px;
         }
         #toolbar .toolbar-action-group {
@@ -6017,13 +6021,13 @@
             box-shadow: none;
         }
         #toolbar .toolbar-action-group + .toolbar-action-group {
-            margin-left: 10px;
-            padding-left: 11px;
+            margin-left: 9px;
+            padding-left: 10px;
         }
-        #toolbar .toolbar-action-group + .toolbar-action-group::before,
-        #toolbar #toolbarLayersBtn::before {
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
             content: "";
             position: absolute;
+            left: 0;
             top: 50%;
             width: 1px;
             height: 20px;
@@ -6032,22 +6036,12 @@
             transform: translateY(-50%);
             pointer-events: none;
         }
-        #toolbar .toolbar-action-group + .toolbar-action-group::before {
-            left: 0;
-        }
-        #toolbar #toolbarLayersBtn {
-            position: relative;
-            margin-left: 10px;
-        }
-        #toolbar #toolbarLayersBtn::before {
-            left: -6px;
-        }
         #toolbar .menu-bar-btn.quick-action {
             width: auto;
             min-width: 28px;
             height: 28px;
-            gap: 5px;
-            padding: 0 7px;
+            gap: 4px;
+            padding: 0 6px;
             color: #6b7280;
             background: transparent;
             border: 0;
@@ -6055,11 +6049,10 @@
             box-shadow: none;
         }
         #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
-        #toolbar #toolbarBasemapBtn .quick-action-label,
-        #toolbar #measureToolBtn .quick-action-label,
-        #toolbar #advancedGisBtn .quick-action-label {
+        #toolbar #toolbarMoreBtn .quick-action-label {
             display: inline;
             font-size: 10px;
             font-weight: 700;
@@ -6070,7 +6063,7 @@
             color: #374151;
             background: rgba(15, 23, 42, 0.055);
             border: 0;
-            box-shadow: none;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.055);
         }
         #toolbar .menu-bar-btn.quick-action.active,
         #toolbar .menu-bar-btn.quick-action[aria-expanded="true"] {
@@ -6078,6 +6071,10 @@
             background: rgba(15, 23, 42, 0.075);
             border: 0;
             box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        #toolbar .toolbar-map-group #toolbarBasemapBtn,
+        #toolbar .toolbar-tools-group {
+            display: none;
         }
         #toolbar #undoBtn,
         #toolbar #redoBtn {
@@ -6090,8 +6087,68 @@
         #toolbar #redoBtn .quick-action-label {
             display: none !important;
         }
+        #toolbar #undoBtn:disabled,
+        #toolbar #redoBtn:disabled {
+            color: #9ca3af;
+            opacity: 0.38;
+        }
+        #toolbar .toolbar-more-menu {
+            position: relative;
+            display: inline-flex;
+        }
+        #toolbar .toolbar-more-popover {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            z-index: 1450;
+            width: 176px;
+            padding: 6px;
+            border: 1px solid rgba(209, 213, 219, 0.5);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+            transform-origin: top right;
+            animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+        }
+        #toolbar .toolbar-more-popover[hidden] {
+            display: none;
+        }
+        #toolbar .toolbar-more-item {
+            width: 100%;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #4b5563;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 650;
+            text-align: left;
+            cursor: pointer;
+        }
+        #toolbar .toolbar-more-item:hover,
+        #toolbar .toolbar-more-item:focus-visible,
+        #toolbar .toolbar-more-item.active {
+            outline: none;
+            background: rgba(15, 23, 42, 0.06);
+            color: #1f2937;
+        }
+        #toolbar .toolbar-more-item .toolbar-icon {
+            width: 17px;
+            height: 17px;
+            flex-basis: 17px;
+        }
     }
     @media (max-width: 600px) {
+        #toolbar .toolbar-more-menu {
+            display: none !important;
+        }
         #toolbar .toolbar-right.expanded .toolbar-quick-actions {
             gap: 0;
             padding: 5px 7px;
@@ -6906,6 +6963,8 @@
                         </span>
                         <span class="quick-action-label">Add</span>
                     </button>
+                </div>
+                <div class="toolbar-action-group toolbar-history-group" aria-label="History controls">
                     <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Undo" title="Undo">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -6948,6 +7007,46 @@
                         </span>
                         <span class="quick-action-label">Layers</span>
                     </button>
+                    <div id="toolbarMoreMenu" class="toolbar-more-menu">
+                        <button id="toolbarMoreBtn" type="button" class="menu-bar-btn quick-action" aria-label="More tools" aria-haspopup="menu" aria-controls="toolbarMorePopover" aria-expanded="false" title="More">
+                            <span class="quick-action-icon" aria-hidden="true">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                    <circle cx="5" cy="12" r="1"></circle>
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="19" cy="12" r="1"></circle>
+                                </svg>
+                            </span>
+                            <span class="quick-action-label">More</span>
+                        </button>
+                        <div id="toolbarMorePopover" class="toolbar-more-popover" role="menu" aria-label="More map tools" hidden>
+                            <button id="toolbarMoreBasemapItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="toolbarBasemapBtn">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"></path>
+                                    <path d="M9 3v15"></path>
+                                    <path d="M15 6v15"></path>
+                                </svg>
+                                <span>Basemap</span>
+                            </button>
+                            <button id="toolbarMoreMeasureItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="measureToolBtn">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4 15l9-9 7 7-9 9-7-7z"></path>
+                                    <path d="M9 10l2 2"></path>
+                                    <path d="M12 7l2 2"></path>
+                                    <path d="M6 13l2 2"></path>
+                                </svg>
+                                <span>Measure</span>
+                            </button>
+                            <button id="toolbarMoreGisItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="advancedGisBtn">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
+                                    <path d="M12 11l7-4"></path>
+                                    <path d="M12 11v8"></path>
+                                    <path d="M12 11L5 7"></path>
+                                </svg>
+                                <span>Advanced GIS</span>
+                            </button>
+                        </div>
+                    </div>
                     <button id="toolbarBasemapBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open basemap controls" aria-controls="toolbarMenuTray" aria-expanded="false" title="Basemap">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -7853,6 +7952,10 @@
         const historyMenuBtn = document.getElementById("historyMenuBtn");
         const windowMenuBtn = document.getElementById("windowMenuBtn");
         const helpMenuBtn = document.getElementById("helpMenuBtn");
+        const toolbarMoreMenu = document.getElementById("toolbarMoreMenu");
+        const toolbarMoreBtn = document.getElementById("toolbarMoreBtn");
+        const toolbarMorePopover = document.getElementById("toolbarMorePopover");
+        const toolbarMoreItems = Array.from(document.querySelectorAll("[data-toolbar-target]"));
         const settingsPanel = document.getElementById("settingsPanel");
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
         const rememberSessionOption = rememberSessionToggle?.closest(".settings-option");
@@ -9783,6 +9886,42 @@
             }
         }
 
+        function getToolbarMoreItems() {
+            return toolbarMoreItems.filter((item) => !item.hidden && !item.disabled);
+        }
+
+        function setToolbarMoreVisibility(show, { focusFirst = false, restoreFocus = false } = {}) {
+            if (!toolbarMoreBtn || !toolbarMorePopover) return;
+            const visible = Boolean(show && window.matchMedia("(min-width: 601px)").matches);
+            if (visible) setToolbarMenuVisibility(false);
+            toolbarMorePopover.hidden = !visible;
+            toolbarMoreBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+            toolbar?.classList.toggle("more-tools-open", visible);
+            if (visible && focusFirst) {
+                window.requestAnimationFrame(() => getToolbarMoreItems()[0]?.focus());
+            } else if (!visible && restoreFocus && toolbarMorePopover.contains(document.activeElement)) {
+                toolbarMoreBtn.focus();
+            }
+        }
+
+        function syncToolbarMoreState() {
+            if (!toolbarMoreBtn) return;
+            let hasActiveChild = false;
+            toolbarMoreItems.forEach((item) => {
+                const target = document.getElementById(item.dataset.toolbarTarget || "");
+                const active = Boolean(target && (
+                    target.classList.contains("active")
+                    || target.getAttribute("aria-expanded") === "true"
+                    || target.getAttribute("aria-pressed") === "true"
+                ));
+                item.classList.toggle("active", active);
+                hasActiveChild = hasActiveChild || active;
+            });
+            toolbarMoreBtn.classList.toggle("active", hasActiveChild);
+            toolbarMoreBtn.dataset.childActive = hasActiveChild ? "true" : "false";
+            toolbarMoreBtn.setAttribute("aria-label", hasActiveChild ? "More tools, active tool open" : "More tools");
+        }
+
         function getQuickActionAvailability(key, hasEditingSession) {
             if (key === "addNew") return hasEditingSession && canEditLayer(getActiveLayerRecord());
             if (key === "undo") return undoStack.length > 0;
@@ -10932,9 +11071,9 @@
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
                 editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span>`;
                 if (isAddingSurveyPoint) {
-                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : geometryTraceMode ? "Tracing" : "Drawing");
+                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding" : geometryTraceMode ? "Tracing" : "Drawing");
                 } else {
-                    setAddNewButtonLabel("Add New");
+                    setAddNewButtonLabel("Add");
                 }
             }
             editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
@@ -14651,6 +14790,53 @@
             }
         });
         menuAppHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        toolbarMoreBtn?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setToolbarMoreVisibility(Boolean(toolbarMorePopover?.hidden));
+        });
+        toolbarMoreBtn?.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
+            event.preventDefault();
+            setToolbarMoreVisibility(true, { focusFirst: true });
+        });
+        toolbarMorePopover?.addEventListener("keydown", (event) => {
+            const items = getToolbarMoreItems();
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setToolbarMoreVisibility(false, { restoreFocus: true });
+                return;
+            }
+            if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
+            event.preventDefault();
+            const currentIndex = items.indexOf(document.activeElement);
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            const nextIndex = currentIndex < 0
+                ? (direction > 0 ? 0 : items.length - 1)
+                : (currentIndex + direction + items.length) % items.length;
+            items[nextIndex]?.focus();
+        });
+        toolbarMoreItems.forEach((item) => {
+            item.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const target = document.getElementById(item.dataset.toolbarTarget || "");
+                setToolbarMoreVisibility(false);
+                target?.click();
+                syncToolbarMoreState();
+            });
+        });
+        [editPanelToggleBtn, addSurveyPointBtn, undoBtn, redoBtn, myLocationBtn, toolbarLayersBtn].forEach((button) => {
+            button?.addEventListener("click", () => setToolbarMoreVisibility(false));
+        });
+        const toolbarMoreStateObserver = new MutationObserver(syncToolbarMoreState);
+        [toolbarBasemapBtn, measureToolBtn, advancedGisBtn].forEach((button) => {
+            if (!button) return;
+            toolbarMoreStateObserver.observe(button, {
+                attributes: true,
+                attributeFilter: ["class", "aria-expanded", "aria-pressed"]
+            });
+        });
+        window.matchMedia("(max-width: 600px)").addEventListener?.("change", () => setToolbarMoreVisibility(false));
+        syncToolbarMoreState();
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
         advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
@@ -14956,7 +15142,10 @@
             setSidebarVisibility(!sidebarVisible);
         }
         function openBasemapControls() {
-            openToolbarMenu("view", toolbarBasemapBtn || settingsBtn);
+            const anchor = window.matchMedia("(min-width: 601px)").matches
+                ? (toolbarMoreBtn || toolbarBasemapBtn || settingsBtn)
+                : (toolbarBasemapBtn || settingsBtn);
+            openToolbarMenu("view", anchor);
             if (menuMapTypeList) menuMapTypeList.hidden = false;
             menuMapTypeBtn?.setAttribute("aria-expanded", "true");
             toolbarBasemapBtn?.classList.add("active");
@@ -15278,6 +15467,7 @@
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
+            const insideToolbarMoreMenu = toolbarMoreMenu?.contains(event.target);
             const insideSettingsPanel = settingsPanel?.contains(event.target);
             const onSettingsButton = menuSettingsBtn?.contains(event.target);
             if (!event.target.closest(".toolbar-left")) {
@@ -15288,6 +15478,9 @@
             }
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
+            }
+            if (toolbarMorePopover && !toolbarMorePopover.hidden && !insideToolbarMoreMenu) {
+                setToolbarMoreVisibility(false);
             }
             if (!settingsPanel?.hidden && !insideSettingsPanel && !onSettingsButton) {
                 setSettingsPanelVisibility(false);
@@ -15982,7 +16175,7 @@
             if (!isAddingSurveyPoint) geometryTraceMode = false;
             addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding New" : "Add New");
+            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding" : "Add");
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) {
                 updateMapAddHintText(geometryType);
@@ -17200,7 +17393,7 @@
             geometryTraceMode = false;
             addSurveyPointBtn.classList.remove("active");
             addSurveyPointBtn.setAttribute("aria-pressed", "false");
-            setAddNewButtonLabel("Add New");
+            setAddNewButtonLabel("Add");
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             drawingVertices = [];
