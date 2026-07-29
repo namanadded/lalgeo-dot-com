@@ -45,6 +45,7 @@
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "test:production-module-integrity": "node scripts/test-production-module-integrity.mjs",
     "test:shapefile-integrity": "node scripts/test-shapefile-integrity.mjs",
+    "test:lalgeo-project-integrity": "node scripts/test-lalgeo-project-integrity.mjs",
     "test:cloud-storage": "node scripts/test-cloud-storage.mjs",
     "test:workspace-persistence": "node scripts/test-workspace-persistence.mjs",
     "test:lal-serialization": "node scripts/test-lal-serialization.mjs",
