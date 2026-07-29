@@ -566,6 +566,9 @@
         display: none;
     }
     #editFloatingPanel {
+        width: min(430px, calc(100vw - 28px));
+        align-items: stretch;
+        flex-direction: column;
         opacity: 0;
         transform: translateY(-8px) scale(0.985);
         pointer-events: none;
@@ -800,18 +803,16 @@
         font-weight: 900;
     }
     .edit-panel-header {
-        align-self: stretch;
-        min-width: 42px;
-        min-height: 0;
+        min-height: 52px;
         display: flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         gap: 6px;
-        padding: 0 8px;
-        border-right: 1px solid #e5e7eb;
-        border-bottom: 0;
+        padding: 0 10px 0 16px;
+        border-right: 0;
+        border-bottom: 1px solid #e5e7eb;
         background: #fff;
-        border-radius: 12px 0 0 12px;
+        border-radius: 12px 12px 0 0;
         cursor: grab;
         user-select: none;
     }
@@ -822,26 +823,17 @@
         cursor: grabbing;
     }
     .edit-panel-title {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        width: 18px;
-        height: 24px;
-        overflow: hidden;
-        text-indent: -999px;
-        font-size: 0;
+        display: block;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        text-indent: 0;
+        font-size: 15px;
+        font-weight: 800;
         color: #374151;
     }
     .edit-panel-title::before {
-        content: "";
-        width: 14px;
-        height: 14px;
-        border-radius: 4px;
-        background:
-            radial-gradient(circle at 3px 3px, #9ca3af 1.8px, transparent 2px),
-            radial-gradient(circle at 10px 3px, #9ca3af 1.8px, transparent 2px),
-            radial-gradient(circle at 3px 10px, #9ca3af 1.8px, transparent 2px),
-            radial-gradient(circle at 10px 10px, #9ca3af 1.8px, transparent 2px);
+        content: none;
     }
     .edit-panel-actions {
         display: inline-flex;
@@ -849,8 +841,8 @@
         gap: 4px;
     }
     .edit-panel-icon-btn {
-        width: 28px;
-        height: 28px;
+        width: 44px;
+        height: 44px;
         border: 1px solid rgba(203, 213, 225, 0.9);
         border-radius: 999px;
         background: #fff;
@@ -870,48 +862,42 @@
         outline: none;
     }
     .edit-panel-body {
-        flex: 1 1 auto;
-        min-width: 0;
-        min-height: 42px;
-        padding: 4px 8px;
-        display: flex;
-        align-items: center;
-        gap: 7px;
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        scrollbar-width: thin;
+        padding: 14px;
+        display: grid;
+        gap: 12px;
+        overflow: visible;
     }
     .edit-panel-field {
-        display: flex;
-        align-items: center;
-        flex: 1 1 clamp(150px, 24vw, 260px);
-        min-width: 0;
+        display: grid;
         gap: 6px;
     }
     .edit-panel-field label {
-        position: absolute;
-        width: 1px;
-        height: 1px;
-        overflow: hidden;
-        clip: rect(0 0 0 0);
+        position: static;
+        width: auto;
+        height: auto;
+        overflow: visible;
+        clip: auto;
+        color: #6b7280;
+        font-size: 12px;
+        font-weight: 700;
     }
     .toolbar-layer-select {
         flex: 1 1 auto;
         min-width: 0;
-        max-width: 260px;
-        height: 32px;
-        border-radius: 999px;
-        font-size: 12px;
+        max-width: none;
+        height: 44px;
+        border-radius: 10px;
+        font-size: 14px;
         font-weight: 700;
         padding-top: 0;
         padding-bottom: 0;
     }
     .workspace-text-input.toolbar-layer-select {
         width: 100%;
-        height: 32px;
-        padding: 0 32px 0 12px;
-        font-size: 12px;
-        line-height: 32px;
+        height: 44px;
+        padding: 0 36px 0 12px;
+        font-size: 14px;
+        line-height: 44px;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -919,11 +905,11 @@
     .edit-panel-status {
         display: inline-flex;
         align-items: center;
-        justify-content: center;
+        justify-content: space-between;
         gap: 7px;
-        height: 32px;
-        min-height: 32px;
-        padding: 0 6px 0 10px;
+        min-height: 48px;
+        height: auto;
+        padding: 4px 4px 4px 14px;
         border: 1px solid #e5e7eb;
         border-radius: 999px;
         background: #f9fafb;
@@ -932,13 +918,9 @@
         white-space: nowrap;
     }
     #editPanelStatusText {
-        max-width: 74px;
+        max-width: none;
         overflow: hidden;
         text-overflow: ellipsis;
-    }
-    .floating-toolbar.docked #editPanelStatusText,
-    .floating-toolbar.compact #editPanelStatusText {
-        display: none;
     }
     .edit-panel-status-dot {
         width: 8px;
@@ -952,26 +934,24 @@
         box-shadow: 0 0 0 4px rgba(20, 184, 166, 0.18);
     }
     .edit-panel-grid {
-        display: flex;
-        align-items: center;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 6px;
-        flex-wrap: nowrap;
     }
     .geometry-tool-group {
-        display: inline-flex;
-        align-items: center;
-        gap: 6px;
-        flex-wrap: nowrap;
+        display: grid;
+        gap: 10px;
+        padding-top: 12px;
+        border-top: 1px solid #e5e7eb;
     }
     .geometry-tool-section {
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        flex-wrap: nowrap;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 6px;
     }
     .geometry-tool-section + .geometry-tool-section {
-        padding-left: 7px;
-        border-left: 1px solid #e5e7eb;
+        padding-left: 0;
+        border-left: 0;
     }
     .geometry-tool-group[hidden] {
         display: none;
@@ -997,22 +977,34 @@
     }
     .edit-tool-btn {
         position: relative;
-        width: 32px;
-        height: 32px;
-        min-width: 32px;
-        min-height: 32px;
-        padding: 0;
-        border-radius: 999px;
+        width: auto;
+        height: auto;
+        min-width: 44px;
+        min-height: 48px;
+        padding: 7px 8px;
+        border-radius: 10px;
         border: 1px solid rgba(203, 213, 225, 0.92);
         background: linear-gradient(180deg, #fff, #f8fafc);
         color: #4b5563;
         display: inline-flex;
         align-items: center;
+        flex-direction: column;
         justify-content: center;
+        gap: 3px;
         box-shadow: 0 6px 16px rgba(15, 23, 42, 0.1);
         cursor: pointer;
         font-size: 18px;
         line-height: 1;
+    }
+    .edit-tool-label {
+        display: block;
+        max-width: 100%;
+        color: currentColor;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.15;
+        overflow-wrap: anywhere;
+        text-align: center;
     }
     .edit-tool-btn:hover,
     .edit-tool-btn:focus-visible,
@@ -1138,7 +1130,11 @@
         margin: 0 2px;
     }
     .edit-panel-helper {
-        display: none;
+        display: block;
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.45;
     }
     .menu-nested-section {
         padding-left: 14px;
@@ -1165,34 +1161,37 @@
         cursor: grabbing !important;
     }
     @media (max-width: 700px) {
-        .floating-toolbar {
-            top: 88px;
-            right: 10px;
-            max-width: calc(100vw - 20px);
+        #editFloatingPanel {
+            position: fixed;
+            top: auto !important;
+            right: max(8px, env(safe-area-inset-right, 0px)) !important;
+            bottom: max(8px, env(safe-area-inset-bottom, 0px));
+            left: max(8px, env(safe-area-inset-left, 0px)) !important;
+            width: auto !important;
+            max-width: none;
+            max-height: min(62dvh, 540px);
+            overflow: hidden;
+            border-radius: 20px;
         }
-        .floating-toolbar.docked {
-            height: 44px;
+        #editFloatingPanel .edit-panel-header {
+            flex: 0 0 auto;
+            cursor: default;
         }
-        .toolbar-layer-select {
-            max-width: 210px;
+        #editFloatingPanel .edit-panel-body {
+            min-height: 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
         }
-        .edit-panel-field {
-            flex-basis: clamp(130px, 36vw, 210px);
+        #editPanelPinBtn {
+            display: none;
         }
-        .edit-panel-body {
-            gap: 5px;
+        .edit-panel-grid,
+        .geometry-tool-section {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
         }
         .edit-tool-btn {
-            width: 40px;
-            height: 40px;
-            min-width: 40px;
-            min-height: 40px;
-        }
-        .edit-panel-body {
-            min-height: 50px;
-        }
-        .geometry-tool-section + .geometry-tool-section {
-            padding-left: 6px;
+            min-height: 52px;
         }
         .edit-selected-badge {
             height: 32px;
@@ -3492,8 +3491,11 @@
     #dropboxProjectContextMenu,
     #layerContextMenu {
         position: fixed;
-        z-index: 1600;
-        min-width: 160px;
+        z-index: 2600;
+        min-width: 240px;
+        max-width: min(280px, calc(100vw - 16px));
+        max-height: calc(100dvh - 16px);
+        overflow-y: auto;
         padding: 8px;
         border-radius: 12px;
         background: rgba(8, 18, 30, 0.96);
@@ -3503,8 +3505,97 @@
         gap: 6px;
     }
     #dropboxProjectContextMenu[hidden],
-    #layerContextMenu[hidden] {
+    #layerContextMenu[hidden],
+    #layerContextBackdrop[hidden] {
         display: none;
+    }
+    #layerContextBackdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 2590;
+        background: rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+    .layer-context-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 6px 8px;
+    }
+    .layer-context-heading {
+        min-width: 0;
+    }
+    .layer-context-heading h3 {
+        margin: 0;
+        overflow: hidden;
+        color: #eef6fb;
+        font-size: 15px;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .layer-context-heading p {
+        margin: 3px 0 0;
+        color: #97aabd;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    .layer-context-close {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        color: #d7e4ef;
+        font: inherit;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .layer-context-group {
+        display: grid;
+        gap: 6px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .layer-context-group + .layer-context-group {
+        margin-top: 8px;
+    }
+    .layer-context-order {
+        padding: 0;
+    }
+    .layer-context-order summary {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        border-radius: 10px;
+        color: #c2d2e1;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        list-style: none;
+    }
+    .layer-context-order summary::-webkit-details-marker {
+        display: none;
+    }
+    .layer-context-order summary::after {
+        content: "›";
+        font-size: 18px;
+        transform: rotate(90deg);
+        transition: transform 160ms ease;
+    }
+    .layer-context-order[open] summary::after {
+        transform: rotate(-90deg);
+    }
+    .layer-context-order-actions {
+        display: grid;
+        gap: 6px;
+        padding-top: 6px;
     }
     .context-menu-btn {
         border: 1px solid rgba(255,255,255,0.08);
@@ -3515,10 +3606,24 @@
         text-align: left;
         cursor: pointer;
     }
+    .context-menu-btn.danger {
+        border-color: rgba(255,107,107,0.2);
+        color: #ffb5b5;
+    }
+    .context-menu-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+    .layer-context-close:focus-visible,
+    .layer-context-order summary:focus-visible,
+    .context-menu-btn:focus-visible {
+        outline: 3px solid rgba(45, 212, 191, 0.42);
+        outline-offset: 2px;
+    }
     .mobile-context-trigger {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
         border-radius: 999px;
         border: 1px solid rgba(203, 213, 225, 0.92);
         background: rgba(255, 255, 255, 0.96);
@@ -4394,6 +4499,78 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
     }
+    @media (max-width: 820px) {
+        body.layer-context-open {
+            overflow: hidden;
+        }
+        #layerContextBackdrop {
+            background: rgba(15, 23, 42, 0.36);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        #layerContextMenu {
+            inset: auto 0 0 !important;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            max-height: min(82dvh, 680px);
+            box-sizing: border-box;
+            padding: 10px 12px calc(68px + env(safe-area-inset-bottom));
+            border-radius: 20px 20px 0 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            box-shadow: 0 -16px 44px rgba(15, 23, 42, 0.24);
+        }
+        .layer-context-header {
+            position: sticky;
+            top: -10px;
+            z-index: 1;
+            margin: -2px -4px 0;
+            padding: 10px 8px 12px;
+            background: rgba(255,255,255,0.98);
+        }
+        .layer-context-heading h3 {
+            color: #1f2937;
+            font-size: 18px;
+        }
+        .layer-context-heading p {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .layer-context-close {
+            width: 44px;
+            height: 44px;
+            flex-basis: 44px;
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        .layer-context-group {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            border-color: rgba(209, 213, 219, 0.82);
+        }
+        .layer-context-group[data-group="primary"] .context-menu-btn:first-child,
+        .layer-context-group[data-group="danger"] .context-menu-btn,
+        .layer-context-order {
+            grid-column: 1 / -1;
+        }
+        .context-menu-btn,
+        .layer-context-order summary {
+            min-height: 48px;
+            padding: 11px 12px;
+            font-size: 14px;
+        }
+        .layer-context-order-actions {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .mobile-context-trigger {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            margin: -6px;
+        }
+    }
     .layer-modal-grid .full {
         grid-column: 1 / -1;
     }
@@ -5046,6 +5223,11 @@
         background: #f3f4f6;
         color: #374151;
         border-color: rgba(190, 197, 205, 0.9);
+    }
+    .context-menu-btn.danger {
+        border-color: rgba(239, 68, 68, 0.22);
+        background: rgba(254, 242, 242, 0.96);
+        color: #b42318;
     }
     .menu-command:disabled,
     .menu-command.is-disabled,
@@ -7266,29 +7448,29 @@
         </div>
     </div>
     <div class="map-controls"></div>
-    <div id="editFloatingPanel" class="floating-toolbar" hidden aria-label="Edit toolbar">
+    <section id="editFloatingPanel" class="floating-toolbar" hidden role="region" aria-labelledby="editPanelTitle" aria-describedby="editPanelHelp">
         <div id="editPanelDragHandle" class="edit-panel-header">
-            <span class="edit-panel-title">Edit Tools</span>
+            <span id="editPanelTitle" class="edit-panel-title">Edit features</span>
             <span class="edit-panel-actions">
                 <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Dock edit toolbar below menu" title="Dock below menu">⇥</button>
                 <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit toolbar" title="Close">×</button>
             </span>
         </div>
         <div class="edit-panel-body">
-            <div id="editPanelStatus" class="edit-panel-status">
+            <div id="editPanelStatus" class="edit-panel-status" role="status" aria-live="polite">
                 <span><span class="edit-panel-status-dot" aria-hidden="true"></span> <span id="editPanelStatusText">Editing stopped</span></span>
-                <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span></button>
+                <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span><span class="edit-tool-label">Start</span></button>
             </div>
             <div class="edit-panel-field">
                 <label for="editPanelLayerSelect">Layer</label>
                 <select id="editPanelLayerSelect" class="workspace-text-input toolbar-layer-select"></select>
             </div>
             <div class="edit-panel-grid">
-                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↶</span></button>
-                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↷</span></button>
-                <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span></button>
-                <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
-                <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
+                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↶</span><span class="edit-tool-label">Undo</span></button>
+                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↷</span><span class="edit-tool-label">Redo</span></button>
+                <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span><span class="edit-tool-label">Add feature</span></button>
+                <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span><span class="edit-tool-label">Attributes</span></button>
+                <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span><span class="edit-tool-label">Geometry</span></button>
             </div>
             <div id="editPanelGeometryTools" class="geometry-tool-group" hidden>
                 <span id="editPanelSelectedBadge" class="edit-selected-badge" title="Selected editable features">0</span>
@@ -7311,7 +7493,7 @@
             </div>
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
-    </div>
+    </section>
     <div id="layerToolsPanel" class="floating-toolbar" hidden aria-label="Layer tools toolbar">
         <div id="layerToolsDragHandle" class="edit-panel-header">
             <span class="edit-panel-title">Layer Tools</span>
@@ -7656,20 +7838,39 @@
     <div id="dropboxProjectContextMenu" hidden>
         <button id="contextAddToMapBtn" type="button" class="context-menu-btn">Add to Map</button>
     </div>
-    <div id="layerContextMenu" hidden>
-        <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set active layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="edit">Edit layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer properties</button>
-        <button id="layerContextMoveUpBtn" type="button" class="context-menu-btn" data-layer-context-action="move-up">Move up</button>
-        <button id="layerContextMoveDownBtn" type="button" class="context-menu-btn" data-layer-context-action="move-down">Move down</button>
-        <button id="layerContextMoveTopBtn" type="button" class="context-menu-btn" data-layer-context-action="move-top">Move to top</button>
-        <button id="layerContextMoveBottomBtn" type="button" class="context-menu-btn" data-layer-context-action="move-bottom">Move to bottom</button>
-        <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
-    </div>
+    <div id="layerContextBackdrop" hidden></div>
+    <section id="layerContextMenu" role="dialog" aria-modal="false" aria-labelledby="layerContextTitle" aria-describedby="layerContextDescription" tabindex="-1" hidden>
+        <div class="layer-context-header">
+            <div class="layer-context-heading">
+                <h3 id="layerContextTitle">Layer actions</h3>
+                <p id="layerContextDescription">Choose what to do with this layer.</p>
+            </div>
+            <button id="layerContextCloseBtn" type="button" class="layer-context-close" aria-label="Close layer actions">×</button>
+        </div>
+        <div class="layer-context-group" data-group="primary">
+            <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="edit">Edit features</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
+        </div>
+        <div class="layer-context-group" data-group="manage">
+            <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set as active</button>
+            <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer settings</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
+            <details id="layerContextOrder" class="layer-context-order">
+                <summary>Drawing order</summary>
+                <div class="layer-context-order-actions">
+                    <button id="layerContextMoveUpBtn" type="button" class="context-menu-btn" data-layer-context-action="move-up">Move up</button>
+                    <button id="layerContextMoveDownBtn" type="button" class="context-menu-btn" data-layer-context-action="move-down">Move down</button>
+                    <button id="layerContextMoveTopBtn" type="button" class="context-menu-btn" data-layer-context-action="move-top">Move to top</button>
+                    <button id="layerContextMoveBottomBtn" type="button" class="context-menu-btn" data-layer-context-action="move-bottom">Move to bottom</button>
+                </div>
+            </details>
+        </div>
+        <div class="layer-context-group" data-group="danger">
+            <button type="button" class="context-menu-btn danger" data-layer-context-action="remove">Remove layer…</button>
+        </div>
+    </section>
     <div id="mapPrintHeader" class="map-print-header" aria-hidden="true">
         <strong id="mapPrintTitle">LalGeo Map</strong>
         <span id="mapPrintMeta"></span>
@@ -8030,7 +8231,12 @@
         const dataCatalogMeta = document.getElementById("dataCatalogMeta");
         const dropboxProjectContextMenu = document.getElementById("dropboxProjectContextMenu");
         const contextAddToMapBtn = document.getElementById("contextAddToMapBtn");
+        const layerContextBackdrop = document.getElementById("layerContextBackdrop");
         const layerContextMenu = document.getElementById("layerContextMenu");
+        const layerContextTitle = document.getElementById("layerContextTitle");
+        const layerContextDescription = document.getElementById("layerContextDescription");
+        const layerContextCloseBtn = document.getElementById("layerContextCloseBtn");
+        const layerContextOrder = document.getElementById("layerContextOrder");
         const layerContextToggleBtn = document.getElementById("layerContextToggleBtn");
         const layerContextMoveUpBtn = document.getElementById("layerContextMoveUpBtn");
         const layerContextMoveDownBtn = document.getElementById("layerContextMoveDownBtn");
@@ -10683,7 +10889,7 @@
                                     <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
                                     <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-down" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} down">↓</button>
                                 </span>
-                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
+                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}" aria-haspopup="dialog" aria-controls="layerContextMenu" aria-expanded="false">...</button>
                             </div>
                         </div>
                     `).join("");
@@ -10811,7 +11017,7 @@
                             <div class="layer-pane-actions">
                                 <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
                                 <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-down" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} down">↓</button>
-                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
+                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}" aria-haspopup="dialog" aria-controls="layerContextMenu" aria-expanded="false">...</button>
                             </div>
                         </div>
                     `).join("") || `<p class="layer-pane-helper">Tap Add Layer from the menu to create a layer.</p>`}
@@ -10849,9 +11055,18 @@
             });
         }
 
-        function hideLayerContextMenu() {
+        let layerContextTrigger = null;
+
+        function hideLayerContextMenu({ restoreFocus = false } = {}) {
+            const trigger = layerContextTrigger;
+            if (trigger?.isConnected) trigger.setAttribute("aria-expanded", "false");
             contextLayerId = null;
             if (layerContextMenu) layerContextMenu.hidden = true;
+            if (layerContextBackdrop) layerContextBackdrop.hidden = true;
+            if (layerContextOrder) layerContextOrder.open = false;
+            document.body.classList.remove("layer-context-open");
+            layerContextTrigger = null;
+            if (restoreFocus && trigger?.isConnected && !trigger.hidden) trigger.focus();
         }
 
         function getLayerOrderIndex(layerId) {
@@ -10869,24 +11084,36 @@
             if (layerContextMoveBottomBtn) layerContextMoveBottomBtn.disabled = !canMoveDown;
         }
 
-        function showLayerContextMenu(layerId, event) {
+        function prepareLayerContextMenu(layerId, trigger = null) {
             contextLayerId = layerId || null;
             const layer = contextLayerId ? getLayerById(contextLayerId) : null;
+            layerContextTrigger = trigger;
+            if (layerContextTrigger) layerContextTrigger.setAttribute("aria-expanded", "true");
+            if (layerContextTitle) layerContextTitle.textContent = layer?.name || "Layer actions";
+            if (layerContextDescription) {
+                const geometry = normalizeLayerGeometryType(layer?.geometryType || "point");
+                const featureCount = Array.isArray(layer?.features) ? layer.features.length : 0;
+                layerContextDescription.textContent = `${geometry[0].toUpperCase()}${geometry.slice(1)} layer · ${featureCount} feature${featureCount === 1 ? "" : "s"}`;
+            }
             if (layerContextToggleBtn && layer) {
                 layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
             }
             updateLayerContextMoveButtons(contextLayerId);
+            if (layerContextBackdrop) layerContextBackdrop.hidden = window.innerWidth > 820;
+            if (layerContextMenu) layerContextMenu.setAttribute("aria-modal", window.innerWidth <= 820 ? "true" : "false");
+            document.body.classList.toggle("layer-context-open", window.innerWidth <= 820);
+        }
+
+        function showLayerContextMenu(layerId, event) {
+            prepareLayerContextMenu(layerId, event.target?.closest?.("[data-layer-actions]") || null);
             positionContextMenu(layerContextMenu, event);
+            layerContextMenu?.focus();
         }
 
         function showLayerContextMenuForElement(layerId, element) {
-            contextLayerId = layerId || null;
-            const layer = contextLayerId ? getLayerById(contextLayerId) : null;
-            if (layerContextToggleBtn && layer) {
-                layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
-            }
-            updateLayerContextMoveButtons(contextLayerId);
+            prepareLayerContextMenu(layerId, element);
             positionContextMenuNearElement(layerContextMenu, element);
+            layerContextMenu?.focus();
         }
 
         function getEditPanelLayerId() {
@@ -10984,7 +11211,7 @@
             if (editPanelSessionBtn) {
                 editPanelSessionBtn.dataset.tooltip = editSessionActive ? "Stop editing" : "Start editing";
                 editPanelSessionBtn.setAttribute("aria-label", editSessionActive ? "Stop editing" : "Start editing");
-                editPanelSessionBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${editSessionActive ? "■" : "▶"}</span>`;
+                editPanelSessionBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${editSessionActive ? "■" : "▶"}</span><span class="edit-tool-label">${editSessionActive ? "Stop" : "Start"}</span>`;
                 editPanelSessionBtn.classList.toggle("red", editSessionActive);
             }
             if (editPanelAddFeatureBtn) editPanelAddFeatureBtn.disabled = !canEdit;
@@ -11077,7 +11304,7 @@
                 const addLabel = canFinishGeometry ? `Finish ${geometryType}` : isAddingSurveyPoint ? (geometryTraceMode ? `Trace ${geometryType} vertex` : `Add ${geometryType} vertex`) : "Add feature";
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
-                editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span>`;
+                editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span><span class="edit-tool-label">${canFinishGeometry ? "Finish" : isAddingSurveyPoint ? "Add vertex" : "Add feature"}</span>`;
                 if (isAddingSurveyPoint) {
                     setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : geometryTraceMode ? "Tracing" : "Drawing");
                 } else {
@@ -12697,21 +12924,24 @@
             }
             openLayerActionModal({
                 title: "New Layer",
+                description: "Add a point, line, or polygon layer to the current project.",
                 bodyHtml: `
                     <div class="layer-modal-grid">
                         <div class="workspace-field full">
                             <label for="layerModalName">Name</label>
-                            <input id="layerModalName" class="workspace-text-input" type="text" placeholder="Inspection points" autofocus>
+                            <input id="layerModalName" class="workspace-text-input" type="text" placeholder="Inspection points" aria-label="Layer name" aria-describedby="layerModalNameHelp layerModalValidation" aria-required="true" required autofocus>
+                            <div id="layerModalNameHelp" class="workspace-panel-muted">Use a short name that distinguishes this layer in the project.</div>
                         </div>
                         <div class="workspace-field full">
                             <label for="layerModalGeometry">Geometry</label>
-                            <select id="layerModalGeometry" class="workspace-text-input">
+                            <select id="layerModalGeometry" class="workspace-text-input" aria-label="Layer geometry" aria-describedby="layerModalGeometryHelp">
                                 <option value="point">Point</option>
                                 <option value="line">Line</option>
                                 <option value="polygon">Polygon</option>
                             </select>
+                            <div id="layerModalGeometryHelp" class="workspace-panel-muted">Choose the shape each feature in this layer will use.</div>
                         </div>
-                        <div id="layerModalValidation" class="workspace-validation full" hidden>Enter a layer name to continue.</div>
+                        <div id="layerModalValidation" class="workspace-validation full" role="status">Enter a layer name to continue.</div>
                     </div>
                 `,
                 actions: [
@@ -12754,8 +12984,14 @@
                         const valid = Boolean(nameInput?.value?.trim());
                         if (createButton) createButton.disabled = !valid;
                         if (validation) validation.hidden = valid;
+                        nameInput?.setAttribute("aria-invalid", valid ? "false" : "true");
                     };
                     nameInput?.addEventListener("input", syncLayerModalState);
+                    nameInput?.addEventListener("keydown", (event) => {
+                        if (event.key !== "Enter" || event.isComposing || createButton?.disabled) return;
+                        event.preventDefault();
+                        createButton.click();
+                    });
                     syncLayerModalState();
                 }
             });
@@ -14652,8 +14888,9 @@
             document.addEventListener("keydown", trapLayerActionModalFocus, true);
             queueMicrotask(() => {
                 onOpen?.();
-                const autofocus = layerActionModal.querySelector("[autofocus], input, select, textarea, button");
-                autofocus?.focus();
+                const initialFocus = layerActionModal.querySelector("[autofocus]")
+                    || layerActionModal.querySelector("input, select, textarea, button");
+                initialFocus?.focus();
             });
         }
 
@@ -15286,7 +15523,10 @@
             event.stopPropagation();
             setEditSessionActive(!editSessionActive);
         });
-        editPanelCloseBtn?.addEventListener("click", () => setEditSessionActive(false));
+        editPanelCloseBtn?.addEventListener("click", () => {
+            setEditSessionActive(false);
+            window.setTimeout(() => (editPanelToggleBtn?.offsetParent ? editPanelToggleBtn : leftToolbarExpandBtn)?.focus(), 200);
+        });
         editPanelPinBtn?.addEventListener("click", () => {
             if (!editFloatingPanel) return;
             if (editPanelPinned) {
@@ -15446,6 +15686,23 @@
             }
             if (layerContextMenu && !layerContextMenu.contains(event.target)) {
                 hideLayerContextMenu();
+            }
+        });
+        layerContextBackdrop?.addEventListener("click", () => hideLayerContextMenu({ restoreFocus: true }));
+        layerContextCloseBtn?.addEventListener("click", () => hideLayerContextMenu({ restoreFocus: true }));
+        layerContextMenu?.addEventListener("keydown", (event) => {
+            if (event.key !== "Tab" || window.innerWidth > 820) return;
+            const focusable = [...layerContextMenu.querySelectorAll("button:not([disabled]), summary")]
+                .filter((element) => element.offsetParent !== null);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
             }
         });
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
@@ -15769,7 +16026,7 @@
                     return;
                 }
                 if (layerContextMenu && !layerContextMenu.hidden) {
-                    hideLayerContextMenu();
+                    hideLayerContextMenu({ restoreFocus: true });
                     return;
                 }
                 if (settingsPanel && !settingsPanel.hidden) {
@@ -15787,6 +16044,12 @@
                 if (isAddingSurveyPoint) {
                     exitAddSurveyPointMode();
                     setProjectStatus("Point placement cancelled.", "success");
+                    return;
+                }
+                if (editSessionActive) {
+                    event.preventDefault();
+                    setEditSessionActive(false);
+                    window.setTimeout(() => (editPanelToggleBtn?.offsetParent ? editPanelToggleBtn : leftToolbarExpandBtn)?.focus(), 200);
                     return;
                 }
                 if (!createProjectModal.hidden) {

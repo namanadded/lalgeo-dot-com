@@ -69,10 +69,41 @@ export function cloneSchema(schema = getDefaultSchema()) {
 }
 
 export function serializeLalDocument(layer, options = {}) {
-  const normalized = normalizeLalDocument(layer);
-  normalized.metadata.featureCount = normalized.features.length;
-  normalized.metadata.updatedAt = new Date().toISOString();
+  const canonical = isCanonicalLalDocument(layer);
+  const normalized = canonical
+    ? {
+        ...layer,
+        metadata: {
+          ...layer.metadata,
+          featureCount: layer.features.length,
+          updatedAt: new Date().toISOString(),
+        },
+      }
+    : normalizeLalDocument(layer);
+  if (!canonical) {
+    normalized.metadata.featureCount = normalized.features.length;
+    normalized.metadata.updatedAt = new Date().toISOString();
+  }
   return JSON.stringify(normalized, null, options.pretty === false ? undefined : 2);
+}
+
+function isCanonicalLalDocument(layer) {
+  if (
+    layer?.kind !== "lal-layer"
+    || !Number.isSafeInteger(layer.version)
+    || !layer.metadata
+    || !Array.isArray(layer.schema)
+    || !layer.style
+    || !Array.isArray(layer.features)
+    || !layer.revision
+  ) return false;
+  return layer.features.every((feature) => (
+    typeof feature?.id === "string"
+    && typeof feature?.geometry?.type === "string"
+    && Array.isArray(feature.geometry.coordinates)
+    && feature.properties
+    && typeof feature.properties === "object"
+  ));
 }
 
 export async function parseLalArrayBuffer(buffer, filename = "layer.lal") {
