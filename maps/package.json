@@ -35,6 +35,7 @@
     "test:off-canvas-panel-a11y": "node scripts/test-off-canvas-panel-a11y.mjs",
     "test:workflow-ui": "node scripts/test-workflow-ui.mjs",
     "test:layer-import-journey": "node scripts/test-layer-import-journey.mjs",
+    "test:layer-actions-journey": "node scripts/test-layer-actions-journey.mjs",
     "test:layer-selection-controls": "node scripts/test-layer-selection-controls.mjs",
     "test:new-layer-dialog-journey": "node scripts/test-new-layer-dialog-journey.mjs",
     "test:table-selection-filter-states": "node scripts/test-table-selection-filter-states.mjs",
