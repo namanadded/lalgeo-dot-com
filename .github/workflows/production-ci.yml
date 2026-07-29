@@ -140,6 +140,10 @@ jobs:
         working-directory: maps
         run: npm run test:shapefile-integrity
 
+      - name: Check LalGeo project format integrity
+        working-directory: maps
+        run: npm run test:lalgeo-project-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence

@@ -9259,7 +9259,12 @@
                 createdAt: layer?.parsed?.createdAt || layer?.metadata?.createdAt || new Date().toISOString(),
                 headers: schema.map((field) => field.name),
                 records: features.map((feature) => {
-                    const row = Object.fromEntries(schema.map((field) => [field.name, feature.attributes?.[field.name] ?? ""]));
+                    const row = Object.fromEntries(schema.map((field) => [
+                        field.name,
+                        Object.prototype.hasOwnProperty.call(feature.attributes || {}, field.name)
+                            ? feature.attributes[field.name]
+                            : ""
+                    ]));
                     if (pointLayer) {
                         row.Latitude = feature.geometry?.lat ?? "";
                         row.Longitude = feature.geometry?.lng ?? "";
@@ -9279,6 +9284,101 @@
                 archivePointMeta: [],
                 layerName: layer?.name || "Layer"
             };
+        }
+
+        function validateLalGeoProject(project, { fileName = "LalGeo package" } = {}) {
+            if (!project || typeof project !== "object" || Array.isArray(project)) {
+                throw new Error(`${fileName} does not contain a valid LalGeo project object.`);
+            }
+            if (!Array.isArray(project.layers) || !project.layers.length) {
+                throw new Error(`${fileName} must contain at least one project layer.`);
+            }
+            let normalizedProject;
+            try {
+                normalizedProject = JSON.parse(JSON.stringify(project));
+            } catch {
+                throw new Error(`${fileName} contains values that cannot be read as a LalGeo project.`);
+            }
+            const seenLayerIds = new Set();
+            const validateCoordinate = (coordinate, label) => {
+                const lat = coordinate?.lat;
+                const lng = coordinate?.lng;
+                if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
+                    throw new Error(`${label} has an invalid coordinate. Use numeric WGS84 latitude -90 to 90 and longitude -180 to 180.`);
+                }
+            };
+            normalizedProject.layers = normalizedProject.layers.map((layer, layerIndex) => {
+                const layerLabel = `LalGeo layer ${layerIndex + 1}${layer?.name ? ` (${layer.name})` : ""}`;
+                if (!layer || typeof layer !== "object" || Array.isArray(layer)) {
+                    throw new Error(`${layerLabel} is not a valid layer object.`);
+                }
+                if (!Array.isArray(layer.features)) {
+                    throw new Error(`${layerLabel} is missing its feature list. Re-export the project from LalGeo.`);
+                }
+                const geometryType = normalizeLayerGeometryType(layer.geometryType || layer?.parsed?.geometryType || "");
+                const expectedGeometry = geometryType === "line" ? "LineString" : geometryType === "polygon" ? "Polygon" : "Point";
+                layer.id = String(layer.id || generateWorkspaceId("layer"));
+                if (seenLayerIds.has(layer.id)) {
+                    throw new Error(`${layerLabel} reuses layer id "${layer.id}". Give every layer a unique id and try again.`);
+                }
+                seenLayerIds.add(layer.id);
+                layer.geometryType = geometryType;
+                const attributeNames = new Set();
+                layer.features = layer.features.map((feature, featureIndex) => {
+                    const featureLabel = `${layerLabel}, feature ${featureIndex + 1}`;
+                    if (!feature || typeof feature !== "object" || Array.isArray(feature)) {
+                        throw new Error(`${featureLabel} is not a valid feature object.`);
+                    }
+                    if (!feature.geometry || feature.geometry.type !== expectedGeometry) {
+                        throw new Error(`${featureLabel} must contain ${expectedGeometry} geometry to match its layer.`);
+                    }
+                    if (!feature.attributes || typeof feature.attributes !== "object" || Array.isArray(feature.attributes)) {
+                        throw new Error(`${featureLabel} is missing its attribute object.`);
+                    }
+                    Object.keys(feature.attributes).forEach((name) => attributeNames.add(name));
+                    if (expectedGeometry === "Point") {
+                        validateCoordinate(feature.geometry, featureLabel);
+                    } else if (expectedGeometry === "LineString") {
+                        if (!Array.isArray(feature.geometry.coordinates) || feature.geometry.coordinates.length < 2) {
+                            throw new Error(`${featureLabel} needs at least two line vertices.`);
+                        }
+                        feature.geometry.coordinates.forEach((coordinate, coordinateIndex) => (
+                            validateCoordinate(coordinate, `${featureLabel}, vertex ${coordinateIndex + 1}`)
+                        ));
+                    } else {
+                        if (!Array.isArray(feature.geometry.rings) || !feature.geometry.rings.length) {
+                            throw new Error(`${featureLabel} needs an outer polygon ring.`);
+                        }
+                        feature.geometry.rings.forEach((ring, ringIndex) => {
+                            if (!Array.isArray(ring) || ring.length < 3) {
+                                throw new Error(`${featureLabel}, ring ${ringIndex + 1} needs at least three vertices.`);
+                            }
+                            ring.forEach((coordinate, coordinateIndex) => (
+                                validateCoordinate(coordinate, `${featureLabel}, ring ${ringIndex + 1}, vertex ${coordinateIndex + 1}`)
+                            ));
+                        });
+                    }
+                    feature.id = String(feature.id || generateWorkspaceId("feature"));
+                    return feature;
+                });
+                const schema = Array.isArray(layer.schema) ? layer.schema.filter((field) => field?.name) : [];
+                const schemaNames = new Set(schema.map((field) => field.name));
+                attributeNames.forEach((name) => {
+                    if (!schemaNames.has(name)) {
+                        schema.push({ name, type: "text", options: [], locked: false });
+                        schemaNames.add(name);
+                    }
+                });
+                layer.schema = schema;
+                return ensureLayerStructure(layer);
+            });
+            if (!normalizedProject.name || typeof normalizedProject.name !== "string") {
+                normalizedProject.name = stripExtension(fileName) || "Imported Project";
+            }
+            normalizedProject.activeLayerId = seenLayerIds.has(normalizedProject.activeLayerId)
+                ? normalizedProject.activeLayerId
+                : normalizedProject.layers[0].id;
+            return normalizedProject;
         }
 
         function ensureLayerStructure(layer) {
@@ -11834,7 +11934,9 @@
                 preserveRegion
             });
             if (payload?.project?.layers?.length) {
-                const importedProject = payload.project;
+                const importedProject = validateLalGeoProject(payload.project, {
+                    fileName: payload.fileName || payload.projectName || "LalGeo package"
+                });
                 importedProject.id = generateWorkspaceId("project");
                 importedProject.storageSource = importedProject.storageSource || "Imported";
                 importedProject.metadata = importedProject.metadata || {};
@@ -17930,7 +18032,7 @@
             if (!files || !files.length) throw new Error("No files provided.");
             const geospatialPayload = await buildGeospatialPayload(files);
             if (geospatialPayload) return geospatialPayload;
-            const zipFile = files.find(file => isSurveyArchiveName(file.name));
+            const zipFile = files.find((file) => /\.zip$/i.test(file.name || ""));
             if (zipFile) {
                 return await extractZipPackage(zipFile, { projectName: stripExtension(zipFile.name) });
             }
@@ -18474,7 +18576,8 @@
             const images = {};
             const csvTexts = [];
             let surveyDoc = null;
-            let projectBundle = null;
+            const projectBundles = [];
+            const malformedProjectFiles = [];
             const entries = Object.keys(zip.files);
             await Promise.all(entries.map(async (path) => {
                 const entry = zip.files[path];
@@ -18486,12 +18589,13 @@
                         const text = await entry.async("string");
                         const doc = JSON.parse(text);
                         if (doc?.project?.layers?.length) {
-                            projectBundle = doc;
+                            projectBundles.push({ path, doc });
                         } else if (doc && typeof doc === "object" && (doc.fields || doc.points)) {
                             surveyDoc = doc;
                         }
                     } catch (err) {
-                        console.warn("Failed to parse survey JSON in zip", err);
+                        if (/\.lal$/i.test(path)) malformedProjectFiles.push(path);
+                        else console.warn("Failed to parse survey JSON in zip", err);
                     }
                 } else if (/\.(jpg|jpeg|png)$/i.test(path)) {
                     const base64 = await entry.async("base64");
@@ -18500,13 +18604,21 @@
                     images[filename] = `data:${mime};base64,${base64}`;
                 }
             }));
+            if (projectBundles.length > 1) {
+                throw new Error(`ZIP contains multiple LalGeo project files (${projectBundles.map((item) => item.path).join(", ")}). Keep one .lal project and try again.`);
+            }
+            if (!projectBundles.length && malformedProjectFiles.length) {
+                throw new Error(`LalGeo project ${malformedProjectFiles[0]} is not valid JSON. Re-export it or repair the JSON and try again.`);
+            }
+            const projectBundle = projectBundles[0] || null;
             if (!csvTexts.length && !surveyDoc && !projectBundle) throw new Error("No CSV or project data found inside zip.");
             return {
                 csvText: csvTexts[0] || null,
                 survey: surveyDoc || null,
-                project: projectBundle?.project || null,
+                project: projectBundle?.doc?.project || null,
                 images,
-                projectName: projectName || "Survey"
+                projectName: projectName || "Survey",
+                fileName: projectBundle?.path || null
             };
         }
 
@@ -18529,7 +18641,10 @@
                         survey = parsedJson;
                     }
                 } catch (err) {
-                    console.error("Failed to parse survey JSON", err);
+                    if (/\.lal$/i.test(jsonFile.name)) {
+                        throw new Error(`${jsonFile.name} is not valid JSON. Re-export it from LalGeo or repair the JSON and try again.`);
+                    }
+                    throw new Error(`${jsonFile.name} could not be read as JSON.`);
                 }
             }
             if (!csvText && !survey && !project) throw new Error("No CSV or survey JSON found.");
@@ -18544,7 +18659,8 @@
                 survey,
                 project,
                 images,
-                projectName: stripExtension((csvFile || jsonFile).name)
+                projectName: stripExtension((csvFile || jsonFile).name),
+                fileName: (csvFile || jsonFile).name
             };
         }
 
