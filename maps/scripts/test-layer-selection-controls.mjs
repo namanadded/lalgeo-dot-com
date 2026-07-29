@@ -76,8 +76,8 @@ assert.match(
 );
 assert.match(
   source,
-  /layer-pane-helper-desktop">Drag layers to change drawing order\.<\/p>[\s\S]*?layer-pane-helper-mobile">Drag the handle or use ↑ \/ ↓/,
-  "Desktop should use concise reorder guidance while retaining the existing mobile guidance."
+  /layer-pane-helper-desktop">Drag layers to change drawing order\.<\/p>[\s\S]*?layer-pane-helper-mobile">Use More to change drawing order\.<\/p>/,
+  "Desktop should retain drag guidance while mobile points to the exposed ordering actions."
 );
 assert.match(
   source,
