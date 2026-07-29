@@ -7903,7 +7903,7 @@
         <h4>Start editing</h4>
         <p>Click Add New, then click on the map to place your first feature.</p>
     </div>
-    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel point placement or close panels.</div>
+    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel active feature drawing or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
     <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite" aria-hidden="true" inert>
@@ -15570,7 +15570,7 @@
                 setProjectStatus("Split preview cancelled.", "success");
                 return;
             }
-            if (isAddingSurveyPoint) exitAddSurveyPointMode();
+            if (isAddingSurveyPoint) cancelActiveFeaturePlacement();
         });
         editPanelSnapVerticesBtn?.addEventListener("click", () => {
             editSnapSettings.vertices = !editSnapSettings.vertices;
@@ -16042,8 +16042,7 @@
                     return;
                 }
                 if (isAddingSurveyPoint) {
-                    exitAddSurveyPointMode();
-                    setProjectStatus("Point placement cancelled.", "success");
+                    cancelActiveFeaturePlacement();
                     return;
                 }
                 if (editSessionActive) {
@@ -17628,6 +17627,18 @@
             }
             if (mapAddHint) mapAddHint.hidden = true;
             syncEditPanelState();
+        }
+
+        function cancelActiveFeaturePlacement() {
+            if (!isAddingSurveyPoint) return;
+            const geometryType = getActiveLayerGeometryType();
+            const wasTracing = geometryTraceMode;
+            exitAddSurveyPointMode();
+            hideWorkspaceHint();
+            const activity = geometryType === "point"
+                ? "Point placement"
+                : `${geometryType === "line" ? "Line" : "Polygon"} ${wasTracing ? "trace" : "drawing"}`;
+            setProjectStatus(`${activity} cancelled.`, "success");
         }
 
         async function handleNewSurveyPointPlacement(coordinate, options = {}) {
