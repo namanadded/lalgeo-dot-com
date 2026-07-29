@@ -78,7 +78,7 @@ assertContains(
   "Top edit button should toggle edit mode instead of showing tools independently.",
 );
 assertContains(
-  /editPanelCloseBtn\?\.addEventListener\("click", \(\) => setEditSessionActive\(false\)\);/,
+  /editPanelCloseBtn\?\.addEventListener\("click", \(\) => \{[\s\S]*?setEditSessionActive\(false\);[\s\S]*?\}\);/,
   "Closing the editing toolbar should exit edit mode.",
 );
 assertContains(

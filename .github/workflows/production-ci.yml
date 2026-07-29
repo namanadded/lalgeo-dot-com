@@ -143,6 +143,9 @@ jobs:
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
+      - name: Check low-memory project serialization
+        working-directory: maps
+        run: npm run test:lal-serialization
       - name: Benchmark scoped cloud catalog discovery
         working-directory: maps
         run: npm run benchmark:cloud-catalog
@@ -155,6 +158,9 @@ jobs:
       - name: Benchmark verified cloud downloads
         working-directory: maps
         run: npm run benchmark:cloud-download
+      - name: Benchmark low-memory project serialization
+        working-directory: maps
+        run: npm run benchmark:lal-serialization
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization
@@ -191,6 +197,10 @@ jobs:
         working-directory: maps
         run: npm run test:layer-selection-controls
 
+      - name: Check new layer dialog journey
+        working-directory: maps
+        run: npm run test:new-layer-dialog-journey
+
       - name: Check table selection filter states
         working-directory: maps
         run: npm run test:table-selection-filter-states
@@ -202,6 +212,10 @@ jobs:
       - name: Check maps location journey
         working-directory: maps
         run: npm run test:location-journey
+
+      - name: Check maps editing journey
+        working-directory: maps
+        run: npm run test:editing-journey
 
       - name: Check maps control layout
         working-directory: maps
