@@ -8454,6 +8454,96 @@
         stroke-linejoin: round;
     }
 
+    /* Desktop project title bar: keep project context quiet and the map dominant. */
+    @media (min-width: 601px) {
+        #toolbar {
+            min-height: 38px;
+            grid-template-rows: 36px;
+            row-gap: 0;
+            padding: 0 10px;
+            border: 0;
+            border-bottom: 1px solid rgba(209, 213, 219, 0.46);
+            border-radius: 0;
+            background: rgba(255, 255, 255, 0.82);
+            box-shadow:
+                0 2px 10px rgba(15, 23, 42, 0.055),
+                inset 0 1px 0 rgba(255, 255, 255, 0.68);
+            backdrop-filter: blur(20px) saturate(140%);
+            -webkit-backdrop-filter: blur(20px) saturate(140%);
+        }
+        #toolbar .toolbar-left .brand-logo {
+            height: 32px;
+            transform: none;
+        }
+        #toolbar .brand-menu-btn {
+            height: 32px;
+            min-height: 32px;
+        }
+        #toolbar .toolbar-center {
+            position: static;
+            width: 100%;
+            transform: none;
+        }
+        #toolbar .toolbar-project-mini {
+            gap: 0;
+            max-width: min(560px, 46vw);
+        }
+        #toolbar .toolbar-project-mini > span {
+            color: var(--map-ui-muted, #8b949e);
+            font-size: 9px;
+            font-weight: 650;
+            line-height: 1;
+            letter-spacing: 0.1em;
+        }
+        #toolbar .toolbar-project-title-row {
+            position: relative;
+            width: fit-content;
+            max-width: calc(100% - 32px);
+            margin: 0 auto;
+            gap: 0;
+        }
+        #toolbar .toolbar-project-title-row strong {
+            width: auto;
+            max-width: 100%;
+            color: var(--map-ui-title, #1f2937);
+            font-size: 14px;
+            font-weight: 650;
+            line-height: 1.1;
+            letter-spacing: -0.01em;
+        }
+        #toolbar .toolbar-project-rename {
+            position: absolute;
+            left: calc(100% + 3px);
+            top: 50%;
+            width: 26px;
+            height: 26px;
+            flex-basis: 26px;
+            border-radius: var(--map-ui-radius-utility, 7px);
+            color: var(--map-ui-muted, #8b949e);
+            transform: translateY(-50%);
+        }
+        #toolbar .toolbar-project-rename:hover {
+            color: var(--map-ui-text, #4b5563);
+            background: var(--map-ui-hover, rgba(15, 23, 42, 0.055));
+        }
+        #toolbar .toolbar-project-rename:focus-visible {
+            color: var(--map-ui-text, #4b5563);
+            background: var(--map-ui-hover, rgba(15, 23, 42, 0.055));
+            outline: 2px solid var(--map-ui-focus, rgba(15, 118, 110, 0.42));
+            outline-offset: 1px;
+        }
+        #toolbar .toolbar-project-rename:active {
+            background: var(--map-ui-pressed, rgba(15, 23, 42, 0.09));
+            transform: translateY(-50%) scale(0.96);
+        }
+        #toolbar .toolbar-quick-actions {
+            top: 48px;
+            left: 50%;
+            right: auto;
+            transform: translateX(-50%);
+        }
+    }
+
     .map-print-header {
         display: none;
     }
