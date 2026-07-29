@@ -1714,14 +1714,41 @@
             left: 12px;
             right: 12px;
             width: auto;
-            padding: 14px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            box-shadow: 0 10px 28px rgba(15, 23, 42, 0.15);
+        }
+        .location-status-header {
+            align-items: center;
+            gap: 8px;
+        }
+        .location-status-icon {
+            flex-basis: 28px;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+        .location-status-copy strong {
+            margin-bottom: 1px;
+            font-size: 13px;
+        }
+        .location-status-copy p {
+            font-size: 12px;
+            line-height: 1.35;
         }
         .location-status-close {
             width: 44px;
             height: 44px;
-            margin: -8px -8px 0 0;
+            margin: -6px -8px -6px 0;
         }
-        .location-status-actions button { min-height: 44px; }
+        .location-status-actions {
+            margin-top: 6px;
+        }
+        .location-status-actions button {
+            min-height: 40px;
+            padding: 6px 12px;
+        }
     }
     @media (prefers-reduced-motion: reduce) {
         .location-status-card[data-state="loading"] .location-status-icon { animation: none; }
@@ -3274,6 +3301,7 @@
         color: #97aabd;
     }
     .layer-pane-helper-desktop,
+    .selection-pane-helper-desktop,
     .layer-visibility-icon {
         display: none;
     }
@@ -6749,7 +6777,13 @@
         #sidebar .layer-pane-helper-mobile {
             display: none;
         }
+        #sidebar .selection-pane-helper-mobile {
+            display: none;
+        }
         #sidebar .layer-pane-helper-desktop {
+            display: block;
+        }
+        #sidebar .selection-pane-helper-desktop {
             display: block;
         }
         #sidebar .layer-pane-row {
@@ -7234,6 +7268,9 @@
         }
         #desktopBasemapMenu {
             gap: 0;
+        }
+        .basemap-mobile-close {
+            display: none;
         }
         .basemap-popover-title {
             padding: 5px 7px 7px;
@@ -8469,6 +8506,9 @@
             --mobile-toolbar-bottom: max(62px, calc(env(safe-area-inset-bottom, 0px) + 10px));
             --mobile-toolbar-height: 58px;
             --mobile-map-chrome-clearance: 44px;
+            --mobile-sheet-inline: 16px;
+            --mobile-sheet-header-height: 44px;
+            --mobile-sheet-row-height: 44px;
         }
 
         #toolbar {
@@ -8639,6 +8679,9 @@
         #workspaceHint {
             bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
         }
+        #mapAddHint {
+            display: none !important;
+        }
 
         #sidebar,
         #measurementPanel,
@@ -8674,23 +8717,23 @@
             display: block;
             width: 36px;
             height: 4px;
-            margin: 7px auto 3px;
+            margin: 7px auto 2px;
             border-radius: 999px;
             background: rgba(107, 114, 128, 0.28);
             pointer-events: none;
         }
         #sidebar {
             max-height: min(62dvh, 520px);
-            padding: 4px 14px calc(var(--mobile-map-chrome-clearance) + 14px + env(safe-area-inset-bottom, 0px));
+            padding: 2px var(--mobile-sheet-inline) calc(var(--mobile-map-chrome-clearance) + 12px + env(safe-area-inset-bottom, 0px));
             overflow: hidden;
         }
         #sidebar .sidebar-shell {
             min-height: 0;
             max-height: calc(min(62dvh, 520px) - var(--mobile-map-chrome-clearance) - 28px - env(safe-area-inset-bottom, 0px));
-            gap: 8px;
+            gap: 6px;
         }
         #sidebar .sidebar-topbar {
-            min-height: 40px;
+            min-height: var(--mobile-sheet-header-height);
             align-items: center;
             padding: 0;
             border: 0;
@@ -8707,7 +8750,8 @@
         #sidebar .sidebar-close-btn,
         #measurementPanel .measurement-close,
         #advancedGisPanel .measurement-close,
-        #editFloatingPanel #editPanelCloseBtn {
+        #editFloatingPanel #editPanelCloseBtn,
+        #toolbarMenuTray .basemap-mobile-close {
             width: 44px;
             min-width: 44px;
             height: 44px;
@@ -8720,6 +8764,14 @@
             box-shadow: none;
             font-size: 20px;
         }
+        #sidebar .sidebar-close-btn:active,
+        #measurementPanel .measurement-close:active,
+        #advancedGisPanel .measurement-close:active,
+        #editFloatingPanel #editPanelCloseBtn:active,
+        #toolbarMenuTray .basemap-mobile-close:active {
+            background: rgba(15, 23, 42, 0.075);
+            transform: scale(0.96);
+        }
         #sidebar-content {
             min-height: 0;
             overflow-x: hidden;
@@ -8727,7 +8779,7 @@
             overscroll-behavior: contain;
         }
         #sidebar .sidebar-tabs {
-            height: 34px;
+            height: 32px;
             gap: 2px;
             padding: 2px;
             border: 0;
@@ -8735,7 +8787,7 @@
             background: rgba(15, 23, 42, 0.055);
         }
         #sidebar .sidebar-tab {
-            min-height: 30px;
+            min-height: 28px;
             border: 0;
             border-radius: 8px;
             font-size: 12px;
@@ -8744,17 +8796,17 @@
             display: grid;
             grid-template-columns: 44px minmax(0, 1fr) 44px;
             align-items: center;
-            gap: 4px;
-            min-height: 52px;
-            margin-top: 2px;
-            padding: 4px 2px;
+            gap: 2px;
+            min-height: 46px;
+            margin-top: 0;
+            padding: 1px 0;
             border: 0;
-            border-radius: 12px;
+            border-radius: 10px;
             background: transparent;
         }
         #sidebar .layer-pane-row.active {
-            background: rgba(15, 118, 110, 0.08);
-            box-shadow: inset 3px 0 0 rgba(15, 118, 110, 0.5);
+            background: rgba(15, 118, 110, 0.065);
+            box-shadow: inset 2px 0 0 rgba(15, 118, 110, 0.45);
         }
         #sidebar .layer-drag-handle,
         #sidebar .layer-pane-actions .layer-order-btn,
@@ -8791,18 +8843,69 @@
             width: 44px;
             margin: 0;
         }
+        #sidebar .layer-pane-helper {
+            margin: 0 2px 4px;
+            color: var(--mobile-tool-muted);
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #sidebar .selection-pane-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 4px;
+            margin: 0 0 4px;
+        }
+        #sidebar .selection-pane-actions .mini-btn {
+            width: auto;
+            min-width: 52px;
+            min-height: 40px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            box-shadow: none;
+            font-size: 12px;
+        }
+        #sidebar .selection-layer-list {
+            gap: 2px;
+        }
+        #sidebar .selection-layer-row {
+            min-height: 48px;
+            gap: 8px;
+            padding: 4px 6px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+        }
+        #sidebar .selection-layer-row:has(input:checked) {
+            background: rgba(15, 118, 110, 0.065);
+        }
+        #sidebar .selection-layer-row input {
+            width: 20px;
+            height: 20px;
+        }
+        #sidebar .selection-layer-copy {
+            gap: 1px;
+        }
+        #sidebar .selection-layer-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #sidebar .selection-layer-meta {
+            font-size: 11px;
+        }
 
         #measurementPanel {
             max-height: min(46dvh, 390px);
-            padding: 3px 16px calc(var(--mobile-map-chrome-clearance) + 16px + env(safe-area-inset-bottom, 0px));
+            padding: 2px var(--mobile-sheet-inline) calc(var(--mobile-map-chrome-clearance) + 12px + env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
         }
         #measurementPanel .measurement-panel-header,
         #advancedGisPanel .measurement-panel-header,
         #editFloatingPanel .edit-panel-header {
-            min-height: 44px;
+            min-height: var(--mobile-sheet-header-height);
             align-items: center;
-            margin: 0 0 6px;
+            margin: 0 0 4px;
             padding: 0;
             border: 0;
             background: transparent;
@@ -8817,7 +8920,7 @@
         }
         #measurementPanel .measurement-panel-row {
             gap: 8px;
-            margin-bottom: 8px;
+            margin-bottom: 6px;
         }
         #measurementPanel .measurement-mode-switch {
             height: 34px;
@@ -8877,14 +8980,17 @@
             display: none;
         }
         #measurementPanel .measurement-hint {
-            margin: 4px 0 8px;
+            margin: 3px 0 5px;
             color: var(--mobile-tool-muted);
             font-size: 12px;
+        }
+        #measurementPanel:not(.has-points) .measurement-actions {
+            display: none;
         }
         #measurementPanel .measurement-actions {
             justify-content: flex-end;
             gap: 6px;
-            padding-top: 8px;
+            padding-top: 6px;
             border-top: 1px solid rgba(209, 213, 219, 0.58);
         }
         #measurementPanel .measurement-actions button {
@@ -8912,11 +9018,11 @@
 
         #advancedGisPanel {
             max-height: min(68dvh, 620px);
-            padding: 3px 0 calc(var(--mobile-map-chrome-clearance) + 10px + env(safe-area-inset-bottom, 0px));
+            padding: 2px 0 calc(var(--mobile-map-chrome-clearance) + 10px + env(safe-area-inset-bottom, 0px));
             overflow: hidden;
         }
         #advancedGisPanel .measurement-panel-header {
-            padding: 0 12px;
+            padding: 0 var(--mobile-sheet-inline);
         }
         #advancedGisPanel .measurement-panel-title {
             display: grid;
@@ -8939,33 +9045,49 @@
         #advancedGisPanel .advanced-gis-desktop-content {
             display: block;
             max-height: calc(min(68dvh, 620px) - var(--mobile-map-chrome-clearance) - 64px - env(safe-area-inset-bottom, 0px));
-            padding: 0 8px;
+            padding: 0 var(--mobile-sheet-inline);
             overflow-x: hidden;
             overflow-y: auto;
             overscroll-behavior: contain;
         }
         #advancedGisPanel .advanced-gis-command-section {
-            padding: 7px 0;
+            padding: 6px 0;
         }
         #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
             border-top: 1px solid rgba(209, 213, 219, 0.56);
         }
+        #advancedGisPanel .advanced-gis-command-section:not(:has(.advanced-gis-command:not([hidden]):not([disabled]))) {
+            display: none;
+        }
         #advancedGisPanel .advanced-gis-section-heading {
-            min-height: 20px;
+            min-height: 18px;
             margin: 0;
-            padding: 0 10px 4px;
+            padding: 0 4px 3px;
             color: #8b949e;
             font-size: 10px;
-            letter-spacing: 0.09em;
+            letter-spacing: 0.05em;
+        }
+        #advancedGisPanel .advanced-gis-command-list {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 1px;
         }
         #advancedGisPanel .advanced-gis-command {
-            min-height: 44px;
-            padding: 0 10px;
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: 18px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 8px;
+            width: 100%;
+            min-height: var(--mobile-sheet-row-height);
+            padding: 0 6px;
             border: 0;
             border-radius: 10px;
             background: transparent;
             color: #4b5563;
+            cursor: pointer;
             font-size: 14px;
+            font-weight: 550;
             text-align: left;
         }
         #advancedGisPanel .advanced-gis-command:disabled {
@@ -8976,10 +9098,36 @@
             width: 18px;
             height: 18px;
         }
+        #advancedGisPanel .advanced-gis-command-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            color: var(--mobile-tool-muted);
+        }
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.7;
+        }
+        #advancedGisPanel .advanced-gis-command-tail {
+            color: #a1a8b2;
+        }
+        #advancedGisPanel .advanced-gis-subcommands[hidden] {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-subcommands {
+            margin-left: 18px;
+        }
+        #advancedGisPanel .advanced-gis-subcommands .advanced-gis-command {
+            min-height: 42px;
+            font-size: 13px;
+        }
 
         #editFloatingPanel {
             max-height: min(48dvh, 420px);
-            padding: 3px 16px calc(var(--mobile-map-chrome-clearance) + 16px + env(safe-area-inset-bottom, 0px));
+            padding: 2px var(--mobile-sheet-inline) calc(10px + env(safe-area-inset-bottom, 0px));
             overflow: hidden;
             opacity: 0;
             pointer-events: none;
@@ -9013,7 +9161,7 @@
         }
         #editFloatingPanel .draw-context-desktop {
             display: block;
-            padding: 2px 0 0;
+            padding: 0;
         }
         #editFloatingPanel .draw-context-state[hidden] {
             display: none;
@@ -9054,9 +9202,12 @@
             stroke-linejoin: round;
         }
         #editFloatingPanel .draw-context-hint {
-            margin: 8px 2px 0;
+            margin: 3px 2px 0;
             color: var(--mobile-tool-muted);
             font-size: 12px;
+        }
+        #editFloatingPanel #drawContextActive .draw-context-hint {
+            margin-left: 44px;
         }
         #editFloatingPanel .draw-context-actions,
         #editFloatingPanel .draw-selection-actions {
@@ -9064,7 +9215,7 @@
             align-items: center;
             justify-content: flex-end;
             gap: 6px;
-            margin-top: 10px;
+            margin-top: 4px;
         }
         #editFloatingPanel .draw-selection-actions {
             justify-content: flex-start;
@@ -9102,32 +9253,58 @@
 
         #toolbarMenuTray[data-active-menu="basemap"] {
             max-height: min(52dvh, 430px);
-            padding: 3px 12px calc(var(--mobile-map-chrome-clearance) + 14px + env(safe-area-inset-bottom, 0px));
+            padding: 2px var(--mobile-sheet-inline) calc(var(--mobile-map-chrome-clearance) + 12px + env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
         }
         #toolbarMenuTray[data-active-menu="basemap"] #desktopBasemapMenu {
             display: block;
         }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-popover-header {
+            min-height: var(--mobile-sheet-header-height);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 2px;
+        }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-popover-title {
-            padding: 8px 8px 10px;
+            padding: 0;
             color: #1f2937;
             font-size: 17px;
             font-weight: 650;
         }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-mobile-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-section-label {
-            padding: 7px 10px 3px;
+            padding: 6px 4px 3px;
             color: #8b949e;
             font-size: 10px;
-            letter-spacing: 0.09em;
+            letter-spacing: 0.05em;
         }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item {
-            min-height: 44px;
-            padding: 0 10px;
+            display: grid;
+            min-height: var(--mobile-sheet-row-height);
+            grid-template-columns: 22px minmax(0, 1fr);
+            gap: 8px;
+            width: 100%;
+            padding: 0 4px;
             border: 0;
             border-radius: 10px;
             background: transparent;
             color: #4b5563;
             font-size: 14px;
+            justify-content: stretch;
+            text-align: left;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-check {
+            width: 22px;
+            text-align: center;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-section + .basemap-menu-section {
+            margin-top: 4px;
+            padding-top: 5px;
         }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item:not(.active) .basemap-menu-check {
             opacity: 0 !important;
@@ -9875,7 +10052,10 @@
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
         <div id="desktopBasemapMenu" class="menu-dropdown-section basemap-menu-pane" data-menu-pane="basemap" role="menu" aria-label="Basemap" hidden>
-            <div class="basemap-popover-title">Basemap</div>
+            <div class="basemap-popover-header">
+                <div class="basemap-popover-title">Basemap</div>
+                <button id="mobileBasemapCloseBtn" type="button" class="basemap-mobile-close" aria-label="Close basemap">×</button>
+            </div>
             <div id="desktopBasemapStyleList" class="basemap-menu-section" role="group" aria-label="Map style">
                 <div class="basemap-menu-section-label">Map style</div>
                 <button type="button" class="menu-command basemap-menu-item" data-map-type="standard" role="menuitemradio" aria-checked="false">
@@ -10811,6 +10991,7 @@
         const menuMapTypeList = document.getElementById("menuMapTypeList");
         const desktopBasemapStyleList = document.getElementById("desktopBasemapStyleList");
         const desktopBasemapPoisBtn = document.getElementById("desktopBasemapPoisBtn");
+        const mobileBasemapCloseBtn = document.getElementById("mobileBasemapCloseBtn");
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
         const menuSettingsBtn = document.getElementById("menuSettingsBtn");
@@ -13375,6 +13556,10 @@
 
         function showWorkspaceHint(message = "Click Add New, then click on the map to place your first feature.") {
             if (!workspaceHint) return;
+            if (!isDesktopDrawFlow() && (editSessionActive || isAddingSurveyPoint)) {
+                workspaceHint.hidden = true;
+                return;
+            }
             workspaceHint.querySelector("p").textContent = message;
             workspaceHint.hidden = false;
         }
@@ -13597,7 +13782,8 @@
             if (activeSidebarTab === "selection") {
                 sidebarContent.innerHTML = `
                     <div class="workspace-sidebar-section selection-pane">
-                        <p class="layer-pane-helper">Choose which layers respond when you tap or click map features. New layers are selectable by default.</p>
+                        <p class="layer-pane-helper selection-pane-helper-desktop">Choose which layers respond when you tap or click map features. New layers are selectable by default.</p>
+                        <p class="layer-pane-helper selection-pane-helper-mobile">Choose which layers can be selected on the map.</p>
                         <div class="selection-pane-actions" role="group" aria-label="Selection shortcuts">
                             <button type="button" class="mini-btn" data-selection-all>All</button>
                             <button type="button" class="mini-btn" data-selection-none>None</button>
@@ -13625,7 +13811,7 @@
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
                     <p class="layer-pane-helper layer-pane-helper-desktop">Drag layers to change drawing order.</p>
-                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag the handle or use ↑ / ↓ to change drawing order.</p>
+                    <p class="layer-pane-helper layer-pane-helper-mobile">Use More to change drawing order.</p>
                     ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
@@ -13934,9 +14120,11 @@
                 && geometryType !== "point"
                 && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
             if (drawContextActiveHint) {
-                drawContextActiveHint.textContent = drawingVertices.length
-                    ? "Click to add points. Double-click to finish."
-                    : "Click the map to begin.";
+                drawContextActiveHint.textContent = geometryType === "point"
+                    ? (isDesktopDrawFlow() ? "Click the map to begin." : "Click the map to add a point.")
+                    : drawingVertices.length
+                        ? "Click to add points. Double-click to finish."
+                        : "Click the map to begin.";
             }
             if (drawContextUndoBtn) {
                 drawContextUndoBtn.hidden = geometryType === "point";
@@ -13957,6 +14145,7 @@
                 drawSelectionMergeBtn.hidden = selectedCount < 2;
                 drawSelectionMergeBtn.disabled = selectedCount < 2 || geometryType === "point";
             }
+            if (!isDesktopDrawFlow() && isAddingSurveyPoint) hideWorkspaceHint();
             document.body.classList.toggle("draw-mode-active", isAddingSurveyPoint);
         }
 
@@ -18061,6 +18250,10 @@
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
         advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
+        mobileBasemapCloseBtn?.addEventListener("click", () => {
+            setToolbarMenuVisibility(false);
+            toolbarMoreBtn?.focus();
+        });
         advancedGisPanel?.addEventListener("click", (event) => {
             const disclosure = event.target.closest(".advanced-gis-disclosure");
             if (disclosure === advancedGisMoreBtn) {
@@ -21164,6 +21357,7 @@
             if (measurementUnitSelect) measurementUnitSelect.value = measurementUnits;
             const metrics = getMeasurementMetrics(true);
             const pointCount = measurementCoordinates.length;
+            measurementPanel?.classList.toggle("has-points", pointCount > 0);
             if (measurementResult) {
                 let value = "";
                 let desktopSecondary = "";
