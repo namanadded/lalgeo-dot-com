@@ -62,8 +62,8 @@ assertContains(
   "Toolbar Layers button should use the same behavior as the existing map layers button.",
 );
 assertContains(
-  /function openBasemapControls\(\) \{[\s\S]*?const desktop = window\.matchMedia\("\(min-width: 601px\)"\)\.matches;[\s\S]*?\(toolbarMoreBtn \|\| toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\(desktop \? "basemap" : "view", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
-  "Toolbar Basemap should open its focused desktop pane while preserving the existing mobile View path.",
+  /function openBasemapControls\(\) \{[\s\S]*?const desktop = window\.matchMedia\("\(min-width: 601px\)"\)\.matches;[\s\S]*?\(toolbarMoreBtn \|\| toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\("basemap", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
+  "Toolbar Basemap should open the focused Basemap pane on desktop and mobile.",
 );
 assertContains(
   /id="desktopBasemapMenu"[^>]*data-menu-pane="basemap"[^>]*role="menu"[^>]*aria-label="Basemap"[\s\S]*?Map style[\s\S]*?data-map-type="standard"[^>]*role="menuitemradio"[\s\S]*?>Standard<[\s\S]*?data-map-type="satellite"[^>]*role="menuitemradio"[\s\S]*?>Satellite<[\s\S]*?data-map-type="hybrid"[^>]*role="menuitemradio"[\s\S]*?>Hybrid<[\s\S]*?Map details[\s\S]*?id="desktopBasemapPoisBtn"[^>]*role="menuitemcheckbox"[\s\S]*?>Points of Interest</s,

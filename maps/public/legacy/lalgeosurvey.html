@@ -8159,6 +8159,755 @@
         display: none;
     }
 
+    @media (max-width: 600px) {
+        :root {
+            --mobile-tool-radius: 20px;
+            --mobile-control-radius: 12px;
+            --mobile-tool-surface: rgba(255, 255, 255, 0.94);
+            --mobile-tool-border: rgba(209, 213, 219, 0.58);
+            --mobile-tool-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+            --mobile-tool-muted: #7b8490;
+            --mobile-toolbar-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+            --mobile-toolbar-height: 58px;
+        }
+
+        #toolbar {
+            min-height: calc(48px + env(safe-area-inset-top, 0px));
+            padding-top: max(2px, env(safe-area-inset-top, 0px));
+            z-index: 1500;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        #toolbar #rightToolbarExpand {
+            display: none !important;
+        }
+        #toolbar .toolbar-right {
+            position: static;
+        }
+        #toolbar .toolbar-right .toolbar-help-search-group {
+            position: absolute;
+            right: max(10px, env(safe-area-inset-right, 0px));
+        }
+        #toolbar .toolbar-right:not(.expanded) .toolbar-quick-actions,
+        #toolbar .toolbar-right.expanded .toolbar-quick-actions,
+        #toolbar #quickActionBar {
+            position: fixed;
+            left: max(8px, calc(50% - 143px));
+            right: auto;
+            top: auto;
+            bottom: var(--mobile-toolbar-bottom);
+            z-index: 1280;
+            width: min(286px, calc(100vw - 16px));
+            max-width: none;
+            min-height: var(--mobile-toolbar-height);
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 4px 6px;
+            overflow: visible;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            transform: none;
+        }
+        #toolbar #quickActionBar .toolbar-action-group {
+            position: static;
+            display: flex;
+            flex: 0 0 auto;
+            gap: 2px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+        #toolbar #quickActionBar .toolbar-action-group + .toolbar-action-group {
+            margin: 0;
+            padding: 0;
+        }
+        #toolbar #quickActionBar .toolbar-action-group::before,
+        #toolbar #quickActionBar #toolbarLayersBtn::before {
+            display: none;
+        }
+        #toolbar #quickActionBar .toolbar-history-group {
+            display: none;
+        }
+        #toolbar #quickActionBar #toolbarBasemapBtn,
+        #toolbar #quickActionBar #measureToolBtn,
+        #toolbar #quickActionBar #advancedGisBtn {
+            display: none !important;
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action {
+            box-sizing: border-box;
+            width: 52px;
+            min-width: 52px;
+            height: 50px;
+            min-height: 50px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            margin: 0;
+            padding: 3px 2px;
+            border: 0;
+            border-radius: var(--mobile-control-radius);
+            background: transparent;
+            color: #667085;
+            box-shadow: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action[hidden] {
+            display: none !important;
+        }
+        #toolbar #quickActionBar .quick-action-icon,
+        #toolbar #quickActionBar .toolbar-icon {
+            width: 19px;
+            height: 19px;
+            flex-basis: 19px;
+        }
+        #toolbar #quickActionBar .quick-action-label,
+        #toolbar .toolbar-right.expanded #editPanelToggleBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #addSurveyPointBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #myLocationBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #toolbarLayersBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #toolbarMoreBtn .quick-action-label {
+            display: block;
+            max-width: 48px;
+            overflow: hidden;
+            font-size: 9px;
+            font-weight: 650;
+            line-height: 1;
+            letter-spacing: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action:active:not(:disabled) {
+            background: rgba(15, 23, 42, 0.09);
+            transform: scale(0.96);
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action.active,
+        #toolbar #quickActionBar .menu-bar-btn.quick-action[aria-expanded="true"],
+        #toolbar #quickActionBar #toolbarMoreBtn.has-active-tool {
+            background: rgba(15, 118, 110, 0.11);
+            color: #0f766e;
+            box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
+        }
+        #toolbar #quickActionBar .toolbar-more-menu {
+            display: block !important;
+        }
+        #toolbar #toolbarMorePopover {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: auto;
+            bottom: calc(100% + 8px);
+            z-index: 1320;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            display: grid;
+            gap: 2px;
+            padding: 7px;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 16px;
+            background: var(--mobile-tool-surface);
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+        }
+        #toolbar #toolbarMorePopover[hidden] {
+            display: none;
+        }
+        #toolbar #toolbarMorePopover .toolbar-more-item {
+            min-height: 44px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            box-shadow: none;
+            font-size: 14px;
+        }
+        #toolbar #toolbarMorePopover .toolbar-more-item:active {
+            background: rgba(15, 23, 42, 0.075);
+        }
+
+        #sidebar,
+        #measurementPanel,
+        #advancedGisPanel,
+        #editFloatingPanel,
+        #toolbarMenuTray[data-active-menu="basemap"] {
+            position: fixed !important;
+            left: max(0px, env(safe-area-inset-left, 0px)) !important;
+            right: max(0px, env(safe-area-inset-right, 0px)) !important;
+            top: auto !important;
+            bottom: 0 !important;
+            z-index: 1600;
+            box-sizing: border-box;
+            width: auto !important;
+            min-height: 0;
+            margin: 0;
+            border: 1px solid var(--mobile-tool-border);
+            border-bottom: 0;
+            border-radius: var(--mobile-tool-radius) var(--mobile-tool-radius) 0 0;
+            background: var(--mobile-tool-surface);
+            box-shadow: var(--mobile-tool-shadow);
+            color: #374151;
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            transform: none;
+        }
+        #sidebar::before,
+        #measurementPanel::before,
+        #advancedGisPanel::before,
+        #editFloatingPanel::before,
+        #toolbarMenuTray[data-active-menu="basemap"]::before {
+            content: "";
+            display: block;
+            width: 36px;
+            height: 4px;
+            margin: 7px auto 3px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.28);
+            pointer-events: none;
+        }
+        #sidebar {
+            max-height: min(62dvh, 520px);
+            padding: 4px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+        }
+        #sidebar .sidebar-shell {
+            min-height: 0;
+            max-height: calc(min(62dvh, 520px) - 28px - env(safe-area-inset-bottom, 0px));
+            gap: 8px;
+        }
+        #sidebar .sidebar-topbar {
+            min-height: 40px;
+            align-items: center;
+            padding: 0;
+            border: 0;
+        }
+        #sidebar .sidebar-heading {
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #sidebar .sidebar-subheading,
+        #sidebar .layer-pane-helper-desktop {
+            display: none;
+        }
+        #sidebar .sidebar-close-btn,
+        #measurementPanel .measurement-close,
+        #advancedGisPanel .measurement-close,
+        #editFloatingPanel #editPanelCloseBtn {
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            min-height: 44px;
+            padding: 0;
+            border: 0;
+            border-radius: 12px;
+            background: transparent;
+            color: var(--mobile-tool-muted);
+            box-shadow: none;
+            font-size: 20px;
+        }
+        #sidebar-content {
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #sidebar .sidebar-tabs {
+            height: 34px;
+            gap: 2px;
+            padding: 2px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #sidebar .sidebar-tab {
+            min-height: 30px;
+            border: 0;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        #sidebar .layer-pane-row {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) 44px;
+            align-items: center;
+            gap: 4px;
+            min-height: 52px;
+            margin-top: 2px;
+            padding: 4px 2px;
+            border: 0;
+            border-radius: 12px;
+            background: transparent;
+        }
+        #sidebar .layer-pane-row.active {
+            background: rgba(15, 118, 110, 0.08);
+            box-shadow: inset 3px 0 0 rgba(15, 118, 110, 0.5);
+        }
+        #sidebar .layer-drag-handle,
+        #sidebar .layer-pane-actions .layer-order-btn,
+        #sidebar .layer-visibility-check {
+            display: none;
+        }
+        #sidebar .layer-visibility-toggle,
+        #sidebar .layer-pane-actions .mobile-context-trigger {
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #667085;
+            box-shadow: none;
+        }
+        #sidebar .layer-visibility-icon {
+            display: block;
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        #sidebar .layer-pane-name {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        #sidebar .layer-pane-actions {
+            width: 44px;
+            margin: 0;
+        }
+
+        #measurementPanel {
+            max-height: min(46dvh, 390px);
+            padding: 3px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+        }
+        #measurementPanel .measurement-panel-header,
+        #advancedGisPanel .measurement-panel-header,
+        #editFloatingPanel .edit-panel-header {
+            min-height: 44px;
+            align-items: center;
+            margin: 0 0 6px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+        #measurementPanel .measurement-panel-title,
+        #advancedGisPanel .measurement-panel-title,
+        #editFloatingPanel .edit-panel-title {
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        #measurementPanel .measurement-panel-row {
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        #measurementPanel .measurement-mode-switch {
+            height: 34px;
+            gap: 2px;
+            padding: 2px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #measurementPanel .measurement-mode-btn {
+            height: 30px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+        }
+        #measurementPanel .measurement-mode-btn.active {
+            background: #fff;
+            color: #1f2937;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #measurementPanel #measurementUnitSelect {
+            height: 34px;
+            min-width: 88px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 12px;
+        }
+        #measurementPanel .measurement-result {
+            min-height: 0;
+            padding: 2px 0 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+        }
+        #measurementPanel .measurement-result strong {
+            margin: 0;
+            color: #1f2937;
+            font-size: 22px;
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-result-secondary-mobile,
+        #measurementPanel .measurement-hint-mobile,
+        #measurementPanel .measurement-action-label-mobile {
+            display: none;
+        }
+        #measurementPanel .measurement-result-secondary-desktop,
+        #measurementPanel .measurement-hint-desktop,
+        #measurementPanel .measurement-action-label-desktop {
+            display: block;
+        }
+        #measurementPanel .measurement-result-secondary-desktop[hidden],
+        #measurementPanel .measurement-hint-desktop[hidden] {
+            display: none;
+        }
+        #measurementPanel .measurement-hint {
+            margin: 4px 0 8px;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+        }
+        #measurementPanel .measurement-actions {
+            justify-content: flex-end;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(209, 213, 219, 0.58);
+        }
+        #measurementPanel .measurement-actions button {
+            min-width: 60px;
+            height: 44px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #measurementPanel .measurement-actions button.primary {
+            background: #0f766e;
+            color: #fff;
+        }
+        #measurementPanel #measurementClearBtn {
+            background: transparent;
+            color: #9b4b4b;
+        }
+        #measurementPanel .measurement-actions button:disabled {
+            opacity: 0.38;
+        }
+
+        #advancedGisPanel {
+            max-height: min(68dvh, 620px);
+            padding: 3px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+        }
+        #advancedGisPanel .measurement-panel-header {
+            padding: 0 12px;
+        }
+        #advancedGisPanel .measurement-panel-title {
+            display: grid;
+            gap: 1px;
+        }
+        #advancedGisPanel .advanced-gis-layer-context-desktop {
+            display: block;
+            max-width: calc(100vw - 92px);
+            overflow: hidden;
+            color: var(--mobile-tool-muted);
+            font-size: 11px;
+            font-weight: 500;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #advancedGisPanel .advanced-gis-badge,
+        #advancedGisPanel .advanced-gis-mobile-content {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-desktop-content {
+            display: block;
+            max-height: calc(min(68dvh, 620px) - 64px - env(safe-area-inset-bottom, 0px));
+            padding: 0 8px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #advancedGisPanel .advanced-gis-command-section {
+            padding: 7px 0;
+        }
+        #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
+            border-top: 1px solid rgba(209, 213, 219, 0.56);
+        }
+        #advancedGisPanel .advanced-gis-section-heading {
+            min-height: 20px;
+            margin: 0;
+            padding: 0 10px 4px;
+            color: #8b949e;
+            font-size: 10px;
+            letter-spacing: 0.09em;
+        }
+        #advancedGisPanel .advanced-gis-command {
+            min-height: 44px;
+            padding: 0 10px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #4b5563;
+            font-size: 14px;
+            text-align: left;
+        }
+        #advancedGisPanel .advanced-gis-command:disabled {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-command-icon,
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        #editFloatingPanel {
+            display: block;
+            max-height: min(48dvh, 420px);
+            padding: 3px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #editFloatingPanel.toolbar-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #editFloatingPanel .edit-panel-header {
+            display: flex;
+            justify-content: space-between;
+            cursor: default;
+        }
+        #editFloatingPanel .edit-panel-title {
+            display: inline-flex;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            text-indent: 0;
+        }
+        #editFloatingPanel .edit-panel-title::before,
+        #editFloatingPanel #editPanelPinBtn,
+        #editFloatingPanel .edit-panel-body-mobile {
+            display: none;
+        }
+        #editFloatingPanel .draw-context-desktop {
+            display: block;
+            padding: 2px 0 0;
+        }
+        #editFloatingPanel .draw-context-state[hidden] {
+            display: none;
+        }
+        #editFloatingPanel .draw-context-geometry {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+            gap: 4px;
+            padding: 3px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #editFloatingPanel .draw-geometry-choice {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #667085;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #editFloatingPanel .draw-geometry-choice[aria-pressed="true"] {
+            background: #fff;
+            color: #1f2937;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #editFloatingPanel .draw-geometry-choice svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        #editFloatingPanel .draw-context-hint {
+            margin: 8px 2px 0;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+        }
+        #editFloatingPanel .draw-context-actions,
+        #editFloatingPanel .draw-selection-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        #editFloatingPanel .draw-selection-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+        #editFloatingPanel .draw-context-action {
+            min-width: 64px;
+            min-height: 44px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #editFloatingPanel .draw-context-action.primary {
+            background: #0f766e;
+            color: #fff;
+        }
+        #editFloatingPanel .draw-context-action.quiet {
+            background: transparent;
+        }
+        #editFloatingPanel .draw-context-action.danger {
+            margin-left: auto;
+            background: transparent;
+            color: #b42318;
+        }
+        #editFloatingPanel .draw-selection-title {
+            margin: 0;
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 650;
+        }
+
+        #toolbarMenuTray[data-active-menu="basemap"] {
+            max-height: min(52dvh, 430px);
+            padding: 3px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] #desktopBasemapMenu {
+            display: block;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-popover-title {
+            padding: 8px 8px 10px;
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-section-label {
+            padding: 7px 10px 3px;
+            color: #8b949e;
+            font-size: 10px;
+            letter-spacing: 0.09em;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item {
+            min-height: 44px;
+            padding: 0 10px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #4b5563;
+            font-size: 14px;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item:not(.active) .basemap-menu-check {
+            opacity: 0 !important;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item.active .basemap-menu-check {
+            opacity: 1 !important;
+        }
+
+        #selectedFeatureInspector {
+            position: fixed;
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+            z-index: 1275;
+            box-sizing: border-box;
+            width: auto;
+            padding: 8px 10px;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 16px;
+            background: var(--mobile-tool-surface);
+            color: #374151;
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+        }
+        #selectedFeatureInspector.visible {
+            display: grid;
+            gap: 6px;
+        }
+        #selectedFeatureInspector .mobile-selection-summary {
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 4px;
+            font-size: 13px;
+        }
+        #selectedFeatureInspector .mobile-selection-dismiss {
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--mobile-tool-muted);
+            font-size: 19px;
+        }
+        #selectedFeatureInspector .mobile-selection-actions {
+            display: flex;
+            gap: 4px;
+        }
+        #selectedFeatureInspector .mobile-selection-actions button {
+            min-width: 0;
+            min-height: 44px;
+            flex: 1 1 0;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        #toolbar #quickActionBar .menu-bar-btn.quick-action:focus-visible,
+        #toolbar #toolbarMorePopover .toolbar-more-item:focus-visible,
+        #sidebar button:focus-visible,
+        #measurementPanel button:focus-visible,
+        #measurementPanel select:focus-visible,
+        #advancedGisPanel button:focus-visible,
+        #editFloatingPanel button:focus-visible,
+        #toolbarMenuTray[data-active-menu="basemap"] button:focus-visible,
+        #selectedFeatureInspector button:focus-visible {
+            outline: 2px solid rgba(15, 118, 110, 0.42);
+            outline-offset: 1px;
+        }
+    }
+
+    @media (max-width: 600px) and (orientation: landscape) {
+        #sidebar,
+        #advancedGisPanel {
+            max-height: 78dvh;
+        }
+        #measurementPanel,
+        #editFloatingPanel {
+            max-height: 68dvh;
+        }
+    }
+
     .print-prep-summary {
         display: grid;
         gap: 10px;
@@ -11384,9 +12133,17 @@
             const toolbarRect = toolbar.getBoundingClientRect();
             const buttonRect = button.getBoundingClientRect();
             if (window.matchMedia("(max-width: 600px)").matches) {
+                if (toolbarMenuKey === "basemap") {
+                    toolbarMenuTray.style.left = "0";
+                    toolbarMenuTray.style.right = "0";
+                    toolbarMenuTray.style.top = "auto";
+                    toolbarMenuTray.style.bottom = "0";
+                    return;
+                }
                 toolbarMenuTray.style.left = "10px";
                 toolbarMenuTray.style.right = "10px";
                 toolbarMenuTray.style.top = `${Math.round(buttonRect.bottom + 8)}px`;
+                toolbarMenuTray.style.bottom = "auto";
                 return;
             }
             const trayWidth = Math.min(340, Math.max(190, toolbarMenuTray.offsetWidth || 190));
@@ -11474,7 +12231,7 @@
 
         function setToolbarMoreVisibility(show, { focusFirst = false, restoreFocus = false } = {}) {
             if (!toolbarMoreBtn || !toolbarMorePopover) return;
-            const visible = Boolean(show && window.matchMedia("(min-width: 601px)").matches);
+            const visible = Boolean(show);
             if (visible) setToolbarMenuVisibility(false);
             toolbarMorePopover.hidden = !visible;
             toolbarMoreBtn.setAttribute("aria-expanded", visible ? "true" : "false");
@@ -11513,9 +12270,10 @@
 
         function renderQuickActionButtons() {
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
+            const mobile = window.matchMedia("(max-width: 600px)").matches;
             Object.entries(QUICK_ACTION_BUTTONS).forEach(([key, button]) => {
                 if (!button) return;
-                const selected = quickActions.includes(key);
+                const selected = quickActions.includes(key) || (mobile && (key === "addNew" || key === "myLocation"));
                 const available = getQuickActionAvailability(key, hasEditingSession);
                 button.hidden = !selected;
                 button.disabled = !available;
@@ -12390,7 +13148,7 @@
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
                     <p class="layer-pane-helper layer-pane-helper-desktop">Drag layers to change drawing order.</p>
-                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
+                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag layers to change drawing order.</p>
                     ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
@@ -12636,19 +13394,17 @@
         }
 
         function syncDesktopDrawContext() {
-            if (!isDesktopDrawFlow()) {
-                document.body.classList.remove("draw-mode-active");
-                editFloatingPanel?.setAttribute("aria-label", "Edit toolbar");
+            const desktop = isDesktopDrawFlow();
+            if (!desktop) {
+                editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
                 if (addSurveyPointBtn) {
                     addSurveyPointBtn.setAttribute("aria-label", "Add a new feature to the active layer");
                     addSurveyPointBtn.removeAttribute("aria-haspopup");
                     addSurveyPointBtn.removeAttribute("aria-controls");
                     addSurveyPointBtn.removeAttribute("aria-expanded");
                 }
-                return;
-            }
-            editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
-            if (addSurveyPointBtn) {
+            } else if (addSurveyPointBtn) {
+                editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
                 addSurveyPointBtn.setAttribute("aria-label", "Add content");
                 addSurveyPointBtn.setAttribute("aria-haspopup", "menu");
                 addSurveyPointBtn.setAttribute("aria-controls", "addActionPopover");
@@ -12868,7 +13624,6 @@
                 if (targetLayerId && targetLayerId !== activeLayerId) {
                     switchToLayer(targetLayerId, { revealTable: false });
                 }
-                if (editPanelPinned && !isDesktopDrawFlow()) dockEditPanel();
                 syncEditPanelState();
             } else {
                 editFloatingPanel.classList.remove("toolbar-visible");
@@ -13475,6 +14230,7 @@
                 toolbarLayersBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
             updateCommandAvailability();
+            renderSelectedFeatureInspector();
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
@@ -13794,9 +14550,70 @@
 
         function renderSelectedFeatureInspector() {
             if (!selectedFeatureInspector) return;
-            selectedFeatureInspector.classList.remove("visible");
-            selectedFeatureInspector.innerHTML = "";
+            if (window.matchMedia("(min-width: 601px)").matches) {
+                selectedFeatureInspector.classList.remove("visible");
+                selectedFeatureInspector.innerHTML = "";
+                return;
+            }
+            const indexes = getActiveSelectionIndexes();
+            const count = indexes.length;
+            if (!count || isAddingSurveyPoint || measurementActive || sidebarVisible || advancedGisPanel?.hidden === false) {
+                selectedFeatureInspector.classList.remove("visible");
+                selectedFeatureInspector.innerHTML = "";
+                return;
+            }
+            const geometryType = getActiveLayerGeometryType();
+            const single = count === 1;
+            const canMerge = !single && geometryType !== "point" && canEditLayer(getActiveLayerRecord());
+            selectedFeatureInspector.innerHTML = `
+                <div class="mobile-selection-summary">
+                    <strong>${count} Selected</strong>
+                    <button type="button" class="mobile-selection-dismiss" data-mobile-selection-action="clear" aria-label="Clear selection">×</button>
+                </div>
+                <div class="mobile-selection-actions" role="group" aria-label="${count === 1 ? "Selected feature" : "Selected features"} actions">
+                    ${single ? `
+                        <button type="button" data-mobile-selection-action="properties">Properties</button>
+                        <button type="button" data-mobile-selection-action="edit">Edit</button>
+                    ` : `
+                        ${canMerge ? `<button type="button" data-mobile-selection-action="merge">Merge</button>` : ""}
+                        <button type="button" data-mobile-selection-action="export">Export…</button>
+                    `}
+                    <button type="button" data-mobile-selection-action="more">More</button>
+                </div>
+            `;
+            selectedFeatureInspector.classList.add("visible");
         }
+
+        selectedFeatureInspector?.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-mobile-selection-action]");
+            if (!button) return;
+            const action = button.dataset.mobileSelectionAction;
+            const rowIndex = getActiveSelectionIndexes()[0];
+            if (action === "clear") {
+                clearTableSelection();
+                return;
+            }
+            if (action === "properties" && Number.isInteger(rowIndex)) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                return;
+            }
+            if (action === "edit" && Number.isInteger(rowIndex)) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                setEditSessionActive(true);
+                return;
+            }
+            if (action === "merge") {
+                mergeSelectedFeatures();
+                return;
+            }
+            if (action === "export") {
+                exportSelectedGeoJson();
+                return;
+            }
+            if (action === "more") {
+                setAdvancedGisVisible(true);
+            }
+        });
 
         function activateLayerForFeatureInspection(layerId) {
             if (!layerId || layerId === activeLayerId || !activeProjectRecord?.layers?.length) return;
@@ -15179,11 +15996,15 @@
             if (!advancedGisPanel) return;
             if (show && window.matchMedia("(max-width: 600px)").matches) {
                 topToolbarViewModel.collapseOverflow("right");
+                if (measurementActive) setMeasurementActive(false);
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (editSessionActive) setEditSessionActive(false);
             }
             advancedGisPanel.hidden = !show;
             advancedGisBtn?.classList.toggle("active", Boolean(show));
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
             updateAdvancedGisPanelState();
+            renderSelectedFeatureInspector();
         }
 
         function toggleAdvancedGisDisclosure(button, content) {
@@ -16874,6 +17695,7 @@
             }
             syncDesktopDrawContext();
             positionDesktopDrawPanel();
+            renderQuickActionButtons();
         });
         checkDropboxConnectionStatus({ refreshList: true });
         loadWorkspaceProjects();
@@ -17034,6 +17856,11 @@
         });
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
         function toggleLayersPanel() {
+            if (!sidebarVisible && window.matchMedia("(max-width: 600px)").matches) {
+                if (measurementActive) setMeasurementActive(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (editSessionActive) setEditSessionActive(false);
+            }
             renderActiveProjectSidebar();
             setSidebarVisibility(!sidebarVisible);
         }
@@ -17042,11 +17869,13 @@
             const anchor = desktop
                 ? (toolbarMoreBtn || toolbarBasemapBtn || settingsBtn)
                 : (toolbarBasemapBtn || settingsBtn);
-            openToolbarMenu(desktop ? "basemap" : "view", anchor);
             if (!desktop) {
-                if (menuMapTypeList) menuMapTypeList.hidden = false;
-                menuMapTypeBtn?.setAttribute("aria-expanded", "true");
+                if (measurementActive) setMeasurementActive(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (editSessionActive) setEditSessionActive(false);
             }
+            openToolbarMenu("basemap", anchor);
             toolbarBasemapBtn?.classList.add("active");
             toolbarBasemapBtn?.setAttribute("aria-expanded", "true");
             updateMapTypeControls(activeProjectRecord);
@@ -17231,6 +18060,10 @@
             event.preventDefault();
             event.stopPropagation();
             if (!editSessionActive && measurementActive) setMeasurementActive(false);
+            if (!editSessionActive && !isDesktopDrawFlow()) {
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+            }
             setEditSessionActive(!editSessionActive);
         });
         editPanelCloseBtn?.addEventListener("click", () => setEditSessionActive(false));
@@ -18173,6 +19006,10 @@
                 setProjectStatus("This layer is a live API reference. Create an editable layer before adding new features.", "error");
                 syncEditPanelState();
                 return;
+            }
+            if (!isDesktopDrawFlow() && !editSessionActive) {
+                setEditSessionActive(true, { layerId: layer.id });
+                if (!editSessionActive) return;
             }
             const geometryType = getActiveLayerGeometryType();
             if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
@@ -19810,6 +20647,8 @@
             if (measurementActive) {
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
+                    if (sidebarVisible) setSidebarVisibility(false);
+                    if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
                 }
                 if (editSessionActive) {
                     setEditSessionActive(false);
@@ -19828,6 +20667,7 @@
                 setProjectStatus("Measurement closed.", "success");
             }
             updateMeasurementPanel();
+            renderSelectedFeatureInspector();
         }
 
         function setMeasurementMode(mode) {
@@ -22973,6 +23813,7 @@
             });
             updateAdvancedGisPanelState();
             syncDesktopDrawContext();
+            renderSelectedFeatureInspector();
         }
 
         function syncMapFeatureToTableSelection(rowIndex) {
