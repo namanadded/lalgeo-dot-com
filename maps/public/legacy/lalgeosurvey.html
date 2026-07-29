@@ -3492,8 +3492,11 @@
     #dropboxProjectContextMenu,
     #layerContextMenu {
         position: fixed;
-        z-index: 1600;
-        min-width: 160px;
+        z-index: 2600;
+        min-width: 240px;
+        max-width: min(280px, calc(100vw - 16px));
+        max-height: calc(100dvh - 16px);
+        overflow-y: auto;
         padding: 8px;
         border-radius: 12px;
         background: rgba(8, 18, 30, 0.96);
@@ -3503,8 +3506,97 @@
         gap: 6px;
     }
     #dropboxProjectContextMenu[hidden],
-    #layerContextMenu[hidden] {
+    #layerContextMenu[hidden],
+    #layerContextBackdrop[hidden] {
         display: none;
+    }
+    #layerContextBackdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 2590;
+        background: rgba(15, 23, 42, 0.2);
+        backdrop-filter: blur(2px);
+        -webkit-backdrop-filter: blur(2px);
+    }
+    .layer-context-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 6px 8px;
+    }
+    .layer-context-heading {
+        min-width: 0;
+    }
+    .layer-context-heading h3 {
+        margin: 0;
+        overflow: hidden;
+        color: #eef6fb;
+        font-size: 15px;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .layer-context-heading p {
+        margin: 3px 0 0;
+        color: #97aabd;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    .layer-context-close {
+        width: 32px;
+        height: 32px;
+        flex: 0 0 32px;
+        border: 0;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        color: #d7e4ef;
+        font: inherit;
+        font-size: 20px;
+        line-height: 1;
+        cursor: pointer;
+    }
+    .layer-context-group {
+        display: grid;
+        gap: 6px;
+        padding-top: 8px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .layer-context-group + .layer-context-group {
+        margin-top: 8px;
+    }
+    .layer-context-order {
+        padding: 0;
+    }
+    .layer-context-order summary {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 10px;
+        border-radius: 10px;
+        color: #c2d2e1;
+        cursor: pointer;
+        font-size: 13px;
+        font-weight: 700;
+        list-style: none;
+    }
+    .layer-context-order summary::-webkit-details-marker {
+        display: none;
+    }
+    .layer-context-order summary::after {
+        content: "›";
+        font-size: 18px;
+        transform: rotate(90deg);
+        transition: transform 160ms ease;
+    }
+    .layer-context-order[open] summary::after {
+        transform: rotate(-90deg);
+    }
+    .layer-context-order-actions {
+        display: grid;
+        gap: 6px;
+        padding-top: 6px;
     }
     .context-menu-btn {
         border: 1px solid rgba(255,255,255,0.08);
@@ -3515,10 +3607,24 @@
         text-align: left;
         cursor: pointer;
     }
+    .context-menu-btn.danger {
+        border-color: rgba(255,107,107,0.2);
+        color: #ffb5b5;
+    }
+    .context-menu-btn:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+    }
+    .layer-context-close:focus-visible,
+    .layer-context-order summary:focus-visible,
+    .context-menu-btn:focus-visible {
+        outline: 3px solid rgba(45, 212, 191, 0.42);
+        outline-offset: 2px;
+    }
     .mobile-context-trigger {
-        width: 18px;
-        height: 18px;
-        min-width: 18px;
+        width: 40px;
+        height: 40px;
+        min-width: 40px;
         border-radius: 999px;
         border: 1px solid rgba(203, 213, 225, 0.92);
         background: rgba(255, 255, 255, 0.96);
@@ -4394,6 +4500,78 @@
         grid-template-columns: repeat(2, minmax(0, 1fr));
         gap: 12px;
     }
+    @media (max-width: 820px) {
+        body.layer-context-open {
+            overflow: hidden;
+        }
+        #layerContextBackdrop {
+            background: rgba(15, 23, 42, 0.36);
+            backdrop-filter: blur(4px);
+            -webkit-backdrop-filter: blur(4px);
+        }
+        #layerContextMenu {
+            inset: auto 0 0 !important;
+            width: 100%;
+            min-width: 0;
+            max-width: none;
+            max-height: min(82dvh, 680px);
+            box-sizing: border-box;
+            padding: 10px 12px calc(68px + env(safe-area-inset-bottom));
+            border-radius: 20px 20px 0 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+            box-shadow: 0 -16px 44px rgba(15, 23, 42, 0.24);
+        }
+        .layer-context-header {
+            position: sticky;
+            top: -10px;
+            z-index: 1;
+            margin: -2px -4px 0;
+            padding: 10px 8px 12px;
+            background: rgba(255,255,255,0.98);
+        }
+        .layer-context-heading h3 {
+            color: #1f2937;
+            font-size: 18px;
+        }
+        .layer-context-heading p {
+            color: #6b7280;
+            font-size: 13px;
+        }
+        .layer-context-close {
+            width: 44px;
+            height: 44px;
+            flex-basis: 44px;
+            background: #f3f4f6;
+            color: #4b5563;
+        }
+        .layer-context-group {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+            border-color: rgba(209, 213, 219, 0.82);
+        }
+        .layer-context-group[data-group="primary"] .context-menu-btn:first-child,
+        .layer-context-group[data-group="danger"] .context-menu-btn,
+        .layer-context-order {
+            grid-column: 1 / -1;
+        }
+        .context-menu-btn,
+        .layer-context-order summary {
+            min-height: 48px;
+            padding: 11px 12px;
+            font-size: 14px;
+        }
+        .layer-context-order-actions {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 8px;
+        }
+        .mobile-context-trigger {
+            width: 44px;
+            height: 44px;
+            min-width: 44px;
+            margin: -6px;
+        }
+    }
     .layer-modal-grid .full {
         grid-column: 1 / -1;
     }
@@ -5046,6 +5224,11 @@
         background: #f3f4f6;
         color: #374151;
         border-color: rgba(190, 197, 205, 0.9);
+    }
+    .context-menu-btn.danger {
+        border-color: rgba(239, 68, 68, 0.22);
+        background: rgba(254, 242, 242, 0.96);
+        color: #b42318;
     }
     .menu-command:disabled,
     .menu-command.is-disabled,
@@ -7656,20 +7839,39 @@
     <div id="dropboxProjectContextMenu" hidden>
         <button id="contextAddToMapBtn" type="button" class="context-menu-btn">Add to Map</button>
     </div>
-    <div id="layerContextMenu" hidden>
-        <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set active layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="edit">Edit layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer properties</button>
-        <button id="layerContextMoveUpBtn" type="button" class="context-menu-btn" data-layer-context-action="move-up">Move up</button>
-        <button id="layerContextMoveDownBtn" type="button" class="context-menu-btn" data-layer-context-action="move-down">Move down</button>
-        <button id="layerContextMoveTopBtn" type="button" class="context-menu-btn" data-layer-context-action="move-top">Move to top</button>
-        <button id="layerContextMoveBottomBtn" type="button" class="context-menu-btn" data-layer-context-action="move-bottom">Move to bottom</button>
-        <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
-        <button type="button" class="context-menu-btn" data-layer-context-action="remove">Remove layer</button>
-    </div>
+    <div id="layerContextBackdrop" hidden></div>
+    <section id="layerContextMenu" role="dialog" aria-modal="false" aria-labelledby="layerContextTitle" aria-describedby="layerContextDescription" tabindex="-1" hidden>
+        <div class="layer-context-header">
+            <div class="layer-context-heading">
+                <h3 id="layerContextTitle">Layer actions</h3>
+                <p id="layerContextDescription">Choose what to do with this layer.</p>
+            </div>
+            <button id="layerContextCloseBtn" type="button" class="layer-context-close" aria-label="Close layer actions">×</button>
+        </div>
+        <div class="layer-context-group" data-group="primary">
+            <button type="button" class="context-menu-btn" data-layer-context-action="open">Open table</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="edit">Edit features</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="zoom">Zoom to layer</button>
+        </div>
+        <div class="layer-context-group" data-group="manage">
+            <button type="button" class="context-menu-btn" data-layer-context-action="activate">Set as active</button>
+            <button id="layerContextToggleBtn" type="button" class="context-menu-btn" data-layer-context-action="toggle">Hide layer</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="properties">Layer settings</button>
+            <button type="button" class="context-menu-btn" data-layer-context-action="add">Add layer</button>
+            <details id="layerContextOrder" class="layer-context-order">
+                <summary>Drawing order</summary>
+                <div class="layer-context-order-actions">
+                    <button id="layerContextMoveUpBtn" type="button" class="context-menu-btn" data-layer-context-action="move-up">Move up</button>
+                    <button id="layerContextMoveDownBtn" type="button" class="context-menu-btn" data-layer-context-action="move-down">Move down</button>
+                    <button id="layerContextMoveTopBtn" type="button" class="context-menu-btn" data-layer-context-action="move-top">Move to top</button>
+                    <button id="layerContextMoveBottomBtn" type="button" class="context-menu-btn" data-layer-context-action="move-bottom">Move to bottom</button>
+                </div>
+            </details>
+        </div>
+        <div class="layer-context-group" data-group="danger">
+            <button type="button" class="context-menu-btn danger" data-layer-context-action="remove">Remove layer…</button>
+        </div>
+    </section>
     <div id="mapPrintHeader" class="map-print-header" aria-hidden="true">
         <strong id="mapPrintTitle">LalGeo Map</strong>
         <span id="mapPrintMeta"></span>
@@ -8030,7 +8232,12 @@
         const dataCatalogMeta = document.getElementById("dataCatalogMeta");
         const dropboxProjectContextMenu = document.getElementById("dropboxProjectContextMenu");
         const contextAddToMapBtn = document.getElementById("contextAddToMapBtn");
+        const layerContextBackdrop = document.getElementById("layerContextBackdrop");
         const layerContextMenu = document.getElementById("layerContextMenu");
+        const layerContextTitle = document.getElementById("layerContextTitle");
+        const layerContextDescription = document.getElementById("layerContextDescription");
+        const layerContextCloseBtn = document.getElementById("layerContextCloseBtn");
+        const layerContextOrder = document.getElementById("layerContextOrder");
         const layerContextToggleBtn = document.getElementById("layerContextToggleBtn");
         const layerContextMoveUpBtn = document.getElementById("layerContextMoveUpBtn");
         const layerContextMoveDownBtn = document.getElementById("layerContextMoveDownBtn");
@@ -10583,7 +10790,7 @@
                                     <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
                                     <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-down" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} down">↓</button>
                                 </span>
-                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
+                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}" aria-haspopup="dialog" aria-controls="layerContextMenu" aria-expanded="false">...</button>
                             </div>
                         </div>
                     `).join("");
@@ -10711,7 +10918,7 @@
                             <div class="layer-pane-actions">
                                 <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
                                 <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-down" ${index === list.length - 1 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} down">↓</button>
-                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}">...</button>
+                                <button type="button" class="mobile-context-trigger" data-layer-actions="${escapeHtml(item.id)}" aria-label="More actions for ${escapeHtml(item.name)}" aria-haspopup="dialog" aria-controls="layerContextMenu" aria-expanded="false">...</button>
                             </div>
                         </div>
                     `).join("") || `<p class="layer-pane-helper">Tap Add Layer from the menu to create a layer.</p>`}
@@ -10749,9 +10956,18 @@
             });
         }
 
-        function hideLayerContextMenu() {
+        let layerContextTrigger = null;
+
+        function hideLayerContextMenu({ restoreFocus = false } = {}) {
+            const trigger = layerContextTrigger;
+            if (trigger?.isConnected) trigger.setAttribute("aria-expanded", "false");
             contextLayerId = null;
             if (layerContextMenu) layerContextMenu.hidden = true;
+            if (layerContextBackdrop) layerContextBackdrop.hidden = true;
+            if (layerContextOrder) layerContextOrder.open = false;
+            document.body.classList.remove("layer-context-open");
+            layerContextTrigger = null;
+            if (restoreFocus && trigger?.isConnected && !trigger.hidden) trigger.focus();
         }
 
         function getLayerOrderIndex(layerId) {
@@ -10769,24 +10985,36 @@
             if (layerContextMoveBottomBtn) layerContextMoveBottomBtn.disabled = !canMoveDown;
         }
 
-        function showLayerContextMenu(layerId, event) {
+        function prepareLayerContextMenu(layerId, trigger = null) {
             contextLayerId = layerId || null;
             const layer = contextLayerId ? getLayerById(contextLayerId) : null;
+            layerContextTrigger = trigger;
+            if (layerContextTrigger) layerContextTrigger.setAttribute("aria-expanded", "true");
+            if (layerContextTitle) layerContextTitle.textContent = layer?.name || "Layer actions";
+            if (layerContextDescription) {
+                const geometry = normalizeLayerGeometryType(layer?.geometryType || "point");
+                const featureCount = Array.isArray(layer?.features) ? layer.features.length : 0;
+                layerContextDescription.textContent = `${geometry[0].toUpperCase()}${geometry.slice(1)} layer · ${featureCount} feature${featureCount === 1 ? "" : "s"}`;
+            }
             if (layerContextToggleBtn && layer) {
                 layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
             }
             updateLayerContextMoveButtons(contextLayerId);
+            if (layerContextBackdrop) layerContextBackdrop.hidden = window.innerWidth > 820;
+            if (layerContextMenu) layerContextMenu.setAttribute("aria-modal", window.innerWidth <= 820 ? "true" : "false");
+            document.body.classList.toggle("layer-context-open", window.innerWidth <= 820);
+        }
+
+        function showLayerContextMenu(layerId, event) {
+            prepareLayerContextMenu(layerId, event.target?.closest?.("[data-layer-actions]") || null);
             positionContextMenu(layerContextMenu, event);
+            layerContextMenu?.focus();
         }
 
         function showLayerContextMenuForElement(layerId, element) {
-            contextLayerId = layerId || null;
-            const layer = contextLayerId ? getLayerById(contextLayerId) : null;
-            if (layerContextToggleBtn && layer) {
-                layerContextToggleBtn.textContent = layer.visible === false ? "Show layer" : "Hide layer";
-            }
-            updateLayerContextMoveButtons(contextLayerId);
+            prepareLayerContextMenu(layerId, element);
             positionContextMenuNearElement(layerContextMenu, element);
+            layerContextMenu?.focus();
         }
 
         function getEditPanelLayerId() {
@@ -15346,6 +15574,23 @@
                 hideLayerContextMenu();
             }
         });
+        layerContextBackdrop?.addEventListener("click", () => hideLayerContextMenu({ restoreFocus: true }));
+        layerContextCloseBtn?.addEventListener("click", () => hideLayerContextMenu({ restoreFocus: true }));
+        layerContextMenu?.addEventListener("keydown", (event) => {
+            if (event.key !== "Tab" || window.innerWidth > 820) return;
+            const focusable = [...layerContextMenu.querySelectorAll("button:not([disabled]), summary")]
+                .filter((element) => element.offsetParent !== null);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        });
         drawerConnectDropboxBtn?.addEventListener("click", () => connectDropboxBtn?.click());
         dataCatalogTableBody?.addEventListener("click", (event) => {
             const actionButton = event.target.closest("[data-dropbox-row-actions]");
@@ -15667,7 +15912,7 @@
                     return;
                 }
                 if (layerContextMenu && !layerContextMenu.hidden) {
-                    hideLayerContextMenu();
+                    hideLayerContextMenu({ restoreFocus: true });
                     return;
                 }
                 if (settingsPanel && !settingsPanel.hidden) {

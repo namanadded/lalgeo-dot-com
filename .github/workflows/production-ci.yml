@@ -183,6 +183,10 @@ jobs:
         working-directory: maps
         run: npm run test:layer-import-journey
 
+      - name: Check layer actions journey
+        working-directory: maps
+        run: npm run test:layer-actions-journey
+
       - name: Check layer selection controls
         working-directory: maps
         run: npm run test:layer-selection-controls
