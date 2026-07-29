@@ -187,6 +187,10 @@ jobs:
         working-directory: maps
         run: npm run test:layer-selection-controls
 
+      - name: Check new layer dialog journey
+        working-directory: maps
+        run: npm run test:new-layer-dialog-journey
+
       - name: Check table selection filter states
         working-directory: maps
         run: npm run test:table-selection-filter-states
