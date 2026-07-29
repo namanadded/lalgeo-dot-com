@@ -140,9 +140,23 @@ jobs:
         working-directory: maps
         run: npm run test:shapefile-integrity
 
+      - name: Check LalGeo project format integrity
+        working-directory: maps
+        run: npm run test:lalgeo-project-integrity
+
+      - name: Check KMZ main-document integrity
+        working-directory: maps
+        run: npm run test:kmz-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
+      - name: Check one-pass LalGeo import normalization
+        working-directory: maps
+        run: npm run test:lal-import-normalization
+      - name: Check low-memory project serialization
+        working-directory: maps
+        run: npm run test:lal-serialization
       - name: Benchmark scoped cloud catalog discovery
         working-directory: maps
         run: npm run benchmark:cloud-catalog
@@ -155,6 +169,12 @@ jobs:
       - name: Benchmark verified cloud downloads
         working-directory: maps
         run: npm run benchmark:cloud-download
+      - name: Benchmark large LalGeo imports
+        working-directory: maps
+        run: npm run benchmark:lal-import
+      - name: Benchmark low-memory project serialization
+        working-directory: maps
+        run: npm run benchmark:lal-serialization
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization
@@ -183,17 +203,37 @@ jobs:
         working-directory: maps
         run: npm run test:layer-import-journey
 
+      - name: Check layer actions journey
+        working-directory: maps
+        run: npm run test:layer-actions-journey
+
       - name: Check layer selection controls
         working-directory: maps
         run: npm run test:layer-selection-controls
+
+      - name: Check new layer dialog journey
+        working-directory: maps
+        run: npm run test:new-layer-dialog-journey
 
       - name: Check table selection filter states
         working-directory: maps
         run: npm run test:table-selection-filter-states
 
+      - name: Check geometry cancellation recovery
+        working-directory: maps
+        run: npm run test:geometry-cancellation-recovery
+
       - name: Check maps print and PDF preparation
         working-directory: maps
         run: npm run test:print-export-preparation
+
+      - name: Check maps location journey
+        working-directory: maps
+        run: npm run test:location-journey
+
+      - name: Check maps editing journey
+        working-directory: maps
+        run: npm run test:editing-journey
 
       - name: Check maps control layout
         working-directory: maps

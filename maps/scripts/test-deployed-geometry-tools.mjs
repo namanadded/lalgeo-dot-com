@@ -14,6 +14,8 @@ const malformedGpx = readFileSync(new URL("../fixtures/interoperability/malforme
 const complexShapefile = readFileSync(new URL("../fixtures/interoperability/complex-web-mercator.zip", import.meta.url)).toString("base64");
 const projectedShapefileWithoutPrj = readFileSync(new URL("../fixtures/interoperability/projected-missing-prj.zip", import.meta.url)).toString("base64");
 const shapefileWithoutAttributes = readFileSync(new URL("../fixtures/interoperability/missing-attributes.zip", import.meta.url)).toString("base64");
+const complexKmz = readFileSync(new URL("../fixtures/interoperability/complex-main-document.kmz", import.meta.url)).toString("base64");
+const ambiguousKmz = readFileSync(new URL("../fixtures/interoperability/ambiguous-main-document.kmz", import.meta.url)).toString("base64");
 
 class CdpSocket {
   constructor(url) {
@@ -279,6 +281,29 @@ try {
       const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
       return new File([bytes], name, { type: "application/zip" });
     };
+    const complexKmzPayload = await buildGeospatialPayload([
+      fileFromBase64(${JSON.stringify(complexKmz)}, "complex-main-document.kmz")
+    ]);
+    const complexKmzPointLayer = complexKmzPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const complexKmzPolygonLayer = complexKmzPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(complexKmzPayload.geospatialLayers.length === 3, "KMZ doc.kml imports point, line, and polygon layers instead of helper KML");
+    assert(complexKmzPointLayer.features[0].attributes.name === "Station Été 🌲", "KMZ preserves Unicode attributes from doc.kml");
+    assert(complexKmzPointLayer.features[0].attributes.inspected_at === "2026-07-28T09:15:00-06:00", "KMZ preserves date strings");
+    assert(complexKmzPointLayer.features[0].attributes.nullable_note === "", "KMZ preserves empty ExtendedData values");
+    assert(complexKmzPointLayer.features[0].attributes.field_12 === "A12", "KMZ preserves large ExtendedData field sets");
+    assert(complexKmzPolygonLayer.features[0].geometry.rings.length === 2, "KMZ preserves polygon holes");
+    const complexKmzExport = layerToGeoJson(complexKmzPointLayer);
+    const complexKmzRoundTrip = buildGeoJsonPayload(complexKmzExport, { format: "KMZ GeoJSON round trip" });
+    assert(complexKmzRoundTrip.geospatialLayers[0].features[0].attributes.field_12 === "A12", "KMZ import-export-import preserves attributes");
+
+    let ambiguousKmzMessage = "";
+    try {
+      await buildGeospatialPayload([fileFromBase64(${JSON.stringify(ambiguousKmz)}, "ambiguous-main-document.kmz")]);
+    } catch (error) {
+      ambiguousKmzMessage = error.message;
+    }
+    assert(ambiguousKmzMessage.includes("Rename the main document to doc.kml at the archive root"), "ambiguous KMZ explains how to select the main document");
+
     const complexShapefilePayload = await buildGeospatialPayload([
       fileFromBase64(${JSON.stringify(complexShapefile)}, "complex-web-mercator.zip")
     ]);

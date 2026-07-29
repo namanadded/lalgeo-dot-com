@@ -1,0 +1,109 @@
+{
+  "project": {
+    "id": "fixture-project",
+    "name": "Interop – Rivière 漢字",
+    "description": "Representative LalGeo project round trip",
+    "activeLayerId": "assets",
+    "mapOptions": {
+      "mapType": "hybrid",
+      "showBasemapPOIs": false
+    },
+    "metadata": {
+      "createdAt": "2026-07-29T08:15:00-06:00",
+      "timeZone": "America/Edmonton"
+    },
+    "layers": [
+      {
+        "id": "assets",
+        "name": "Assets – Café",
+        "geometryType": "point",
+        "styleDefaults": {
+          "symbol_color": "Purple",
+          "symbol_shape": "Pin"
+        },
+        "schema": [
+          { "name": "ID", "type": "text", "locked": true },
+          { "name": "Name", "type": "text" }
+        ],
+        "features": [
+          {
+            "id": "asset-1",
+            "version": 3,
+            "geometry": { "type": "Point", "lat": 51.0447, "lng": -114.0719 },
+            "attributes": {
+              "ID": "asset-1",
+              "Name": "Café rivière 🌊",
+              "InspectedAt": "2026-07-29T08:15:00-06:00",
+              "Nullable": null,
+              "Field03": "A03",
+              "Field04": "A04",
+              "Field05": "A05",
+              "Field06": "A06",
+              "Field07": "A07",
+              "Field08": "A08",
+              "Field09": "A09",
+              "Field10": "A10",
+              "Field11": "A11",
+              "Field12": "A12",
+              "symbol_color": "Purple",
+              "symbol_shape": "Pin"
+            }
+          }
+        ]
+      },
+      {
+        "id": "routes",
+        "name": "Routes",
+        "geometryType": "line",
+        "schema": [{ "name": "Name", "type": "text" }],
+        "features": [
+          {
+            "id": "route-1",
+            "geometry": {
+              "type": "LineString",
+              "coordinates": [
+                { "lat": 51.0447, "lng": -114.0719 },
+                { "lat": 51.05, "lng": -114.06 },
+                { "lat": 51.06, "lng": -114.04 }
+              ]
+            },
+            "attributes": { "Name": "Ligne α", "Nullable": null }
+          }
+        ]
+      },
+      {
+        "id": "parcels",
+        "name": "Parcels",
+        "geometryType": "polygon",
+        "styleDefaults": { "symbol_color": "Green", "fillOpacity": 0.35 },
+        "schema": [{ "name": "Name", "type": "text" }],
+        "features": [
+          {
+            "id": "parcel-1",
+            "geometry": {
+              "type": "Polygon",
+              "rings": [
+                [
+                  { "lat": 51, "lng": -114 },
+                  { "lat": 51, "lng": -113.98 },
+                  { "lat": 51.02, "lng": -113.98 },
+                  { "lat": 51.02, "lng": -114 },
+                  { "lat": 51, "lng": -114 }
+                ],
+                [
+                  { "lat": 51.005, "lng": -113.995 },
+                  { "lat": 51.005, "lng": -113.99 },
+                  { "lat": 51.01, "lng": -113.99 },
+                  { "lat": 51.005, "lng": -113.995 }
+                ]
+              ]
+            },
+            "attributes": { "Name": "Parcelle Été", "Status": "active" }
+          }
+        ]
+      }
+    ]
+  },
+  "activeLayerId": "assets",
+  "survey": null
+}
