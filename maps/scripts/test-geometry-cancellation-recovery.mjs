@@ -6,7 +6,7 @@ const source = fs.readFileSync(path.resolve("public/legacy/lalgeosurvey.html"), 
 
 assert.match(
   source,
-  /id="mapInteractionHelp"[^>]*>Press A to toggle Add New mode\. Press Escape to cancel active feature drawing or close panels\.<\/div>/,
+  /id="mapInteractionHelp"[^>]*>Press A to start adding a feature\. Press Escape to cancel drawing or close panels\.<\/div>/,
   "keyboard help should describe cancellation for point, line, and polygon drawing."
 );
 
@@ -24,7 +24,7 @@ assert.match(
 
 assert.match(
   source,
-  /if \(isAddingSurveyPoint\) \{\s*cancelActiveFeaturePlacement\(\);\s*return;\s*\}/,
+  /if \(isAddingSurveyPoint\) \{[\s\S]*?cancelActiveFeaturePlacement\(\);\s*return;\s*\}/,
   "Escape should use the same complete cancellation recovery path."
 );
 

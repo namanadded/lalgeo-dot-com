@@ -721,6 +721,10 @@
         font-size: 16px;
         line-height: 1;
     }
+    .advanced-gis-desktop-content,
+    .advanced-gis-layer-context-desktop {
+        display: none;
+    }
     .advanced-gis-note {
         margin: 8px 0 0;
         color: #6b7280;
@@ -801,6 +805,17 @@
         color: #6b7280;
         cursor: pointer;
         font-weight: 900;
+    }
+    .measurement-action-label-desktop,
+    .measurement-hint-desktop,
+    .measurement-result-secondary-desktop {
+        display: none;
+    }
+    .measurement-mode-switch {
+        display: flex;
+        align-items: center;
+        flex: 1 1 auto;
+        gap: 8px;
     }
     .edit-panel-header {
         min-height: 52px;
@@ -1135,6 +1150,10 @@
         color: #667085;
         font-size: 13px;
         line-height: 1.45;
+    }
+    .draw-context-desktop,
+    .add-action-popover {
+        display: none;
     }
     .menu-nested-section {
         padding-left: 14px;
@@ -3253,6 +3272,10 @@
         font-size: 12px;
         line-height: 1.45;
         color: #97aabd;
+    }
+    .layer-pane-helper-desktop,
+    .layer-visibility-icon {
+        display: none;
     }
     .sidebar-tabs {
         display: grid;
@@ -6300,9 +6323,13 @@
         animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
     }
     @media (min-width: 601px) {
+        #toolbar.more-tools-open {
+            z-index: 1400;
+        }
         #toolbar .toolbar-quick-actions {
             gap: 0;
-            padding: 5px 7px;
+            padding: 4px 6px;
+            overflow: visible;
             border-radius: 12px;
         }
         #toolbar .toolbar-action-group {
@@ -6316,13 +6343,13 @@
             box-shadow: none;
         }
         #toolbar .toolbar-action-group + .toolbar-action-group {
-            margin-left: 10px;
-            padding-left: 11px;
+            margin-left: 9px;
+            padding-left: 10px;
         }
-        #toolbar .toolbar-action-group + .toolbar-action-group::before,
-        #toolbar #toolbarLayersBtn::before {
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
             content: "";
             position: absolute;
+            left: 0;
             top: 50%;
             width: 1px;
             height: 20px;
@@ -6331,22 +6358,12 @@
             transform: translateY(-50%);
             pointer-events: none;
         }
-        #toolbar .toolbar-action-group + .toolbar-action-group::before {
-            left: 0;
-        }
-        #toolbar #toolbarLayersBtn {
-            position: relative;
-            margin-left: 10px;
-        }
-        #toolbar #toolbarLayersBtn::before {
-            left: -6px;
-        }
         #toolbar .menu-bar-btn.quick-action {
             width: auto;
             min-width: 28px;
             height: 28px;
-            gap: 5px;
-            padding: 0 7px;
+            gap: 4px;
+            padding: 0 6px;
             color: #6b7280;
             background: transparent;
             border: 0;
@@ -6354,11 +6371,10 @@
             box-shadow: none;
         }
         #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
-        #toolbar #toolbarBasemapBtn .quick-action-label,
-        #toolbar #measureToolBtn .quick-action-label,
-        #toolbar #advancedGisBtn .quick-action-label {
+        #toolbar #toolbarMoreBtn .quick-action-label {
             display: inline;
             font-size: 10px;
             font-weight: 700;
@@ -6369,7 +6385,7 @@
             color: #374151;
             background: rgba(15, 23, 42, 0.055);
             border: 0;
-            box-shadow: none;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.055);
         }
         #toolbar .menu-bar-btn.quick-action.active,
         #toolbar .menu-bar-btn.quick-action[aria-expanded="true"] {
@@ -6377,6 +6393,10 @@
             background: rgba(15, 23, 42, 0.075);
             border: 0;
             box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        #toolbar .toolbar-map-group #toolbarBasemapBtn,
+        #toolbar .toolbar-tools-group {
+            display: none;
         }
         #toolbar #undoBtn,
         #toolbar #redoBtn {
@@ -6387,6 +6407,158 @@
         }
         #toolbar #undoBtn .quick-action-label,
         #toolbar #redoBtn .quick-action-label {
+            display: none !important;
+        }
+        #toolbar #undoBtn:disabled,
+        #toolbar #redoBtn:disabled {
+            color: #9ca3af;
+            opacity: 0.38;
+        }
+        #toolbar .toolbar-more-menu {
+            position: relative;
+            display: inline-flex;
+        }
+        #toolbar .toolbar-more-popover {
+            position: absolute;
+            top: calc(100% + 10px);
+            right: 0;
+            z-index: 1450;
+            width: 176px;
+            padding: 6px;
+            border: 1px solid rgba(209, 213, 219, 0.5);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+            transform-origin: top right;
+            animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+        }
+        #toolbar .toolbar-more-popover[hidden] {
+            display: none;
+        }
+        #toolbar .toolbar-more-item {
+            width: 100%;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #4b5563;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 650;
+            text-align: left;
+            cursor: pointer;
+        }
+        #toolbar .toolbar-more-item:hover,
+        #toolbar .toolbar-more-item:focus-visible,
+        #toolbar .toolbar-more-item.active {
+            outline: none;
+            background: rgba(15, 23, 42, 0.06);
+            color: #1f2937;
+        }
+        #toolbar .toolbar-more-item .toolbar-icon {
+            width: 17px;
+            height: 17px;
+            flex-basis: 17px;
+        }
+    }
+    @media (max-width: 600px) {
+        #toolbar .toolbar-more-menu {
+            display: none !important;
+        }
+        #toolbar .toolbar-right.expanded .toolbar-quick-actions {
+            gap: 0;
+            padding: 5px 7px;
+            border-radius: 12px;
+        }
+        #toolbar .toolbar-right.expanded .toolbar-action-group {
+            position: relative;
+            gap: 2px;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        #toolbar .toolbar-right.expanded .toolbar-action-group + .toolbar-action-group {
+            margin-left: 10px;
+            padding-left: 11px;
+        }
+        #toolbar .toolbar-right.expanded .toolbar-action-group + .toolbar-action-group::before,
+        #toolbar .toolbar-right.expanded #toolbarLayersBtn::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 1px;
+            height: 24px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.22);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        #toolbar .toolbar-right.expanded .toolbar-action-group + .toolbar-action-group::before {
+            left: 0;
+        }
+        #toolbar .toolbar-right.expanded #toolbarLayersBtn {
+            position: relative;
+            margin-left: 10px;
+        }
+        #toolbar .toolbar-right.expanded #toolbarLayersBtn::before {
+            left: -6px;
+        }
+        #toolbar .toolbar-right.expanded .menu-bar-btn.quick-action {
+            width: auto;
+            min-width: 36px;
+            height: 36px;
+            gap: 6px;
+            padding: 0 9px;
+            color: #6b7280;
+            background: transparent;
+            border: 0;
+            border-radius: 8px;
+            box-shadow: none;
+        }
+        #toolbar .toolbar-right.expanded #editPanelToggleBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #myLocationBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #toolbarLayersBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #toolbarBasemapBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #measureToolBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #advancedGisBtn .quick-action-label {
+            display: inline;
+            font-size: 11px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.01em;
+            white-space: nowrap;
+        }
+        #toolbar .toolbar-right.expanded .menu-bar-btn.quick-action:hover:not(:disabled) {
+            color: #374151;
+            background: rgba(15, 23, 42, 0.055);
+            border: 0;
+            box-shadow: none;
+        }
+        #toolbar .toolbar-right.expanded .menu-bar-btn.quick-action.active,
+        #toolbar .toolbar-right.expanded .menu-bar-btn.quick-action[aria-expanded="true"] {
+            color: #374151;
+            background: rgba(15, 23, 42, 0.075);
+            border: 0;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        #toolbar .toolbar-right.expanded #undoBtn,
+        #toolbar .toolbar-right.expanded #redoBtn {
+            width: 36px;
+            min-width: 36px;
+            gap: 0;
+            padding: 0;
+        }
+        #toolbar .toolbar-right.expanded #undoBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #redoBtn .quick-action-label {
             display: none !important;
         }
     }
@@ -6492,6 +6664,1303 @@
     }
     #sidebar .selection-layer-meta {
         color: #6b7280;
+    }
+    @media (min-width: 601px) {
+        #sidebar {
+            width: 286px;
+            max-height: calc(100vh - 100px);
+            padding: 11px;
+            overflow: hidden;
+            border-radius: 16px;
+        }
+        #sidebar .sidebar-shell {
+            min-height: 0;
+            max-height: calc(100vh - 122px);
+            gap: 8px;
+        }
+        #sidebar .sidebar-topbar {
+            flex: 0 0 auto;
+            align-items: center;
+            gap: 8px;
+            padding: 0 1px 1px 3px;
+            border-bottom: 0;
+        }
+        #sidebar .sidebar-heading {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        #sidebar .sidebar-subheading {
+            display: none;
+        }
+        #sidebar .sidebar-close-btn {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            min-height: 28px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #9ca3af;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        #sidebar .sidebar-close-btn:hover,
+        #sidebar .sidebar-close-btn:focus-visible {
+            border-color: transparent;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #sidebar .sidebar-tabs {
+            flex: 0 0 auto;
+            gap: 2px;
+            padding: 2px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #sidebar .sidebar-tab {
+            min-height: 28px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #sidebar .sidebar-tab.active {
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #sidebar-content {
+            min-height: 0;
+            max-height: min(420px, calc(100vh - 186px));
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #sidebar .workspace-sidebar-section {
+            margin-top: 0;
+            padding-top: 0;
+            border-top: 0;
+        }
+        #sidebar .layer-pane-helper {
+            margin: 1px 4px 5px;
+            font-size: 11px;
+            line-height: 1.35;
+            color: #8b949e;
+        }
+        #sidebar .layer-pane-helper-mobile {
+            display: none;
+        }
+        #sidebar .layer-pane-helper-desktop {
+            display: block;
+        }
+        #sidebar .layer-pane-row {
+            display: grid;
+            grid-template-columns: 18px 26px minmax(0, 1fr) 28px;
+            align-items: center;
+            gap: 5px;
+            min-height: 38px;
+            margin-top: 2px;
+            padding: 4px 5px;
+            border-color: transparent;
+            border-radius: 9px;
+            background: transparent;
+        }
+        #sidebar .layer-pane-row:hover {
+            border-color: transparent;
+            background: rgba(15, 23, 42, 0.045);
+        }
+        #sidebar .layer-pane-row.active {
+            border-color: transparent;
+            background: rgba(56, 178, 166, 0.09);
+            box-shadow: inset 2px 0 0 rgba(56, 178, 166, 0.58);
+        }
+        #sidebar .layer-drag-handle {
+            width: 18px;
+            min-width: 18px;
+            height: 28px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #a1a8b2;
+            font-size: 12px;
+            font-weight: 650;
+            letter-spacing: -3px;
+        }
+        #sidebar .layer-drag-handle:hover {
+            background: rgba(15, 23, 42, 0.045);
+            color: #6b7280;
+        }
+        #sidebar .layer-visibility-toggle {
+            width: 26px;
+            height: 26px;
+            flex-basis: 26px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #52606d;
+        }
+        #sidebar .layer-visibility-toggle:hover,
+        #sidebar .layer-visibility-toggle:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #sidebar .layer-visibility-toggle.is-off {
+            border-color: transparent;
+            background: transparent;
+            color: #9ca3af;
+        }
+        #sidebar .layer-visibility-check {
+            display: none;
+        }
+        #sidebar .layer-visibility-icon {
+            display: block;
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.8;
+        }
+        #sidebar .layer-pane-name {
+            font-size: 13px;
+            font-weight: 650;
+        }
+        #sidebar .layer-pane-actions {
+            width: 28px;
+            margin: 0;
+            gap: 0;
+        }
+        #sidebar .layer-pane-actions .layer-order-btn {
+            display: none;
+        }
+        #sidebar .layer-pane-actions .mobile-context-trigger {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #8b949e;
+            box-shadow: none;
+        }
+        #sidebar .layer-pane-actions .mobile-context-trigger:hover,
+        #sidebar .layer-pane-actions .mobile-context-trigger:focus-visible {
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #sidebar .selection-pane-actions {
+            gap: 5px;
+            margin-bottom: 6px;
+        }
+        #sidebar .selection-pane-actions .mini-btn {
+            min-height: 30px;
+            padding: 5px 8px;
+            border-radius: 8px;
+        }
+        #sidebar .selection-layer-list {
+            gap: 4px;
+        }
+        #sidebar .selection-layer-row {
+            min-height: 44px;
+            gap: 8px;
+            padding: 7px 8px;
+            border-radius: 9px;
+        }
+        #measurementPanel {
+            box-sizing: border-box;
+            width: min(318px, calc(100vw - 28px));
+            padding: 11px;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+        }
+        #measurementPanel .measurement-panel-header {
+            margin-bottom: 8px;
+            padding-left: 2px;
+        }
+        #measurementPanel .measurement-panel-title {
+            font-size: 15px;
+            font-weight: 700;
+        }
+        #measurementPanel .measurement-close {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #9ca3af;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        #measurementPanel .measurement-close:hover,
+        #measurementPanel .measurement-close:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #measurementPanel .measurement-panel-row {
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 9px;
+        }
+        #measurementPanel .measurement-mode-switch {
+            box-sizing: border-box;
+            gap: 2px;
+            min-width: 0;
+            height: 28px;
+            padding: 2px;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #measurementPanel .measurement-mode-btn {
+            min-width: 0;
+            height: 24px;
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #7b8490;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-mode-btn:hover,
+        #measurementPanel .measurement-mode-btn:focus-visible {
+            outline: none;
+            color: #4b5563;
+        }
+        #measurementPanel .measurement-mode-btn.active {
+            border-color: transparent;
+            background: #fff;
+            color: #374151;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.12);
+        }
+        #measurementPanel #measurementUnitSelect {
+            flex: 0 0 auto;
+            height: 28px;
+            min-width: 82px;
+            border: 0;
+            border-radius: 8px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 11px;
+            font-weight: 650;
+            padding: 0 24px 0 8px;
+        }
+        #measurementPanel .measurement-result {
+            min-height: 0;
+            padding: 3px 2px 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #measurementPanel .measurement-result strong {
+            margin: 0;
+            color: #1f2937;
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.025em;
+            line-height: 1.2;
+        }
+        #measurementPanel .measurement-result-secondary {
+            margin-top: 3px;
+            color: #8b949e;
+            font-size: 11px;
+        }
+        #measurementPanel .measurement-result-secondary-mobile,
+        #measurementPanel .measurement-hint-mobile,
+        #measurementPanel .measurement-action-label-mobile {
+            display: none;
+        }
+        #measurementPanel .measurement-result-secondary-desktop,
+        #measurementPanel .measurement-hint-desktop,
+        #measurementPanel .measurement-action-label-desktop {
+            display: block;
+        }
+        #measurementPanel .measurement-result-secondary-desktop[hidden],
+        #measurementPanel .measurement-hint-desktop[hidden] {
+            display: none;
+        }
+        #measurementPanel .measurement-hint {
+            margin: 4px 2px 9px;
+            color: #8b949e;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #measurementPanel .measurement-actions {
+            justify-content: flex-end;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(209, 213, 219, 0.6);
+        }
+        #measurementPanel .measurement-actions button {
+            height: 28px;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 7px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-actions button:hover:not(:disabled),
+        #measurementPanel .measurement-actions button:focus-visible:not(:disabled) {
+            outline: none;
+            background: rgba(15, 23, 42, 0.09);
+        }
+        #measurementPanel .measurement-actions button.primary {
+            border-color: transparent;
+            background: #0f766e;
+            color: #fff;
+            box-shadow: 0 1px 2px rgba(15, 118, 110, 0.2);
+        }
+        #measurementPanel .measurement-actions button.primary:hover:not(:disabled),
+        #measurementPanel .measurement-actions button.primary:focus-visible:not(:disabled) {
+            background: #0d6962;
+        }
+        #measurementPanel #measurementClearBtn {
+            background: transparent;
+            color: #8b5f5f;
+        }
+        #measurementPanel #measurementClearBtn:hover:not(:disabled),
+        #measurementPanel #measurementClearBtn:focus-visible:not(:disabled) {
+            background: rgba(153, 27, 27, 0.055);
+            color: #7f1d1d;
+        }
+        #measurementPanel .measurement-actions button:disabled {
+            opacity: 0.38;
+            cursor: default;
+        }
+        #advancedGisPanel {
+            box-sizing: border-box;
+            width: min(318px, calc(100vw - 28px));
+            max-height: min(620px, calc(100vh - 128px));
+            padding: 0;
+            overflow: hidden;
+            border-radius: 16px;
+            background: rgba(255, 255, 255, 0.96);
+            box-shadow: 0 16px 38px rgba(15, 23, 42, 0.18);
+            backdrop-filter: blur(20px) saturate(150%);
+            -webkit-backdrop-filter: blur(20px) saturate(150%);
+        }
+        #advancedGisPanel .measurement-panel-header {
+            position: relative;
+            z-index: 1;
+            flex: 0 0 auto;
+            min-height: 50px;
+            margin: 0;
+            padding: 10px 10px 8px 13px;
+            border-bottom: 1px solid rgba(209, 213, 219, 0.58);
+            background: rgba(255, 255, 255, 0.88);
+        }
+        #advancedGisPanel .measurement-panel-title {
+            display: grid;
+            gap: 1px;
+            min-width: 0;
+            color: #1f2937;
+            font-size: 15px;
+            font-weight: 700;
+        }
+        #advancedGisPanel .advanced-gis-layer-context-desktop {
+            display: block;
+            max-width: 242px;
+            overflow: hidden;
+            color: #8b949e;
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.3;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #advancedGisPanel .advanced-gis-badge {
+            display: none;
+        }
+        #advancedGisPanel .measurement-close {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #9ca3af;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 500;
+        }
+        #advancedGisPanel .measurement-close:hover,
+        #advancedGisPanel .measurement-close:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+        }
+        #advancedGisPanel .advanced-gis-mobile-content {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-desktop-content {
+            display: block;
+            min-height: 0;
+            max-height: calc(min(620px, calc(100vh - 128px)) - 51px);
+            padding: 6px 7px 8px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #advancedGisPanel .advanced-gis-command-section {
+            padding: 7px 0 8px;
+        }
+        #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
+            border-top: 1px solid rgba(209, 213, 219, 0.56);
+        }
+        #advancedGisPanel .advanced-gis-section-heading {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            min-height: 18px;
+            margin: 0;
+            padding: 0 7px 3px;
+            color: #9ca3af;
+            font-size: 9px;
+            font-weight: 750;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+        #advancedGisPanel .advanced-gis-selection-status {
+            color: #7b8490;
+            font-size: 10px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        #advancedGisPanel .advanced-gis-selection-status[hidden] {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-command-list {
+            display: grid;
+            gap: 1px;
+        }
+        #advancedGisPanel .advanced-gis-command {
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: 18px minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 7px;
+            width: 100%;
+            min-height: 32px;
+            padding: 0 7px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #4b5563;
+            box-shadow: none;
+            cursor: pointer;
+            font-size: 12px;
+            font-weight: 550;
+            text-align: left;
+        }
+        #advancedGisPanel .advanced-gis-command:hover:not(:disabled),
+        #advancedGisPanel .advanced-gis-command:focus-visible:not(:disabled) {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+            color: #374151;
+        }
+        #advancedGisPanel .advanced-gis-command:disabled {
+            color: #b1b7c0;
+            cursor: default;
+            opacity: 0.72;
+        }
+        #advancedGisPanel .advanced-gis-command[hidden] {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-command-icon {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 17px;
+            height: 17px;
+            color: #7b8490;
+        }
+        #advancedGisPanel .advanced-gis-command:disabled .advanced-gis-command-icon {
+            color: #b8bec6;
+        }
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            width: 16px;
+            height: 16px;
+            fill: none;
+            stroke: currentColor;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            stroke-width: 1.7;
+        }
+        #advancedGisPanel .advanced-gis-command-tail {
+            color: #a1a8b2;
+            font-size: 13px;
+            font-weight: 500;
+        }
+        #advancedGisPanel .advanced-gis-disclosure[aria-expanded="true"] .advanced-gis-command-tail {
+            transform: rotate(90deg);
+        }
+        #advancedGisPanel .advanced-gis-subcommands {
+            display: grid;
+            gap: 1px;
+            margin: 2px 0 3px 18px;
+            padding-left: 8px;
+            border-left: 1px solid rgba(209, 213, 219, 0.72);
+        }
+        #advancedGisPanel .advanced-gis-subcommands[hidden] {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-subcommands .advanced-gis-command {
+            min-height: 30px;
+            color: #69727e;
+            font-size: 11.5px;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] {
+            box-sizing: border-box;
+            width: 188px;
+            min-width: 188px;
+            max-width: 188px;
+            gap: 0;
+            padding: 6px;
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.96);
+            border-color: rgba(209, 213, 219, 0.72);
+            box-shadow: 0 12px 30px rgba(15, 23, 42, 0.16);
+            backdrop-filter: blur(16px) saturate(135%);
+            -webkit-backdrop-filter: blur(16px) saturate(135%);
+        }
+        #desktopBasemapMenu {
+            gap: 0;
+        }
+        .basemap-popover-title {
+            padding: 5px 7px 7px;
+            color: #374151;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: -0.01em;
+        }
+        .basemap-menu-section {
+            display: grid;
+            gap: 1px;
+        }
+        .basemap-menu-section + .basemap-menu-section {
+            margin-top: 5px;
+            padding-top: 6px;
+            border-top: 1px solid rgba(209, 213, 219, 0.6);
+        }
+        .basemap-menu-section-label {
+            padding: 1px 7px 3px;
+            color: #9ca3af;
+            font-size: 9px;
+            font-weight: 700;
+            letter-spacing: 0.11em;
+            text-transform: uppercase;
+        }
+        #desktopBasemapMenu .basemap-menu-item {
+            display: grid;
+            grid-template-columns: 14px minmax(0, 1fr);
+            align-items: center;
+            justify-content: initial;
+            gap: 5px;
+            min-height: 30px;
+            padding: 0 7px;
+            border: 0;
+            border-radius: 7px;
+            background: transparent;
+            color: #5f6874;
+            font-size: 12px;
+            font-weight: 500;
+        }
+        #desktopBasemapMenu .basemap-menu-item:hover,
+        #desktopBasemapMenu .basemap-menu-item:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.055);
+            color: #374151;
+        }
+        #desktopBasemapMenu .basemap-menu-item.active {
+            background: transparent;
+            color: #374151;
+            font-weight: 650;
+        }
+        #desktopBasemapMenu .basemap-menu-check {
+            color: #0f766e;
+            font-size: 12px;
+            font-weight: 800;
+            line-height: 1;
+            opacity: 0;
+        }
+        #desktopBasemapMenu .basemap-menu-item.active .basemap-menu-check {
+            opacity: 1;
+        }
+        #desktopBasemapMenu .basemap-menu-item[data-disabled-reason]::after {
+            display: none;
+        }
+        :root {
+            --map-ui-radius-surface: 14px;
+            --map-ui-radius-control: 8px;
+            --map-ui-radius-utility: 7px;
+            --map-ui-space-1: 2px;
+            --map-ui-space-2: 4px;
+            --map-ui-space-3: 6px;
+            --map-ui-space-4: 8px;
+            --map-ui-space-5: 10px;
+            --map-ui-space-6: 12px;
+            --map-ui-control-height: 30px;
+            --map-ui-menu-row-height: 32px;
+            --map-ui-icon-size: 16px;
+            --map-ui-surface: rgba(255, 255, 255, 0.94);
+            --map-ui-toolbar-surface: rgba(255, 255, 255, 0.84);
+            --map-ui-border: rgba(209, 213, 219, 0.58);
+            --map-ui-divider: rgba(209, 213, 219, 0.52);
+            --map-ui-hover: rgba(15, 23, 42, 0.055);
+            --map-ui-pressed: rgba(15, 23, 42, 0.09);
+            --map-ui-selected: rgba(15, 23, 42, 0.08);
+            --map-ui-elevation: 0 10px 28px rgba(15, 23, 42, 0.13);
+            --map-ui-focus: rgba(15, 118, 110, 0.42);
+            --map-ui-title: #1f2937;
+            --map-ui-text: #4b5563;
+            --map-ui-muted: #8b949e;
+            --map-ui-disabled-opacity: 0.48;
+            --map-ui-motion: 120ms cubic-bezier(0.2, 0.8, 0.2, 1);
+        }
+
+        #toolbar .toolbar-quick-actions,
+        #sidebar,
+        #measurementPanel,
+        #advancedGisPanel,
+        #toolbar .toolbar-more-popover,
+        #toolbarMenuTray[data-active-menu="basemap"],
+        #layerContextMenu {
+            border: 1px solid var(--map-ui-border);
+            border-radius: var(--map-ui-radius-surface);
+            box-shadow: var(--map-ui-elevation);
+            backdrop-filter: blur(20px) saturate(145%);
+            -webkit-backdrop-filter: blur(20px) saturate(145%);
+        }
+        #toolbar .toolbar-quick-actions {
+            gap: 0;
+            padding: var(--map-ui-space-2) var(--map-ui-space-3);
+            background: var(--map-ui-toolbar-surface);
+        }
+        #sidebar,
+        #measurementPanel,
+        #advancedGisPanel,
+        #toolbar .toolbar-more-popover,
+        #toolbarMenuTray[data-active-menu="basemap"],
+        #layerContextMenu {
+            background: var(--map-ui-surface);
+        }
+        #sidebar,
+        #measurementPanel {
+            padding: var(--map-ui-space-5);
+        }
+
+        #toolbar .toolbar-action-group {
+            gap: var(--map-ui-space-1);
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group {
+            margin-left: var(--map-ui-space-5);
+            padding-left: var(--map-ui-space-6);
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
+            height: 18px;
+            background: var(--map-ui-divider);
+        }
+        #toolbar .menu-bar-btn.quick-action {
+            min-width: var(--map-ui-control-height);
+            height: var(--map-ui-control-height);
+            gap: var(--map-ui-space-2);
+            padding: 0 7px;
+            border-radius: var(--map-ui-radius-control);
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #toolbar #undoBtn,
+        #toolbar #redoBtn {
+            width: 28px;
+            min-width: 28px;
+            height: var(--map-ui-control-height);
+        }
+        #toolbar .toolbar-icon,
+        #toolbar .quick-action-icon {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            flex-basis: var(--map-ui-icon-size);
+        }
+        #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #addSurveyPointBtn .quick-action-label,
+        #toolbar #myLocationBtn .quick-action-label,
+        #toolbar #toolbarLayersBtn .quick-action-label,
+        #toolbar #toolbarMoreBtn .quick-action-label {
+            font-size: 11px;
+            font-weight: 600;
+            letter-spacing: 0;
+        }
+        #toolbar .menu-bar-btn.quick-action:hover:not(:disabled),
+        #toolbar .toolbar-more-item:hover,
+        #desktopBasemapMenu .basemap-menu-item:hover,
+        #advancedGisPanel .advanced-gis-command:hover:not(:disabled),
+        #sidebar .layer-pane-row:hover,
+        #sidebar .layer-drag-handle:hover,
+        #sidebar .layer-visibility-toggle:hover,
+        #sidebar .layer-pane-actions .mobile-context-trigger:hover,
+        #layerContextMenu .context-menu-btn:hover:not(:disabled) {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-title);
+            border-color: transparent;
+            box-shadow: none;
+        }
+        #toolbar .menu-bar-btn.quick-action.active,
+        #toolbar .menu-bar-btn.quick-action[aria-expanded="true"],
+        #toolbar .toolbar-more-item.active {
+            background: var(--map-ui-selected);
+            color: var(--map-ui-title);
+            box-shadow: none;
+        }
+        #toolbar .menu-bar-btn.quick-action:active:not(:disabled),
+        #toolbar .toolbar-more-item:active,
+        #desktopBasemapMenu .basemap-menu-item:active,
+        #advancedGisPanel .advanced-gis-command:active:not(:disabled),
+        #layerContextMenu .context-menu-btn:active:not(:disabled) {
+            background: var(--map-ui-pressed);
+            transform: scale(0.98);
+        }
+        #toolbar .menu-bar-btn.quick-action:disabled,
+        #advancedGisPanel .advanced-gis-command:disabled,
+        #measurementPanel .measurement-actions button:disabled,
+        #layerContextMenu .context-menu-btn:disabled {
+            opacity: var(--map-ui-disabled-opacity);
+            cursor: default;
+        }
+
+        #toolbar .toolbar-more-popover,
+        #toolbarMenuTray[data-active-menu="basemap"],
+        #layerContextMenu {
+            padding: var(--map-ui-space-3);
+        }
+        #toolbar .toolbar-more-popover,
+        #layerContextMenu {
+            gap: var(--map-ui-space-1);
+        }
+        #toolbar .toolbar-more-item,
+        #desktopBasemapMenu .basemap-menu-item,
+        #layerContextMenu .context-menu-btn {
+            box-sizing: border-box;
+            min-height: var(--map-ui-menu-row-height);
+            gap: 7px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: var(--map-ui-radius-control);
+            background: transparent;
+            box-shadow: none;
+            color: var(--map-ui-text);
+            font-size: 12px;
+            font-weight: 550;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #toolbar .toolbar-more-item .toolbar-icon {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            flex-basis: var(--map-ui-icon-size);
+        }
+        #desktopBasemapMenu .basemap-menu-item {
+            grid-template-columns: var(--map-ui-icon-size) minmax(0, 1fr);
+        }
+        #desktopBasemapMenu .basemap-menu-check {
+            width: var(--map-ui-icon-size);
+            text-align: center;
+        }
+        .basemap-popover-title {
+            padding: var(--map-ui-space-2) var(--map-ui-space-4) var(--map-ui-space-3);
+            color: var(--map-ui-title);
+            font-size: 13px;
+            font-weight: 650;
+        }
+        .basemap-menu-section + .basemap-menu-section {
+            margin-top: var(--map-ui-space-2);
+            padding-top: var(--map-ui-space-3);
+            border-top-color: var(--map-ui-divider);
+        }
+        .basemap-menu-section-label,
+        #advancedGisPanel .advanced-gis-section-heading {
+            padding-left: var(--map-ui-space-4);
+            padding-right: var(--map-ui-space-4);
+            color: var(--map-ui-muted);
+            font-size: 10px;
+            font-weight: 650;
+            letter-spacing: 0.09em;
+        }
+
+        #sidebar .sidebar-topbar,
+        #measurementPanel .measurement-panel-header,
+        #advancedGisPanel .measurement-panel-header {
+            align-items: center;
+            gap: var(--map-ui-space-4);
+        }
+        #sidebar .sidebar-topbar,
+        #measurementPanel .measurement-panel-header {
+            box-sizing: border-box;
+            min-height: 30px;
+            margin: 0 0 var(--map-ui-space-4);
+            padding: 0 var(--map-ui-space-1);
+        }
+        #advancedGisPanel .measurement-panel-header {
+            min-height: 46px;
+            margin: 0;
+            padding: var(--map-ui-space-3) var(--map-ui-space-5);
+            border-bottom-color: var(--map-ui-divider);
+            background: transparent;
+        }
+        #sidebar .sidebar-heading,
+        #measurementPanel .measurement-panel-title,
+        #advancedGisPanel .measurement-panel-title {
+            color: var(--map-ui-title);
+            font-size: 15px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        #advancedGisPanel .advanced-gis-layer-context-desktop,
+        #measurementPanel .measurement-result-secondary,
+        #measurementPanel .measurement-hint,
+        #sidebar .layer-pane-helper {
+            color: var(--map-ui-muted);
+            font-size: 11px;
+            font-weight: 500;
+        }
+        #sidebar .sidebar-close-btn,
+        #measurementPanel .measurement-close,
+        #advancedGisPanel .measurement-close {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            min-height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: var(--map-ui-radius-utility);
+            background: transparent;
+            color: var(--map-ui-muted);
+            box-shadow: none;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #sidebar .sidebar-close-btn:hover,
+        #measurementPanel .measurement-close:hover,
+        #advancedGisPanel .measurement-close:hover {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-text);
+        }
+        #sidebar .sidebar-close-btn:active,
+        #measurementPanel .measurement-close:active,
+        #advancedGisPanel .measurement-close:active {
+            background: var(--map-ui-pressed);
+            transform: scale(0.96);
+        }
+
+        #sidebar .sidebar-tabs,
+        #measurementPanel .measurement-mode-switch {
+            box-sizing: border-box;
+            height: var(--map-ui-control-height);
+            min-height: var(--map-ui-control-height);
+            gap: var(--map-ui-space-1);
+            padding: var(--map-ui-space-1);
+            border: 0;
+            border-radius: var(--map-ui-radius-control);
+            background: var(--map-ui-hover);
+        }
+        #sidebar .sidebar-tab,
+        #measurementPanel .measurement-mode-btn {
+            box-sizing: border-box;
+            min-height: 26px;
+            height: 26px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: #7b8490;
+            font-size: 11px;
+            font-weight: 600;
+        }
+        #sidebar .sidebar-tab.active,
+        #measurementPanel .measurement-mode-btn.active {
+            background: #fff;
+            color: var(--map-ui-title);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #measurementPanel #measurementUnitSelect {
+            height: var(--map-ui-control-height);
+            border-radius: var(--map-ui-radius-control);
+            background: var(--map-ui-hover);
+            font-weight: 600;
+        }
+
+        #sidebar .sidebar-shell {
+            gap: var(--map-ui-space-4);
+        }
+        #sidebar .layer-pane-row {
+            min-height: 38px;
+            gap: var(--map-ui-space-3);
+            padding: var(--map-ui-space-2) var(--map-ui-space-3);
+            border-radius: var(--map-ui-radius-control);
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion);
+        }
+        #sidebar .layer-pane-row.active {
+            background: rgba(15, 118, 110, 0.07);
+            box-shadow: inset 2px 0 0 rgba(15, 118, 110, 0.48);
+        }
+        #sidebar .layer-drag-handle,
+        #sidebar .layer-visibility-toggle,
+        #sidebar .layer-pane-actions .mobile-context-trigger {
+            border-radius: var(--map-ui-radius-utility);
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion);
+        }
+        #sidebar .layer-pane-name {
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #sidebar .layer-visibility-icon {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            stroke-width: 1.7;
+        }
+
+        #measurementPanel .measurement-panel-row {
+            gap: var(--map-ui-space-4);
+            margin-bottom: var(--map-ui-space-4);
+        }
+        #measurementPanel .measurement-result {
+            padding: var(--map-ui-space-1) var(--map-ui-space-1) 0;
+        }
+        #measurementPanel .measurement-result strong {
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-hint {
+            margin: var(--map-ui-space-2) var(--map-ui-space-1) var(--map-ui-space-4);
+        }
+        #measurementPanel .measurement-actions {
+            gap: var(--map-ui-space-3);
+            padding-top: var(--map-ui-space-4);
+            border-top-color: var(--map-ui-divider);
+        }
+        #measurementPanel .measurement-actions button {
+            height: 28px;
+            padding: 0 var(--map-ui-space-4);
+            border-radius: var(--map-ui-radius-utility);
+            font-weight: 600;
+            box-shadow: none;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+
+        #advancedGisPanel .advanced-gis-desktop-content {
+            padding: var(--map-ui-space-3) var(--map-ui-space-4) var(--map-ui-space-5);
+        }
+        #advancedGisPanel .advanced-gis-command-section {
+            padding: var(--map-ui-space-4) 0;
+        }
+        #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
+            border-top-color: var(--map-ui-divider);
+        }
+        #advancedGisPanel .advanced-gis-command-list {
+            gap: var(--map-ui-space-1);
+        }
+        #advancedGisPanel .advanced-gis-command {
+            min-height: var(--map-ui-menu-row-height);
+            gap: 7px;
+            padding: 0 var(--map-ui-space-4);
+            border-radius: var(--map-ui-radius-control);
+            font-size: 12px;
+            font-weight: 550;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        #advancedGisPanel .advanced-gis-command-icon,
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+        }
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            stroke-width: 1.7;
+        }
+        #advancedGisPanel .advanced-gis-subcommands {
+            gap: var(--map-ui-space-1);
+            margin: var(--map-ui-space-1) 0 var(--map-ui-space-1) 18px;
+            border-left-color: var(--map-ui-divider);
+        }
+        #advancedGisPanel .advanced-gis-subcommands .advanced-gis-command {
+            min-height: 30px;
+        }
+
+        #editFloatingPanel,
+        #addActionPopover {
+            border: 1px solid var(--map-ui-border);
+            border-radius: var(--map-ui-radius-surface);
+            background: var(--map-ui-surface);
+            box-shadow: var(--map-ui-elevation);
+            backdrop-filter: blur(20px) saturate(145%);
+            -webkit-backdrop-filter: blur(20px) saturate(145%);
+        }
+        #editFloatingPanel {
+            display: block;
+            width: min(310px, calc(100vw - 24px));
+            min-height: 0;
+            overflow: hidden;
+        }
+        #editFloatingPanel[hidden] {
+            display: none;
+        }
+        #editFloatingPanel .edit-panel-header {
+            box-sizing: border-box;
+            min-width: 0;
+            min-height: 42px;
+            justify-content: space-between;
+            padding: var(--map-ui-space-3) var(--map-ui-space-5);
+            border: 0;
+            border-bottom: 1px solid var(--map-ui-divider);
+            border-radius: 0;
+            background: transparent;
+            cursor: grab;
+        }
+        #editFloatingPanel .edit-panel-title {
+            justify-content: flex-start;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            text-indent: 0;
+            color: var(--map-ui-title);
+            font-size: 15px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        #editFloatingPanel .edit-panel-title::before {
+            display: none;
+        }
+        #editFloatingPanel #editPanelPinBtn,
+        #editFloatingPanel .edit-panel-body-mobile {
+            display: none;
+        }
+        #editFloatingPanel #editPanelCloseBtn {
+            width: 28px;
+            min-width: 28px;
+            height: 28px;
+            padding: 0;
+            border: 0;
+            border-radius: var(--map-ui-radius-utility);
+            background: transparent;
+            color: var(--map-ui-muted);
+            box-shadow: none;
+        }
+        #editFloatingPanel #editPanelCloseBtn:hover {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-text);
+        }
+        .draw-context-desktop {
+            display: block;
+            padding: var(--map-ui-space-5);
+        }
+        .draw-context-state[hidden] {
+            display: none;
+        }
+        .draw-context-geometry {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(76px, 1fr));
+            gap: var(--map-ui-space-2);
+            padding: var(--map-ui-space-1);
+            border-radius: var(--map-ui-radius-control);
+            background: var(--map-ui-hover);
+        }
+        .draw-geometry-choice {
+            box-sizing: border-box;
+            min-width: 0;
+            height: 34px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: var(--map-ui-space-2);
+            padding: 0 var(--map-ui-space-3);
+            border: 0;
+            border-radius: 6px;
+            background: transparent;
+            color: var(--map-ui-text);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background-color var(--map-ui-motion), color var(--map-ui-motion);
+        }
+        .draw-geometry-choice svg,
+        .add-action-menu-item svg {
+            width: var(--map-ui-icon-size);
+            height: var(--map-ui-icon-size);
+            flex: 0 0 var(--map-ui-icon-size);
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.7;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        .draw-geometry-choice:hover:not(:disabled) {
+            background: rgba(255, 255, 255, 0.7);
+            color: var(--map-ui-title);
+        }
+        .draw-geometry-choice[aria-pressed="true"] {
+            background: #fff;
+            color: var(--map-ui-title);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        .draw-geometry-choice:disabled {
+            opacity: var(--map-ui-disabled-opacity);
+            cursor: default;
+        }
+        .draw-context-hint {
+            min-height: 16px;
+            margin: var(--map-ui-space-4) var(--map-ui-space-1) 0;
+            color: var(--map-ui-muted);
+            font-size: 11px;
+            font-weight: 500;
+            line-height: 1.4;
+        }
+        .draw-context-actions,
+        .draw-selection-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: var(--map-ui-space-3);
+            margin-top: var(--map-ui-space-4);
+        }
+        .draw-selection-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+        .draw-context-action {
+            min-height: 28px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: var(--map-ui-radius-utility);
+            background: transparent;
+            color: var(--map-ui-text);
+            font-size: 11px;
+            font-weight: 600;
+            cursor: pointer;
+            transition:
+                background-color var(--map-ui-motion),
+                color var(--map-ui-motion),
+                transform var(--map-ui-motion);
+        }
+        .draw-context-action:hover:not(:disabled) {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-title);
+        }
+        .draw-context-action.primary {
+            background: #0f766e;
+            color: #fff;
+        }
+        .draw-context-action.primary:hover:not(:disabled) {
+            background: #115e59;
+            color: #fff;
+        }
+        .draw-context-action.danger {
+            margin-left: auto;
+            color: #b42318;
+        }
+        .draw-context-action.danger:hover:not(:disabled) {
+            background: rgba(180, 35, 24, 0.08);
+            color: #912018;
+        }
+        .draw-context-action:disabled {
+            opacity: var(--map-ui-disabled-opacity);
+            cursor: default;
+        }
+        .draw-selection-title {
+            margin: 0;
+            color: var(--map-ui-title);
+            font-size: 12px;
+            font-weight: 650;
+        }
+        #addActionPopover {
+            position: fixed;
+            z-index: 1220;
+            width: 176px;
+            padding: var(--map-ui-space-3);
+        }
+        #addActionPopover[hidden] {
+            display: none;
+        }
+        #addActionPopover:not([hidden]) {
+            display: block;
+        }
+        .add-action-popover-title {
+            padding: var(--map-ui-space-2) var(--map-ui-space-4) var(--map-ui-space-3);
+            color: var(--map-ui-title);
+            font-size: 13px;
+            font-weight: 650;
+        }
+        .add-action-menu-item {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: var(--map-ui-menu-row-height);
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 0 var(--map-ui-space-4);
+            border: 0;
+            border-radius: var(--map-ui-radius-control);
+            background: transparent;
+            color: var(--map-ui-text);
+            font-size: 12px;
+            font-weight: 550;
+            text-align: left;
+            cursor: pointer;
+            transition: background-color var(--map-ui-motion), color var(--map-ui-motion);
+        }
+        .add-action-menu-item:hover {
+            background: var(--map-ui-hover);
+            color: var(--map-ui-title);
+        }
+        body.draw-mode-active #map,
+        body.draw-mode-active #map * {
+            cursor: crosshair;
+        }
+
+        #toolbar .menu-bar-btn.quick-action:focus-visible,
+        #toolbar .toolbar-more-item:focus-visible,
+        #desktopBasemapMenu .basemap-menu-item:focus-visible,
+        #sidebar .sidebar-close-btn:focus-visible,
+        #sidebar .sidebar-tab:focus-visible,
+        #sidebar .layer-drag-handle:focus-visible,
+        #sidebar .layer-visibility-toggle:focus-visible,
+        #sidebar .layer-pane-actions .mobile-context-trigger:focus-visible,
+        #measurementPanel .measurement-close:focus-visible,
+        #measurementPanel .measurement-mode-btn:focus-visible,
+        #measurementPanel #measurementUnitSelect:focus-visible,
+        #measurementPanel .measurement-actions button:focus-visible,
+        #advancedGisPanel .measurement-close:focus-visible,
+        #advancedGisPanel .advanced-gis-command:focus-visible,
+        #editFloatingPanel #editPanelCloseBtn:focus-visible,
+        #editFloatingPanel .draw-geometry-choice:focus-visible,
+        #editFloatingPanel .draw-context-action:focus-visible,
+        #addActionPopover .add-action-menu-item:focus-visible,
+        #layerContextMenu .context-menu-btn:focus-visible {
+            outline: 2px solid var(--map-ui-focus);
+            outline-offset: 1px;
+            box-shadow: none;
+        }
     }
     .workspace-badge,
     .workspace-pill {
@@ -6989,6 +8458,787 @@
         display: none;
     }
 
+    @media (max-width: 600px) {
+        :root {
+            --mobile-tool-radius: 20px;
+            --mobile-control-radius: 12px;
+            --mobile-tool-surface: rgba(255, 255, 255, 0.94);
+            --mobile-tool-border: rgba(209, 213, 219, 0.58);
+            --mobile-tool-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
+            --mobile-tool-muted: #7b8490;
+            --mobile-toolbar-bottom: max(62px, calc(env(safe-area-inset-bottom, 0px) + 10px));
+            --mobile-toolbar-height: 58px;
+            --mobile-map-chrome-clearance: 44px;
+        }
+
+        #toolbar {
+            min-height: calc(48px + env(safe-area-inset-top, 0px));
+            padding-top: max(2px, env(safe-area-inset-top, 0px));
+            z-index: 1500;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        #toolbar #rightToolbarExpand {
+            display: none !important;
+        }
+        #toolbar .toolbar-right {
+            position: static;
+        }
+        #toolbar .toolbar-right .toolbar-help-search-group {
+            position: absolute;
+            right: max(10px, env(safe-area-inset-right, 0px));
+        }
+        #toolbar .toolbar-right:not(.expanded) .toolbar-quick-actions,
+        #toolbar .toolbar-right.expanded .toolbar-quick-actions,
+        #toolbar #quickActionBar {
+            position: fixed;
+            left: max(8px, calc(50% - 143px));
+            right: auto;
+            top: auto;
+            bottom: var(--mobile-toolbar-bottom);
+            z-index: 1280;
+            width: min(286px, calc(100vw - 16px));
+            max-width: none;
+            min-height: var(--mobile-toolbar-height);
+            display: flex !important;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            box-sizing: border-box;
+            margin: 0;
+            padding: 4px 6px;
+            overflow: visible;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 18px;
+            background: rgba(255, 255, 255, 0.88);
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            transform: none;
+        }
+        #toolbar #quickActionBar .toolbar-action-group {
+            position: static;
+            display: flex;
+            flex: 0 0 auto;
+            gap: 2px;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+        #toolbar #quickActionBar .toolbar-action-group + .toolbar-action-group {
+            margin: 0;
+            padding: 0;
+        }
+        #toolbar #quickActionBar .toolbar-action-group::before,
+        #toolbar #quickActionBar #toolbarLayersBtn::before {
+            display: none;
+        }
+        #toolbar #quickActionBar .toolbar-history-group {
+            display: none;
+        }
+        #toolbar #quickActionBar #toolbarBasemapBtn,
+        #toolbar #quickActionBar #measureToolBtn,
+        #toolbar #quickActionBar #advancedGisBtn {
+            display: none !important;
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action {
+            box-sizing: border-box;
+            width: 52px;
+            min-width: 52px;
+            height: 50px;
+            min-height: 50px;
+            display: inline-flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 2px;
+            margin: 0;
+            padding: 3px 2px;
+            border: 0;
+            border-radius: var(--mobile-control-radius);
+            background: transparent;
+            color: #667085;
+            box-shadow: none;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action[hidden] {
+            display: none !important;
+        }
+        #toolbar #quickActionBar .quick-action-icon,
+        #toolbar #quickActionBar .toolbar-icon {
+            width: 19px;
+            height: 19px;
+            flex-basis: 19px;
+        }
+        #toolbar #quickActionBar .quick-action-label,
+        #toolbar .toolbar-right.expanded #editPanelToggleBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #addSurveyPointBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #myLocationBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #toolbarLayersBtn .quick-action-label,
+        #toolbar .toolbar-right.expanded #toolbarMoreBtn .quick-action-label {
+            display: block;
+            max-width: 48px;
+            overflow: hidden;
+            font-size: 9px;
+            font-weight: 650;
+            line-height: 1;
+            letter-spacing: 0;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action:active:not(:disabled) {
+            background: rgba(15, 23, 42, 0.09);
+            transform: scale(0.96);
+        }
+        #toolbar #quickActionBar .menu-bar-btn.quick-action.active,
+        #toolbar #quickActionBar .menu-bar-btn.quick-action[aria-expanded="true"],
+        #toolbar #quickActionBar #toolbarMoreBtn.has-active-tool {
+            background: rgba(15, 118, 110, 0.11);
+            color: #0f766e;
+            box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
+        }
+        #toolbar #quickActionBar .toolbar-more-menu {
+            display: block !important;
+        }
+        #toolbar #toolbarMorePopover {
+            position: absolute;
+            left: 0;
+            right: 0;
+            top: auto;
+            bottom: calc(100% + 8px);
+            z-index: 1320;
+            width: auto;
+            min-width: 0;
+            max-width: none;
+            display: grid;
+            gap: 2px;
+            padding: 7px;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 16px;
+            background: var(--mobile-tool-surface);
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+        }
+        #toolbar #toolbarMorePopover[hidden] {
+            display: none;
+        }
+        #toolbar #toolbarMorePopover .toolbar-more-item {
+            min-height: 44px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            box-shadow: none;
+            font-size: 14px;
+        }
+        #toolbar #toolbarMorePopover .toolbar-more-item:active {
+            background: rgba(15, 23, 42, 0.075);
+        }
+        #workspaceHint {
+            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+        }
+
+        #sidebar,
+        #measurementPanel,
+        #advancedGisPanel,
+        #editFloatingPanel,
+        #toolbarMenuTray[data-active-menu="basemap"] {
+            position: fixed !important;
+            left: max(0px, env(safe-area-inset-left, 0px)) !important;
+            right: max(0px, env(safe-area-inset-right, 0px)) !important;
+            top: auto !important;
+            bottom: 0 !important;
+            z-index: 1600;
+            box-sizing: border-box;
+            width: auto !important;
+            min-height: 0;
+            margin: 0;
+            border: 1px solid var(--mobile-tool-border);
+            border-bottom: 0;
+            border-radius: var(--mobile-tool-radius) var(--mobile-tool-radius) 0 0;
+            background: var(--mobile-tool-surface);
+            box-shadow: var(--mobile-tool-shadow);
+            color: #374151;
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            transform: none;
+        }
+        #sidebar::before,
+        #measurementPanel::before,
+        #advancedGisPanel::before,
+        #editFloatingPanel::before,
+        #toolbarMenuTray[data-active-menu="basemap"]::before {
+            content: "";
+            display: block;
+            width: 36px;
+            height: 4px;
+            margin: 7px auto 3px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.28);
+            pointer-events: none;
+        }
+        #sidebar {
+            max-height: min(62dvh, 520px);
+            padding: 4px 14px calc(var(--mobile-map-chrome-clearance) + 14px + env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+        }
+        #sidebar .sidebar-shell {
+            min-height: 0;
+            max-height: calc(min(62dvh, 520px) - var(--mobile-map-chrome-clearance) - 28px - env(safe-area-inset-bottom, 0px));
+            gap: 8px;
+        }
+        #sidebar .sidebar-topbar {
+            min-height: 40px;
+            align-items: center;
+            padding: 0;
+            border: 0;
+        }
+        #sidebar .sidebar-heading {
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #sidebar .sidebar-subheading,
+        #sidebar .layer-pane-helper-desktop {
+            display: none;
+        }
+        #sidebar .sidebar-close-btn,
+        #measurementPanel .measurement-close,
+        #advancedGisPanel .measurement-close,
+        #editFloatingPanel #editPanelCloseBtn {
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            min-height: 44px;
+            padding: 0;
+            border: 0;
+            border-radius: 12px;
+            background: transparent;
+            color: var(--mobile-tool-muted);
+            box-shadow: none;
+            font-size: 20px;
+        }
+        #sidebar-content {
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #sidebar .sidebar-tabs {
+            height: 34px;
+            gap: 2px;
+            padding: 2px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #sidebar .sidebar-tab {
+            min-height: 30px;
+            border: 0;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        #sidebar .layer-pane-row {
+            display: grid;
+            grid-template-columns: 44px minmax(0, 1fr) 44px;
+            align-items: center;
+            gap: 4px;
+            min-height: 52px;
+            margin-top: 2px;
+            padding: 4px 2px;
+            border: 0;
+            border-radius: 12px;
+            background: transparent;
+        }
+        #sidebar .layer-pane-row.active {
+            background: rgba(15, 118, 110, 0.08);
+            box-shadow: inset 3px 0 0 rgba(15, 118, 110, 0.5);
+        }
+        #sidebar .layer-drag-handle,
+        #sidebar .layer-pane-actions .layer-order-btn,
+        #sidebar .layer-visibility-check {
+            display: none;
+        }
+        #sidebar .layer-visibility-toggle,
+        #sidebar .layer-pane-actions .mobile-context-trigger {
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #667085;
+            box-shadow: none;
+        }
+        #sidebar .layer-visibility-icon {
+            display: block;
+            width: 20px;
+            height: 20px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        #sidebar .layer-pane-name {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+        }
+        #sidebar .layer-pane-actions {
+            width: 44px;
+            margin: 0;
+        }
+
+        #measurementPanel {
+            max-height: min(46dvh, 390px);
+            padding: 3px 16px calc(var(--mobile-map-chrome-clearance) + 16px + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+        }
+        #measurementPanel .measurement-panel-header,
+        #advancedGisPanel .measurement-panel-header,
+        #editFloatingPanel .edit-panel-header {
+            min-height: 44px;
+            align-items: center;
+            margin: 0 0 6px;
+            padding: 0;
+            border: 0;
+            background: transparent;
+        }
+        #measurementPanel .measurement-panel-title,
+        #advancedGisPanel .measurement-panel-title,
+        #editFloatingPanel .edit-panel-title {
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 650;
+            letter-spacing: -0.01em;
+        }
+        #measurementPanel .measurement-panel-row {
+            gap: 8px;
+            margin-bottom: 8px;
+        }
+        #measurementPanel .measurement-mode-switch {
+            height: 34px;
+            gap: 2px;
+            padding: 2px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #measurementPanel .measurement-mode-btn {
+            height: 30px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+        }
+        #measurementPanel .measurement-mode-btn.active {
+            background: #fff;
+            color: #1f2937;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #measurementPanel #measurementUnitSelect {
+            height: 34px;
+            min-width: 88px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 12px;
+        }
+        #measurementPanel .measurement-result {
+            min-height: 0;
+            padding: 2px 0 0;
+            border: 0;
+            border-radius: 0;
+            background: transparent;
+        }
+        #measurementPanel .measurement-result strong {
+            margin: 0;
+            color: #1f2937;
+            font-size: 22px;
+            font-weight: 650;
+        }
+        #measurementPanel .measurement-result-secondary-mobile,
+        #measurementPanel .measurement-hint-mobile,
+        #measurementPanel .measurement-action-label-mobile {
+            display: none;
+        }
+        #measurementPanel .measurement-result-secondary-desktop,
+        #measurementPanel .measurement-hint-desktop,
+        #measurementPanel .measurement-action-label-desktop {
+            display: block;
+        }
+        #measurementPanel .measurement-result-secondary-desktop[hidden],
+        #measurementPanel .measurement-hint-desktop[hidden] {
+            display: none;
+        }
+        #measurementPanel .measurement-hint {
+            margin: 4px 0 8px;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+        }
+        #measurementPanel .measurement-actions {
+            justify-content: flex-end;
+            gap: 6px;
+            padding-top: 8px;
+            border-top: 1px solid rgba(209, 213, 219, 0.58);
+        }
+        #measurementPanel .measurement-actions button {
+            min-width: 60px;
+            height: 44px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #measurementPanel .measurement-actions button.primary {
+            background: #0f766e;
+            color: #fff;
+        }
+        #measurementPanel #measurementClearBtn {
+            background: transparent;
+            color: #9b4b4b;
+        }
+        #measurementPanel .measurement-actions button:disabled {
+            opacity: 0.38;
+        }
+
+        #advancedGisPanel {
+            max-height: min(68dvh, 620px);
+            padding: 3px 0 calc(var(--mobile-map-chrome-clearance) + 10px + env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+        }
+        #advancedGisPanel .measurement-panel-header {
+            padding: 0 12px;
+        }
+        #advancedGisPanel .measurement-panel-title {
+            display: grid;
+            gap: 1px;
+        }
+        #advancedGisPanel .advanced-gis-layer-context-desktop {
+            display: block;
+            max-width: calc(100vw - 92px);
+            overflow: hidden;
+            color: var(--mobile-tool-muted);
+            font-size: 11px;
+            font-weight: 500;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #advancedGisPanel .advanced-gis-badge,
+        #advancedGisPanel .advanced-gis-mobile-content {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-desktop-content {
+            display: block;
+            max-height: calc(min(68dvh, 620px) - var(--mobile-map-chrome-clearance) - 64px - env(safe-area-inset-bottom, 0px));
+            padding: 0 8px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #advancedGisPanel .advanced-gis-command-section {
+            padding: 7px 0;
+        }
+        #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
+            border-top: 1px solid rgba(209, 213, 219, 0.56);
+        }
+        #advancedGisPanel .advanced-gis-section-heading {
+            min-height: 20px;
+            margin: 0;
+            padding: 0 10px 4px;
+            color: #8b949e;
+            font-size: 10px;
+            letter-spacing: 0.09em;
+        }
+        #advancedGisPanel .advanced-gis-command {
+            min-height: 44px;
+            padding: 0 10px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #4b5563;
+            font-size: 14px;
+            text-align: left;
+        }
+        #advancedGisPanel .advanced-gis-command:disabled {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-command-icon,
+        #advancedGisPanel .advanced-gis-command-icon svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        #editFloatingPanel {
+            max-height: min(48dvh, 420px);
+            padding: 3px 16px calc(var(--mobile-map-chrome-clearance) + 16px + env(safe-area-inset-bottom, 0px));
+            overflow: hidden;
+            opacity: 0;
+            pointer-events: none;
+        }
+        #editFloatingPanel:not([hidden]) {
+            display: block;
+        }
+        #editFloatingPanel[hidden] {
+            display: none !important;
+        }
+        #editFloatingPanel.toolbar-visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #editFloatingPanel .edit-panel-header {
+            display: flex;
+            justify-content: space-between;
+            cursor: default;
+        }
+        #editFloatingPanel .edit-panel-title {
+            display: inline-flex;
+            width: auto;
+            height: auto;
+            overflow: visible;
+            text-indent: 0;
+        }
+        #editFloatingPanel .edit-panel-title::before,
+        #editFloatingPanel #editPanelPinBtn,
+        #editFloatingPanel .edit-panel-body-mobile {
+            display: none;
+        }
+        #editFloatingPanel .draw-context-desktop {
+            display: block;
+            padding: 2px 0 0;
+        }
+        #editFloatingPanel .draw-context-state[hidden] {
+            display: none;
+        }
+        #editFloatingPanel .draw-context-geometry {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(84px, 1fr));
+            gap: 4px;
+            padding: 3px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #editFloatingPanel .draw-geometry-choice {
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #667085;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #editFloatingPanel .draw-geometry-choice[aria-pressed="true"] {
+            background: #fff;
+            color: #1f2937;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
+        }
+        #editFloatingPanel .draw-geometry-choice svg {
+            width: 18px;
+            height: 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        #editFloatingPanel .draw-context-hint {
+            margin: 8px 2px 0;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+        }
+        #editFloatingPanel .draw-context-actions,
+        #editFloatingPanel .draw-selection-actions {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 6px;
+            margin-top: 10px;
+        }
+        #editFloatingPanel .draw-selection-actions {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+        }
+        #editFloatingPanel .draw-context-action {
+            min-width: 64px;
+            min-height: 44px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+        #editFloatingPanel .draw-context-action.primary {
+            background: #0f766e;
+            color: #fff;
+        }
+        #editFloatingPanel .draw-context-action.quiet {
+            background: transparent;
+        }
+        #editFloatingPanel .draw-context-action.danger {
+            margin-left: auto;
+            background: transparent;
+            color: #b42318;
+        }
+        #editFloatingPanel .draw-selection-title {
+            margin: 0;
+            color: #1f2937;
+            font-size: 14px;
+            font-weight: 650;
+        }
+
+        #toolbarMenuTray[data-active-menu="basemap"] {
+            max-height: min(52dvh, 430px);
+            padding: 3px 12px calc(var(--mobile-map-chrome-clearance) + 14px + env(safe-area-inset-bottom, 0px));
+            overflow-y: auto;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] #desktopBasemapMenu {
+            display: block;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-popover-title {
+            padding: 8px 8px 10px;
+            color: #1f2937;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-section-label {
+            padding: 7px 10px 3px;
+            color: #8b949e;
+            font-size: 10px;
+            letter-spacing: 0.09em;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item {
+            min-height: 44px;
+            padding: 0 10px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #4b5563;
+            font-size: 14px;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item:not(.active) .basemap-menu-check {
+            opacity: 0 !important;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item.active .basemap-menu-check {
+            opacity: 1 !important;
+        }
+
+        #selectedFeatureInspector {
+            position: fixed;
+            left: max(10px, env(safe-area-inset-left, 0px));
+            right: max(10px, env(safe-area-inset-right, 0px));
+            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+            z-index: 1275;
+            box-sizing: border-box;
+            width: auto;
+            padding: 8px 10px;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 16px;
+            background: var(--mobile-tool-surface);
+            color: #374151;
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+        }
+        #selectedFeatureInspector.visible {
+            display: grid;
+            gap: 6px;
+        }
+        #selectedFeatureInspector .mobile-selection-summary {
+            min-height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding-left: 4px;
+            font-size: 13px;
+        }
+        #selectedFeatureInspector .mobile-selection-dismiss {
+            width: 36px;
+            height: 36px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: var(--mobile-tool-muted);
+            font-size: 19px;
+        }
+        #selectedFeatureInspector .mobile-selection-actions {
+            display: flex;
+            gap: 4px;
+        }
+        #selectedFeatureInspector .mobile-selection-actions button {
+            min-width: 0;
+            min-height: 44px;
+            flex: 1 1 0;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 10px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #4b5563;
+            font-size: 13px;
+            font-weight: 600;
+        }
+
+        #toolbar #quickActionBar .menu-bar-btn.quick-action:focus-visible,
+        #toolbar #toolbarMorePopover .toolbar-more-item:focus-visible,
+        #sidebar button:focus-visible,
+        #measurementPanel button:focus-visible,
+        #measurementPanel select:focus-visible,
+        #advancedGisPanel button:focus-visible,
+        #editFloatingPanel button:focus-visible,
+        #toolbarMenuTray[data-active-menu="basemap"] button:focus-visible,
+        #selectedFeatureInspector button:focus-visible {
+            outline: 2px solid rgba(15, 118, 110, 0.42);
+            outline-offset: 1px;
+        }
+    }
+
+    @media (max-width: 600px) and (orientation: landscape) {
+        :root {
+            --mobile-map-chrome-clearance: 0px;
+        }
+        #sidebar,
+        #advancedGisPanel {
+            max-height: 78dvh;
+        }
+        #sidebar .sidebar-shell {
+            max-height: calc(78dvh - var(--mobile-map-chrome-clearance) - 28px - env(safe-area-inset-bottom, 0px));
+        }
+        #advancedGisPanel .advanced-gis-desktop-content {
+            max-height: calc(78dvh - var(--mobile-map-chrome-clearance) - 64px - env(safe-area-inset-bottom, 0px));
+        }
+        #measurementPanel,
+        #editFloatingPanel {
+            max-height: 68dvh;
+        }
+        #sidebar .layer-pane-row {
+            width: calc(100% - 46px);
+            margin-left: 46px;
+        }
+        #sidebar .layer-pane-helper-mobile {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-desktop-content,
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-section {
+            padding-left: 44px;
+        }
+        #editFloatingPanel .draw-context-hint {
+            margin-left: 44px;
+        }
+    }
+
     .print-prep-summary {
         display: grid;
         gap: 10px;
@@ -7094,7 +9344,7 @@
         <div class="toolbar-right">
             <div id="quickActionBar" class="toolbar-quick-actions">
                 <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
-                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" title="Draw">
+                    <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" aria-controls="editFloatingPanel" aria-expanded="false" title="Draw">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M4 20h4"></path>
@@ -7113,6 +9363,8 @@
                         </span>
                         <span class="quick-action-label">Add</span>
                     </button>
+                </div>
+                <div class="toolbar-action-group toolbar-history-group" aria-label="History controls">
                     <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Undo" title="Undo">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -7155,6 +9407,46 @@
                         </span>
                         <span class="quick-action-label">Layers</span>
                     </button>
+                    <div id="toolbarMoreMenu" class="toolbar-more-menu">
+                        <button id="toolbarMoreBtn" type="button" class="menu-bar-btn quick-action" aria-label="More tools" aria-haspopup="menu" aria-controls="toolbarMorePopover" aria-expanded="false" title="More">
+                            <span class="quick-action-icon" aria-hidden="true">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                    <circle cx="5" cy="12" r="1"></circle>
+                                    <circle cx="12" cy="12" r="1"></circle>
+                                    <circle cx="19" cy="12" r="1"></circle>
+                                </svg>
+                            </span>
+                            <span class="quick-action-label">More</span>
+                        </button>
+                        <div id="toolbarMorePopover" class="toolbar-more-popover" role="menu" aria-label="More map tools" hidden>
+                            <button id="toolbarMoreBasemapItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="toolbarBasemapBtn">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"></path>
+                                    <path d="M9 3v15"></path>
+                                    <path d="M15 6v15"></path>
+                                </svg>
+                                <span>Basemap</span>
+                            </button>
+                            <button id="toolbarMoreMeasureItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="measureToolBtn">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M4 15l9-9 7 7-9 9-7-7z"></path>
+                                    <path d="M9 10l2 2"></path>
+                                    <path d="M12 7l2 2"></path>
+                                    <path d="M6 13l2 2"></path>
+                                </svg>
+                                <span>Measure</span>
+                            </button>
+                            <button id="toolbarMoreGisItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="advancedGisBtn">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
+                                    <path d="M12 11l7-4"></path>
+                                    <path d="M12 11v8"></path>
+                                    <path d="M12 11L5 7"></path>
+                                </svg>
+                                <span>Advanced GIS</span>
+                            </button>
+                        </div>
+                    </div>
                     <button id="toolbarBasemapBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open basemap controls" aria-controls="toolbarMenuTray" aria-expanded="false" title="Basemap">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -7224,77 +9516,218 @@
             <button id="measurementCloseBtn" type="button" class="measurement-close" aria-label="Close measurement tools">×</button>
         </div>
         <div class="measurement-panel-row">
-            <button id="measurementDistanceModeBtn" type="button" class="measurement-mode-btn active">Distance</button>
-            <button id="measurementAreaModeBtn" type="button" class="measurement-mode-btn">Area</button>
+            <div class="measurement-mode-switch" role="group" aria-label="Measurement type">
+                <button id="measurementDistanceModeBtn" type="button" class="measurement-mode-btn active" aria-pressed="true">Distance</button>
+                <button id="measurementAreaModeBtn" type="button" class="measurement-mode-btn" aria-pressed="false">Area</button>
+            </div>
             <select id="measurementUnitSelect" aria-label="Measurement units">
                 <option value="metric">Metric</option>
                 <option value="imperial">Imperial</option>
             </select>
         </div>
         <div id="measurementResult" class="measurement-result">
-            <strong>0 m</strong>
-            Click the map to start measuring.
+            <strong class="measurement-result-value">0 m</strong>
+            <div class="measurement-result-secondary measurement-result-secondary-mobile">Segments: 0<br>Points: 0</div>
         </div>
-        <p id="measurementHint" class="measurement-hint">Distance mode: click two or more points. Double-click or Finish to complete.</p>
+        <p id="measurementHint" class="measurement-hint measurement-hint-desktop">Click the map to begin.</p>
+        <p id="measurementHintMobile" class="measurement-hint measurement-hint-mobile">Distance mode: click two or more points. Double-click or Finish to complete.</p>
         <div class="measurement-actions">
-            <button id="measurementUndoPointBtn" type="button">Undo point</button>
-            <button id="measurementFinishBtn" type="button" class="primary">Finish</button>
-            <button id="measurementClearBtn" type="button">Clear</button>
+            <button id="measurementUndoPointBtn" type="button" aria-label="Undo last measurement point">
+                <span class="measurement-action-label-desktop">Undo</span>
+                <span class="measurement-action-label-mobile">Undo point</span>
+            </button>
+            <button id="measurementFinishBtn" type="button" class="primary" aria-label="Finish measurement">
+                <span class="measurement-action-label-desktop">Done</span>
+                <span class="measurement-action-label-mobile">Finish</span>
+            </button>
+            <button id="measurementClearBtn" type="button" aria-label="Clear measurement">Clear</button>
         </div>
     </div>
     <div id="advancedGisPanel" class="advanced-gis-panel" role="region" hidden aria-label="Advanced GIS tools">
         <div class="measurement-panel-header">
-            <span class="measurement-panel-title">Advanced GIS <span id="advancedGisLayerBadge" class="advanced-gis-badge">No layer</span></span>
+            <span class="measurement-panel-title">
+                <span>Advanced GIS</span>
+                <span id="advancedGisLayerContext" class="advanced-gis-layer-context-desktop">No active layer</span>
+                <span id="advancedGisLayerBadge" class="advanced-gis-badge">No layer</span>
+            </span>
             <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close advanced GIS tools">×</button>
         </div>
-        <div class="advanced-gis-section">
-            <h4>Export</h4>
-            <div class="advanced-gis-grid">
-                <button type="button" data-gis-tool="export-layer"><span class="advanced-gis-icon">⇩</span><span>Layer GeoJSON</span></button>
-                <button type="button" data-gis-tool="export-selected"><span class="advanced-gis-icon">◫</span><span>Selected</span></button>
-                <button type="button" data-gis-tool="export-csv"><span class="advanced-gis-icon">▤</span><span>Layer CSV</span></button>
-            </div>
+        <div class="advanced-gis-desktop-content">
+            <section class="advanced-gis-command-section" aria-labelledby="advancedGisSelectionHeading">
+                <h4 id="advancedGisSelectionHeading" class="advanced-gis-section-heading">
+                    <span>Selection</span>
+                    <span id="advancedGisSelectionStatus" class="advanced-gis-selection-status" hidden></span>
+                </h4>
+                <div class="advanced-gis-command-list">
+                    <button type="button" class="advanced-gis-command" data-gis-tool="select-all">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg></span>
+                        <span>Select All</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="select-visible">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle></svg></span>
+                        <span>Select Visible</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="select-attribute">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h10"></path><path d="M4 11h7"></path><path d="M4 16h5"></path><circle cx="16" cy="15" r="3"></circle><path d="M18.2 17.2L21 20"></path></svg></span>
+                        <span>Select by Attribute…</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="select-invert">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3"></path><path d="M17 17H6l3 3"></path><path d="M18 7l-3 3"></path><path d="M6 17l3-3"></path></svg></span>
+                        <span>Invert Selection</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="select-clear">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M9 9l6 6"></path><path d="M15 9l-6 6"></path></svg></span>
+                        <span>Clear Selection</span>
+                    </button>
+                </div>
+            </section>
+            <section id="advancedGisGeometrySection" class="advanced-gis-command-section" aria-labelledby="advancedGisGeometryHeading">
+                <h4 id="advancedGisGeometryHeading" class="advanced-gis-section-heading"><span>Geometry</span></h4>
+                <div class="advanced-gis-command-list">
+                    <button type="button" class="advanced-gis-command" data-gis-tool="buffer">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><circle cx="12" cy="12" r="8"></circle></svg></span>
+                        <span>Buffer…</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="merge">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M6 5v4c0 2 2 3 4 3h8"></path><path d="M6 19v-4c0-2 2-3 4-3"></path><path d="M15 9l3 3-3 3"></path></svg></span>
+                        <span>Merge</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="simplify">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 16c3-8 6 3 9-5s6 3 9-5"></path><circle cx="3" cy="16" r="1"></circle><circle cx="12" cy="11" r="1"></circle><circle cx="21" cy="6" r="1"></circle></svg></span>
+                        <span>Simplify…</span>
+                    </button>
+                    <button id="advancedGisMoreBtn" type="button" class="advanced-gis-command advanced-gis-disclosure" aria-expanded="false" aria-controls="advancedGisMoreCommands">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="5" cy="12" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle></svg></span>
+                        <span>More</span>
+                        <span class="advanced-gis-command-tail" aria-hidden="true">›</span>
+                    </button>
+                    <div id="advancedGisMoreCommands" class="advanced-gis-subcommands" hidden>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="duplicate">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V5H5v11h3"></path></svg></span>
+                            <span>Duplicate</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="move-layer">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 7l7-3 7 3-7 3-7-3z"></path><path d="M4 12l7 3 4-1.7"></path><path d="M15 18h6"></path><path d="M18 15l3 3-3 3"></path></svg></span>
+                            <span>Move to Layer…</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="densify">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 16l5-7 5 4 6-7"></path><circle cx="4" cy="16" r="1"></circle><circle cx="9" cy="9" r="1"></circle><circle cx="14" cy="13" r="1"></circle><circle cx="20" cy="6" r="1"></circle></svg></span>
+                            <span>Densify…</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="cut-hole">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6" rx="1"></rect></svg></span>
+                            <span>Cut Hole…</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="snap-settings">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4v8a5 5 0 0 0 10 0V4"></path><path d="M7 8h4"></path><path d="M13 8h4"></path></svg></span>
+                            <span>Snapping…</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="bearing">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><circle cx="12" cy="12" r="8"></circle><path d="M15 8l-2 5-5 2 2-5 5-2z"></path></svg></span>
+                            <span>Bearing…</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="topology">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4l8 15H4L12 4z"></path><path d="M9 13l2 2 4-5"></path></svg></span>
+                            <span>Validate Geometry</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="copy-geometry">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M9 7H6v10h3"></path><path d="M15 7h3v10h-3"></path><circle cx="12" cy="12" r="1"></circle></svg></span>
+                            <span>Copy Coordinates</span>
+                        </button>
+                    </div>
+                </div>
+            </section>
+            <section class="advanced-gis-command-section" aria-labelledby="advancedGisDataHeading">
+                <h4 id="advancedGisDataHeading" class="advanced-gis-section-heading"><span>Data</span></h4>
+                <div class="advanced-gis-command-list">
+                    <button type="button" class="advanced-gis-command" data-gis-tool="style-field">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4a8 8 0 1 0 0 16h1.5a1.5 1.5 0 0 0 0-3H12a2 2 0 0 1 0-4h4a4 4 0 0 0 0-8h-4z"></path><circle cx="8" cy="9" r="1"></circle><circle cx="11" cy="7" r="1"></circle></svg></span>
+                        <span>Style by Attribute…</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="labels">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 18l6-13 6 13"></path><path d="M7 14h8"></path><path d="M18 10v8"></path></svg></span>
+                        <span>Configure Labels…</span>
+                    </button>
+                    <button id="advancedGisExportBtn" type="button" class="advanced-gis-command advanced-gis-disclosure" aria-expanded="false" aria-controls="advancedGisExportCommands">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M5 19h14"></path></svg></span>
+                        <span>Export…</span>
+                        <span class="advanced-gis-command-tail" aria-hidden="true">›</span>
+                    </button>
+                    <div id="advancedGisExportCommands" class="advanced-gis-subcommands" hidden>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="export-layer">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12H7z"></path><path d="M14 4v4h4"></path></svg></span>
+                            <span>Layer as GeoJSON</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="export-selected">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"></rect><path d="M9 12l2 2 4-5"></path></svg></span>
+                            <span>Export Selected</span>
+                        </button>
+                        <button type="button" class="advanced-gis-command" data-gis-tool="export-csv">
+                            <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 4h7l4 4v12H7z"></path><path d="M9 12h6"></path><path d="M9 15h6"></path></svg></span>
+                            <span>Layer as CSV</span>
+                        </button>
+                    </div>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="photo-import">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M5 17l4-4 3 3 2-2 5 3"></path></svg></span>
+                        <span>Import Geotagged Photos…</span>
+                    </button>
+                    <button type="button" class="advanced-gis-command" data-gis-tool="offline-pack">
+                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 4v10"></path><path d="M8 10l4 4 4-4"></path><path d="M5 18h14"></path></svg></span>
+                        <span>Download for Offline Use…</span>
+                    </button>
+                </div>
+            </section>
         </div>
-        <div class="advanced-gis-section">
-            <h4>Selection</h4>
-            <div class="advanced-gis-grid">
-                <button type="button" data-gis-tool="select-all"><span class="advanced-gis-icon">☑</span><span>All</span></button>
-                <button type="button" data-gis-tool="select-visible"><span class="advanced-gis-icon">▣</span><span>Visible</span></button>
-                <button type="button" data-gis-tool="select-attribute"><span class="advanced-gis-icon">ƒ</span><span>By Field</span></button>
-                <button type="button" data-gis-tool="select-invert"><span class="advanced-gis-icon">⇄</span><span>Invert</span></button>
-                <button type="button" data-gis-tool="select-clear"><span class="advanced-gis-icon">⊘</span><span>Clear</span></button>
-                <button type="button" data-gis-tool="copy-geometry"><span class="advanced-gis-icon">⧉</span><span>Copy Coords</span></button>
+        <div class="advanced-gis-mobile-content">
+            <div class="advanced-gis-section">
+                <h4>Export</h4>
+                <div class="advanced-gis-grid">
+                    <button type="button" data-gis-tool="export-layer"><span class="advanced-gis-icon">⇩</span><span>Layer GeoJSON</span></button>
+                    <button type="button" data-gis-tool="export-selected"><span class="advanced-gis-icon">◫</span><span>Selected</span></button>
+                    <button type="button" data-gis-tool="export-csv"><span class="advanced-gis-icon">▤</span><span>Layer CSV</span></button>
+                </div>
             </div>
-        </div>
-        <div class="advanced-gis-section">
-            <h4>Geometry</h4>
-            <div class="advanced-gis-grid">
-                <button type="button" data-gis-tool="buffer"><span class="advanced-gis-icon">◎</span><span>Buffer</span></button>
-                <button type="button" data-gis-tool="merge"><span class="advanced-gis-icon">⧓</span><span>Merge</span></button>
-                <button type="button" data-gis-tool="cut-hole"><span class="advanced-gis-icon">▢</span><span>Cut Hole</span></button>
-                <button type="button" data-gis-tool="duplicate"><span class="advanced-gis-icon">⧉</span><span>Duplicate</span></button>
-                <button type="button" data-gis-tool="move-layer"><span class="advanced-gis-icon">⇢</span><span>Move Layer</span></button>
-                <button type="button" data-gis-tool="simplify"><span class="advanced-gis-icon">⌁</span><span>Simplify</span></button>
-                <button type="button" data-gis-tool="densify"><span class="advanced-gis-icon">••</span><span>Densify</span></button>
+            <div class="advanced-gis-section">
+                <h4>Selection</h4>
+                <div class="advanced-gis-grid">
+                    <button type="button" data-gis-tool="select-all"><span class="advanced-gis-icon">☑</span><span>All</span></button>
+                    <button type="button" data-gis-tool="select-visible"><span class="advanced-gis-icon">▣</span><span>Visible</span></button>
+                    <button type="button" data-gis-tool="select-attribute"><span class="advanced-gis-icon">ƒ</span><span>By Field</span></button>
+                    <button type="button" data-gis-tool="select-invert"><span class="advanced-gis-icon">⇄</span><span>Invert</span></button>
+                    <button type="button" data-gis-tool="select-clear"><span class="advanced-gis-icon">⊘</span><span>Clear</span></button>
+                    <button type="button" data-gis-tool="copy-geometry"><span class="advanced-gis-icon">⧉</span><span>Copy Coords</span></button>
+                </div>
             </div>
-        </div>
-        <div class="advanced-gis-section">
-            <h4>Precision</h4>
-            <div class="advanced-gis-grid">
-                <button type="button" data-gis-tool="snap-settings"><span class="advanced-gis-icon">⌖</span><span>Snapping</span></button>
-                <button type="button" data-gis-tool="bearing"><span class="advanced-gis-icon">⎋</span><span>Bearing</span></button>
-                <button type="button" data-gis-tool="topology"><span class="advanced-gis-icon">△</span><span>Validate</span></button>
+            <div class="advanced-gis-section">
+                <h4>Geometry</h4>
+                <div class="advanced-gis-grid">
+                    <button type="button" data-gis-tool="buffer"><span class="advanced-gis-icon">◎</span><span>Buffer</span></button>
+                    <button type="button" data-gis-tool="merge"><span class="advanced-gis-icon">⧓</span><span>Merge</span></button>
+                    <button type="button" data-gis-tool="cut-hole"><span class="advanced-gis-icon">▢</span><span>Cut Hole</span></button>
+                    <button type="button" data-gis-tool="duplicate"><span class="advanced-gis-icon">⧉</span><span>Duplicate</span></button>
+                    <button type="button" data-gis-tool="move-layer"><span class="advanced-gis-icon">⇢</span><span>Move Layer</span></button>
+                    <button type="button" data-gis-tool="simplify"><span class="advanced-gis-icon">⌁</span><span>Simplify</span></button>
+                    <button type="button" data-gis-tool="densify"><span class="advanced-gis-icon">••</span><span>Densify</span></button>
+                </div>
             </div>
-        </div>
-        <div class="advanced-gis-section">
-            <h4>Presentation</h4>
-            <div class="advanced-gis-grid">
-                <button type="button" data-gis-tool="style-field"><span class="advanced-gis-icon">◐</span><span>Style Field</span></button>
-                <button type="button" data-gis-tool="labels"><span class="advanced-gis-icon">Aa</span><span>Labels</span></button>
-                <button type="button" data-gis-tool="photo-import"><span class="advanced-gis-icon">⌑</span><span>Import Photos</span></button>
-                <button type="button" data-gis-tool="offline-pack"><span class="advanced-gis-icon">▧</span><span>Offline Pack</span></button>
+            <div class="advanced-gis-section">
+                <h4>Precision</h4>
+                <div class="advanced-gis-grid">
+                    <button type="button" data-gis-tool="snap-settings"><span class="advanced-gis-icon">⌖</span><span>Snapping</span></button>
+                    <button type="button" data-gis-tool="bearing"><span class="advanced-gis-icon">⎋</span><span>Bearing</span></button>
+                    <button type="button" data-gis-tool="topology"><span class="advanced-gis-icon">△</span><span>Validate</span></button>
+                </div>
             </div>
-            <p class="advanced-gis-note">Tools apply to the active layer and selected table rows where selection is relevant.</p>
+            <div class="advanced-gis-section">
+                <h4>Presentation</h4>
+                <div class="advanced-gis-grid">
+                    <button type="button" data-gis-tool="style-field"><span class="advanced-gis-icon">◐</span><span>Style Field</span></button>
+                    <button type="button" data-gis-tool="labels"><span class="advanced-gis-icon">Aa</span><span>Labels</span></button>
+                    <button type="button" data-gis-tool="photo-import"><span class="advanced-gis-icon">⌑</span><span>Import Photos</span></button>
+                    <button type="button" data-gis-tool="offline-pack"><span class="advanced-gis-icon">▧</span><span>Offline Pack</span></button>
+                </div>
+                <p class="advanced-gis-note">Tools apply to the active layer and selected table rows where selection is relevant.</p>
+            </div>
         </div>
     </div>
     <div id="settingsPanel" hidden>
@@ -7441,6 +9874,31 @@
             </div>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
+        <div id="desktopBasemapMenu" class="menu-dropdown-section basemap-menu-pane" data-menu-pane="basemap" role="menu" aria-label="Basemap" hidden>
+            <div class="basemap-popover-title">Basemap</div>
+            <div id="desktopBasemapStyleList" class="basemap-menu-section" role="group" aria-label="Map style">
+                <div class="basemap-menu-section-label">Map style</div>
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="standard" role="menuitemradio" aria-checked="false">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Standard</span>
+                </button>
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="satellite" role="menuitemradio" aria-checked="false">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Satellite</span>
+                </button>
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="hybrid" role="menuitemradio" aria-checked="false">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Hybrid</span>
+                </button>
+            </div>
+            <div class="basemap-menu-section" role="group" aria-label="Map details">
+                <div class="basemap-menu-section-label">Map details</div>
+                <button id="desktopBasemapPoisBtn" type="button" class="menu-command basemap-menu-item" data-basemap-pois-proxy role="menuitemcheckbox" aria-checked="true">
+                    <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                    <span>Points of Interest</span>
+                </button>
+            </div>
+        </div>
         <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
         <div class="menu-dropdown-section" data-menu-pane="window" hidden></div>
         <div class="menu-dropdown-section" data-menu-pane="help" hidden>
@@ -7450,13 +9908,51 @@
     <div class="map-controls"></div>
     <section id="editFloatingPanel" class="floating-toolbar" hidden role="region" aria-labelledby="editPanelTitle" aria-describedby="editPanelHelp">
         <div id="editPanelDragHandle" class="edit-panel-header">
-            <span id="editPanelTitle" class="edit-panel-title">Edit features</span>
+            <span id="editPanelTitle" class="edit-panel-title"><span id="drawContextTitle">Draw</span></span>
             <span class="edit-panel-actions">
                 <button id="editPanelPinBtn" type="button" class="edit-panel-icon-btn" aria-label="Dock edit toolbar below menu" title="Dock below menu">⇥</button>
                 <button id="editPanelCloseBtn" type="button" class="edit-panel-icon-btn" aria-label="Close edit toolbar" title="Close">×</button>
             </span>
         </div>
-        <div class="edit-panel-body">
+        <div id="drawContextDesktop" class="draw-context-desktop">
+            <div id="drawContextChooser" class="draw-context-state">
+                <div class="draw-context-geometry" role="group" aria-label="Drawing geometry">
+                    <button id="drawPointTypeBtn" type="button" class="draw-geometry-choice" data-draw-geometry="point" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle></svg>
+                        <span>Point</span>
+                    </button>
+                    <button id="drawLineTypeBtn" type="button" class="draw-geometry-choice" data-draw-geometry="line" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="17" r="2"></circle><circle cx="19" cy="7" r="2"></circle><path d="M7 16l10-8"></path></svg>
+                        <span>Line</span>
+                    </button>
+                    <button id="drawPolygonTypeBtn" type="button" class="draw-geometry-choice" data-draw-geometry="polygon" aria-pressed="false">
+                        <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 18l2-11 10-2 3 10-8 5-7-2z"></path></svg>
+                        <span>Polygon</span>
+                    </button>
+                </div>
+                <p id="drawContextChooserHint" class="draw-context-hint">Choose a drawing tool.</p>
+            </div>
+            <div id="drawContextActive" class="draw-context-state" hidden>
+                <p id="drawContextActiveHint" class="draw-context-hint">Click the map to begin.</p>
+                <div class="draw-context-actions" role="group" aria-label="Drawing actions">
+                    <button id="drawContextUndoBtn" type="button" class="draw-context-action secondary" disabled>Undo</button>
+                    <button id="drawContextDoneBtn" type="button" class="draw-context-action primary" disabled>Done</button>
+                    <button id="drawContextCancelBtn" type="button" class="draw-context-action quiet">Cancel</button>
+                </div>
+            </div>
+            <div id="drawSelectionContext" class="draw-context-state draw-selection-context" hidden>
+                <p id="drawSelectionTitle" class="draw-selection-title">Selected Feature</p>
+                <div class="draw-selection-actions" role="group" aria-label="Selected feature actions">
+                    <button id="drawSelectionPropertiesBtn" type="button" class="draw-context-action secondary">Properties</button>
+                    <button id="drawSelectionEditBtn" type="button" class="draw-context-action secondary">Edit</button>
+                    <button id="drawSelectionDuplicateBtn" type="button" class="draw-context-action secondary">Duplicate</button>
+                    <button id="drawSelectionMergeBtn" type="button" class="draw-context-action secondary" hidden>Merge</button>
+                    <button id="drawSelectionClearBtn" type="button" class="draw-context-action quiet">Clear</button>
+                    <button id="drawSelectionDeleteBtn" type="button" class="draw-context-action danger">Delete</button>
+                </div>
+            </div>
+        </div>
+        <div class="edit-panel-body edit-panel-body-mobile">
             <div id="editPanelStatus" class="edit-panel-status" role="status" aria-live="polite">
                 <span><span class="edit-panel-status-dot" aria-hidden="true"></span> <span id="editPanelStatusText">Editing stopped</span></span>
                 <button id="editPanelSessionBtn" type="button" class="edit-tool-btn primary" data-tooltip="Start editing" aria-label="Start editing"><span class="edit-tool-icon" aria-hidden="true">▶</span><span class="edit-tool-label">Start</span></button>
@@ -7494,6 +9990,21 @@
             <p id="editPanelHelp" class="edit-panel-helper">Choose a layer, start editing, then add or modify features.</p>
         </div>
     </section>
+    <div id="addActionPopover" class="add-action-popover" role="menu" aria-label="Add" hidden>
+        <div class="add-action-popover-title">Add</div>
+        <button id="addNewFeatureMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+            <span>New Feature</span>
+        </button>
+        <button id="addImportDataMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg>
+            <span>Import Data…</span>
+        </button>
+        <button id="addLayerMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4-8 4-8-4 8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M12 13v8"></path><path d="M8 17h8"></path></svg>
+            <span>Add Layer…</span>
+        </button>
+    </div>
     <div id="layerToolsPanel" class="floating-toolbar" hidden aria-label="Layer tools toolbar">
         <div id="layerToolsDragHandle" class="edit-panel-header">
             <span class="edit-panel-title">Layer Tools</span>
@@ -7903,7 +10414,7 @@
         <h4>Start editing</h4>
         <p>Click Add New, then click on the map to place your first feature.</p>
     </div>
-    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to toggle Add New mode. Press Escape to cancel active feature drawing or close panels.</div>
+    <div id="mapInteractionHelp" class="sr-only" aria-live="polite">Press A to start adding a feature. Press Escape to cancel drawing or close panels.</div>
     <div id="mapAddHint" hidden>Click on map to add point</div>
     <div id="workspaceLiveRegion" class="sr-only" aria-live="polite"></div>
     <aside id="featureDrawer" aria-label="Feature Details" aria-live="polite" aria-hidden="true" inert>
@@ -8093,6 +10604,10 @@
         const historyMenuBtn = document.getElementById("historyMenuBtn");
         const windowMenuBtn = document.getElementById("windowMenuBtn");
         const helpMenuBtn = document.getElementById("helpMenuBtn");
+        const toolbarMoreMenu = document.getElementById("toolbarMoreMenu");
+        const toolbarMoreBtn = document.getElementById("toolbarMoreBtn");
+        const toolbarMorePopover = document.getElementById("toolbarMorePopover");
+        const toolbarMoreItems = Array.from(document.querySelectorAll("[data-toolbar-target]"));
         const settingsPanel = document.getElementById("settingsPanel");
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
         const rememberSessionOption = rememberSessionToggle?.closest(".settings-option");
@@ -8112,6 +10627,7 @@
         const measurementUnitSelect = document.getElementById("measurementUnitSelect");
         const measurementResult = document.getElementById("measurementResult");
         const measurementHint = document.getElementById("measurementHint");
+        const measurementHintMobile = document.getElementById("measurementHintMobile");
         const measurementUndoPointBtn = document.getElementById("measurementUndoPointBtn");
         const measurementFinishBtn = document.getElementById("measurementFinishBtn");
         const measurementClearBtn = document.getElementById("measurementClearBtn");
@@ -8119,6 +10635,13 @@
         const advancedGisPanel = document.getElementById("advancedGisPanel");
         const advancedGisCloseBtn = document.getElementById("advancedGisCloseBtn");
         const advancedGisLayerBadge = document.getElementById("advancedGisLayerBadge");
+        const advancedGisLayerContext = document.getElementById("advancedGisLayerContext");
+        const advancedGisSelectionStatus = document.getElementById("advancedGisSelectionStatus");
+        const advancedGisGeometrySection = document.getElementById("advancedGisGeometrySection");
+        const advancedGisMoreBtn = document.getElementById("advancedGisMoreBtn");
+        const advancedGisMoreCommands = document.getElementById("advancedGisMoreCommands");
+        const advancedGisExportBtn = document.getElementById("advancedGisExportBtn");
+        const advancedGisExportCommands = document.getElementById("advancedGisExportCommands");
         const newProjectBtn = document.getElementById("newProjectBtn");
         const openProjectBtn = document.getElementById("openProjectBtn");
         const exportProjectBtn = document.getElementById("exportProjectBtn");
@@ -8215,6 +10738,26 @@
         const editPanelEditVerticesBtn = document.getElementById("editPanelEditVerticesBtn");
         const editPanelSplitGeometryBtn = document.getElementById("editPanelSplitGeometryBtn");
         const editPanelHelp = document.getElementById("editPanelHelp");
+        const drawContextTitle = document.getElementById("drawContextTitle");
+        const drawContextChooser = document.getElementById("drawContextChooser");
+        const drawContextActive = document.getElementById("drawContextActive");
+        const drawContextActiveHint = document.getElementById("drawContextActiveHint");
+        const drawSelectionContext = document.getElementById("drawSelectionContext");
+        const drawSelectionTitle = document.getElementById("drawSelectionTitle");
+        const drawGeometryChoiceButtons = Array.from(document.querySelectorAll("[data-draw-geometry]"));
+        const drawContextUndoBtn = document.getElementById("drawContextUndoBtn");
+        const drawContextDoneBtn = document.getElementById("drawContextDoneBtn");
+        const drawContextCancelBtn = document.getElementById("drawContextCancelBtn");
+        const drawSelectionPropertiesBtn = document.getElementById("drawSelectionPropertiesBtn");
+        const drawSelectionEditBtn = document.getElementById("drawSelectionEditBtn");
+        const drawSelectionDuplicateBtn = document.getElementById("drawSelectionDuplicateBtn");
+        const drawSelectionMergeBtn = document.getElementById("drawSelectionMergeBtn");
+        const drawSelectionClearBtn = document.getElementById("drawSelectionClearBtn");
+        const drawSelectionDeleteBtn = document.getElementById("drawSelectionDeleteBtn");
+        const addActionPopover = document.getElementById("addActionPopover");
+        const addNewFeatureMenuBtn = document.getElementById("addNewFeatureMenuBtn");
+        const addImportDataMenuBtn = document.getElementById("addImportDataMenuBtn");
+        const addLayerMenuBtn = document.getElementById("addLayerMenuBtn");
         const layerToolsPanel = document.getElementById("layerToolsPanel");
         const layerToolsDragHandle = document.getElementById("layerToolsDragHandle");
         const layerToolsPinBtn = document.getElementById("layerToolsPinBtn");
@@ -8266,6 +10809,8 @@
         const menuShowBasemapPoisBtn = document.getElementById("menuShowBasemapPoisBtn");
         const menuMapTypeBtn = document.getElementById("menuMapTypeBtn");
         const menuMapTypeList = document.getElementById("menuMapTypeList");
+        const desktopBasemapStyleList = document.getElementById("desktopBasemapStyleList");
+        const desktopBasemapPoisBtn = document.getElementById("desktopBasemapPoisBtn");
         const menuMyLocationBtn = document.getElementById("menuMyLocationBtn");
         const menuSearchBtn = document.getElementById("menuSearchBtn");
         const menuSettingsBtn = document.getElementById("menuSettingsBtn");
@@ -10000,7 +12545,10 @@
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
-            const basemapActive = toolbarMenuVisible && toolbarMenuKey === "view" && menuMapTypeList && !menuMapTypeList.hidden;
+            const basemapActive = toolbarMenuVisible && (
+                toolbarMenuKey === "basemap"
+                || (toolbarMenuKey === "view" && menuMapTypeList && !menuMapTypeList.hidden)
+            );
             toolbarBasemapBtn?.classList.toggle("active", Boolean(basemapActive));
             toolbarBasemapBtn?.setAttribute("aria-expanded", basemapActive ? "true" : "false");
             const mobileMenuActive = toolbarMenuVisible && toolbarMenuKey === "mobile";
@@ -10062,13 +12610,28 @@
             const toolbarRect = toolbar.getBoundingClientRect();
             const buttonRect = button.getBoundingClientRect();
             if (window.matchMedia("(max-width: 600px)").matches) {
+                if (toolbarMenuKey === "basemap") {
+                    toolbarMenuTray.style.left = "0";
+                    toolbarMenuTray.style.right = "0";
+                    toolbarMenuTray.style.top = "auto";
+                    toolbarMenuTray.style.bottom = "0";
+                    return;
+                }
                 toolbarMenuTray.style.left = "10px";
                 toolbarMenuTray.style.right = "10px";
                 toolbarMenuTray.style.top = `${Math.round(buttonRect.bottom + 8)}px`;
+                toolbarMenuTray.style.bottom = "auto";
                 return;
             }
             const trayWidth = Math.min(340, Math.max(190, toolbarMenuTray.offsetWidth || 190));
             const maxLeft = Math.max(10, window.innerWidth - trayWidth - 10);
+            if (toolbarMenuKey === "basemap") {
+                const basemapLeft = Math.min(Math.max(10, buttonRect.right - trayWidth), maxLeft);
+                toolbarMenuTray.style.left = `${basemapLeft}px`;
+                toolbarMenuTray.style.right = "auto";
+                toolbarMenuTray.style.top = `${Math.round(buttonRect.bottom + 8)}px`;
+                return;
+            }
             const left = Math.min(Math.max(10, buttonRect.left), maxLeft);
             toolbarMenuTray.style.left = `${left}px`;
             toolbarMenuTray.style.right = "auto";
@@ -10078,7 +12641,10 @@
         function openToolbarMenu(menuKey, button = null) {
             toolbarMenuKey = menuKey;
             toolbarMenuVisible = true;
-            if (toolbarMenuTray) toolbarMenuTray.hidden = false;
+            if (toolbarMenuTray) {
+                toolbarMenuTray.hidden = false;
+                toolbarMenuTray.dataset.activeMenu = menuKey;
+            }
             menuPaneEls.forEach((pane) => {
                 pane.hidden = pane.dataset.menuPane !== menuKey;
             });
@@ -10136,6 +12702,42 @@
             }
         }
 
+        function getToolbarMoreItems() {
+            return toolbarMoreItems.filter((item) => !item.hidden && !item.disabled);
+        }
+
+        function setToolbarMoreVisibility(show, { focusFirst = false, restoreFocus = false } = {}) {
+            if (!toolbarMoreBtn || !toolbarMorePopover) return;
+            const visible = Boolean(show);
+            if (visible) setToolbarMenuVisibility(false);
+            toolbarMorePopover.hidden = !visible;
+            toolbarMoreBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+            toolbar?.classList.toggle("more-tools-open", visible);
+            if (visible && focusFirst) {
+                window.requestAnimationFrame(() => getToolbarMoreItems()[0]?.focus());
+            } else if (!visible && restoreFocus && toolbarMorePopover.contains(document.activeElement)) {
+                toolbarMoreBtn.focus();
+            }
+        }
+
+        function syncToolbarMoreState() {
+            if (!toolbarMoreBtn) return;
+            let hasActiveChild = false;
+            toolbarMoreItems.forEach((item) => {
+                const target = document.getElementById(item.dataset.toolbarTarget || "");
+                const active = Boolean(target && (
+                    target.classList.contains("active")
+                    || target.getAttribute("aria-expanded") === "true"
+                    || target.getAttribute("aria-pressed") === "true"
+                ));
+                item.classList.toggle("active", active);
+                hasActiveChild = hasActiveChild || active;
+            });
+            toolbarMoreBtn.classList.toggle("active", hasActiveChild);
+            toolbarMoreBtn.dataset.childActive = hasActiveChild ? "true" : "false";
+            toolbarMoreBtn.setAttribute("aria-label", hasActiveChild ? "More tools, active tool open" : "More tools");
+        }
+
         function getQuickActionAvailability(key, hasEditingSession) {
             if (key === "addNew") return hasEditingSession && canEditLayer(getActiveLayerRecord());
             if (key === "undo") return undoStack.length > 0;
@@ -10145,9 +12747,10 @@
 
         function renderQuickActionButtons() {
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
+            const mobile = window.matchMedia("(max-width: 600px)").matches;
             Object.entries(QUICK_ACTION_BUTTONS).forEach(([key, button]) => {
                 if (!button) return;
-                const selected = quickActions.includes(key);
+                const selected = quickActions.includes(key) || (mobile && (key === "addNew" || key === "myLocation"));
                 const available = getQuickActionAvailability(key, hasEditingSession);
                 button.hidden = !selected;
                 button.disabled = !available;
@@ -10191,6 +12794,7 @@
                 [menuToggleLayerToolbarBtn, hasProject],
                 [menuTogglePopoutsBtn, hasProject],
                 [menuShowBasemapPoisBtn, hasProject],
+                [desktopBasemapPoisBtn, hasProject],
                 [menuMyLocationBtn, true],
                 [menuSearchBtn, true],
                 [menuSettingsBtn, true],
@@ -10219,6 +12823,7 @@
                 [menuToggleLayerToolbarBtn, "Create or open a project to show layer controls."],
                 [menuTogglePopoutsBtn, "Create or open a project to show map popouts."],
                 [menuShowBasemapPoisBtn, "Create or open a project to configure points of interest."],
+                [desktopBasemapPoisBtn, "Create or open a project to configure points of interest."],
                 [menuHistoryRecentBtn, "Create or open a project to build recent history."],
                 [menuCloseLayersBtn, "Open the Layers panel before closing it."],
                 [menuCloseDataPaneBtn, "Open Data Manager before closing it."],
@@ -10670,6 +13275,8 @@
             menuShowBasemapPoisBtn.setAttribute("aria-pressed", visible ? "true" : "false");
             const label = menuShowBasemapPoisBtn.querySelector("span");
             if (label) label.textContent = `${visible ? "✓" : ""} Show POIs in Basemap`;
+            desktopBasemapPoisBtn?.classList.toggle("active", visible);
+            desktopBasemapPoisBtn?.setAttribute("aria-checked", visible ? "true" : "false");
         }
 
         function updateMapTypeControls(project = activeProjectRecord) {
@@ -10683,6 +13290,11 @@
                     label.textContent = `${type === selectedType ? "✓ " : ""}${base}`;
                 }
                 button.classList.toggle("active", type === selectedType);
+            });
+            desktopBasemapStyleList?.querySelectorAll("[data-map-type]").forEach((button) => {
+                const selected = button.getAttribute("data-map-type") === selectedType;
+                button.classList.toggle("active", selected);
+                button.setAttribute("aria-checked", selected ? "true" : "false");
             });
             mobileMenuPane?.querySelectorAll("[data-map-type]").forEach((button) => {
                 const selected = button.getAttribute("data-map-type") === selectedType;
@@ -10826,7 +13438,11 @@
             if (hasProject) {
                 renderActiveProjectSidebar();
                 const featureCount = (layer?.parsed?.records || []).length;
-                if (!featureCount) showWorkspaceHint("Click 'Add New' then click anywhere on the map to start collecting data.");
+                if (!featureCount) {
+                    showWorkspaceHint(isDesktopDrawFlow()
+                        ? "Choose Draw, then select a geometry tool."
+                        : "Tap Add, then tap the map to start collecting data.");
+                }
                 else hideWorkspaceHint();
             } else {
                 hideWorkspaceHint();
@@ -11008,11 +13624,19 @@
             const layer = getActiveLayerRecord();
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
-                    <p class="layer-pane-helper">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
+                    <p class="layer-pane-helper layer-pane-helper-desktop">Drag layers to change drawing order.</p>
+                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag the handle or use ↑ / ↓ to change drawing order.</p>
                     ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
-                            <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
+                            <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">
+                                <span class="layer-visibility-check" aria-hidden="true">✓</span>
+                                <svg class="layer-visibility-icon" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6S2.5 12 2.5 12Z"></path>
+                                    <circle cx="12" cy="12" r="2.5"></circle>
+                                    ${item.visible === false ? '<path d="M4 4l16 16"></path>' : ""}
+                                </svg>
+                            </button>
                             <div class="layer-pane-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</div>
                             <div class="layer-pane-actions">
                                 <button type="button" class="layer-order-btn" data-layer-move="${escapeHtml(item.id)}" data-layer-move-action="move-up" ${index === 0 ? "disabled" : ""} aria-label="Move ${escapeHtml(item.name)} up">↑</button>
@@ -11187,6 +13811,155 @@
             editToolbarTooltip.style.top = `${Math.round(top)}px`;
         }
 
+        function isDesktopDrawFlow() {
+            return window.matchMedia("(min-width: 601px)").matches;
+        }
+
+        function getEditableLayerForGeometry(geometryType) {
+            const normalized = normalizeLayerGeometryType(geometryType);
+            const layers = activeProjectRecord?.layers || [];
+            const current = getActiveLayerRecord();
+            if (current && canEditLayer(current) && normalizeLayerGeometryType(current.geometryType) === normalized) {
+                return current;
+            }
+            return layers.find((layer) => canEditLayer(layer) && normalizeLayerGeometryType(layer.geometryType) === normalized) || null;
+        }
+
+        function positionAddActionPopover() {
+            if (!addActionPopover || !addSurveyPointBtn || addActionPopover.hidden) return;
+            const anchor = addSurveyPointBtn.getBoundingClientRect();
+            const popover = addActionPopover.getBoundingClientRect();
+            const left = Math.max(8, Math.min(anchor.left, window.innerWidth - popover.width - 8));
+            addActionPopover.style.left = `${Math.round(left)}px`;
+            addActionPopover.style.top = `${Math.round(anchor.bottom + 8)}px`;
+        }
+
+        function positionDesktopDrawPanel() {
+            if (!isDesktopDrawFlow() || !editFloatingPanel || editFloatingPanel.hidden || !editPanelToggleBtn) return;
+            editFloatingPanel.classList.remove("docked");
+            const anchor = editPanelToggleBtn.getBoundingClientRect();
+            const panel = editFloatingPanel.getBoundingClientRect();
+            const left = Math.max(8, Math.min(anchor.left, window.innerWidth - panel.width - 8));
+            editFloatingPanel.style.left = `${Math.round(left)}px`;
+            editFloatingPanel.style.top = `${Math.round(anchor.bottom + 8)}px`;
+            editFloatingPanel.style.right = "auto";
+            editFloatingPanel.style.width = "";
+            editFloatingPanel.style.transform = "";
+        }
+
+        function setAddActionPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
+            if (!addActionPopover || !addSurveyPointBtn || !isDesktopDrawFlow()) return;
+            const nextVisible = Boolean(show);
+            addActionPopover.hidden = !nextVisible;
+            addSurveyPointBtn.classList.toggle("active", nextVisible);
+            addSurveyPointBtn.setAttribute("aria-expanded", nextVisible ? "true" : "false");
+            if (nextVisible) {
+                setToolbarMoreVisibility(false);
+                positionAddActionPopover();
+                if (focusFirst) addNewFeatureMenuBtn?.focus();
+            } else if (restoreFocus) {
+                addSurveyPointBtn.focus();
+            }
+        }
+
+        function undoCurrentDrawingVertex() {
+            if (!isAddingSurveyPoint || !drawingVertices.length || getActiveLayerGeometryType() === "point") return;
+            drawingVertices.pop();
+            drawingCursorCoordinate = null;
+            updateDrawingPreviewOverlay();
+            updateMapAddHintText();
+            showWorkspaceHint(getGeometryDrawingHint());
+            setProjectStatus(drawingVertices.length ? "Last drawing point removed." : "Drawing reset. Click the map to begin.", "success");
+            syncEditPanelState();
+        }
+
+        function startDesktopDrawingGeometry(geometryType) {
+            const targetLayer = getEditableLayerForGeometry(geometryType);
+            if (!targetLayer) {
+                setProjectStatus(`Add an editable ${geometryType} layer before drawing.`, "error");
+                return;
+            }
+            if (measurementActive) setMeasurementActive(false);
+            if (targetLayer.id !== activeLayerId) switchToLayer(targetLayer.id, { revealTable: false });
+            if (!editSessionActive) setEditSessionActive(true, { layerId: targetLayer.id });
+            setPointGeometryEditMode(false);
+            setGeometryVertexEditMode(false);
+            clearSplitPreview();
+            if (isAddingSurveyPoint) exitAddSurveyPointMode();
+            geometryTraceMode = false;
+            toggleAddSurveyPointMode();
+            syncEditPanelState();
+        }
+
+        function syncDesktopDrawContext() {
+            const desktop = isDesktopDrawFlow();
+            if (!desktop) {
+                editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
+                if (addSurveyPointBtn) {
+                    addSurveyPointBtn.setAttribute("aria-label", "Add a new feature to the active layer");
+                    addSurveyPointBtn.removeAttribute("aria-haspopup");
+                    addSurveyPointBtn.removeAttribute("aria-controls");
+                    addSurveyPointBtn.removeAttribute("aria-expanded");
+                }
+            } else if (addSurveyPointBtn) {
+                editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
+                addSurveyPointBtn.setAttribute("aria-label", "Add content");
+                addSurveyPointBtn.setAttribute("aria-haspopup", "menu");
+                addSurveyPointBtn.setAttribute("aria-controls", "addActionPopover");
+                if (!addSurveyPointBtn.hasAttribute("aria-expanded")) addSurveyPointBtn.setAttribute("aria-expanded", "false");
+            }
+            const geometryType = getActiveLayerGeometryType();
+            const geometryLabel = geometryType === "line" ? "Line" : geometryType === "polygon" ? "Polygon" : "Point";
+            const selectedCount = selectedTableRows?.size || (getSelectedEditableFeatureContext() ? 1 : 0);
+            const showSelection = !isAddingSurveyPoint && selectedCount > 0;
+            if (drawContextChooser) drawContextChooser.hidden = isAddingSurveyPoint || showSelection;
+            if (drawContextActive) drawContextActive.hidden = !isAddingSurveyPoint;
+            if (drawSelectionContext) drawSelectionContext.hidden = !showSelection;
+            if (drawContextTitle) {
+                drawContextTitle.textContent = isAddingSurveyPoint
+                    ? `Drawing ${geometryLabel}`
+                    : showSelection
+                        ? (selectedCount === 1 ? "Selected Feature" : `${selectedCount} Features Selected`)
+                        : "Draw";
+            }
+            drawGeometryChoiceButtons.forEach((button) => {
+                const type = button.dataset.drawGeometry;
+                const available = Boolean(getEditableLayerForGeometry(type));
+                button.hidden = !available;
+                button.disabled = !available;
+                button.setAttribute("aria-pressed", !isAddingSurveyPoint && type === geometryType ? "true" : "false");
+                button.title = available ? `Draw ${type}` : `No editable ${type} layer`;
+            });
+            const canFinish = isAddingSurveyPoint
+                && geometryType !== "point"
+                && hasEnoughVerticesForGeometry(geometryType, drawingVertices);
+            if (drawContextActiveHint) {
+                drawContextActiveHint.textContent = drawingVertices.length
+                    ? "Click to add points. Double-click to finish."
+                    : "Click the map to begin.";
+            }
+            if (drawContextUndoBtn) {
+                drawContextUndoBtn.hidden = geometryType === "point";
+                drawContextUndoBtn.disabled = geometryType === "point" || !drawingVertices.length;
+            }
+            if (drawContextDoneBtn) {
+                drawContextDoneBtn.hidden = geometryType === "point";
+                drawContextDoneBtn.disabled = !canFinish;
+            }
+            if (drawSelectionTitle) {
+                drawSelectionTitle.textContent = selectedCount === 1 ? "Selected Feature" : `${selectedCount} Features Selected`;
+            }
+            const singleSelection = selectedCount === 1;
+            if (drawSelectionPropertiesBtn) drawSelectionPropertiesBtn.hidden = !singleSelection;
+            if (drawSelectionEditBtn) drawSelectionEditBtn.hidden = !singleSelection;
+            if (drawSelectionDeleteBtn) drawSelectionDeleteBtn.hidden = !singleSelection;
+            if (drawSelectionMergeBtn) {
+                drawSelectionMergeBtn.hidden = selectedCount < 2;
+                drawSelectionMergeBtn.disabled = selectedCount < 2 || geometryType === "point";
+            }
+            document.body.classList.toggle("draw-mode-active", isAddingSurveyPoint);
+        }
+
         function syncEditPanelState() {
             const layerId = getEditPanelLayerId();
             const layer = layerId ? getLayerById(layerId) : null;
@@ -11305,10 +14078,12 @@
                 editPanelAddFeatureBtn.dataset.tooltip = addLabel;
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
                 editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span><span class="edit-tool-label">${canFinishGeometry ? "Finish" : isAddingSurveyPoint ? "Add vertex" : "Add feature"}</span>`;
-                if (isAddingSurveyPoint) {
-                    setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding New" : geometryTraceMode ? "Tracing" : "Drawing");
-                } else {
-                    setAddNewButtonLabel("Add New");
+                if (!isDesktopDrawFlow()) {
+                    if (isAddingSurveyPoint) {
+                        setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding" : geometryTraceMode ? "Tracing" : "Drawing");
+                    } else {
+                        setAddNewButtonLabel("Add");
+                    }
                 }
             }
             editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
@@ -11323,6 +14098,7 @@
             editFloatingPanel?.classList.toggle("compact", true);
             menuToggleEditToolbarBtn?.querySelector("span") && (menuToggleEditToolbarBtn.querySelector("span").textContent = `${editSessionActive ? "✓ " : ""}Edit Tools`);
             menuToggleLayerToolbarBtn?.querySelector("span") && (menuToggleLayerToolbarBtn.querySelector("span").textContent = `${layerToolsPanel && !layerToolsPanel.hidden ? "✓ " : ""}Layer Tools`);
+            syncDesktopDrawContext();
             updateAdvancedGisPanelState();
         }
 
@@ -11339,13 +14115,13 @@
                 editFloatingPanel.classList.remove("toolbar-dismissing");
                 window.requestAnimationFrame(() => {
                     editFloatingPanel?.classList.add("toolbar-visible");
+                    positionDesktopDrawPanel();
                 });
                 const targetLayerId = layerId || getEditPanelLayerId();
                 renderEditPanelLayerOptions(targetLayerId);
                 if (targetLayerId && targetLayerId !== activeLayerId) {
                     switchToLayer(targetLayerId, { revealTable: false });
                 }
-                if (editPanelPinned) dockEditPanel();
                 syncEditPanelState();
             } else {
                 editFloatingPanel.classList.remove("toolbar-visible");
@@ -11408,6 +14184,12 @@
                 setProjectStatus("This layer is a live API reference. Add or edit features in your source API, or create a new editable layer.", "error");
                 syncEditPanelState();
                 return;
+            }
+            if (nextActive) {
+                if (measurementActive) setMeasurementActive(false);
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
             }
             editSessionActive = Boolean(nextActive);
             if (!editSessionActive) {
@@ -11952,6 +14734,7 @@
                 toolbarLayersBtn.setAttribute("aria-expanded", sidebarVisible ? "true" : "false");
             }
             updateCommandAvailability();
+            renderSelectedFeatureInspector();
             if (rememberLastSession) saveWorkspaceUiPrefs();
         }
 
@@ -12273,9 +15056,70 @@
 
         function renderSelectedFeatureInspector() {
             if (!selectedFeatureInspector) return;
-            selectedFeatureInspector.classList.remove("visible");
-            selectedFeatureInspector.innerHTML = "";
+            if (window.matchMedia("(min-width: 601px)").matches) {
+                selectedFeatureInspector.classList.remove("visible");
+                selectedFeatureInspector.innerHTML = "";
+                return;
+            }
+            const indexes = getActiveSelectionIndexes();
+            const count = indexes.length;
+            if (!count || isAddingSurveyPoint || measurementActive || sidebarVisible || advancedGisPanel?.hidden === false) {
+                selectedFeatureInspector.classList.remove("visible");
+                selectedFeatureInspector.innerHTML = "";
+                return;
+            }
+            const geometryType = getActiveLayerGeometryType();
+            const single = count === 1;
+            const canMerge = !single && geometryType !== "point" && canEditLayer(getActiveLayerRecord());
+            selectedFeatureInspector.innerHTML = `
+                <div class="mobile-selection-summary">
+                    <strong>${count} Selected</strong>
+                    <button type="button" class="mobile-selection-dismiss" data-mobile-selection-action="clear" aria-label="Clear selection">×</button>
+                </div>
+                <div class="mobile-selection-actions" role="group" aria-label="${count === 1 ? "Selected feature" : "Selected features"} actions">
+                    ${single ? `
+                        <button type="button" data-mobile-selection-action="properties">Properties</button>
+                        <button type="button" data-mobile-selection-action="edit">Edit</button>
+                    ` : `
+                        ${canMerge ? `<button type="button" data-mobile-selection-action="merge">Merge</button>` : ""}
+                        <button type="button" data-mobile-selection-action="export">Export…</button>
+                    `}
+                    <button type="button" data-mobile-selection-action="more">More</button>
+                </div>
+            `;
+            selectedFeatureInspector.classList.add("visible");
         }
+
+        selectedFeatureInspector?.addEventListener("click", (event) => {
+            const button = event.target.closest("[data-mobile-selection-action]");
+            if (!button) return;
+            const action = button.dataset.mobileSelectionAction;
+            const rowIndex = getActiveSelectionIndexes()[0];
+            if (action === "clear") {
+                clearTableSelection();
+                return;
+            }
+            if (action === "properties" && Number.isInteger(rowIndex)) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                return;
+            }
+            if (action === "edit" && Number.isInteger(rowIndex)) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                setEditSessionActive(true);
+                return;
+            }
+            if (action === "merge") {
+                mergeSelectedFeatures();
+                return;
+            }
+            if (action === "export") {
+                exportSelectedGeoJson();
+                return;
+            }
+            if (action === "more") {
+                setAdvancedGisVisible(true);
+            }
+        });
 
         function activateLayerForFeatureInspection(layerId) {
             if (!layerId || layerId === activeLayerId || !activeProjectRecord?.layers?.length) return;
@@ -13665,27 +16509,132 @@
 
         function setAdvancedGisVisible(show) {
             if (!advancedGisPanel) return;
-            if (show && window.matchMedia("(max-width: 600px)").matches) {
-                topToolbarViewModel.collapseOverflow("right");
+            if (show) {
+                if (window.matchMedia("(max-width: 600px)").matches) {
+                    topToolbarViewModel.collapseOverflow("right");
+                }
+                if (measurementActive) setMeasurementActive(false);
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (editSessionActive) setEditSessionActive(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
             }
             advancedGisPanel.hidden = !show;
             advancedGisBtn?.classList.toggle("active", Boolean(show));
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
             updateAdvancedGisPanelState();
+            renderSelectedFeatureInspector();
+        }
+
+        function toggleAdvancedGisDisclosure(button, content) {
+            if (!button || !content || button.disabled) return;
+            const expanded = button.getAttribute("aria-expanded") !== "true";
+            button.setAttribute("aria-expanded", expanded ? "true" : "false");
+            content.hidden = !expanded;
         }
 
         function updateAdvancedGisPanelState() {
             const layer = getActiveLayerRecord();
+            const count = getActiveSelectionIndexes().length;
+            const geometryType = layer ? normalizeLayerGeometryType(layer.geometryType) : "";
+            const featureCount = layer?.features?.length || 0;
+            const hasLayer = Boolean(layer);
+            const hasProject = Boolean(activeProjectRecord);
+            const editable = hasLayer && canEditLayer(layer);
+            const hasCompatibleLayer = hasLayer && (activeProjectRecord?.layers || []).some((candidate) => (
+                candidate.id !== layer.id
+                && normalizeLayerGeometryType(candidate.geometryType) === geometryType
+            ));
             if (advancedGisLayerBadge) {
-                const count = selectedTableRows?.size || 0;
                 advancedGisLayerBadge.textContent = layer
-                    ? `${layer.name} · ${normalizeLayerGeometryType(layer.geometryType)} · ${count} selected`
+                    ? `${layer.name} · ${geometryType} · ${count} selected`
                     : "No layer";
             }
-            const hasLayer = Boolean(layer);
-            advancedGisPanel?.querySelectorAll("[data-gis-tool]").forEach((button) => {
-                button.disabled = !hasLayer && !["offline-report"].includes(button.dataset.gisTool);
+            if (advancedGisLayerContext) {
+                advancedGisLayerContext.textContent = layer
+                    ? `${layer.name} · ${geometryType[0]?.toUpperCase() || ""}${geometryType.slice(1)}`
+                    : "No active layer";
+                advancedGisLayerContext.title = layer?.name || "";
+            }
+            if (advancedGisSelectionStatus) {
+                advancedGisSelectionStatus.hidden = count === 0;
+                advancedGisSelectionStatus.textContent = `${count} selected`;
+            }
+            if (advancedGisGeometrySection) advancedGisGeometrySection.hidden = !hasLayer;
+
+            advancedGisPanel?.querySelectorAll(".advanced-gis-mobile-content [data-gis-tool]").forEach((button) => {
+                button.disabled = !hasLayer;
             });
+
+            const pointHiddenTools = new Set(["merge", "simplify", "densify", "topology"]);
+            const polygonOnlyTools = new Set(["cut-hole"]);
+            const lineOnlyTools = new Set(["bearing"]);
+            const enabledTools = {
+                "select-all": hasLayer && featureCount > 0 && count < featureCount,
+                "select-visible": hasLayer && featureCount > 0,
+                "select-attribute": hasLayer && featureCount > 0 && (layer?.schema || []).length > 0,
+                "select-invert": hasLayer && featureCount > 0,
+                "select-clear": count > 0,
+                buffer: editable && count > 0,
+                merge: editable && geometryType !== "point" && count >= 2,
+                simplify: editable && geometryType !== "point" && featureCount > 0,
+                duplicate: editable && count > 0,
+                "move-layer": editable && count > 0 && hasCompatibleLayer,
+                densify: editable && geometryType !== "point" && featureCount > 0,
+                "cut-hole": editable && geometryType === "polygon" && count === 1,
+                "snap-settings": editable,
+                bearing: editable && geometryType === "line",
+                topology: hasLayer && geometryType !== "point" && featureCount > 0,
+                "copy-geometry": count > 0,
+                "style-field": editable && featureCount > 0 && (layer?.schema || []).length > 0,
+                labels: editable && (layer?.schema || []).length > 0,
+                "export-layer": hasLayer,
+                "export-selected": hasLayer && count > 0,
+                "export-csv": hasLayer,
+                "photo-import": hasProject,
+                "offline-pack": hasProject
+            };
+            const disabledReasons = {
+                "select-all": featureCount ? "All features are already selected." : "The active layer has no features.",
+                "select-visible": "The active layer has no features.",
+                "select-attribute": featureCount ? "The active layer has no searchable attributes." : "The active layer has no features.",
+                "select-invert": "The active layer has no features.",
+                "select-clear": "Select one or more features first.",
+                buffer: editable ? "Select one or more features to create a buffer." : "Choose an editable layer to create buffers.",
+                merge: editable ? "Select two or more features to merge." : "Choose an editable layer to merge features.",
+                simplify: editable ? "The active layer has no features to simplify." : "Choose an editable layer to simplify geometry.",
+                duplicate: editable ? "Select one or more features to duplicate." : "Choose an editable layer to duplicate features.",
+                "move-layer": count ? "Create another layer with the same geometry type first." : "Select one or more features to move.",
+                densify: editable ? "The active layer has no features to densify." : "Choose an editable layer to densify geometry.",
+                "cut-hole": count ? "Select exactly one polygon." : "Select one polygon first.",
+                "snap-settings": "Choose an editable layer to configure snapping.",
+                "export-selected": "Select one or more features to export.",
+                "copy-geometry": "Select one or more features to copy.",
+                "style-field": editable ? "Add features before styling by attribute." : "Choose an editable layer to style by attribute.",
+                labels: "Choose an editable layer to configure labels.",
+                "photo-import": "Open or create a project first.",
+                "offline-pack": "Open or create a project first."
+            };
+            advancedGisPanel?.querySelectorAll(".advanced-gis-desktop-content [data-gis-tool]").forEach((button) => {
+                const tool = button.dataset.gisTool;
+                button.hidden = (
+                    (geometryType === "point" && pointHiddenTools.has(tool))
+                    || (polygonOnlyTools.has(tool) && geometryType !== "polygon")
+                    || (lineOnlyTools.has(tool) && geometryType !== "line")
+                );
+                button.disabled = !enabledTools[tool];
+                const reason = button.disabled
+                    ? (disabledReasons[tool] || (!hasLayer ? "Open a layer to use this command." : "This command is unavailable for the current layer."))
+                    : "";
+                if (reason) {
+                    button.title = reason;
+                    button.setAttribute("aria-label", `${button.textContent.trim()} — ${reason}`);
+                } else {
+                    button.removeAttribute("title");
+                    button.removeAttribute("aria-label");
+                }
+            });
+            if (advancedGisMoreBtn) advancedGisMoreBtn.disabled = !hasLayer;
+            if (advancedGisExportBtn) advancedGisExportBtn.disabled = !hasLayer;
         }
 
         function downloadTextFile(filename, text, type = "application/json") {
@@ -15037,10 +17986,91 @@
             }
         });
         menuAppHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
+        toolbarMoreBtn?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setAddActionPopoverVisibility(false);
+            setToolbarMoreVisibility(Boolean(toolbarMorePopover?.hidden));
+        });
+        toolbarMoreBtn?.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
+            event.preventDefault();
+            setToolbarMoreVisibility(true, { focusFirst: true });
+        });
+        toolbarMorePopover?.addEventListener("keydown", (event) => {
+            const items = getToolbarMoreItems();
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setToolbarMoreVisibility(false, { restoreFocus: true });
+                return;
+            }
+            if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
+            event.preventDefault();
+            const currentIndex = items.indexOf(document.activeElement);
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            const nextIndex = currentIndex < 0
+                ? (direction > 0 ? 0 : items.length - 1)
+                : (currentIndex + direction + items.length) % items.length;
+            items[nextIndex]?.focus();
+        });
+        toolbarMoreItems.forEach((item) => {
+            item.addEventListener("click", (event) => {
+                event.stopPropagation();
+                const target = document.getElementById(item.dataset.toolbarTarget || "");
+                setToolbarMoreVisibility(false);
+                target?.click();
+                syncToolbarMoreState();
+            });
+        });
+        addSurveyPointBtn?.addEventListener("keydown", (event) => {
+            if (!isDesktopDrawFlow() || !["ArrowDown", "Enter", " "].includes(event.key)) return;
+            event.preventDefault();
+            setAddActionPopoverVisibility(true, { focusFirst: true });
+        });
+        addActionPopover?.addEventListener("keydown", (event) => {
+            const items = [addNewFeatureMenuBtn, addImportDataMenuBtn, addLayerMenuBtn].filter(Boolean);
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setAddActionPopoverVisibility(false, { restoreFocus: true });
+                return;
+            }
+            if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
+            event.preventDefault();
+            const currentIndex = items.indexOf(document.activeElement);
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            const nextIndex = currentIndex < 0
+                ? (direction > 0 ? 0 : items.length - 1)
+                : (currentIndex + direction + items.length) % items.length;
+            items[nextIndex]?.focus();
+        });
+        [editPanelToggleBtn, addSurveyPointBtn, undoBtn, redoBtn, myLocationBtn, toolbarLayersBtn].forEach((button) => {
+            button?.addEventListener("click", () => {
+                setToolbarMoreVisibility(false);
+                if (button !== addSurveyPointBtn) setAddActionPopoverVisibility(false);
+            });
+        });
+        const toolbarMoreStateObserver = new MutationObserver(syncToolbarMoreState);
+        [toolbarBasemapBtn, measureToolBtn, advancedGisBtn].forEach((button) => {
+            if (!button) return;
+            toolbarMoreStateObserver.observe(button, {
+                attributes: true,
+                attributeFilter: ["class", "aria-expanded", "aria-pressed"]
+            });
+        });
+        window.matchMedia("(max-width: 600px)").addEventListener?.("change", () => setToolbarMoreVisibility(false));
+        syncToolbarMoreState();
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
         advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
         advancedGisPanel?.addEventListener("click", (event) => {
+            const disclosure = event.target.closest(".advanced-gis-disclosure");
+            if (disclosure === advancedGisMoreBtn) {
+                toggleAdvancedGisDisclosure(advancedGisMoreBtn, advancedGisMoreCommands);
+                return;
+            }
+            if (disclosure === advancedGisExportBtn) {
+                toggleAdvancedGisDisclosure(advancedGisExportBtn, advancedGisExportCommands);
+                return;
+            }
             const button = event.target.closest("[data-gis-tool]");
             if (!button || button.disabled) return;
             handleAdvancedGisTool(button.dataset.gisTool);
@@ -15178,6 +18208,13 @@
             if (settingsPanel && !settingsPanel.hidden) {
                 positionSettingsPanel();
             }
+            if (addActionPopover && !addActionPopover.hidden) {
+                if (isDesktopDrawFlow()) positionAddActionPopover();
+                else setAddActionPopoverVisibility(false);
+            }
+            syncDesktopDrawContext();
+            positionDesktopDrawPanel();
+            renderQuickActionButtons();
         });
         checkDropboxConnectionStatus({ refreshList: true });
         loadWorkspaceProjects();
@@ -15338,16 +18375,29 @@
         });
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
         function toggleLayersPanel() {
+            if (!sidebarVisible) {
+                if (measurementActive) setMeasurementActive(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (editSessionActive) setEditSessionActive(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
+            }
             renderActiveProjectSidebar();
             setSidebarVisibility(!sidebarVisible);
         }
         function openBasemapControls() {
-            openToolbarMenu("view", toolbarBasemapBtn || settingsBtn);
-            if (menuMapTypeList) menuMapTypeList.hidden = false;
-            menuMapTypeBtn?.setAttribute("aria-expanded", "true");
+            const desktop = window.matchMedia("(min-width: 601px)").matches;
+            const anchor = desktop
+                ? (toolbarMoreBtn || toolbarBasemapBtn || settingsBtn)
+                : (toolbarBasemapBtn || settingsBtn);
+            if (measurementActive) setMeasurementActive(false);
+            if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+            if (sidebarVisible) setSidebarVisibility(false);
+            if (editSessionActive) setEditSessionActive(false);
+            openToolbarMenu("basemap", anchor);
             toolbarBasemapBtn?.classList.add("active");
             toolbarBasemapBtn?.setAttribute("aria-expanded", "true");
             updateMapTypeControls(activeProjectRecord);
+            updateBasemapPoisMenuState();
         }
         layersMapBtn?.addEventListener("click", toggleLayersPanel);
         toolbarLayersBtn?.addEventListener("click", toggleLayersPanel);
@@ -15370,11 +18420,19 @@
                 updateMapTypeControls(activeProjectRecord);
                 return;
             }
+            if (event.target.closest("[data-basemap-pois-proxy]")) {
+                event.preventDefault();
+                event.stopPropagation();
+                menuShowBasemapPoisBtn?.click();
+                setToolbarMenuVisibility(false);
+                return;
+            }
             const mapTypeButton = event.target.closest("[data-map-type]");
             if (mapTypeButton) {
                 event.preventDefault();
                 event.stopPropagation();
                 setProjectMapType(mapTypeButton.getAttribute("data-map-type"));
+                setToolbarMenuVisibility(false);
                 return;
             }
             if (event.target.closest(".menu-command")) {
@@ -15588,6 +18646,67 @@
         editPanelSquareBtn?.addEventListener("click", () => createViewportPolygonShape("square"));
         editPanelEditVerticesBtn?.addEventListener("click", editSelectedGeometryVertices);
         editPanelSplitGeometryBtn?.addEventListener("click", splitSelectedGeometry);
+        drawGeometryChoiceButtons.forEach((button) => {
+            button.addEventListener("click", () => startDesktopDrawingGeometry(button.dataset.drawGeometry || "point"));
+        });
+        drawContextUndoBtn?.addEventListener("click", undoCurrentDrawingVertex);
+        drawContextDoneBtn?.addEventListener("click", () => {
+            const geometryType = getActiveLayerGeometryType();
+            if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
+                finalizeGeometryFeaturePlacement();
+            }
+        });
+        drawContextCancelBtn?.addEventListener("click", () => {
+            if (!isAddingSurveyPoint) return;
+            exitAddSurveyPointMode();
+            setProjectStatus("Drawing cancelled.", "success");
+        });
+        drawSelectionPropertiesBtn?.addEventListener("click", () => {
+            const rowIndex = getActiveSelectionIndexes()[0];
+            if (!Number.isInteger(rowIndex)) return;
+            previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+        });
+        drawSelectionEditBtn?.addEventListener("click", () => {
+            const context = getSelectedEditableFeatureContext();
+            if (!context) return;
+            if (context.geometryType === "point") {
+                startEditPanelGeometryEdit();
+            } else {
+                editSelectedGeometryVertices();
+            }
+        });
+        drawSelectionDuplicateBtn?.addEventListener("click", duplicateSelectedFeatures);
+        drawSelectionMergeBtn?.addEventListener("click", mergeSelectedFeatures);
+        drawSelectionClearBtn?.addEventListener("click", () => {
+            clearTableSelection();
+            syncEditPanelState();
+            setProjectStatus("Selection cleared.", "success");
+        });
+        drawSelectionDeleteBtn?.addEventListener("click", () => {
+            if (activeSurveyAnnotation) {
+                deleteActivePoint();
+                return;
+            }
+            const rowIndex = getActiveSelectionIndexes()[0];
+            if (Number.isInteger(rowIndex)) {
+                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                window.requestAnimationFrame(() => deleteActivePoint());
+            }
+        });
+        addNewFeatureMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            if (measurementActive) setMeasurementActive(false);
+            setEditSessionActive(true);
+            startEditPanelAddFeature();
+        });
+        addImportDataMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            toggleImportBtn?.click();
+        });
+        addLayerMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            addLayerToActiveProject();
+        });
         layerToolsAddLayerBtn?.addEventListener("click", addLayerToActiveProject);
         layerToolsPropertiesBtn?.addEventListener("click", () => {
             const layerId = layerToolsLayerSelect?.value || getEditPanelLayerId();
@@ -15667,6 +18786,9 @@
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
+            const insideToolbarMoreMenu = toolbarMoreMenu?.contains(event.target);
+            const insideAddActionPopover = addActionPopover?.contains(event.target);
+            const onAddActionButton = addSurveyPointBtn?.contains(event.target);
             const insideSettingsPanel = settingsPanel?.contains(event.target);
             const onSettingsButton = menuSettingsBtn?.contains(event.target);
             if (!event.target.closest(".toolbar-left")) {
@@ -15677,6 +18799,12 @@
             }
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
+            }
+            if (toolbarMorePopover && !toolbarMorePopover.hidden && !insideToolbarMoreMenu) {
+                setToolbarMoreVisibility(false);
+            }
+            if (addActionPopover && !addActionPopover.hidden && !insideAddActionPopover && !onAddActionButton) {
+                setAddActionPopoverVisibility(false);
             }
             if (!settingsPanel?.hidden && !insideSettingsPanel && !onSettingsButton) {
                 setSettingsPanelVisibility(false);
@@ -16008,6 +19136,25 @@
                     hideLocationStatus({ restoreFocus: true });
                     return;
                 }
+                if (addActionPopover && !addActionPopover.hidden) {
+                    event.preventDefault();
+                    setAddActionPopoverVisibility(false, { restoreFocus: true });
+                    return;
+                }
+                if (toolbarMorePopover && !toolbarMorePopover.hidden) {
+                    event.preventDefault();
+                    setToolbarMoreVisibility(false, { restoreFocus: true });
+                    return;
+                }
+                if (toolbarMenuVisible) {
+                    event.preventDefault();
+                    const returnTarget = toolbarMenuKey === "basemap"
+                        ? (toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : toolbarBasemapBtn)
+                        : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
+                    setToolbarMenuVisibility(false);
+                    returnTarget?.focus();
+                    return;
+                }
                 if (layerImportModal && !layerImportModal.hidden) {
                     event.preventDefault();
                     setLayerImportPanelVisibility(false);
@@ -16033,16 +19180,24 @@
                     setSettingsPanelVisibility(false);
                     return;
                 }
+                if (isAddingSurveyPoint) {
+                    event.preventDefault();
+                    cancelActiveFeaturePlacement();
+                    return;
+                }
+                if (selectedTableRows?.size || activeSurveyAnnotation) {
+                    event.preventDefault();
+                    clearTableSelection();
+                    syncEditPanelState();
+                    setProjectStatus("Selection cleared.", "success");
+                    return;
+                }
                 if (sidebarVisible) {
                     setSidebarVisibility(false);
                     return;
                 }
                 if (dataPaneVisible && window.innerWidth <= 980) {
                     setDataPaneVisibility(false);
-                    return;
-                }
-                if (isAddingSurveyPoint) {
-                    cancelActiveFeaturePlacement();
                     return;
                 }
                 if (editSessionActive) {
@@ -16066,6 +19221,18 @@
                 if (featureDrawer?.classList.contains("open")) {
                     hideSurveyCallout();
                 }
+                return;
+            }
+            if (
+                event.key === "Enter"
+                && isDesktopDrawFlow()
+                && isAddingSurveyPoint
+                && getActiveLayerGeometryType() !== "point"
+                && hasEnoughVerticesForGeometry(getActiveLayerGeometryType(), drawingVertices)
+                && !isInteractiveField(event.target)
+            ) {
+                event.preventDefault();
+                finalizeGeometryFeaturePlacement();
                 return;
             }
             if (!event.defaultPrevented && primaryModifier && key === "n") {
@@ -16247,9 +19414,15 @@
             }
         });
 
-        addSurveyPointBtn.addEventListener("click", () => {
+        addSurveyPointBtn.addEventListener("click", (event) => {
             if (!currentSurveyData) {
                 setProjectStatus("Open a project before adding points.", "error");
+                return;
+            }
+            if (isDesktopDrawFlow()) {
+                event.preventDefault();
+                event.stopPropagation();
+                setAddActionPopoverVisibility(addActionPopover?.hidden !== false);
                 return;
             }
             toggleAddSurveyPointMode();
@@ -16388,6 +19561,10 @@
                 syncEditPanelState();
                 return;
             }
+            if (!isDesktopDrawFlow() && !editSessionActive) {
+                setEditSessionActive(true, { layerId: layer.id });
+                if (!editSessionActive) return;
+            }
             const geometryType = getActiveLayerGeometryType();
             if (isAddingSurveyPoint && geometryType !== "point" && hasEnoughVerticesForGeometry(geometryType, drawingVertices)) {
                 finalizeGeometryFeaturePlacement();
@@ -16396,9 +19573,11 @@
             const wasTracing = geometryTraceMode;
             isAddingSurveyPoint = !isAddingSurveyPoint;
             if (!isAddingSurveyPoint) geometryTraceMode = false;
-            addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
-            addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-            setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding New" : "Add New");
+            if (!isDesktopDrawFlow()) {
+                addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
+                addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
+                setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding" : "Add");
+            }
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) {
                 updateMapAddHintText(geometryType);
@@ -17614,9 +20793,11 @@
             if (!isAddingSurveyPoint) return;
             isAddingSurveyPoint = false;
             geometryTraceMode = false;
-            addSurveyPointBtn.classList.remove("active");
-            addSurveyPointBtn.setAttribute("aria-pressed", "false");
-            setAddNewButtonLabel("Add New");
+            if (!isDesktopDrawFlow()) {
+                addSurveyPointBtn.classList.remove("active");
+                addSurveyPointBtn.setAttribute("aria-pressed", "false");
+                setAddNewButtonLabel("Add");
+            }
             mapElement.style.cursor = "";
             pendingNewAnnotation = null;
             drawingVertices = [];
@@ -17978,30 +21159,52 @@
             measureToolBtn?.setAttribute("aria-expanded", measurementActive ? "true" : "false");
             measurementDistanceModeBtn?.classList.toggle("active", measurementMode === "distance");
             measurementAreaModeBtn?.classList.toggle("active", measurementMode === "area");
+            measurementDistanceModeBtn?.setAttribute("aria-pressed", measurementMode === "distance" ? "true" : "false");
+            measurementAreaModeBtn?.setAttribute("aria-pressed", measurementMode === "area" ? "true" : "false");
             if (measurementUnitSelect) measurementUnitSelect.value = measurementUnits;
             const metrics = getMeasurementMetrics(true);
+            const pointCount = measurementCoordinates.length;
             if (measurementResult) {
+                let value = "";
+                let desktopSecondary = "";
+                let mobileSecondary = "";
                 if (measurementMode === "area") {
-                    measurementResult.innerHTML = `
-                        <strong>${formatMeasurementArea(metrics.area)}</strong>
-                        <div>Perimeter: ${formatMeasurementDistance(metrics.perimeter)}</div>
-                        <div>Points: ${measurementCoordinates.length}</div>
-                    `;
+                    value = formatMeasurementArea(metrics.area);
+                    desktopSecondary = pointCount
+                        ? `${formatMeasurementDistance(metrics.perimeter)} perimeter · ${pointCount} ${pointCount === 1 ? "point" : "points"}`
+                        : "";
+                    mobileSecondary = `Perimeter: ${formatMeasurementDistance(metrics.perimeter)}<br>Points: ${pointCount}`;
                 } else {
-                    measurementResult.innerHTML = `
-                        <strong>${formatMeasurementDistance(metrics.distance)}</strong>
-                        <div>Segments: ${Math.max(0, metrics.coords.length - 1)}</div>
-                        <div>Points: ${measurementCoordinates.length}</div>
-                    `;
+                    const segmentCount = Math.max(0, metrics.coords.length - 1);
+                    value = formatMeasurementDistance(metrics.distance);
+                    desktopSecondary = segmentCount
+                        ? `${segmentCount} ${segmentCount === 1 ? "segment" : "segments"}`
+                        : "";
+                    mobileSecondary = `Segments: ${segmentCount}<br>Points: ${pointCount}`;
                 }
+                measurementResult.innerHTML = `
+                    <strong class="measurement-result-value">${value}</strong>
+                    <div class="measurement-result-secondary measurement-result-secondary-desktop" ${desktopSecondary ? "" : "hidden"}>${desktopSecondary}</div>
+                    <div class="measurement-result-secondary measurement-result-secondary-mobile">${mobileSecondary}</div>
+                `;
             }
             if (measurementHint) {
-                measurementHint.textContent = measurementMode === "area"
+                const desktopHint = measurementFinished
+                    ? ""
+                    : pointCount
+                        ? "Click to add points. Double-click to finish."
+                        : "Click the map to begin.";
+                measurementHint.textContent = desktopHint;
+                measurementHint.hidden = !desktopHint;
+            }
+            if (measurementHintMobile) {
+                measurementHintMobile.textContent = measurementMode === "area"
                     ? "Area mode: click three or more points. Double-click or Finish to close and calculate."
                     : "Distance mode: click two or more points. Double-click or Finish to complete.";
             }
-            if (measurementUndoPointBtn) measurementUndoPointBtn.disabled = !measurementCoordinates.length;
-            if (measurementFinishBtn) measurementFinishBtn.disabled = measurementMode === "area" ? measurementCoordinates.length < 3 : measurementCoordinates.length < 2;
+            if (measurementUndoPointBtn) measurementUndoPointBtn.disabled = measurementFinished || !pointCount;
+            if (measurementFinishBtn) measurementFinishBtn.disabled = measurementFinished || (measurementMode === "area" ? pointCount < 3 : pointCount < 2);
+            if (measurementClearBtn) measurementClearBtn.disabled = !pointCount;
             renderMeasurementGraphics();
         }
 
@@ -18011,7 +21214,14 @@
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
                 }
-                if (isAddingSurveyPoint) exitAddSurveyPointMode();
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
+                if (editSessionActive) {
+                    setEditSessionActive(false);
+                } else if (isAddingSurveyPoint) {
+                    exitAddSurveyPointMode();
+                }
                 hideSurveyCallout();
                 closeFeatureDrawer({ clearSelection: false });
                 measurementFinished = false;
@@ -18024,6 +21234,7 @@
                 setProjectStatus("Measurement closed.", "success");
             }
             updateMeasurementPanel();
+            renderSelectedFeatureInspector();
         }
 
         function setMeasurementMode(mode) {
@@ -21197,6 +24408,9 @@
                     ? "Add a feature before filtering the table."
                     : "All rows are already shown."
             });
+            updateAdvancedGisPanelState();
+            syncDesktopDrawContext();
+            renderSelectedFeatureInspector();
         }
 
         function syncMapFeatureToTableSelection(rowIndex) {
@@ -21936,7 +25150,10 @@ function updateFloatingButtonLayer(panelOpen) {
 
         function setToolbarMenuVisibility(show) {
             toolbarMenuVisible = Boolean(show);
-            if (toolbarMenuTray) toolbarMenuTray.hidden = !toolbarMenuVisible;
+            if (toolbarMenuTray) {
+                toolbarMenuTray.hidden = !toolbarMenuVisible;
+                if (!toolbarMenuVisible) delete toolbarMenuTray.dataset.activeMenu;
+            }
             if (!toolbarMenuVisible) {
                 menuPaneEls.forEach((pane) => pane.hidden = true);
                 if (menuToolbarsList) menuToolbarsList.hidden = true;

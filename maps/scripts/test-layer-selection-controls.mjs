@@ -64,5 +64,40 @@ assert.match(
   /@media \(max-width: 600px\)[\s\S]*?#sidebar \{[\s\S]*?z-index:\s*1300;/,
   "The mobile layer panel should stack above floating toolbar controls."
 );
+assert.match(
+  source,
+  /@media \(min-width: 601px\)[\s\S]*?#sidebar \{[\s\S]*?width:\s*286px;[\s\S]*?overflow:\s*hidden;[\s\S]*?#sidebar-content \{[\s\S]*?max-height:\s*min\(420px,\s*calc\(100vh - 186px\)\);[\s\S]*?overflow-y:\s*auto;/,
+  "The desktop Layers inspector should size naturally while keeping a bounded scrolling content region."
+);
+assert.match(
+  source,
+  /#sidebar \.sidebar-tabs \{[\s\S]*?padding:\s*2px;[\s\S]*?border-radius:\s*8px;[\s\S]*?#sidebar \.sidebar-tab \{[\s\S]*?min-height:\s*28px;/,
+  "The desktop Layers and Selection tabs should use a compact segmented control."
+);
+assert.match(
+  source,
+  /layer-pane-helper-desktop">Drag layers to change drawing order\.<\/p>[\s\S]*?layer-pane-helper-mobile">Drag the handle or use ↑ \/ ↓/,
+  "Desktop should use concise reorder guidance while retaining the existing mobile guidance."
+);
+assert.match(
+  source,
+  /class="layer-visibility-toggle \$\{item\.visible === false \? "is-off" : ""\}"[\s\S]*?class="layer-visibility-check"[\s\S]*?class="layer-visibility-icon"[\s\S]*?<circle cx="12" cy="12" r="2\.5">/,
+  "Layer visibility should retain the mobile checkmark and provide an eye icon for desktop."
+);
+assert.match(
+  source,
+  /#sidebar \.layer-pane-row \{[\s\S]*?grid-template-columns:\s*18px 26px minmax\(0, 1fr\) 28px;[\s\S]*?#sidebar \.layer-pane-actions \.layer-order-btn \{[\s\S]*?display:\s*none;/,
+  "Desktop rows should expose only drag, visibility, layer name, and More."
+);
+assert.match(
+  source,
+  /id="layerContextMoveUpBtn"[\s\S]*?data-layer-context-action="move-up"[\s\S]*?id="layerContextMoveDownBtn"[\s\S]*?data-layer-context-action="move-down"/,
+  "Move Up and Move Down should remain available from the layer More menu."
+);
+assert.match(
+  source,
+  /function updateLayerContextMoveButtons\(layerId\)[\s\S]*?layerContextMoveUpBtn\.disabled = !canMoveUp;[\s\S]*?layerContextMoveDownBtn\.disabled = !canMoveDown;/,
+  "Layer menu reorder actions should preserve their boundary-aware disabled states."
+);
 
 console.log("Layer selection controls checks passed.");
