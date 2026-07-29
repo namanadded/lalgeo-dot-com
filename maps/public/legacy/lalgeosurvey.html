@@ -8466,8 +8466,9 @@
             --mobile-tool-border: rgba(209, 213, 219, 0.58);
             --mobile-tool-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
             --mobile-tool-muted: #7b8490;
-            --mobile-toolbar-bottom: max(10px, env(safe-area-inset-bottom, 0px));
+            --mobile-toolbar-bottom: max(62px, calc(env(safe-area-inset-bottom, 0px) + 10px));
             --mobile-toolbar-height: 58px;
+            --mobile-map-chrome-clearance: 44px;
         }
 
         #toolbar {
@@ -8635,6 +8636,9 @@
         #toolbar #toolbarMorePopover .toolbar-more-item:active {
             background: rgba(15, 23, 42, 0.075);
         }
+        #workspaceHint {
+            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+        }
 
         #sidebar,
         #measurementPanel,
@@ -8677,12 +8681,12 @@
         }
         #sidebar {
             max-height: min(62dvh, 520px);
-            padding: 4px 14px calc(14px + env(safe-area-inset-bottom, 0px));
+            padding: 4px 14px calc(var(--mobile-map-chrome-clearance) + 14px + env(safe-area-inset-bottom, 0px));
             overflow: hidden;
         }
         #sidebar .sidebar-shell {
             min-height: 0;
-            max-height: calc(min(62dvh, 520px) - 28px - env(safe-area-inset-bottom, 0px));
+            max-height: calc(min(62dvh, 520px) - var(--mobile-map-chrome-clearance) - 28px - env(safe-area-inset-bottom, 0px));
             gap: 8px;
         }
         #sidebar .sidebar-topbar {
@@ -8790,7 +8794,7 @@
 
         #measurementPanel {
             max-height: min(46dvh, 390px);
-            padding: 3px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            padding: 3px 16px calc(var(--mobile-map-chrome-clearance) + 16px + env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
         }
         #measurementPanel .measurement-panel-header,
@@ -8908,7 +8912,7 @@
 
         #advancedGisPanel {
             max-height: min(68dvh, 620px);
-            padding: 3px 0 calc(10px + env(safe-area-inset-bottom, 0px));
+            padding: 3px 0 calc(var(--mobile-map-chrome-clearance) + 10px + env(safe-area-inset-bottom, 0px));
             overflow: hidden;
         }
         #advancedGisPanel .measurement-panel-header {
@@ -8934,7 +8938,7 @@
         }
         #advancedGisPanel .advanced-gis-desktop-content {
             display: block;
-            max-height: calc(min(68dvh, 620px) - 64px - env(safe-area-inset-bottom, 0px));
+            max-height: calc(min(68dvh, 620px) - var(--mobile-map-chrome-clearance) - 64px - env(safe-area-inset-bottom, 0px));
             padding: 0 8px;
             overflow-x: hidden;
             overflow-y: auto;
@@ -8974,12 +8978,17 @@
         }
 
         #editFloatingPanel {
-            display: block;
             max-height: min(48dvh, 420px);
-            padding: 3px 16px calc(16px + env(safe-area-inset-bottom, 0px));
+            padding: 3px 16px calc(var(--mobile-map-chrome-clearance) + 16px + env(safe-area-inset-bottom, 0px));
             overflow: hidden;
             opacity: 0;
             pointer-events: none;
+        }
+        #editFloatingPanel:not([hidden]) {
+            display: block;
+        }
+        #editFloatingPanel[hidden] {
+            display: none !important;
         }
         #editFloatingPanel.toolbar-visible {
             opacity: 1;
@@ -9093,7 +9102,7 @@
 
         #toolbarMenuTray[data-active-menu="basemap"] {
             max-height: min(52dvh, 430px);
-            padding: 3px 12px calc(14px + env(safe-area-inset-bottom, 0px));
+            padding: 3px 12px calc(var(--mobile-map-chrome-clearance) + 14px + env(safe-area-inset-bottom, 0px));
             overflow-y: auto;
         }
         #toolbarMenuTray[data-active-menu="basemap"] #desktopBasemapMenu {
@@ -9197,13 +9206,36 @@
     }
 
     @media (max-width: 600px) and (orientation: landscape) {
+        :root {
+            --mobile-map-chrome-clearance: 0px;
+        }
         #sidebar,
         #advancedGisPanel {
             max-height: 78dvh;
         }
+        #sidebar .sidebar-shell {
+            max-height: calc(78dvh - var(--mobile-map-chrome-clearance) - 28px - env(safe-area-inset-bottom, 0px));
+        }
+        #advancedGisPanel .advanced-gis-desktop-content {
+            max-height: calc(78dvh - var(--mobile-map-chrome-clearance) - 64px - env(safe-area-inset-bottom, 0px));
+        }
         #measurementPanel,
         #editFloatingPanel {
             max-height: 68dvh;
+        }
+        #sidebar .layer-pane-row {
+            width: calc(100% - 46px);
+            margin-left: 46px;
+        }
+        #sidebar .layer-pane-helper-mobile {
+            display: none;
+        }
+        #advancedGisPanel .advanced-gis-desktop-content,
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-section {
+            padding-left: 44px;
+        }
+        #editFloatingPanel .draw-context-hint {
+            margin-left: 44px;
         }
     }
 
@@ -13593,7 +13625,7 @@
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
                     <p class="layer-pane-helper layer-pane-helper-desktop">Drag layers to change drawing order.</p>
-                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag layers to change drawing order.</p>
+                    <p class="layer-pane-helper layer-pane-helper-mobile">Drag the handle or use ↑ / ↓ to change drawing order.</p>
                     ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
@@ -14152,6 +14184,12 @@
                 setProjectStatus("This layer is a live API reference. Add or edit features in your source API, or create a new editable layer.", "error");
                 syncEditPanelState();
                 return;
+            }
+            if (nextActive) {
+                if (measurementActive) setMeasurementActive(false);
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
             }
             editSessionActive = Boolean(nextActive);
             if (!editSessionActive) {
@@ -16471,11 +16509,14 @@
 
         function setAdvancedGisVisible(show) {
             if (!advancedGisPanel) return;
-            if (show && window.matchMedia("(max-width: 600px)").matches) {
-                topToolbarViewModel.collapseOverflow("right");
+            if (show) {
+                if (window.matchMedia("(max-width: 600px)").matches) {
+                    topToolbarViewModel.collapseOverflow("right");
+                }
                 if (measurementActive) setMeasurementActive(false);
                 if (sidebarVisible) setSidebarVisibility(false);
                 if (editSessionActive) setEditSessionActive(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
             }
             advancedGisPanel.hidden = !show;
             advancedGisBtn?.classList.toggle("active", Boolean(show));
@@ -18334,10 +18375,11 @@
         });
         menuHelpShortcutsBtn?.addEventListener("click", () => setProjectStatus(`Shortcuts: ${isMacPlatform ? "⌘" : "Ctrl+"}N new project, ${isMacPlatform ? "⌘" : "Ctrl+"}O import project, A add new, ${isMacPlatform ? "⌘⇧Z" : "Ctrl+Y"} redo.`, "success"));
         function toggleLayersPanel() {
-            if (!sidebarVisible && window.matchMedia("(max-width: 600px)").matches) {
+            if (!sidebarVisible) {
                 if (measurementActive) setMeasurementActive(false);
                 if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
                 if (editSessionActive) setEditSessionActive(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
             }
             renderActiveProjectSidebar();
             setSidebarVisibility(!sidebarVisible);
@@ -18347,12 +18389,10 @@
             const anchor = desktop
                 ? (toolbarMoreBtn || toolbarBasemapBtn || settingsBtn)
                 : (toolbarBasemapBtn || settingsBtn);
-            if (!desktop) {
-                if (measurementActive) setMeasurementActive(false);
-                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
-                if (sidebarVisible) setSidebarVisibility(false);
-                if (editSessionActive) setEditSessionActive(false);
-            }
+            if (measurementActive) setMeasurementActive(false);
+            if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+            if (sidebarVisible) setSidebarVisibility(false);
+            if (editSessionActive) setEditSessionActive(false);
             openToolbarMenu("basemap", anchor);
             toolbarBasemapBtn?.classList.add("active");
             toolbarBasemapBtn?.setAttribute("aria-expanded", "true");
@@ -18384,6 +18424,7 @@
                 event.preventDefault();
                 event.stopPropagation();
                 menuShowBasemapPoisBtn?.click();
+                setToolbarMenuVisibility(false);
                 return;
             }
             const mapTypeButton = event.target.closest("[data-map-type]");
@@ -18391,6 +18432,7 @@
                 event.preventDefault();
                 event.stopPropagation();
                 setProjectMapType(mapTypeButton.getAttribute("data-map-type"));
+                setToolbarMenuVisibility(false);
                 return;
             }
             if (event.target.closest(".menu-command")) {
@@ -18537,11 +18579,6 @@
         editPanelToggleBtn?.addEventListener("click", (event) => {
             event.preventDefault();
             event.stopPropagation();
-            if (!editSessionActive && measurementActive) setMeasurementActive(false);
-            if (!editSessionActive && !isDesktopDrawFlow()) {
-                if (sidebarVisible) setSidebarVisibility(false);
-                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
-            }
             setEditSessionActive(!editSessionActive);
         });
         editPanelCloseBtn?.addEventListener("click", () => {
@@ -19107,6 +19144,15 @@
                 if (toolbarMorePopover && !toolbarMorePopover.hidden) {
                     event.preventDefault();
                     setToolbarMoreVisibility(false, { restoreFocus: true });
+                    return;
+                }
+                if (toolbarMenuVisible) {
+                    event.preventDefault();
+                    const returnTarget = toolbarMenuKey === "basemap"
+                        ? (toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : toolbarBasemapBtn)
+                        : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
+                    setToolbarMenuVisibility(false);
+                    returnTarget?.focus();
                     return;
                 }
                 if (layerImportModal && !layerImportModal.hidden) {
@@ -21167,9 +21213,10 @@
             if (measurementActive) {
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
-                    if (sidebarVisible) setSidebarVisibility(false);
-                    if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
                 }
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
                 if (editSessionActive) {
                     setEditSessionActive(false);
                 } else if (isAddingSurveyPoint) {

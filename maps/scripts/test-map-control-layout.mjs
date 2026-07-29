@@ -62,7 +62,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setAdvancedGisVisible\(show\)\s*{[\s\S]*?show && window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  /function setAdvancedGisVisible\(show\)\s*{[\s\S]*?if \(show\) \{[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
   "Opening Advanced GIS on mobile must collapse the quick-action strip.",
 );
 assert.match(
