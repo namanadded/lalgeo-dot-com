@@ -144,6 +144,10 @@ jobs:
         working-directory: maps
         run: npm run test:lalgeo-project-integrity
 
+      - name: Check KMZ main-document integrity
+        working-directory: maps
+        run: npm run test:kmz-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
