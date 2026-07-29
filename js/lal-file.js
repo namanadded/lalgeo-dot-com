@@ -137,19 +137,26 @@ export function normalizeLalDocument(input, filename = "layer.lal") {
   }
 
   if (input.kind === "lal-layer" && Array.isArray(input.features)) {
-    const layer = cloneLayer(input);
-    layer.schema = cloneSchema(layer.schema?.length ? layer.schema : inferSchemaFromFeatures(layer.features));
-    layer.style = { ...DEFAULT_STYLE, ...(layer.style || {}) };
+    // Build the detached canonical document in one pass. cloneLayer() used to
+    // duplicate the complete feature graph here before normalizeFeature()
+    // duplicated every feature and coordinate tree again below. Large imports
+    // therefore briefly required two avoidable full-project copies.
+    const features = input.features.map(normalizeFeature);
+    const layer = {
+      ...input,
+      schema: cloneSchema(input.schema?.length ? input.schema : inferSchemaFromFeatures(input.features)),
+      style: { ...DEFAULT_STYLE, ...(input.style || {}) },
+      features,
+    };
     layer.metadata = {
       ...createEmptyLalLayer({ name: filename.replace(/\.lal$/i, ""), documentType: input?.metadata?.documentType || "layer" }).metadata,
-      ...(layer.metadata || {}),
-      featureCount: Array.isArray(layer.features) ? layer.features.length : 0,
+      ...(input.metadata || {}),
+      featureCount: features.length,
     };
-    layer.features = Array.isArray(layer.features) ? layer.features.map(normalizeFeature) : [];
     layer.revision = {
-      dropboxRev: layer.revision?.dropboxRev || null,
-      sourcePath: layer.revision?.sourcePath || null,
-      lastSyncedAt: layer.revision?.lastSyncedAt || null,
+      dropboxRev: input.revision?.dropboxRev || null,
+      sourcePath: input.revision?.sourcePath || null,
+      lastSyncedAt: input.revision?.lastSyncedAt || null,
     };
     return layer;
   }
@@ -169,7 +176,11 @@ export function normalizeFeature(feature) {
   return {
     id: feature.id || generateId("feature"),
     geometry: normalizeGeometry(feature.geometry),
-    properties: { ...(feature.properties || {}) },
+    // Properties may contain nested JSON values. Keep normalized imports fully
+    // detached without first cloning the entire project graph.
+    properties: feature.properties
+      ? JSON.parse(JSON.stringify(feature.properties))
+      : {},
   };
 }
 

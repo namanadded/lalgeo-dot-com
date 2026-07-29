@@ -147,6 +147,9 @@ jobs:
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
+      - name: Check one-pass LalGeo import normalization
+        working-directory: maps
+        run: npm run test:lal-import-normalization
       - name: Check low-memory project serialization
         working-directory: maps
         run: npm run test:lal-serialization
@@ -162,6 +165,9 @@ jobs:
       - name: Benchmark verified cloud downloads
         working-directory: maps
         run: npm run benchmark:cloud-download
+      - name: Benchmark large LalGeo imports
+        working-directory: maps
+        run: npm run benchmark:lal-import
       - name: Benchmark low-memory project serialization
         working-directory: maps
         run: npm run benchmark:lal-serialization
