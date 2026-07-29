@@ -18931,6 +18931,23 @@
             return value && typeof value === "object" && ["FeatureCollection", "Feature", "Point", "MultiPoint", "LineString", "MultiLineString", "Polygon", "MultiPolygon", "GeometryCollection"].includes(value.type);
         }
 
+        function selectKmzKmlEntry(zip) {
+            const entries = Object.keys(zip?.files || {})
+                .filter((path) => /\.kml$/i.test(path) && !zip.files[path].dir)
+                .map((path) => ({ path, normalized: path.replace(/\\/g, "/").replace(/^\.\/+/, "") }));
+            if (!entries.length) {
+                throw new Error("KMZ file does not contain a KML document. Add a KML file, preferably named doc.kml, and try again.");
+            }
+            const rootDocEntries = entries.filter(({ normalized }) => normalized.toLowerCase() === "doc.kml");
+            if (rootDocEntries.length === 1) return rootDocEntries[0].path;
+            const rootEntries = entries.filter(({ normalized }) => !normalized.includes("/"));
+            if (entries.length === 1) return entries[0].path;
+            if (rootEntries.length === 1) return rootEntries[0].path;
+            const names = entries.slice(0, 3).map(({ normalized }) => normalized).join(", ");
+            const suffix = entries.length > 3 ? ", …" : "";
+            throw new Error(`KMZ contains multiple possible KML documents (${names}${suffix}). Rename the main document to doc.kml at the archive root and try again.`);
+        }
+
         async function buildGeospatialPayload(files) {
             const fileList = Array.from(files || []);
             const geoJsonFile = fileList.find((file) => /\.(geojson)$/i.test(file.name));
@@ -18969,8 +18986,7 @@
             }
             if (kmzFile) {
                 const zip = await JSZip.loadAsync(kmzFile);
-                const kmlEntryName = Object.keys(zip.files).find((path) => /\.kml$/i.test(path) && !zip.files[path].dir);
-                if (!kmlEntryName) throw new Error("KMZ file does not contain a KML document.");
+                const kmlEntryName = selectKmzKmlEntry(zip);
                 return buildGeoJsonPayload(parseKmlText(await zip.files[kmlEntryName].async("string")), {
                     projectName: stripExtension(kmzFile.name),
                     fileName: kmzFile.name,
