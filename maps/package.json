@@ -39,6 +39,7 @@
     "test:mobile-feature-details": "node scripts/test-mobile-feature-details.mjs",
     "test:feature-editor-labels": "node scripts/test-feature-editor-labels.mjs",
     "test:feature-details-journey": "node scripts/test-feature-details-journey.mjs",
+    "test:feature-duplication-journey": "node scripts/test-feature-duplication-journey.mjs",
     "test:off-canvas-panel-a11y": "node scripts/test-off-canvas-panel-a11y.mjs",
     "test:workflow-ui": "node scripts/test-workflow-ui.mjs",
     "test:layer-import-journey": "node scripts/test-layer-import-journey.mjs",
