@@ -175,6 +175,9 @@ jobs:
       - name: Benchmark low-memory project serialization
         working-directory: maps
         run: npm run benchmark:lal-serialization
+      - name: Benchmark coalesced local autosave
+        working-directory: maps
+        run: npm run benchmark:autosave-coalescing
       - name: Check maps mobile menu organization
         working-directory: maps
         run: npm run test:mobile-menu-organization

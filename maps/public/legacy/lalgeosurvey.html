@@ -13519,11 +13519,11 @@
             };
         }
 
-        function markActiveProjectUpdated() {
+        function markActiveProjectUpdated({ scheduleAutosave = true } = {}) {
             if (!activeProjectRecord) return;
             activeProjectRecord.metadata = activeProjectRecord.metadata || {};
             activeProjectRecord.metadata.updatedAt = new Date().toISOString();
-            saveWorkspaceProjects();
+            if (scheduleAutosave) scheduleLocalAutosave();
             renderWorkspaceCollections();
             updateWorkspaceContext();
         }
@@ -13654,7 +13654,7 @@
                 name,
                 type: "image"
             }));
-            markActiveProjectUpdated();
+            markActiveProjectUpdated({ scheduleAutosave: false });
         }
 
         function showWorkspaceHint(message = "Click Add New, then click on the map to place your first feature.") {
