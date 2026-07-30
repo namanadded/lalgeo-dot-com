@@ -32,6 +32,7 @@
     "test:editing-journey": "node scripts/test-editing-journey.mjs",
     "test:mobile-menu-organization": "node scripts/test-mobile-menu-organization.mjs",
     "test:mobile-tool-experience": "node scripts/test-mobile-tool-experience.mjs",
+    "test:mobile-sheet-refinement": "node scripts/test-mobile-sheet-refinement.mjs",
     "test:toolbar-interaction-state": "node scripts/test-toolbar-interaction-state.mjs",
     "test:mobile-feature-details": "node scripts/test-mobile-feature-details.mjs",
     "test:feature-editor-labels": "node scripts/test-feature-editor-labels.mjs",
