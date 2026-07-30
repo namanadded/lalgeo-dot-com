@@ -36,6 +36,11 @@ assert.match(
 );
 assert.match(
   mobileStyles,
+  /#toolbar #toolbarMorePopover \.toolbar-more-item\s*\{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:\s*20px minmax\(0, 1fr\);[\s\S]*?column-gap:\s*12px;[\s\S]*?text-align:\s*left;/,
+  "Mobile More rows should keep icons and labels in a compact, left-aligned grid.",
+);
+assert.match(
+  mobileStyles,
   /#sidebar,[\s\S]*?#measurementPanel,[\s\S]*?#advancedGisPanel,[\s\S]*?#editFloatingPanel,[\s\S]*?#toolbarMenuTray\[data-active-menu="basemap"\]\s*\{[\s\S]*?position:\s*fixed(?: !important)?;[\s\S]*?bottom:\s*0(?: !important)?;[\s\S]*?border-radius:\s*var\(--mobile-tool-radius\) var\(--mobile-tool-radius\) 0 0;/,
   "Mobile tool surfaces should share the compact bottom-sheet presentation.",
 );
