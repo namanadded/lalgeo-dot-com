@@ -31,6 +31,11 @@ assert.match(
 );
 assert.match(
   mobileStyles,
+  /#toolbar #toolbarMorePopover \.toolbar-more-item\s*\{[\s\S]*?color:\s*#667085;[\s\S]*?#toolbar #toolbarMorePopover \.toolbar-more-item\.active\s*\{[\s\S]*?color:\s*#0f766e;/,
+  "Mobile More rows should use the toolbar's neutral icon color and a consistent active-child treatment.",
+);
+assert.match(
+  mobileStyles,
   /#sidebar,[\s\S]*?#measurementPanel,[\s\S]*?#advancedGisPanel,[\s\S]*?#editFloatingPanel,[\s\S]*?#toolbarMenuTray\[data-active-menu="basemap"\]\s*\{[\s\S]*?position:\s*fixed(?: !important)?;[\s\S]*?bottom:\s*0(?: !important)?;[\s\S]*?border-radius:\s*var\(--mobile-tool-radius\) var\(--mobile-tool-radius\) 0 0;/,
   "Mobile tool surfaces should share the compact bottom-sheet presentation.",
 );
