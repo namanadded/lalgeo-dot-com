@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Schema id="assetSchema">
+      <SimpleField name="unicode_owner" type="string"/>
+      <SimpleField name="nullable_note" type="string"/>
+      <SimpleField name="field_12" type="string"/>
+    </Schema>
+    <Style id="inspectionStyle">
+      <LineStyle><color>ffff8c42</color></LineStyle>
+      <PolyStyle><color>99ff8c42</color></PolyStyle>
+    </Style>
+    <Placemark>
+      <name>Corridor Été 🌲</name>
+      <description>Line and polygon collected together</description>
+      <address>Calgary, Alberta</address>
+      <TimeStamp><when>2026-07-30T08:15:00-06:00</when></TimeStamp>
+      <styleUrl>#inspectionStyle</styleUrl>
+      <ExtendedData>
+        <SchemaData schemaUrl="#assetSchema">
+          <SimpleData name="unicode_owner">Montréal α</SimpleData>
+          <SimpleData name="nullable_note"></SimpleData>
+          <SimpleData name="field_01">A01</SimpleData>
+          <SimpleData name="field_02">A02</SimpleData>
+          <SimpleData name="field_03">A03</SimpleData>
+          <SimpleData name="field_04">A04</SimpleData>
+          <SimpleData name="field_05">A05</SimpleData>
+          <SimpleData name="field_06">A06</SimpleData>
+          <SimpleData name="field_07">A07</SimpleData>
+          <SimpleData name="field_08">A08</SimpleData>
+          <SimpleData name="field_09">A09</SimpleData>
+          <SimpleData name="field_10">A10</SimpleData>
+          <SimpleData name="field_11">A11</SimpleData>
+          <SimpleData name="field_12">A12</SimpleData>
+        </SchemaData>
+      </ExtendedData>
+      <MultiGeometry>
+        <LineString>
+          <coordinates>-114.0719,51.0447 -114.0619,51.0497 -114.0519,51.0547</coordinates>
+        </LineString>
+        <Polygon>
+          <outerBoundaryIs><LinearRing><coordinates>-114.08,51.04 -114.04,51.04 -114.04,51.07 -114.08,51.07 -114.08,51.04</coordinates></LinearRing></outerBoundaryIs>
+          <innerBoundaryIs><LinearRing><coordinates>-114.07,51.05 -114.05,51.05 -114.05,51.06 -114.07,51.06 -114.07,51.05</coordinates></LinearRing></innerBoundaryIs>
+        </Polygon>
+      </MultiGeometry>
+    </Placemark>
+  </Document>
+</kml>
