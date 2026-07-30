@@ -68,10 +68,59 @@ assert.deepEqual(
 );
 assert.equal(annotationBatch.length, 0, "Flushing annotations should clear the reusable render batch.");
 
+const aggregation = new Function(
+  "DEFAULT_POINT_AGGREGATION",
+  "MAX_POINT_AGGREGATION_CELL_DEGREES",
+  "LARGE_POINT_CLUSTER_THRESHOLD",
+  `${extractFunction("normalizePointAggregation")}
+   ${extractFunction("getPointAggregationCell")}
+   ${extractFunction("getAnnotationClusterIdentifier")}
+   return { normalizePointAggregation, getAnnotationClusterIdentifier };`,
+)(60, 0.08, 250);
+const largeMarkerSet = new Set(Array.from({ length: 1000 }, (_, index) => index));
+assert.equal(
+  aggregation.getAnnotationClusterIdentifier(
+    { id: "lights", styleDefaults: { pointAggregation: 0 } },
+    largeMarkerSet,
+    { id: "feature-1" },
+  ),
+  null,
+  "An aggregation value of zero should disable clustering.",
+);
+assert.equal(
+  aggregation.getAnnotationClusterIdentifier(
+    { id: "lights", styleDefaults: { pointAggregation: 100 } },
+    largeMarkerSet,
+    { id: "feature-1" },
+  ),
+  "lalgeo-layer-lights",
+  "Maximum aggregation should retain one layer-wide cluster identifier.",
+);
+const moderateClusterIds = new Set(
+  [
+    { id: "northwest", geometry: { lat: 51.12, lng: -114.18 } },
+    { id: "northeast", geometry: { lat: 51.12, lng: -113.95 } },
+    { id: "south", geometry: { lat: 50.92, lng: -114.05 } },
+  ].map((feature) => aggregation.getAnnotationClusterIdentifier(
+    { id: "lights", styleDefaults: { pointAggregation: 60 } },
+    largeMarkerSet,
+    feature,
+  )),
+);
+assert.ok(
+  moderateClusterIds.size > 1,
+  "Moderate aggregation should split a layer into stable geographic cluster cells.",
+);
+
 assert.match(
   legacyHtml,
-  /clusteringIdentifier:\s*getAnnotationClusterIdentifier\(layer,\s*markerFeatureSet\)/,
+  /clusteringIdentifier:\s*getAnnotationClusterIdentifier\(layer,\s*markerFeatureSet,\s*feature\)/,
   "Large marker sets should opt into MapKit annotation clustering.",
+);
+assert.match(
+  legacyHtml,
+  /id="layerPointAggregation"[\s\S]*?type="range" min="0" max="100" step="5"[\s\S]*?0 shows individual rendered points\./,
+  "Point layer properties should expose a persisted zero-to-one-hundred aggregation control.",
 );
 assert.match(
   legacyHtml,

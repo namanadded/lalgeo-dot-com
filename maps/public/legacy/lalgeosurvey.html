@@ -11613,6 +11613,8 @@
         const LARGE_POINT_CLUSTER_THRESHOLD = 250;
         const SOCRATA_BROWSER_ROW_LIMIT = 10000;
         const API_REFERENCE_REFRESH_COOLDOWN_MS = 15000;
+        const DEFAULT_POINT_AGGREGATION = 60;
+        const MAX_POINT_AGGREGATION_CELL_DEGREES = 0.08;
         let surveyAnnotations = [];
         let surveyOverlays = [];
         let activeLayerRenderTask = null;
@@ -11855,12 +11857,20 @@
 
         const LAYER_SYMBOL_COLORS = ["Red", "Blue", "Green", "Orange", "Purple"];
 
+        function normalizePointAggregation(value, fallback = DEFAULT_POINT_AGGREGATION) {
+            const numericValue = Number(value);
+            return Number.isFinite(numericValue)
+                ? Math.max(0, Math.min(100, Math.round(numericValue)))
+                : fallback;
+        }
+
         function getDefaultLayerStyleDefaults(geometryType = "point", overrides = {}) {
             const normalizedGeometry = normalizeLayerGeometryType(geometryType);
             return {
                 symbol_color: "Red",
                 symbol_shape: normalizedGeometry === "point" ? "Dot" : (normalizedGeometry === "line" ? "Plus" : "Circle"),
                 fillOpacity: normalizedGeometry === "polygon" ? 0.6 : undefined,
+                pointAggregation: normalizedGeometry === "point" ? DEFAULT_POINT_AGGREGATION : undefined,
                 ...overrides
             };
         }
@@ -12534,6 +12544,9 @@
                 ...getDefaultLayerStyleDefaults(layer.geometryType),
                 ...(layer.styleDefaults || {})
             };
+            if (layer.geometryType === "point") {
+                layer.styleDefaults.pointAggregation = normalizePointAggregation(layer.styleDefaults.pointAggregation);
+            }
             ensureLayerLabelSettings(layer);
             const featuresLookLegacy = Array.isArray(layer.features) && layer.features.length
                 && (!("geometry" in layer.features[0]) || !("attributes" in layer.features[0]));
@@ -16524,7 +16537,9 @@
             const labelFields = getLabelCandidateFields(layer);
             const labelMode = labelSettings.mode === "expression" ? "expression" : "field";
             const layerPopoutsVisible = layer.popoutsVisible !== false;
+            const isPointLayer = normalizeLayerGeometryType(layer.geometryType) === "point";
             const isPolygonLayer = normalizeLayerGeometryType(layer.geometryType) === "polygon";
+            const pointAggregation = normalizePointAggregation(currentDefaults.pointAggregation);
             const fillOpacity = Math.max(0, Math.min(1, Number(currentDefaults.fillOpacity ?? 0.6)));
             const transparency = Math.round((1 - fillOpacity) * 100);
             openLayerActionModal({
@@ -16558,6 +16573,16 @@
                                 <input id="layerPolygonFillOpacity" class="workspace-text-input" type="range" min="0" max="100" step="1" value="${escapeHtml(String(transparency))}">
                                 <span id="layerPolygonFillOpacityValue" class="polygon-opacity-value">${escapeHtml(String(transparency))}%</span>
                             </div>
+                        </div>
+                        ` : ""}
+                        ${isPointLayer ? `
+                        <div class="workspace-field full">
+                            <label for="layerPointAggregation">Point aggregation</label>
+                            <div class="polygon-opacity-row">
+                                <input id="layerPointAggregation" class="workspace-text-input" type="range" min="0" max="100" step="5" value="${escapeHtml(String(pointAggregation))}" aria-describedby="layerPointAggregationHint">
+                                <span id="layerPointAggregationValue" class="polygon-opacity-value">${pointAggregation === 0 ? "Off" : `${escapeHtml(String(pointAggregation))}%`}</span>
+                            </div>
+                            <div id="layerPointAggregationHint" class="workspace-panel-muted">0 shows individual rendered points. Higher values combine more nearby points.</div>
                         </div>
                         ` : ""}
                         <div class="workspace-field full">
@@ -16612,6 +16637,7 @@
                             const nextShape = document.getElementById("layerStyleShape")?.value?.trim();
                             const nextTransparency = Math.max(0, Math.min(100, Number(document.getElementById("layerPolygonFillOpacity")?.value) || 0));
                             const nextFillOpacity = 1 - (nextTransparency / 100);
+                            const nextPointAggregation = normalizePointAggregation(document.getElementById("layerPointAggregation")?.value);
                             const nextLabelMode = document.getElementById("layerLabelMode")?.value === "expression" ? "expression" : "field";
                             const nextLabelField = document.getElementById("layerLabelField")?.value || getDefaultLabelFieldForLayer(layer);
                             const nextExpression = document.getElementById("layerLabelExpression")?.value?.trim() || "";
@@ -16628,7 +16654,8 @@
                             layer.styleDefaults = {
                                 symbol_color: nextColor,
                                 symbol_shape: nextShape,
-                                ...(isPolygonLayer ? { fillOpacity: nextFillOpacity } : {})
+                                ...(isPolygonLayer ? { fillOpacity: nextFillOpacity } : {}),
+                                ...(isPointLayer ? { pointAggregation: nextPointAggregation } : {})
                             };
                             layer.labelSettings = {
                                 mode: nextLabelMode,
@@ -16651,7 +16678,7 @@
                             }
                             markActiveProjectUpdated();
                             scheduleLocalAutosave();
-                            setActiveProject(activeProjectRecord, { preserveRegion: true });
+                            setActiveProject(activeProjectRecord, { preserveRegion: true, refreshApi: false });
                             setProjectStatus(`Updated properties for ${layer.name}.`, "success");
                             return true;
                         }
@@ -16685,6 +16712,13 @@
                     const opacityValue = document.getElementById("layerPolygonFillOpacityValue");
                     opacityInput?.addEventListener("input", () => {
                         if (opacityValue) opacityValue.textContent = `${opacityInput.value}%`;
+                    });
+                    const aggregationInput = document.getElementById("layerPointAggregation");
+                    const aggregationValue = document.getElementById("layerPointAggregationValue");
+                    aggregationInput?.addEventListener("input", () => {
+                        if (aggregationValue) {
+                            aggregationValue.textContent = Number(aggregationInput.value) === 0 ? "Off" : `${aggregationInput.value}%`;
+                        }
                     });
                 }
             });
@@ -24041,9 +24075,38 @@
             });
         }
 
-        function getAnnotationClusterIdentifier(layer, markerFeatureSet) {
+        function getPointAggregationCell(feature, aggregation) {
+            const geometry = feature?.geometry || {};
+            const latitude = Number(geometry.lat ?? geometry.latitude ?? feature?.attributes?.latitude ?? feature?.attributes?.Latitude);
+            const longitude = Number(geometry.lng ?? geometry.longitude ?? feature?.attributes?.longitude ?? feature?.attributes?.Longitude);
+            if (Number.isFinite(latitude) && Number.isFinite(longitude)) {
+                const intensity = aggregation / 100;
+                const cellSize = Math.max(0.0001, MAX_POINT_AGGREGATION_CELL_DEGREES * intensity * intensity);
+                const latitudeCell = Math.floor((latitude + 90) / cellSize);
+                const longitudeCell = Math.floor((longitude + 180) / cellSize);
+                return `${latitudeCell}-${longitudeCell}`;
+            }
+            const source = String(
+                feature?.id
+                || feature?.attributes?.ID
+                || "feature"
+            );
+            let hash = 0;
+            for (let index = 0; index < source.length; index += 1) {
+                hash = ((hash << 5) - hash + source.charCodeAt(index)) | 0;
+            }
+            const fallbackBucketCount = Math.max(2, Math.round(2 + ((100 - aggregation) / 100) * 14));
+            return `fallback-${Math.abs(hash) % fallbackBucketCount}`;
+        }
+
+        function getAnnotationClusterIdentifier(layer, markerFeatureSet, feature) {
             if (!markerFeatureSet || markerFeatureSet.size < LARGE_POINT_CLUSTER_THRESHOLD) return null;
-            return `lalgeo-layer-${layer?.id || "points"}`;
+            const aggregation = normalizePointAggregation(layer?.styleDefaults?.pointAggregation);
+            if (aggregation === 0) return null;
+            const layerClusterId = `lalgeo-layer-${layer?.id || "points"}`;
+            return aggregation === 100
+                ? layerClusterId
+                : `${layerClusterId}-${getPointAggregationCell(feature, aggregation)}`;
         }
 
         function queueMapAnnotation(annotation, annotationBatch = null) {
@@ -24086,7 +24149,7 @@
                     enabled: isLayerSelectable(layer),
                     color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
                     glyphText: getSymbolGlyphValue(attributes.symbol_shape || layer?.styleDefaults?.symbol_shape),
-                    clusteringIdentifier: getAnnotationClusterIdentifier(layer, markerFeatureSet),
+                    clusteringIdentifier: getAnnotationClusterIdentifier(layer, markerFeatureSet, feature),
                     title: markerTitle
                 });
                 marker.surveyPoint = {
@@ -24166,7 +24229,7 @@
                     enabled: isLayerSelectable(layer),
                     color: overlayColor,
                     glyphText: geometryType === "line" ? "━" : "▣",
-                    clusteringIdentifier: getAnnotationClusterIdentifier(layer, markerFeatureSet),
+                    clusteringIdentifier: getAnnotationClusterIdentifier(layer, markerFeatureSet, feature),
                     title: markerTitle
                 });
                 marker.surveyPoint = surveyFeatureAnnotation.surveyPoint;
