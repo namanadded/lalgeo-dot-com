@@ -36,5 +36,14 @@ const html = await readFile(new URL("../public/legacy/lalgeosurvey.html", import
 assert.match(html, /if \(!result\.ok\) \{[\s\S]*pendingChanges = true;[\s\S]*workspaceDirty = true;/);
 assert.match(html, /Autosave failed; your current edits remain open but are not stored/);
 assert.match(html, /if \(!result\.ok\)[\s\S]*return;[\s\S]*pendingChanges = false;/);
+const markUpdated = html.match(/function markActiveProjectUpdated\([^]*?\n        }/)?.[0] || "";
+assert.match(markUpdated, /scheduleLocalAutosave\(\)/, "project mutations should coalesce into the autosave timer");
+assert.doesNotMatch(markUpdated, /saveWorkspaceProjects\(\)/, "project mutations must not synchronously serialize before autosave");
+const syncActiveLayer = html.match(/function syncActiveLayerFromSurveyState\(\)[^]*?\n        }/)?.[0] || "";
+assert.match(
+  syncActiveLayer,
+  /markActiveProjectUpdated\(\{ scheduleAutosave: false }\)/,
+  "the autosave flush must not schedule a redundant follow-up write",
+);
 
-console.log("Workspace persistence contract: atomic last-known-good recovery and honest dirty state passed.");
+console.log("Workspace persistence contract: coalesced writes, atomic recovery, and honest dirty state passed.");
