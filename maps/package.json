@@ -68,6 +68,7 @@
     "benchmark:cloud-download": "node scripts/benchmark-cloud-download.mjs",
     "benchmark:lal-import": "node --expose-gc scripts/benchmark-lal-import.mjs",
     "benchmark:lal-serialization": "node --expose-gc scripts/benchmark-lal-serialization.mjs",
+    "benchmark:autosave-coalescing": "node --expose-gc scripts/benchmark-autosave-coalescing.mjs",
     "build": "next build",
     "start": "next start"
   },
