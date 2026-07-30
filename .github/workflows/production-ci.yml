@@ -104,6 +104,11 @@ jobs:
       - name: Check project import journey
         working-directory: maps
         run: npm run test:project-import-journey
+
+      - name: Check recent projects journey
+        working-directory: maps
+        run: npm run test:recent-projects-journey
+
       - name: Check project setup journey
         working-directory: maps
         run: npm run test:project-setup-journey

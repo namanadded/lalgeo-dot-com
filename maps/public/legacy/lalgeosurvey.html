@@ -3835,6 +3835,105 @@
     #drawerLoadProjectBtn {
         grid-column: 1 / -1;
     }
+    .recent-project-list {
+        display: grid;
+        gap: 8px;
+        margin-top: 8px;
+    }
+    .recent-project-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 12px;
+        width: 100%;
+        min-height: 64px;
+        padding: 10px 10px 10px 12px;
+        box-sizing: border-box;
+        border: 1px solid #e5e7eb;
+        border-radius: 14px;
+        background: #fff;
+        color: #374151;
+        text-align: left;
+    }
+    .recent-project-row.is-current {
+        border-color: rgba(92, 200, 192, 0.72);
+        background: rgba(236, 253, 245, 0.72);
+    }
+    .recent-project-copy {
+        min-width: 0;
+    }
+    .recent-project-name {
+        display: block;
+        overflow: hidden;
+        color: #1f2937;
+        font-size: 15px;
+        font-weight: 700;
+        line-height: 1.25;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .recent-project-meta {
+        display: block;
+        margin-top: 4px;
+        overflow: hidden;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.3;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .recent-project-open {
+        display: inline-flex;
+        min-width: 64px;
+        min-height: 44px;
+        align-items: center;
+        justify-content: center;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 11px;
+        background: #0a84ff;
+        color: #fff;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .recent-project-open[aria-current="true"] {
+        background: #e5e7eb;
+        color: #4b5563;
+    }
+    .recent-project-open:hover,
+    .recent-project-open:focus-visible {
+        background: #0071e3;
+    }
+    .recent-project-open[aria-current="true"]:hover,
+    .recent-project-open[aria-current="true"]:focus-visible {
+        background: #d1d5db;
+    }
+    .recent-project-more {
+        margin-top: 8px;
+    }
+    .recent-project-more > summary {
+        min-height: 44px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #4b5563;
+        font-size: 14px;
+        font-weight: 650;
+        cursor: pointer;
+        list-style: none;
+    }
+    .recent-project-more > summary::-webkit-details-marker {
+        display: none;
+    }
+    .recent-project-empty {
+        padding: 14px;
+        border: 1px dashed #d1d5db;
+        border-radius: 14px;
+        color: #6b7280;
+        font-size: 14px;
+        line-height: 1.45;
+    }
     .workspace-section-kicker {
         margin: 0 0 6px;
         font-size: 11px;
@@ -10357,20 +10456,15 @@
             </div>
 
             <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
-                <div class="import-section-title">Open</div>
-                <div class="workspace-record-card active">
-                    <div class="workspace-record-title" id="workspacePanelProjectName">No project open</div>
-                    <div class="workspace-record-meta">
-                        <span id="workspacePanelProjectType">Type: -</span>
-                        <span id="workspacePanelStorage">Storage: Web</span>
-                    </div>
-                    <select id="projectSwitcher" class="workspace-project-select">
+                <div class="import-section-title">Recent projects</div>
+                <div id="recentProjectList" class="recent-project-list" aria-label="Recent projects"></div>
+                <select id="projectSwitcher" class="workspace-project-select" hidden>
                         <option value="">Select a project</option>
-                    </select>
-                    <div class="workspace-panel-actions">
-                        <button id="drawerLoadProjectBtn" type="button" class="workspace-primary-btn">Open</button>
-                    </div>
-                </div>
+                </select>
+                <button id="drawerLoadProjectBtn" type="button" hidden>Open selected project</button>
+                <span id="workspacePanelProjectName" hidden>No project open</span>
+                <span id="workspacePanelProjectType" hidden>Type: -</span>
+                <span id="workspacePanelStorage" hidden>Storage: Web</span>
             </div>
 
             <details class="workflow-disclosure">
@@ -10945,6 +11039,7 @@
         const createProjectValidation = document.getElementById("createProjectValidation");
         let createProjectFormTouched = false;
         const projectSwitcher = document.getElementById("projectSwitcher");
+        const recentProjectList = document.getElementById("recentProjectList");
         const projectList = document.getElementById("projectList");
         const layerList = document.getElementById("layerList");
         const projectFilesList = document.getElementById("projectFilesList");
@@ -12796,6 +12891,44 @@
             }
         }
 
+        function formatProjectRecency(value) {
+            const timestamp = new Date(value || 0).getTime();
+            if (!Number.isFinite(timestamp) || timestamp <= 0) return "Updated recently";
+            const elapsedMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
+            if (elapsedMinutes < 2) return "Updated just now";
+            if (elapsedMinutes < 60) return `Updated ${elapsedMinutes} min ago`;
+            const elapsedHours = Math.round(elapsedMinutes / 60);
+            if (elapsedHours < 24) return `Updated ${elapsedHours} hr${elapsedHours === 1 ? "" : "s"} ago`;
+            const elapsedDays = Math.round(elapsedHours / 24);
+            if (elapsedDays < 7) return `Updated ${elapsedDays} day${elapsedDays === 1 ? "" : "s"} ago`;
+            return `Updated ${new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+        }
+
+        function getProjectJourneySummary(project) {
+            const layerCount = project?.layers?.length || 0;
+            const storage = getStorageLabel(project);
+            return `${formatProjectRecency(project?.metadata?.updatedAt)} · ${layerCount} layer${layerCount === 1 ? "" : "s"} · ${storage}`;
+        }
+
+        function renderRecentProjectRow(project) {
+            const isCurrent = project.id === activeProjectRecord?.id;
+            return `
+                <div class="recent-project-row${isCurrent ? " is-current" : ""}">
+                    <div class="recent-project-copy">
+                        <span class="recent-project-name">${escapeHtml(project.name || "Untitled project")}</span>
+                        <span class="recent-project-meta">${escapeHtml(getProjectJourneySummary(project))}</span>
+                    </div>
+                    <button
+                        type="button"
+                        class="recent-project-open"
+                        data-open-recent-project="${escapeHtml(project.id)}"
+                        ${isCurrent ? 'aria-current="true"' : ""}
+                        aria-label="${isCurrent ? "Return to" : "Open"} ${escapeHtml(project.name || "Untitled project")}"
+                    >${isCurrent ? "Current" : "Open"}</button>
+                </div>
+            `;
+        }
+
         function getShortcutLabel(action) {
             const cmd = isMacPlatform ? "⌘" : "Ctrl+";
             const alt = isMacPlatform ? "⌥" : "Alt+";
@@ -13742,6 +13875,25 @@
                 projectSwitcher.innerHTML = `<option value="">Select a project</option>` + workspaceProjects.map((project) => `
                     <option value="${escapeHtml(project.id)}" ${project.id === activeProjectRecord?.id ? "selected" : ""}>${escapeHtml(project.name)}</option>
                 `).join("");
+            }
+            if (recentProjectList) {
+                const sortedProjects = [...workspaceProjects].sort((left, right) => {
+                    const rightTime = new Date(right?.metadata?.updatedAt || 0).getTime() || 0;
+                    const leftTime = new Date(left?.metadata?.updatedAt || 0).getTime() || 0;
+                    return rightTime - leftTime;
+                });
+                if (!sortedProjects.length) {
+                    recentProjectList.innerHTML = `<div class="recent-project-empty">No saved projects yet. Create a project or import one from this device.</div>`;
+                } else {
+                    const primaryProjects = sortedProjects.slice(0, 4);
+                    const remainingProjects = sortedProjects.slice(4);
+                    recentProjectList.innerHTML = primaryProjects.map(renderRecentProjectRow).join("") + (remainingProjects.length ? `
+                        <details class="recent-project-more">
+                            <summary>Show ${remainingProjects.length} more project${remainingProjects.length === 1 ? "" : "s"}</summary>
+                            <div class="recent-project-list">${remainingProjects.map(renderRecentProjectRow).join("")}</div>
+                        </details>
+                    ` : "");
+                }
             }
             if (projectList) {
                 if (!workspaceProjects.length) {
@@ -18825,6 +18977,19 @@
                 return;
             }
             setActiveProject(selected, { preserveRegion: true });
+            setImportPanelVisibility(false);
+        });
+        recentProjectList?.addEventListener("click", (event) => {
+            const openButton = event.target.closest("[data-open-recent-project]");
+            if (!openButton) return;
+            const selected = workspaceProjects.find((item) => item.id === openButton.dataset.openRecentProject);
+            if (!selected) {
+                setProjectStatus("That saved project is no longer available.", "error");
+                renderWorkspaceCollections();
+                return;
+            }
+            setActiveProject(selected, { preserveRegion: true });
+            setProjectStatus(`Opened ${selected.name}.`, "success");
             setImportPanelVisibility(false);
         });
         emptyConnectDropboxBtn?.addEventListener("click", () => {
