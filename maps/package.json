@@ -34,6 +34,7 @@
     "test:mobile-tool-experience": "node scripts/test-mobile-tool-experience.mjs",
     "test:mobile-sheet-refinement": "node scripts/test-mobile-sheet-refinement.mjs",
     "test:toolbar-interaction-state": "node scripts/test-toolbar-interaction-state.mjs",
+    "test:large-api-point-performance": "node scripts/test-large-api-point-performance.mjs",
     "test:mobile-feature-details": "node scripts/test-mobile-feature-details.mjs",
     "test:feature-editor-labels": "node scripts/test-feature-editor-labels.mjs",
     "test:feature-details-journey": "node scripts/test-feature-details-journey.mjs",

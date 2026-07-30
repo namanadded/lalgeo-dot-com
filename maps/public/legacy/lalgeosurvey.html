@@ -11505,6 +11505,9 @@
         const MAX_RENDERED_TABLE_ROWS = 500;
         const LAYER_RENDER_PROGRESS_MIN_FEATURES = 750;
         const LAYER_RENDER_CHUNK_SIZE = 200;
+        const LARGE_POINT_CLUSTER_THRESHOLD = 250;
+        const SOCRATA_BROWSER_ROW_LIMIT = 10000;
+        const API_REFERENCE_REFRESH_COOLDOWN_MS = 15000;
         let surveyAnnotations = [];
         let surveyOverlays = [];
         let activeLayerRenderTask = null;
@@ -15315,7 +15318,7 @@
                 };
                 markActiveProjectUpdated();
                 scheduleLocalAutosave();
-                setActiveProject(activeProjectRecord, { preserveRegion });
+                setActiveProject(activeProjectRecord, { preserveRegion, refreshApi: false });
                 setProjectStatus(`Imported ${layers.length} layer${layers.length === 1 ? "" : "s"} into ${activeProjectRecord.name}.${renderLimitNote}`, "success");
             } else {
                 const project = createProjectRecord({
@@ -15326,7 +15329,7 @@
                     source,
                     layers
                 });
-                addProjectToWorkspace(project, { preserveRegion: false });
+                addProjectToWorkspace(project, { preserveRegion: false, refreshApi: false });
                 setProjectStatus(`Created ${project.name} with ${layers.length} imported layer${layers.length === 1 ? "" : "s"}.${renderLimitNote}`, "success");
             }
             setImportPanelVisibility(false);
@@ -17024,6 +17027,7 @@
                 description: "Confirm the layers before adding them to the project.",
                 bodyHtml: `
                     <div class="layer-modal-message">${escapeHtml(layers.length)} geospatial layer${layers.length === 1 ? "" : "s"} detected.</div>
+                    ${payload?.source?.importNote ? `<div class="layer-modal-message">${escapeHtml(payload.source.importNote)}</div>` : ""}
                     <div class="workspace-settings-card">
                         ${layers.map((layer) => `
                             <div class="workspace-sidebar-row">
@@ -22973,6 +22977,40 @@
             return "json";
         }
 
+        function getApiEndpointRequest(url) {
+            try {
+                const parsed = new URL(url);
+                const match = parsed.pathname.match(/^\/api\/v3\/views\/([a-z0-9]{4}-[a-z0-9]{4})\/query\.json$/i);
+                if (!match || parsed.search) {
+                    return { url, optimized: false };
+                }
+                const optimizedUrl = new URL(`/resource/${match[1]}.json`, parsed.origin);
+                optimizedUrl.searchParams.set("$limit", String(SOCRATA_BROWSER_ROW_LIMIT));
+                return {
+                    url: optimizedUrl.toString(),
+                    optimized: true,
+                    provider: "socrata",
+                    rowLimit: SOCRATA_BROWSER_ROW_LIMIT
+                };
+            } catch {
+                return { url, optimized: false };
+            }
+        }
+
+        function finalizeApiEndpointPayload(payload, sourceUrl, request) {
+            if (!payload || !request?.optimized) return payload;
+            payload.source = {
+                ...(payload.source || {}),
+                url: sourceUrl,
+                requestUrl: request.url,
+                provider: request.provider,
+                browserRowLimit: request.rowLimit,
+                optimizedForBrowser: true,
+                importNote: `Loaded up to ${request.rowLimit.toLocaleString()} rows from this Socrata dataset as a browser-safe reference. Use a filtered Socrata resource URL when you need a different subset.`
+            };
+            return payload;
+        }
+
         function normalizeApiJsonRows(input) {
             if (Array.isArray(input)) return input;
             if (Array.isArray(input?.data) && Array.isArray(input?.meta?.view?.columns)) {
@@ -23066,7 +23104,9 @@
         }
 
         async function buildApiEndpointPayload(url, preferredFormat = "auto") {
-            const response = await fetch(url, { headers: { Accept: "application/geo+json, application/json, text/csv, */*" } });
+            const request = getApiEndpointRequest(url);
+            const finish = (payload) => finalizeApiEndpointPayload(payload, url, request);
+            const response = await fetch(request.url, { headers: { Accept: "application/geo+json, application/json, text/csv, */*" } });
             if (!response.ok) {
                 throw new Error(`API endpoint returned ${response.status}.`);
             }
@@ -23076,41 +23116,41 @@
             const text = await response.text();
             if (!text.trim()) throw new Error("API endpoint returned no data.");
             if (format === "csv") {
-                return {
+                return finish({
                     csvText: text,
                     projectName,
                     layerName: projectName,
                     images: {},
                     source: { type: "api-endpoint", format: "CSV", url }
-                };
+                });
             }
             let parsed;
             try {
                 parsed = JSON.parse(text);
             } catch {
                 if (preferredFormat === "auto" && text.includes(",")) {
-                    return {
+                    return finish({
                         csvText: text,
                         projectName,
                         layerName: projectName,
                         images: {},
                         source: { type: "api-endpoint", format: "CSV", url }
-                    };
+                    });
                 }
                 throw new Error("API endpoint did not return valid JSON or CSV.");
             }
             if (format === "geojson" || isGeoJsonObject(parsed)) {
                 const payload = buildGeoJsonPayload(parsed, { projectName, fileName: projectName, format: "API GeoJSON" });
                 payload.source = { type: "api-endpoint", format: "GeoJSON", url };
-                return payload;
+                return finish(payload);
             }
             const embeddedGeoJson = buildGeoJsonFromJsonRows(parsed);
             if (embeddedGeoJson) {
                 const payload = buildGeoJsonPayload(embeddedGeoJson, { projectName, fileName: projectName, format: "API JSON geometry" });
                 payload.source = { type: "api-endpoint", format: "JSON geometry", url };
-                return payload;
+                return finish(payload);
             }
-            return buildGeoJsonPayloadFromJsonRows(parsed, { projectName, url });
+            return finish(buildGeoJsonPayloadFromJsonRows(parsed, { projectName, url }));
         }
 
         function findMatchingApiLayerPayload(referenceLayer, payload) {
@@ -23168,7 +23208,14 @@
         }
 
         async function refreshApiReferenceLayers(project = activeProjectRecord) {
-            if (!project?.layers?.some(isApiReferenceLayer)) return;
+            const apiReferenceLayers = (project?.layers || []).filter(isApiReferenceLayer);
+            if (!apiReferenceLayers.length) return;
+            const now = Date.now();
+            const allLayersAreFresh = apiReferenceLayers.every((layer) => {
+                const loadedAt = Date.parse(layer.source?.loadedAt || "");
+                return Number.isFinite(loadedAt) && now - loadedAt < API_REFERENCE_REFRESH_COOLDOWN_MS;
+            });
+            if (allLayersAreFresh) return;
             if (apiLayerRefreshInFlight.has(project.id)) return;
             apiLayerRefreshInFlight.add(project.id);
             try {
@@ -23747,7 +23794,30 @@
             });
         }
 
-        function renderFeatureGeometryOnMap(feature, layer, { interactive = false, rowIndex = null, projectName = activeProjectName, markerFeatureSet = null } = {}) {
+        function getAnnotationClusterIdentifier(layer, markerFeatureSet) {
+            if (!markerFeatureSet || markerFeatureSet.size < LARGE_POINT_CLUSTER_THRESHOLD) return null;
+            return `lalgeo-layer-${layer?.id || "points"}`;
+        }
+
+        function queueMapAnnotation(annotation, annotationBatch = null) {
+            if (Array.isArray(annotationBatch)) {
+                annotationBatch.push(annotation);
+                return;
+            }
+            map.addAnnotation(annotation);
+        }
+
+        function flushMapAnnotationBatch(annotationBatch = []) {
+            if (!annotationBatch.length) return;
+            const annotations = annotationBatch.splice(0, annotationBatch.length);
+            if (typeof map.addAnnotations === "function") {
+                map.addAnnotations(annotations);
+                return;
+            }
+            annotations.forEach((annotation) => map.addAnnotation(annotation));
+        }
+
+        function renderFeatureGeometryOnMap(feature, layer, { interactive = false, rowIndex = null, projectName = activeProjectName, markerFeatureSet = null, annotationBatch = null } = {}) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
             const attributes = { ...(feature?.attributes || {}) };
             let imageSrc = null;
@@ -23769,6 +23839,7 @@
                     enabled: isLayerSelectable(layer),
                     color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
                     glyphText: getSymbolGlyphValue(attributes.symbol_shape || layer?.styleDefaults?.symbol_shape),
+                    clusteringIdentifier: getAnnotationClusterIdentifier(layer, markerFeatureSet),
                     title: markerTitle
                 });
                 marker.surveyPoint = {
@@ -23795,10 +23866,10 @@
                 surveyAnnotations.push(marker);
                 if (interactive && Number.isInteger(rowIndex)) {
                     rowAnnotationMap.set(rowIndex, marker);
-                    setAnnotationDraggable(marker);
+                    if (canEditLayer(layer)) setAnnotationDraggable(marker);
                 }
-                map.addAnnotation(marker);
                 updateAnnotationVisualState(marker);
+                queueMapAnnotation(marker, annotationBatch);
                 return [coord];
             }
             const coords = getGeometryCoordinates(feature);
@@ -23848,16 +23919,17 @@
                     enabled: isLayerSelectable(layer),
                     color: overlayColor,
                     glyphText: geometryType === "line" ? "━" : "▣",
+                    clusteringIdentifier: getAnnotationClusterIdentifier(layer, markerFeatureSet),
                     title: markerTitle
                 });
                 marker.surveyPoint = surveyFeatureAnnotation.surveyPoint;
                 if (overlay?.data) overlay.data.surveyFeatureAnnotation = marker;
                 surveyAnnotations.push(marker);
-                map.addAnnotation(marker);
                 if (interactive && Number.isInteger(rowIndex)) {
                     rowAnnotationMap.set(rowIndex, marker);
                 }
                 updateAnnotationVisualState(marker);
+                queueMapAnnotation(marker, annotationBatch);
             }
             return coords;
         }
@@ -24023,6 +24095,7 @@
                 const interactive = layer.id === activeLayerId;
                 const markerFeatureSet = getRenderableMarkerFeatures(layer, projectName);
                 const features = layer.features || [];
+                const annotationBatch = [];
                 for (let index = 0; index < features.length; index += 1) {
                     if (renderTask.cancelled) break;
                     const feature = features[index];
@@ -24030,14 +24103,23 @@
                         interactive,
                         rowIndex: index,
                         projectName,
-                        markerFeatureSet
+                        markerFeatureSet,
+                        annotationBatch
                     }));
                     renderedFeatureCount += 1;
-                    if (showProgress && renderedFeatureCount % LAYER_RENDER_CHUNK_SIZE === 0) {
-                        updateLayerRenderProgress(renderedFeatureCount, totalFeatureCount);
-                        await waitForNextFrame();
+                    if (renderedFeatureCount % LAYER_RENDER_CHUNK_SIZE === 0) {
+                        flushMapAnnotationBatch(annotationBatch);
+                        if (showProgress) {
+                            updateLayerRenderProgress(renderedFeatureCount, totalFeatureCount);
+                            await waitForNextFrame();
+                        }
                     }
                 }
+                if (renderTask.cancelled) {
+                    annotationBatch.length = 0;
+                    break;
+                }
+                flushMapAnnotationBatch(annotationBatch);
             }
             if (activeLayerRenderTask === renderTask) activeLayerRenderTask = null;
             if (showProgress) hideLayerRenderProgress();
@@ -24067,13 +24149,17 @@
             hideSurveyCallout();
             clearGeometryVertexHandles();
             clearSplitPreview();
-            surveyAnnotations.forEach(annotation => map.removeAnnotation(annotation));
+            const annotationsToRemove = [...surveyAnnotations, ...archiveAnnotations];
+            if (annotationsToRemove.length && typeof map.removeAnnotations === "function") {
+                map.removeAnnotations(annotationsToRemove);
+            } else {
+                annotationsToRemove.forEach(annotation => map.removeAnnotation(annotation));
+            }
             surveyOverlays.forEach((overlay) => map.removeOverlay(overlay));
             if (drawingPreviewOverlay) {
                 map.removeOverlay(drawingPreviewOverlay);
                 drawingPreviewOverlay = null;
             }
-            archiveAnnotations.forEach(annotation => map.removeAnnotation(annotation));
             surveyAnnotations = [];
             surveyOverlays = [];
             archiveAnnotations = [];
