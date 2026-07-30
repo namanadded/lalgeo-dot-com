@@ -23476,11 +23476,40 @@
             }
         }
 
-        function parseKmlCoordinates(text = "") {
-            return text.trim().split(/\s+/).map((tuple) => {
-                const [lng, lat] = tuple.split(",").map(Number);
-                return Number.isFinite(lat) && Number.isFinite(lng) ? [lng, lat] : null;
-            }).filter(Boolean);
+        function parseKmlCoordinates(text = "", context = "KML geometry") {
+            const tuples = text.trim() ? text.trim().split(/\s+/) : [];
+            if (!tuples.length) {
+                throw new Error(`${context} has no coordinates.`);
+            }
+            return tuples.map((tuple, tupleIndex) => {
+                const parts = tuple.split(",");
+                const lng = Number(parts[0]);
+                const lat = Number(parts[1]);
+                if (parts.length < 2 || !Number.isFinite(lat) || !Number.isFinite(lng) || lng < -180 || lng > 180 || lat < -90 || lat > 90) {
+                    throw new Error(`${context}, coordinate ${tupleIndex + 1} is invalid. Use longitude,latitude values in WGS84.`);
+                }
+                return [lng, lat];
+            });
+        }
+
+        function nearestKmlSymbolColor(kmlColor = "") {
+            const normalized = String(kmlColor || "").trim().replace(/^#/, "");
+            const rgbHex = normalized.length === 8
+                ? `${normalized.slice(6, 8)}${normalized.slice(4, 6)}${normalized.slice(2, 4)}`
+                : normalized.length === 6 ? normalized : "";
+            if (!/^[0-9a-f]{6}$/i.test(rgbHex)) return "";
+            const rgb = [0, 2, 4].map((offset) => Number.parseInt(rgbHex.slice(offset, offset + 2), 16));
+            const palette = {
+                Red: [234, 67, 53],
+                Blue: [66, 133, 244],
+                Green: [52, 168, 83],
+                Orange: [251, 140, 0],
+                Purple: [161, 66, 244]
+            };
+            return Object.entries(palette).reduce((best, [name, candidate]) => {
+                const distance = candidate.reduce((sum, value, index) => sum + ((value - rgb[index]) ** 2), 0);
+                return distance < best.distance ? { name, distance } : best;
+            }, { name: "", distance: Number.POSITIVE_INFINITY }).name;
         }
 
         function parseKmlText(text) {
@@ -23488,35 +23517,64 @@
             if (doc.getElementsByTagName("parsererror").length) {
                 throw new Error("KML is not valid XML. Check that all tags are closed and try again.");
             }
+            const childText = (element, tagName) => Array.from(element?.children || [])
+                .find((child) => child.localName === tagName)?.textContent?.trim() || "";
+            const styles = new Map(Array.from(doc.getElementsByTagName("Style"))
+                .filter((style) => style.id)
+                .map((style) => [style.id, style]));
             const placemarks = Array.from(doc.getElementsByTagName("Placemark"));
             return {
                 type: "FeatureCollection",
-                features: placemarks.flatMap((placemark) => {
-                    const name = placemark.getElementsByTagName("name")[0]?.textContent?.trim() || "";
+                features: placemarks.flatMap((placemark, placemarkIndex) => {
+                    const name = childText(placemark, "name");
                     const properties = name ? { name } : {};
+                    const commonFields = {
+                        description: childText(placemark, "description"),
+                        address: childText(placemark, "address"),
+                        kml_timestamp: placemark.getElementsByTagName("when")[0]?.textContent?.trim() || ""
+                    };
+                    Object.entries(commonFields).forEach(([key, value]) => {
+                        if (value) properties[key] = value;
+                    });
                     Array.from(placemark.getElementsByTagName("Data")).forEach((dataEl) => {
                         const key = dataEl.getAttribute("name");
                         const value = dataEl.getElementsByTagName("value")[0]?.textContent?.trim();
                         if (key) properties[key] = value || "";
                     });
+                    Array.from(placemark.getElementsByTagName("SimpleData")).forEach((dataEl) => {
+                        const key = dataEl.getAttribute("name");
+                        if (key) properties[key] = dataEl.textContent?.trim() || "";
+                    });
+                    const inlineStyle = Array.from(placemark.children || []).find((child) => child.localName === "Style");
+                    const styleUrl = childText(placemark, "styleUrl").replace(/^#/, "");
+                    const style = inlineStyle || styles.get(styleUrl);
+                    const kmlColor = style?.getElementsByTagName("color")[0]?.textContent?.trim() || "";
+                    const symbolColor = nearestKmlSymbolColor(kmlColor);
+                    if (kmlColor) properties.kml_style_color = kmlColor;
+                    if (symbolColor) properties.symbol_color = symbolColor;
                     const features = [];
-                    Array.from(placemark.getElementsByTagName("Point")).forEach((pointEl) => {
-                        const coords = parseKmlCoordinates(pointEl.getElementsByTagName("coordinates")[0]?.textContent || "");
-                        if (coords[0]) features.push({ type: "Feature", properties, geometry: { type: "Point", coordinates: coords[0] } });
+                    Array.from(placemark.getElementsByTagName("Point")).forEach((pointEl, geometryIndex) => {
+                        const context = `KML placemark ${placemarkIndex + 1}, point ${geometryIndex + 1}`;
+                        const coords = parseKmlCoordinates(pointEl.getElementsByTagName("coordinates")[0]?.textContent || "", context);
+                        if (coords.length !== 1) throw new Error(`${context} must contain exactly one coordinate.`);
+                        features.push({ type: "Feature", properties: { ...properties }, geometry: { type: "Point", coordinates: coords[0] } });
                     });
-                    Array.from(placemark.getElementsByTagName("LineString")).forEach((lineEl) => {
-                        const coords = parseKmlCoordinates(lineEl.getElementsByTagName("coordinates")[0]?.textContent || "");
-                        if (coords.length >= 2) features.push({ type: "Feature", properties, geometry: { type: "LineString", coordinates: coords } });
+                    Array.from(placemark.getElementsByTagName("LineString")).forEach((lineEl, geometryIndex) => {
+                        const context = `KML placemark ${placemarkIndex + 1}, line ${geometryIndex + 1}`;
+                        const coords = parseKmlCoordinates(lineEl.getElementsByTagName("coordinates")[0]?.textContent || "", context);
+                        if (coords.length < 2) throw new Error(`${context} needs at least two coordinates.`);
+                        features.push({ type: "Feature", properties: { ...properties }, geometry: { type: "LineString", coordinates: coords } });
                     });
-                    Array.from(placemark.getElementsByTagName("Polygon")).forEach((polygonEl) => {
+                    Array.from(placemark.getElementsByTagName("Polygon")).forEach((polygonEl, geometryIndex) => {
+                        const context = `KML placemark ${placemarkIndex + 1}, polygon ${geometryIndex + 1}`;
                         const outerBoundary = polygonEl.getElementsByTagName("outerBoundaryIs")[0];
-                        const outerCoordinates = parseKmlCoordinates((outerBoundary || polygonEl).getElementsByTagName("coordinates")[0]?.textContent || "");
-                        const innerCoordinates = Array.from(polygonEl.getElementsByTagName("innerBoundaryIs")).map((boundary) => (
-                            parseKmlCoordinates(boundary.getElementsByTagName("coordinates")[0]?.textContent || "")
+                        const outerCoordinates = parseKmlCoordinates((outerBoundary || polygonEl).getElementsByTagName("coordinates")[0]?.textContent || "", `${context} outer ring`);
+                        const innerCoordinates = Array.from(polygonEl.getElementsByTagName("innerBoundaryIs")).map((boundary, ringIndex) => (
+                            parseKmlCoordinates(boundary.getElementsByTagName("coordinates")[0]?.textContent || "", `${context} inner ring ${ringIndex + 1}`)
                         ));
                         features.push({
                             type: "Feature",
-                            properties,
+                            properties: { ...properties },
                             geometry: { type: "Polygon", coordinates: [outerCoordinates, ...innerCoordinates] }
                         });
                     });
