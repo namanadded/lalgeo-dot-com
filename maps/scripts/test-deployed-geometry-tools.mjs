@@ -6,6 +6,8 @@ const DEVTOOLS = "http://127.0.0.1:9223";
 const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/render/lalgeosurvey";
 const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
 const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
+const complexStyledKml = readFileSync(new URL("../fixtures/interoperability/complex-styled-multigeometry.kml", import.meta.url), "utf8");
+const malformedKmlCoordinate = readFileSync(new URL("../fixtures/interoperability/malformed-kml-coordinate.kml", import.meta.url), "utf8");
 const malformedPolygonGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-polygon.geojson", import.meta.url), "utf8"));
 const complexSurveyCsv = readFileSync(new URL("../fixtures/interoperability/complex-survey.csv", import.meta.url), "utf8");
 const malformedSurveyCsv = readFileSync(new URL("../fixtures/interoperability/malformed-survey.csv", import.meta.url), "utf8");
@@ -276,6 +278,32 @@ try {
     });
     assert(kmlHolesPayload.geospatialLayers[0].features[0].geometry.rings.length === 2, "KML import preserves inner boundaries");
     assert(kmlHolesPayload.geospatialLayers[0].features[0].attributes.name === "Parcelle Été 🌲", "KML import preserves Unicode attributes");
+
+    const complexStyledKmlPayload = buildGeoJsonPayload(parseKmlText(${JSON.stringify(complexStyledKml)}), {
+      projectName: "Complex styled KML",
+      fileName: "complex-styled-multigeometry.kml",
+      format: "KML"
+    });
+    const styledKmlLine = complexStyledKmlPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const styledKmlPolygon = complexStyledKmlPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(styledKmlLine.features.length === 1 && styledKmlPolygon.features.length === 1, "KML MultiGeometry imports every line and polygon");
+    assert(styledKmlLine.features[0].attributes.unicode_owner === "Montréal α", "KML SchemaData preserves Unicode SimpleData");
+    assert(styledKmlLine.features[0].attributes.nullable_note === "", "KML SchemaData preserves empty SimpleData");
+    assert(styledKmlLine.features[0].attributes.field_12 === "A12", "KML SchemaData preserves large field sets");
+    assert(styledKmlLine.features[0].attributes.description === "Line and polygon collected together", "KML preserves placemark descriptions");
+    assert(styledKmlLine.features[0].attributes.kml_timestamp === "2026-07-30T08:15:00-06:00", "KML preserves timestamp strings");
+    assert(styledKmlLine.features[0].attributes.kml_style_color === "ffff8c42" && styledKmlLine.features[0].attributes.symbol_color === "Blue", "KML preserves source color and maps it to the nearest supported palette color");
+    assert(styledKmlPolygon.features[0].geometry.rings.length === 2, "KML MultiGeometry preserves polygon holes");
+    const styledKmlExport = layerToGeoJson(styledKmlLine);
+    const styledKmlRoundTrip = buildGeoJsonPayload(styledKmlExport, { format: "KML GeoJSON round trip" });
+    assert(styledKmlRoundTrip.geospatialLayers[0].features[0].attributes.field_12 === "A12", "KML import-export-import preserves SimpleData attributes");
+    let malformedKmlMessage = "";
+    try {
+      parseKmlText(${JSON.stringify(malformedKmlCoordinate)});
+    } catch (error) {
+      malformedKmlMessage = error.message || "";
+    }
+    assert(malformedKmlMessage === "KML placemark 1, line 1, coordinate 2 is invalid. Use longitude,latitude values in WGS84.", "malformed KML blocks false lines with an actionable coordinate error");
 
     const fileFromBase64 = (base64, name) => {
       const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
