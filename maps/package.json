@@ -24,6 +24,7 @@
     "test:project-setup-journey": "node scripts/test-project-setup-journey.mjs",
     "test:top-menu-a11y": "node scripts/test-top-menu-a11y.mjs",
     "test:toolbar-architecture": "node scripts/test-toolbar-architecture.mjs",
+    "test:desktop-project-header": "node scripts/test-desktop-project-header.mjs",
     "test:desktop-draw-flow": "node scripts/test-desktop-draw-flow.mjs",
     "test:toolbar-overflow-a11y": "node scripts/test-toolbar-overflow-a11y.mjs",
     "test:map-control-layout": "node scripts/test-map-control-layout.mjs",
