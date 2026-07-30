@@ -538,9 +538,15 @@
         height: 22px;
         display: block;
     }
+    #mobileLocationBtn,
+    #mobileSelectMenu,
+    .mobile-add-only {
+        display: none;
+    }
     body.survey-table-open #layersMapBtn,
     body.survey-table-open #lookAroundPreview,
     body.survey-table-open #streetViewDropBtn,
+    body.survey-table-open #mobileLocationBtn,
     body.survey-table-open .share-button {
         z-index: 650 !important;
     }
@@ -8699,6 +8705,11 @@
             --mobile-sheet-header-height: 44px;
             --mobile-sheet-row-height: 44px;
         }
+        html,
+        body {
+            max-width: 100%;
+            overflow-x: hidden;
+        }
 
         #toolbar {
             min-height: calc(48px + env(safe-area-inset-top, 0px));
@@ -8721,12 +8732,12 @@
         #toolbar .toolbar-right.expanded .toolbar-quick-actions,
         #toolbar #quickActionBar {
             position: fixed;
-            left: max(8px, calc(50% - 143px));
+            left: max(8px, calc(50% - 116px));
             right: auto;
             top: auto;
             bottom: var(--mobile-toolbar-bottom);
             z-index: 1280;
-            width: min(286px, calc(100vw - 16px));
+            width: min(232px, calc(100vw - 16px));
             max-width: none;
             min-height: var(--mobile-toolbar-height);
             display: flex !important;
@@ -8765,6 +8776,14 @@
         #toolbar #quickActionBar .toolbar-history-group {
             display: none;
         }
+        #toolbar #quickActionBar #editPanelToggleBtn,
+        #toolbar #quickActionBar #myLocationBtn {
+            display: none !important;
+        }
+        #toolbar #quickActionBar #mobileSelectMenu {
+            position: static;
+            display: block;
+        }
         #toolbar #quickActionBar #toolbarBasemapBtn,
         #toolbar #quickActionBar #measureToolBtn,
         #toolbar #quickActionBar #advancedGisBtn {
@@ -8801,6 +8820,7 @@
             flex-basis: 19px;
         }
         #toolbar #quickActionBar .quick-action-label,
+        #toolbar .toolbar-right.expanded #mobileSelectBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #editPanelToggleBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #addSurveyPointBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #myLocationBtn .quick-action-label,
@@ -8829,6 +8849,100 @@
         }
         #toolbar #quickActionBar .toolbar-more-menu {
             display: block !important;
+        }
+        #toolbar #mobileSelectPopover,
+        #addActionPopover {
+            position: fixed;
+            left: max(12px, env(safe-area-inset-left, 0px));
+            right: max(12px, env(safe-area-inset-right, 0px));
+            top: auto;
+            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+            z-index: 1320;
+            box-sizing: border-box;
+            width: auto;
+            max-width: 360px;
+            margin-inline: auto;
+            padding: 7px;
+            border: 1px solid var(--mobile-tool-border);
+            border-radius: 16px;
+            background: var(--mobile-tool-surface);
+            box-shadow: var(--mobile-tool-shadow);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+        }
+        #toolbar #mobileSelectPopover[hidden],
+        #addActionPopover[hidden] {
+            display: none;
+        }
+        #toolbar #mobileSelectPopover:not([hidden]),
+        #addActionPopover:not([hidden]) {
+            display: grid;
+            gap: 2px;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-help {
+            padding: 7px 10px 5px;
+            color: var(--mobile-tool-muted);
+            font-size: 12px;
+            line-height: 1.35;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item,
+        #addActionPopover .add-action-menu-item {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 44px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 10px;
+            background: transparent;
+            color: #667085;
+            font-size: 14px;
+            font-weight: 550;
+            text-align: left;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item:active,
+        #addActionPopover .add-action-menu-item:active {
+            background: rgba(15, 23, 42, 0.075);
+        }
+        #addActionPopover .add-action-popover-title {
+            padding: 7px 10px 5px;
+            color: #1f2937;
+            font-size: 13px;
+            font-weight: 650;
+        }
+        #addActionPopover .mobile-add-geometry {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 3px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(209, 213, 219, 0.56);
+        }
+        #addActionPopover .mobile-add-only {
+            display: flex;
+        }
+        #addActionPopover .mobile-add-geometry .add-action-menu-item {
+            min-width: 0;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+            min-height: 52px;
+            padding: 4px;
+            text-align: center;
+        }
+        #addActionPopover .add-action-menu-item svg {
+            width: 18px;
+            height: 18px;
+            flex: 0 0 18px;
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.8;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+        }
+        #addActionPopover #addNewFeatureMenuBtn {
+            display: none;
         }
         #toolbar #toolbarMorePopover {
             position: absolute;
@@ -8893,6 +9007,38 @@
         }
         #mapAddHint {
             display: none !important;
+        }
+        #mobileLocationBtn {
+            position: absolute;
+            right: 12px;
+            bottom: 94px;
+            z-index: 1130;
+            width: 44px;
+            height: 44px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid rgba(209, 213, 219, 0.32);
+            border-radius: 14px;
+            background: rgba(255, 255, 255, 0.84);
+            color: #667085;
+            box-shadow: 0 7px 20px rgba(15, 23, 42, 0.11), inset 0 1px 0 rgba(255,255,255,0.72);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            touch-action: manipulation;
+        }
+        #mobileLocationBtn svg {
+            width: 22px;
+            height: 22px;
+        }
+        #mobileLocationBtn:active {
+            background: rgba(15, 23, 42, 0.09);
+            transform: scale(0.96);
+        }
+        #mobileLocationBtn.active {
+            color: #0f766e;
+            background: rgba(15, 118, 110, 0.11);
         }
 
         #sidebar,
@@ -9303,6 +9449,14 @@
             text-align: left;
         }
         #advancedGisPanel .advanced-gis-command:disabled {
+            display: none;
+        }
+        #advancedGisPanel [data-gis-tool="select-all"],
+        #advancedGisPanel [data-gis-tool="select-visible"],
+        #advancedGisPanel [data-gis-tool="select-attribute"],
+        #advancedGisPanel [data-gis-tool="select-invert"],
+        #advancedGisPanel [data-gis-tool="select-clear"],
+        #advancedGisPanel [data-gis-tool="photo-import"] {
             display: none;
         }
         #advancedGisPanel .advanced-gis-command-icon,
@@ -9733,6 +9887,25 @@
         <div class="toolbar-right">
             <div id="quickActionBar" class="toolbar-quick-actions">
                 <div class="toolbar-action-group toolbar-editing-group" aria-label="Editing controls">
+                    <div id="mobileSelectMenu" class="mobile-select-menu">
+                        <button id="mobileSelectBtn" type="button" class="menu-bar-btn quick-action" aria-label="Select features" aria-controls="mobileSelectPopover" aria-haspopup="menu" aria-expanded="false" aria-pressed="false" title="Select">
+                            <span class="quick-action-icon" aria-hidden="true">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                    <path d="M5 3l12 9-6 1.5L8.5 19 5 3z"></path>
+                                    <path d="M12.5 14.5l4 4"></path>
+                                </svg>
+                            </span>
+                            <span class="quick-action-label">Select</span>
+                        </button>
+                        <div id="mobileSelectPopover" class="mobile-select-popover" role="menu" aria-label="Selection tools" hidden>
+                            <div class="mobile-select-help">Tap features on the map to select them.</div>
+                            <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-all">Select All</button>
+                            <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-visible">Select Visible</button>
+                            <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-attribute">Select by Attribute…</button>
+                            <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-invert">Invert Selection</button>
+                            <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-clear">Clear Selection</button>
+                        </div>
+                    </div>
                     <button id="editPanelToggleBtn" type="button" class="menu-bar-btn quick-action" aria-label="Start drawing" aria-controls="editFloatingPanel" aria-expanded="false" title="Draw">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -9832,7 +10005,7 @@
                                     <path d="M12 11v8"></path>
                                     <path d="M12 11L5 7"></path>
                                 </svg>
-                                <span>Advanced GIS</span>
+                                <span>Tools</span>
                             </button>
                         </div>
                     </div>
@@ -9859,7 +10032,7 @@
                         </span>
                         <span class="quick-action-label">Measure</span>
                     </button>
-                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Tools">
+                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Tools">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
@@ -9932,14 +10105,14 @@
             <button id="measurementClearBtn" type="button" aria-label="Clear measurement">Clear</button>
         </div>
     </div>
-    <div id="advancedGisPanel" class="advanced-gis-panel" role="region" hidden aria-label="Advanced GIS tools">
+    <div id="advancedGisPanel" class="advanced-gis-panel" role="region" hidden aria-label="Tools">
         <div class="measurement-panel-header">
             <span class="measurement-panel-title">
-                <span>Advanced GIS</span>
+                <span>Tools</span>
                 <span id="advancedGisLayerContext" class="advanced-gis-layer-context-desktop">No active layer</span>
                 <span id="advancedGisLayerBadge" class="advanced-gis-badge">No layer</span>
             </span>
-            <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close advanced GIS tools">×</button>
+            <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close tools">×</button>
         </div>
         <div class="advanced-gis-desktop-content">
             <section class="advanced-gis-command-section" aria-labelledby="advancedGisSelectionHeading">
@@ -10384,6 +10557,20 @@
     </section>
     <div id="addActionPopover" class="add-action-popover" role="menu" aria-label="Add" hidden>
         <div class="add-action-popover-title">Add</div>
+        <div class="mobile-add-geometry" aria-label="Draw a feature">
+            <button type="button" class="add-action-menu-item mobile-add-only" role="menuitem" data-add-geometry="point">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>Point</span>
+            </button>
+            <button type="button" class="add-action-menu-item mobile-add-only" role="menuitem" data-add-geometry="line">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 17l5-9 9 7"></path><circle cx="5" cy="17" r="1.5"></circle><circle cx="10" cy="8" r="1.5"></circle><circle cx="19" cy="15" r="1.5"></circle></svg>
+                <span>Line</span>
+            </button>
+            <button type="button" class="add-action-menu-item mobile-add-only" role="menuitem" data-add-geometry="polygon">
+                <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 5l12 3-2 11H7L6 5z"></path></svg>
+                <span>Polygon</span>
+            </button>
+        </div>
         <button id="addNewFeatureMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
             <span>New Feature</span>
@@ -10391,6 +10578,10 @@
         <button id="addImportDataMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"></path><path d="M8 11l4 4 4-4"></path><path d="M4 19h16"></path></svg>
             <span>Import Data…</span>
+        </button>
+        <button id="addImportPhotosMenuBtn" type="button" class="add-action-menu-item mobile-add-only" role="menuitem">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="4" y="5" width="16" height="14" rx="2"></rect><circle cx="9" cy="10" r="2"></circle><path d="M5 17l4-4 3 3 2-2 5 3"></path></svg>
+            <span>Import Photos…</span>
         </button>
         <button id="addLayerMenuBtn" type="button" class="add-action-menu-item" role="menuitem">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l8 4-8 4-8-4 8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M12 13v8"></path><path d="M8 17h8"></path></svg>
@@ -10442,6 +10633,15 @@
             <path d="M9 8h6l1 7H8l1-7Z"/>
             <circle cx="5.5" cy="16" r="3.2"/>
             <circle cx="18.5" cy="16" r="3.2"/>
+        </svg>
+    </button>
+    <button id="mobileLocationBtn" type="button" aria-label="My Location" title="My Location">
+        <svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"></circle>
+            <path d="M12 2v3"></path>
+            <path d="M12 19v3"></path>
+            <path d="M2 12h3"></path>
+            <path d="M19 12h3"></path>
         </svg>
     </button>
     <div id="workspaceEmptyState" class="workspace-empty-state">
@@ -11099,6 +11299,10 @@
         const lookAroundFullscreenBtn = document.getElementById("lookAroundFullscreenBtn");
         const lookAroundCloseBtn = document.getElementById("lookAroundCloseBtn");
         const streetViewDropBtn = document.getElementById("streetViewDropBtn");
+        const mobileLocationBtn = document.getElementById("mobileLocationBtn");
+        const mobileSelectBtn = document.getElementById("mobileSelectBtn");
+        const mobileSelectPopover = document.getElementById("mobileSelectPopover");
+        const mobileSelectItems = Array.from(document.querySelectorAll("[data-select-tool]"));
         const editPanelToggleBtn = document.getElementById("editPanelToggleBtn");
         const editFloatingPanel = document.getElementById("editFloatingPanel");
         const editPanelDragHandle = document.getElementById("editPanelDragHandle");
@@ -11145,6 +11349,8 @@
         const addActionPopover = document.getElementById("addActionPopover");
         const addNewFeatureMenuBtn = document.getElementById("addNewFeatureMenuBtn");
         const addImportDataMenuBtn = document.getElementById("addImportDataMenuBtn");
+        const addImportPhotosMenuBtn = document.getElementById("addImportPhotosMenuBtn");
+        const mobileAddGeometryButtons = Array.from(document.querySelectorAll("[data-add-geometry]"));
         const addLayerMenuBtn = document.getElementById("addLayerMenuBtn");
         const layerToolsPanel = document.getElementById("layerToolsPanel");
         const layerToolsDragHandle = document.getElementById("layerToolsDragHandle");
@@ -11516,6 +11722,7 @@
         let popoutsVisible = true;
         let selectedTableRows = new Set();
         let lastSelectedTableRow = null;
+        let mobileSelectionMode = false;
         let tableRowFilterMode = "all";
         let fieldCalculatorContext = null;
         let undoStack = [];
@@ -13182,7 +13389,7 @@
         }
 
         function getQuickActionAvailability(key, hasEditingSession) {
-            if (key === "addNew") return hasEditingSession && canEditLayer(getActiveLayerRecord());
+            if (key === "addNew") return Boolean(activeProjectRecord);
             if (key === "undo") return undoStack.length > 0;
             if (key === "redo") return redoStack.length > 0;
             return true;
@@ -13193,12 +13400,13 @@
             const mobile = window.matchMedia("(max-width: 600px)").matches;
             Object.entries(QUICK_ACTION_BUTTONS).forEach(([key, button]) => {
                 if (!button) return;
-                const selected = quickActions.includes(key) || (mobile && (key === "addNew" || key === "myLocation"));
+                const selected = quickActions.includes(key) || (mobile && key === "addNew");
                 const available = getQuickActionAvailability(key, hasEditingSession);
                 button.hidden = !selected;
                 button.disabled = !available;
                 button.classList.toggle("is-disabled", !available);
             });
+            updateMobileSelectControls();
         }
 
         function updatePopoutsMenuState() {
@@ -14294,6 +14502,11 @@
 
         function positionAddActionPopover() {
             if (!addActionPopover || !addSurveyPointBtn || addActionPopover.hidden) return;
+            if (!isDesktopDrawFlow()) {
+                addActionPopover.style.left = "";
+                addActionPopover.style.top = "";
+                return;
+            }
             const anchor = addSurveyPointBtn.getBoundingClientRect();
             const popover = addActionPopover.getBoundingClientRect();
             const left = Math.max(8, Math.min(anchor.left, window.innerWidth - popover.width - 8));
@@ -14315,18 +14528,88 @@
         }
 
         function setAddActionPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
-            if (!addActionPopover || !addSurveyPointBtn || !isDesktopDrawFlow()) return;
+            if (!addActionPopover || !addSurveyPointBtn) return;
             const nextVisible = Boolean(show);
             addActionPopover.hidden = !nextVisible;
             addSurveyPointBtn.classList.toggle("active", nextVisible);
             addSurveyPointBtn.setAttribute("aria-expanded", nextVisible ? "true" : "false");
             if (nextVisible) {
                 setToolbarMoreVisibility(false);
+                setMobileSelectPopoverVisibility(false);
                 positionAddActionPopover();
-                if (focusFirst) addNewFeatureMenuBtn?.focus();
+                if (focusFirst) {
+                    const firstItem = isDesktopDrawFlow() ? addNewFeatureMenuBtn : mobileAddGeometryButtons[0];
+                    firstItem?.focus();
+                }
             } else if (restoreFocus) {
                 addSurveyPointBtn.focus();
             }
+        }
+
+        function setMobileSelectPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
+            if (!mobileSelectBtn || !mobileSelectPopover) return;
+            const visible = Boolean(show) && !isDesktopDrawFlow();
+            mobileSelectPopover.hidden = !visible;
+            mobileSelectBtn.setAttribute("aria-expanded", visible ? "true" : "false");
+            if (visible) {
+                setToolbarMoreVisibility(false);
+                setAddActionPopoverVisibility(false);
+                if (focusFirst) window.requestAnimationFrame(() => mobileSelectItems.find((item) => !item.disabled)?.focus());
+            } else if (restoreFocus && mobileSelectPopover.contains(document.activeElement)) {
+                mobileSelectBtn.focus();
+            }
+        }
+
+        function setMobileSelectionMode(active, { openMenu = false } = {}) {
+            const nextActive = Boolean(active) && !isDesktopDrawFlow();
+            if (nextActive) {
+                if (measurementActive) setMeasurementActive(false);
+                if (isAddingSurveyPoint) cancelActiveFeaturePlacement();
+                if (editSessionActive) setEditSessionActive(false);
+                if (sidebarVisible) setSidebarVisibility(false);
+                if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
+                if (toolbarMenuVisible) setToolbarMenuVisibility(false);
+                setToolbarMoreVisibility(false);
+                setAddActionPopoverVisibility(false);
+            }
+            mobileSelectionMode = nextActive;
+            mobileSelectBtn?.classList.toggle("active", nextActive);
+            mobileSelectBtn?.setAttribute("aria-pressed", nextActive ? "true" : "false");
+            setMobileSelectPopoverVisibility(nextActive && openMenu);
+            renderSelectedFeatureInspector();
+        }
+
+        function updateMobileSelectControls() {
+            const layer = getActiveLayerRecord();
+            const featureCount = layer?.features?.length || 0;
+            const selectionCount = selectedTableRows?.size || 0;
+            if (mobileSelectBtn) {
+                const available = featureCount > 0 && isLayerSelectable(layer);
+                mobileSelectBtn.disabled = !available;
+                mobileSelectBtn.classList.toggle("is-disabled", !available);
+                if (!available && mobileSelectionMode) setMobileSelectionMode(false);
+            }
+            mobileSelectItems.forEach((item) => {
+                const tool = item.dataset.selectTool;
+                item.disabled = (
+                    !featureCount
+                    || (tool === "select-all" && selectionCount === featureCount)
+                    || (tool === "select-clear" && selectionCount === 0)
+                    || (tool === "select-attribute" && !(layer?.schema || []).length)
+                );
+            });
+        }
+
+        function startMobileDrawingGeometry(geometryType) {
+            const normalized = normalizeLayerGeometryType(geometryType);
+            setMobileSelectionMode(false);
+            setAddActionPopoverVisibility(false);
+            const targetLayer = getEditableLayerForGeometry(normalized);
+            if (!targetLayer) {
+                addLayerToActiveProject({ geometryType: normalized, startDrawing: true });
+                return;
+            }
+            startDesktopDrawingGeometry(normalized);
         }
 
         function undoCurrentDrawingVertex() {
@@ -14363,10 +14646,10 @@
             if (!desktop) {
                 editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
                 if (addSurveyPointBtn) {
-                    addSurveyPointBtn.setAttribute("aria-label", "Add a new feature to the active layer");
-                    addSurveyPointBtn.removeAttribute("aria-haspopup");
-                    addSurveyPointBtn.removeAttribute("aria-controls");
-                    addSurveyPointBtn.removeAttribute("aria-expanded");
+                    addSurveyPointBtn.setAttribute("aria-label", "Add content");
+                    addSurveyPointBtn.setAttribute("aria-haspopup", "menu");
+                    addSurveyPointBtn.setAttribute("aria-controls", "addActionPopover");
+                    if (!addSurveyPointBtn.hasAttribute("aria-expanded")) addSurveyPointBtn.setAttribute("aria-expanded", "false");
                 }
             } else if (addSurveyPointBtn) {
                 editFloatingPanel?.setAttribute("aria-label", "Drawing tools");
@@ -14549,11 +14832,7 @@
                 editPanelAddFeatureBtn.setAttribute("aria-label", addLabel);
                 editPanelAddFeatureBtn.innerHTML = `<span class="edit-tool-icon" aria-hidden="true">${canFinishGeometry ? "✓" : "✚"}</span><span class="edit-tool-label">${canFinishGeometry ? "Finish" : isAddingSurveyPoint ? "Add vertex" : "Add feature"}</span>`;
                 if (!isDesktopDrawFlow()) {
-                    if (isAddingSurveyPoint) {
-                        setAddNewButtonLabel(canFinishGeometry ? "Finish" : geometryType === "point" ? "Adding" : geometryTraceMode ? "Tracing" : "Drawing");
-                    } else {
-                        setAddNewButtonLabel("Add");
-                    }
+                    setAddNewButtonLabel("Add");
                 }
             }
             editPanelEditExistingBtn?.classList.toggle("active", tableEditMode);
@@ -16242,7 +16521,7 @@
             setOffCanvasAccessibility(featureDrawer, true);
         }
 
-        function addLayerToActiveProject() {
+        function addLayerToActiveProject({ geometryType: requestedGeometryType = "point", startDrawing = false } = {}) {
             if (!activeProjectRecord) {
                 openCreateProjectModal();
                 return;
@@ -16283,7 +16562,7 @@
                                 nameInput?.focus();
                                 return false;
                             }
-                            const geometryType = geometryInput?.value || "point";
+                            const geometryType = geometryInput?.value || requestedGeometryType || "point";
                             const layer = createLayerRecord({
                                 name,
                                 geometryType,
@@ -16297,12 +16576,17 @@
                             scheduleLocalAutosave();
                             setActiveProject(activeProjectRecord);
                             setProjectStatus(`Created layer ${name}. Use Fields to edit the schema when needed.`, "success");
+                            if (startDrawing) {
+                                window.requestAnimationFrame(() => startMobileDrawingGeometry(geometryType));
+                            }
                             return true;
                         }
                     }
                 ],
                 onOpen: () => {
                     const nameInput = document.getElementById("layerModalName");
+                    const geometryInput = document.getElementById("layerModalGeometry");
+                    if (geometryInput) geometryInput.value = normalizeLayerGeometryType(requestedGeometryType);
                     const createButton = layerActionModalActions.querySelector('[data-layer-action-modal="1"]');
                     const validation = document.getElementById("layerModalValidation");
                     const syncLayerModalState = () => {
@@ -17012,6 +17296,7 @@
         function setAdvancedGisVisible(show) {
             if (!advancedGisPanel) return;
             if (show) {
+                setMobileSelectionMode(false);
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
                 }
@@ -18495,6 +18780,7 @@
         toolbarMoreBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
             setAddActionPopoverVisibility(false);
+            setMobileSelectPopoverVisibility(false);
             setToolbarMoreVisibility(Boolean(toolbarMorePopover?.hidden));
         });
         toolbarMoreBtn?.addEventListener("keydown", (event) => {
@@ -18528,12 +18814,15 @@
             });
         });
         addSurveyPointBtn?.addEventListener("keydown", (event) => {
-            if (!isDesktopDrawFlow() || !["ArrowDown", "Enter", " "].includes(event.key)) return;
+            if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
             event.preventDefault();
             setAddActionPopoverVisibility(true, { focusFirst: true });
         });
         addActionPopover?.addEventListener("keydown", (event) => {
-            const items = [addNewFeatureMenuBtn, addImportDataMenuBtn, addLayerMenuBtn].filter(Boolean);
+            const items = (isDesktopDrawFlow()
+                ? [addNewFeatureMenuBtn, addImportDataMenuBtn, addLayerMenuBtn]
+                : [...mobileAddGeometryButtons, addImportDataMenuBtn, addImportPhotosMenuBtn, addLayerMenuBtn]
+            ).filter((item) => item && !item.hidden && !item.disabled);
             if (event.key === "Escape") {
                 event.preventDefault();
                 setAddActionPopoverVisibility(false, { restoreFocus: true });
@@ -18548,9 +18837,59 @@
                 : (currentIndex + direction + items.length) % items.length;
             items[nextIndex]?.focus();
         });
+        mobileSelectBtn?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            if (mobileSelectBtn.disabled) return;
+            if (!mobileSelectionMode) {
+                setMobileSelectionMode(true, { openMenu: true });
+                setProjectStatus("Selection mode active. Tap features to add or remove them from the selection.", "success");
+            } else {
+                setMobileSelectPopoverVisibility(mobileSelectPopover?.hidden !== false);
+            }
+        });
+        mobileSelectBtn?.addEventListener("keydown", (event) => {
+            if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
+            event.preventDefault();
+            if (!mobileSelectionMode) setMobileSelectionMode(true);
+            setMobileSelectPopoverVisibility(true, { focusFirst: true });
+        });
+        mobileSelectPopover?.addEventListener("keydown", (event) => {
+            const items = mobileSelectItems.filter((item) => !item.disabled);
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setMobileSelectPopoverVisibility(false, { restoreFocus: true });
+                return;
+            }
+            if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
+            event.preventDefault();
+            const currentIndex = items.indexOf(document.activeElement);
+            const direction = event.key === "ArrowDown" ? 1 : -1;
+            const nextIndex = currentIndex < 0
+                ? (direction > 0 ? 0 : items.length - 1)
+                : (currentIndex + direction + items.length) % items.length;
+            items[nextIndex]?.focus();
+        });
+        mobileSelectItems.forEach((item) => {
+            item.addEventListener("click", () => {
+                const handlers = {
+                    "select-all": selectAllTableRows,
+                    "select-visible": selectVisibleFeatures,
+                    "select-attribute": selectFeaturesByAttribute,
+                    "select-invert": invertFeatureSelection,
+                    "select-clear": () => {
+                        clearTableSelection();
+                        setProjectStatus("Selection cleared.", "success");
+                    }
+                };
+                setMobileSelectPopoverVisibility(false);
+                handlers[item.dataset.selectTool]?.();
+                updateMobileSelectControls();
+            });
+        });
         [editPanelToggleBtn, addSurveyPointBtn, undoBtn, redoBtn, myLocationBtn, toolbarLayersBtn].forEach((button) => {
             button?.addEventListener("click", () => {
                 setToolbarMoreVisibility(false);
+                if (button !== mobileSelectBtn) setMobileSelectPopoverVisibility(false);
                 if (button !== addSurveyPointBtn) setAddActionPopoverVisibility(false);
             });
         });
@@ -19181,8 +19520,7 @@
         });
         drawContextCancelBtn?.addEventListener("click", () => {
             if (!isAddingSurveyPoint) return;
-            exitAddSurveyPointMode();
-            setProjectStatus("Drawing cancelled.", "success");
+            cancelActiveFeaturePlacement();
         });
         drawSelectionPropertiesBtn?.addEventListener("click", () => {
             const rowIndex = getActiveSelectionIndexes()[0];
@@ -19225,6 +19563,13 @@
         addImportDataMenuBtn?.addEventListener("click", () => {
             setAddActionPopoverVisibility(false);
             toggleImportBtn?.click();
+        });
+        addImportPhotosMenuBtn?.addEventListener("click", () => {
+            setAddActionPopoverVisibility(false);
+            importGeotaggedPhotos();
+        });
+        mobileAddGeometryButtons.forEach((button) => {
+            button.addEventListener("click", () => startMobileDrawingGeometry(button.dataset.addGeometry));
         });
         addLayerMenuBtn?.addEventListener("click", () => {
             setAddActionPopoverVisibility(false);
@@ -19310,6 +19655,7 @@
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
             const insideToolbarMoreMenu = toolbarMoreMenu?.contains(event.target);
+            const insideMobileSelectMenu = document.getElementById("mobileSelectMenu")?.contains(event.target);
             const insideAddActionPopover = addActionPopover?.contains(event.target);
             const onAddActionButton = addSurveyPointBtn?.contains(event.target);
             const insideSettingsPanel = settingsPanel?.contains(event.target);
@@ -19325,6 +19671,9 @@
             }
             if (toolbarMorePopover && !toolbarMorePopover.hidden && !insideToolbarMoreMenu) {
                 setToolbarMoreVisibility(false);
+            }
+            if (mobileSelectPopover && !mobileSelectPopover.hidden && !insideMobileSelectMenu) {
+                setMobileSelectPopoverVisibility(false);
             }
             if (addActionPopover && !addActionPopover.hidden && !insideAddActionPopover && !onAddActionButton) {
                 setAddActionPopoverVisibility(false);
@@ -19664,6 +20013,11 @@
                     setAddActionPopoverVisibility(false, { restoreFocus: true });
                     return;
                 }
+                if (mobileSelectPopover && !mobileSelectPopover.hidden) {
+                    event.preventDefault();
+                    setMobileSelectPopoverVisibility(false, { restoreFocus: true });
+                    return;
+                }
                 if (toolbarMorePopover && !toolbarMorePopover.hidden) {
                     event.preventDefault();
                     setToolbarMoreVisibility(false, { restoreFocus: true });
@@ -19938,17 +20292,16 @@
         });
 
         addSurveyPointBtn.addEventListener("click", (event) => {
-            if (!currentSurveyData) {
-                setProjectStatus("Open a project before adding points.", "error");
+            if (!activeProjectRecord) {
+                setProjectStatus("Open a project before adding content.", "error");
                 return;
             }
-            if (isDesktopDrawFlow()) {
-                event.preventDefault();
-                event.stopPropagation();
-                setAddActionPopoverVisibility(addActionPopover?.hidden !== false);
-                return;
+            event.preventDefault();
+            event.stopPropagation();
+            if (!isDesktopDrawFlow() && editSessionActive && !isAddingSurveyPoint) {
+                setEditSessionActive(false);
             }
-            toggleAddSurveyPointMode();
+            setAddActionPopoverVisibility(addActionPopover?.hidden !== false);
         });
         featureDrawerClose?.addEventListener("click", () => hideSurveyCallout());
         featureDrawerToggle?.addEventListener("click", () => hideSurveyCallout());
@@ -20085,6 +20438,7 @@
                 return;
             }
             if (!isDesktopDrawFlow() && !editSessionActive) {
+                setMobileSelectionMode(false);
                 setEditSessionActive(true, { layerId: layer.id });
                 if (!editSessionActive) return;
             }
@@ -20097,9 +20451,9 @@
             isAddingSurveyPoint = !isAddingSurveyPoint;
             if (!isAddingSurveyPoint) geometryTraceMode = false;
             if (!isDesktopDrawFlow()) {
-                addSurveyPointBtn.classList.toggle("active", isAddingSurveyPoint);
-                addSurveyPointBtn.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
-                setAddNewButtonLabel(isAddingSurveyPoint && geometryType !== "point" ? (geometryTraceMode ? "Tracing" : "Drawing") : isAddingSurveyPoint ? "Adding" : "Add");
+                addSurveyPointBtn.setAttribute("aria-pressed", "false");
+                addSurveyPointBtn.classList.remove("active");
+                setAddNewButtonLabel("Add");
             }
             mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
             if (mapAddHint) {
@@ -21339,6 +21693,9 @@
             const wasTracing = geometryTraceMode;
             exitAddSurveyPointMode();
             hideWorkspaceHint();
+            if (!isDesktopDrawFlow() && editSessionActive) {
+                setEditSessionActive(false);
+            }
             const activity = geometryType === "point"
                 ? "Point placement"
                 : `${geometryType === "line" ? "Line" : "Polygon"} ${wasTracing ? "trace" : "drawing"}`;
@@ -21735,6 +22092,7 @@
         function setMeasurementActive(active) {
             measurementActive = Boolean(active);
             if (measurementActive) {
+                setMobileSelectionMode(false);
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
                 }
@@ -24550,7 +24908,11 @@
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
-                syncMapFeatureToTableSelection(annotation.surveyPoint.rowIndex);
+                if (mobileSelectionMode && !isDesktopDrawFlow()) {
+                    setTableRowSelection(annotation.surveyPoint.rowIndex, { ctrlKey: true });
+                } else {
+                    syncMapFeatureToTableSelection(annotation.surveyPoint.rowIndex);
+                }
             }
             refreshAnnotationStyles();
             isCalloutEditing = canEditAttributes() && Boolean(options.forceEdit);
@@ -25102,6 +25464,7 @@
                     : "All rows are already shown."
             });
             updateAdvancedGisPanelState();
+            updateMobileSelectControls();
             syncDesktopDrawContext();
             renderSelectedFeatureInspector();
         }
@@ -27770,6 +28133,11 @@ function setImportPanelVisibility(show) {
 
         myLocationBtn?.addEventListener("click", () => {
             requestMapLocation().catch(() => {});
+        });
+        mobileLocationBtn?.addEventListener("click", () => {
+            requestMapLocation()
+                .then(() => mobileLocationBtn.classList.add("active"))
+                .catch(() => mobileLocationBtn.classList.remove("active"));
         });
         locationRetryBtn?.addEventListener("click", () => {
             myLocationCoord = null;

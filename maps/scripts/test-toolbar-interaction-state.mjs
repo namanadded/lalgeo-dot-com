@@ -18,7 +18,7 @@ assert.match(
 assert.match(
   legacyHtml,
   /function setAdvancedGisVisible\(show\)[\s\S]*?if \(show\) \{[\s\S]*?setMeasurementActive\(false\)[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setEditSessionActive\(false\)[\s\S]*?setToolbarMenuVisibility\(false\)/,
-  "Opening Advanced GIS should close conflicting map tools.",
+  "Opening Tools should close conflicting map tools.",
 );
 assert.match(
   legacyHtml,
@@ -32,7 +32,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /if \(event\.key === "Escape"\) \{[\s\S]*?addActionPopover[\s\S]*?toolbarMorePopover[\s\S]*?toolbarMenuVisible[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?isAddingSurveyPoint[\s\S]*?cancelActiveFeaturePlacement\(\)[\s\S]*?selectedTableRows\?\.size \|\| activeSurveyAnnotation/,
+  /if \(event\.key === "Escape"\) \{[\s\S]*?addActionPopover[\s\S]*?mobileSelectPopover[\s\S]*?toolbarMorePopover[\s\S]*?toolbarMenuVisible[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?isAddingSurveyPoint[\s\S]*?cancelActiveFeaturePlacement\(\)[\s\S]*?selectedTableRows\?\.size \|\| activeSurveyAnnotation/,
   "Escape should dismiss popovers and menus before drawing and selection state.",
 );
 assert.match(

@@ -11,13 +11,18 @@ const mobileStyles = legacyHtml.match(
 assert.ok(mobileStyles, "Expected a dedicated mobile tool experience stylesheet.");
 assert.match(
   mobileStyles,
-  /#toolbar #quickActionBar\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?bottom:\s*var\(--mobile-toolbar-bottom\);[\s\S]*?width:\s*min\(286px,\s*calc\(100vw - 16px\)\);/,
+  /#toolbar #quickActionBar\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?bottom:\s*var\(--mobile-toolbar-bottom\);[\s\S]*?width:\s*min\(232px,\s*calc\(100vw - 16px\)\);/,
   "The mobile primary toolbar should be a compact, safe-area-aware bottom control.",
 );
 assert.match(
   mobileStyles,
   /#toolbar #quickActionBar \.toolbar-history-group\s*\{\s*display:\s*none;/,
   "Undo and Redo should not consume persistent mobile toolbar space.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #quickActionBar #editPanelToggleBtn,[\s\S]*?#toolbar #quickActionBar #myLocationBtn\s*\{\s*display:\s*none !important;[\s\S]*?#toolbar #quickActionBar #mobileSelectMenu\s*\{[\s\S]*?display:\s*block;/,
+  "Mobile should replace permanent Draw and Locate actions with Select.",
 );
 assert.match(
   mobileStyles,
@@ -52,12 +57,32 @@ assert.match(
 assert.match(
   mobileStyles,
   /#advancedGisPanel \.advanced-gis-badge,[\s\S]*?\.advanced-gis-mobile-content\s*\{\s*display:\s*none;[\s\S]*?#advancedGisPanel \.advanced-gis-desktop-content\s*\{[\s\S]*?display:\s*block;/,
-  "Advanced GIS should reuse the existing contextual command groups in a mobile sheet.",
+  "Tools should reuse the existing contextual command groups in a mobile sheet.",
 );
 assert.match(
   mobileStyles,
   /#editFloatingPanel \.edit-panel-title::before,[\s\S]*?#editFloatingPanel #editPanelPinBtn,[\s\S]*?#editFloatingPanel \.edit-panel-body-mobile\s*\{\s*display:\s*none;[\s\S]*?#editFloatingPanel \.draw-context-desktop\s*\{\s*display:\s*block;/,
-  "Draw should reuse the contextual geometry and action states on mobile.",
+  "Drawing started through Add should reuse the contextual geometry and action states on mobile.",
+);
+assert.match(
+  legacyHtml,
+  /id="mobileSelectBtn"[\s\S]*?>Select<[\s\S]*?id="addSurveyPointBtn"[\s\S]*?>Add<[\s\S]*?id="toolbarLayersBtn"[\s\S]*?>Layers<[\s\S]*?id="toolbarMoreBtn"[\s\S]*?>More</,
+  "The mobile toolbar should expose Select, Add, Layers, and More in order.",
+);
+assert.match(
+  legacyHtml,
+  /data-add-geometry="point"[\s\S]*?data-add-geometry="line"[\s\S]*?data-add-geometry="polygon"[\s\S]*?id="addImportDataMenuBtn"[\s\S]*?id="addImportPhotosMenuBtn"/,
+  "Add should expose existing drawing and import entry points.",
+);
+assert.match(
+  legacyHtml,
+  /id="toolbarMoreGisItem"[\s\S]*?<span>Tools<\/span>/,
+  "More should use the simpler Tools label.",
+);
+assert.match(
+  mobileStyles,
+  /#mobileLocationBtn\s*\{[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*94px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
+  "Locate should be a touch-sized floating map control.",
 );
 assert.match(
   legacyHtml,
@@ -76,7 +101,12 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setMeasurementActive\(active\)[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)/,
+  /function showSurveyCallout\(annotation,[\s\S]*?mobileSelectionMode && !isDesktopDrawFlow\(\)[\s\S]*?setTableRowSelection\(annotation\.surveyPoint\.rowIndex, \{ ctrlKey: true \}\)/,
+  "Select mode should add or remove map features through the existing multi-selection set.",
+);
+assert.match(
+  legacyHtml,
+  /function setMeasurementActive\(active\)[\s\S]*?setMobileSelectionMode\(false\)[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)/,
   "Opening Measure should close conflicting mobile tool sheets.",
 );
 

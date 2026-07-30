@@ -7,7 +7,7 @@ const legacyHtml = await readFile(legacyHtmlPath, "utf8");
 
 for (const [id, label] of [
   ["measurementPanel", "Measurement tools"],
-  ["advancedGisPanel", "Advanced GIS tools"],
+  ["advancedGisPanel", "Tools"],
 ]) {
   const panel = legacyHtml.match(new RegExp(`<div\\b[^>]*\\bid=["']${id}["'][^>]*>`, "i"))?.[0] ?? "";
 
@@ -49,7 +49,7 @@ assert.match(
 assert.match(
   legacyHtml,
   /class="advanced-gis-desktop-content"[\s\S]*?>Selection<[\s\S]*?>Select All<[\s\S]*?>Select Visible<[\s\S]*?>Select by Attribute…<[\s\S]*?>Invert Selection<[\s\S]*?>Clear Selection<[\s\S]*?>Geometry<[\s\S]*?>Buffer…<[\s\S]*?>Merge<[\s\S]*?>Simplify…<[\s\S]*?id="advancedGisMoreBtn"[\s\S]*?>More<[\s\S]*?>Data<[\s\S]*?>Style by Attribute…<[\s\S]*?id="advancedGisExportBtn"[\s\S]*?>Export…<[\s\S]*?>Download for Offline Use…</,
-  "Desktop Advanced GIS should present compact Selection, Geometry, and Data command sections."
+  "Desktop Tools should present compact Selection, Geometry, and Data command sections."
 );
 assert.match(
   legacyHtml,
@@ -59,7 +59,7 @@ assert.match(
 assert.match(
   legacyHtml,
   /class="advanced-gis-mobile-content"[\s\S]*?>Layer GeoJSON<[\s\S]*?>Selected<[\s\S]*?>Layer CSV<[\s\S]*?>All<[\s\S]*?>Visible<[\s\S]*?>By Field<[\s\S]*?>Cut Hole<[\s\S]*?>Offline Pack</,
-  "The existing mobile Advanced GIS grid and labels should remain available."
+  "The existing mobile Tools grid and labels should remain available."
 );
 assert.match(
   legacyHtml,
@@ -74,7 +74,7 @@ assert.match(
 assert.match(
   legacyHtml,
   /#advancedGisPanel \{[\s\S]*?width:\s*min\(318px,[\s\S]*?overflow:\s*hidden;[\s\S]*?#advancedGisPanel \.advanced-gis-desktop-content \{[\s\S]*?overflow-y:\s*auto;/,
-  "The desktop Advanced GIS inspector should be compact with a fixed header and scrollable command area."
+  "The desktop Tools inspector should be compact with a fixed header and scrollable command area."
 );
 assert.match(
   legacyHtml,
