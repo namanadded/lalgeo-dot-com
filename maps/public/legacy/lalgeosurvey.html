@@ -15062,16 +15062,27 @@
             renderQuickActionButtons();
         }
 
-        function setActiveProject(project, { render = true, preserveRegion = false, refreshApi = true } = {}) {
+        function setActiveProject(project, {
+            render = true,
+            preserveRegion = false,
+            refreshApi = true,
+            preserveSelection = false
+        } = {}) {
             if (localAutosaveTimer) {
                 clearTimeout(localAutosaveTimer);
                 localAutosaveTimer = null;
             }
+            const retainedSelection = preserveSelection
+                ? new Set(selectedTableRows)
+                : new Set();
             activeProjectRecord = project || null;
             activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
-            selectedTableRows = new Set();
-            lastSelectedTableRow = null;
+            selectedTableRows = retainedSelection;
+            lastSelectedTableRow = retainedSelection.size ? Math.max(...retainedSelection) : null;
             tableRowFilterMode = "all";
+            activeFeatureId = null;
+            activeSurveyAnnotation = null;
+            closeFeatureDrawer();
             if (activeProjectRecord) {
                 activeProjectRecord.mapOptions = {
                     showBasemapPOIs: true,
@@ -17128,7 +17139,10 @@
             }
             markActiveProjectUpdated();
             scheduleLocalAutosave();
-            setActiveProject(activeProjectRecord, { preserveRegion: true });
+            setActiveProject(activeProjectRecord, {
+                preserveRegion: true,
+                preserveSelection: true
+            });
             updateSurveyTable();
             updateAdvancedGisPanelState();
             setProjectStatus(message, "success");
