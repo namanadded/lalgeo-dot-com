@@ -5,6 +5,8 @@ import { readFileSync } from "node:fs";
 const DEVTOOLS = "http://127.0.0.1:9223";
 const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/render/lalgeosurvey";
 const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
+const complexGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-geometry-collection.geojson", import.meta.url), "utf8"));
+const malformedGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-geometry-collection.geojson", import.meta.url), "utf8"));
 const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
 const complexStyledKml = readFileSync(new URL("../fixtures/interoperability/complex-styled-multigeometry.kml", import.meta.url), "utf8");
 const malformedKmlCoordinate = readFileSync(new URL("../fixtures/interoperability/malformed-kml-coordinate.kml", import.meta.url), "utf8");
@@ -256,6 +258,28 @@ try {
     assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "point" && layer.features[0].attributes.asset === "A"), "GeoJSON properties become layer fields");
     assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "polygon" && layer.features[0].geometry.type === "Polygon"), "GeoJSON polygon imports as polygon geometry");
 
+    const collectionPayload = buildGeoJsonPayload(${JSON.stringify(complexGeometryCollection)}, {
+      projectName: "Complex collection",
+      fileName: "complex-geometry-collection.geojson",
+      format: "GeoJSON"
+    });
+    const collectionPointLayer = collectionPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const collectionLineLayer = collectionPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const collectionPolygonLayer = collectionPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(collectionPointLayer.features.length === 2 && collectionLineLayer.features.length === 2 && collectionPolygonLayer.features.length === 2, "GeoJSON GeometryCollection imports every multipart geometry");
+    assert(collectionPointLayer.features[0].attributes.name === "Réseau Montréal α" && collectionPointLayer.features[0].attributes.nullable_note === null, "GeoJSON GeometryCollection preserves Unicode and null attributes across parts");
+    assert(collectionLineLayer.features[1].attributes.field_12 === "A12", "GeoJSON GeometryCollection preserves large field sets across multipart lines");
+    assert(collectionPolygonLayer.features[0].geometry.rings.length === 2, "GeoJSON MultiPolygon preserves polygon holes");
+    const collectionRoundTrip = buildGeoJsonPayload(layerToGeoJson(collectionPolygonLayer), { format: "GeoJSON round trip" });
+    assert(collectionRoundTrip.geospatialLayers[0].features.length === 2 && collectionRoundTrip.geospatialLayers[0].features[0].geometry.rings.length === 2, "GeoJSON multipart import-export-import preserves polygons and holes");
+    let malformedCollectionMessage = "";
+    try {
+      buildGeoJsonPayload(${JSON.stringify(malformedGeometryCollection)}, { format: "GeoJSON" });
+    } catch (error) {
+      malformedCollectionMessage = error.message || "";
+    }
+    assert(malformedCollectionMessage === "GeoJSON feature 1 could not be imported: geometry GeometryCollection member 1 LineString coordinate 2 is invalid. Use [longitude, latitude] values in WGS84.", "GeoJSON rejects an invalid collection coordinate instead of bridging valid vertices");
+
     const polygonHolesPayload = buildGeoJsonPayload(${JSON.stringify(polygonHolesGeoJson)}, {
       projectName: "Polygon holes",
       fileName: "polygon-holes.geojson",
@@ -367,7 +391,7 @@ try {
     } catch (error) {
       malformedPolygonMessage = error.message;
     }
-    assert(malformedPolygonMessage === "GeoJSON feature 1 could not be imported: Polygon outer ring contains an invalid longitude or latitude.", "malformed GeoJSON reports the feature and invalid ring");
+    assert(malformedPolygonMessage === "GeoJSON feature 1 could not be imported: Polygon outer ring coordinate 3 is invalid. Use [longitude, latitude] values in WGS84.", "malformed GeoJSON reports the feature and exact invalid ring coordinate");
 
     const kmlPayload = buildGeoJsonPayload(parseKmlText('<kml><Document><Placemark><name>Building</name><Polygon><outerBoundaryIs><LinearRing><coordinates>-114,51 -113.999,51 -113.999,51.001 -114,51</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>'), {
       projectName: "KML GIS",

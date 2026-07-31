@@ -1,0 +1,43 @@
+{
+  "type": "FeatureCollection",
+  "name": "Complex Geometry Collection Été 🌲",
+  "features": [{
+    "type": "Feature",
+    "properties": {
+      "name": "Réseau Montréal α",
+      "inspected_at": "2026-07-31T08:15:00-06:00",
+      "nullable_note": null,
+      "field_01": "A01", "field_02": "A02", "field_03": "A03", "field_04": "A04",
+      "field_05": "A05", "field_06": "A06", "field_07": "A07", "field_08": "A08",
+      "field_09": "A09", "field_10": "A10", "field_11": "A11", "field_12": "A12"
+    },
+    "geometry": {
+      "type": "GeometryCollection",
+      "geometries": [
+        {
+          "type": "MultiPoint",
+          "coordinates": [[-114.0719, 51.0447], [-73.5673, 45.5019]]
+        },
+        {
+          "type": "MultiLineString",
+          "coordinates": [
+            [[-114.08, 51.04], [-114.07, 51.05]],
+            [[-73.58, 45.49], [-73.56, 45.51]]
+          ]
+        },
+        {
+          "type": "MultiPolygon",
+          "coordinates": [
+            [
+              [[-114.09, 51.03], [-114.05, 51.03], [-114.05, 51.06], [-114.09, 51.03]],
+              [[-114.075, 51.04], [-114.065, 51.04], [-114.07, 51.048], [-114.075, 51.04]]
+            ],
+            [
+              [[-73.59, 45.49], [-73.54, 45.49], [-73.54, 45.52], [-73.59, 45.49]]
+            ]
+          ]
+        }
+      ]
+    }
+  }]
+}
