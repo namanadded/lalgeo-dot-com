@@ -539,9 +539,76 @@
         display: block;
     }
     #mobileLocationBtn,
-    #mobileSelectMenu,
     .mobile-add-only {
         display: none;
+    }
+    #mobileSelectMenu {
+        position: relative;
+        display: block;
+    }
+    #mobileBoxSelectionOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1110;
+        cursor: crosshair;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    #mobileBoxSelectionOverlay[hidden] {
+        display: none;
+    }
+    #mobileBoxSelectionRect {
+        position: absolute;
+        min-width: 1px;
+        min-height: 1px;
+        border: 2px solid rgba(13, 148, 136, 0.92);
+        border-radius: 5px;
+        background: rgba(45, 212, 191, 0.16);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72);
+        pointer-events: none;
+    }
+    #mobileBoxSelectionRect[hidden] {
+        display: none;
+    }
+    .mobile-box-selection-hud {
+        position: absolute;
+        left: 50%;
+        bottom: 34px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        padding: 4px 5px 4px 14px;
+        border: 1px solid var(--mobile-tool-border, var(--map-ui-border, rgba(209, 213, 219, 0.62)));
+        border-radius: 14px;
+        background: var(--mobile-tool-surface, var(--map-ui-surface, rgba(255, 255, 255, 0.94)));
+        color: var(--map-ui-text, #344054);
+        box-shadow: var(--mobile-tool-shadow, var(--map-ui-elevation, 0 10px 28px rgba(15, 23, 42, 0.14)));
+        backdrop-filter: blur(18px) saturate(145%);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        transform: translateX(-50%);
+    }
+    .mobile-box-selection-hud button {
+        min-width: 64px;
+        min-height: 36px;
+        padding: 0 11px;
+        border: 0;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.065);
+        color: #475467;
+        font: inherit;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+    .mobile-box-selection-hud button:hover {
+        background: rgba(15, 23, 42, 0.09);
+    }
+    .mobile-box-selection-hud button:active {
+        background: rgba(15, 23, 42, 0.12);
     }
     body.survey-table-open #layersMapBtn,
     body.survey-table-open #lookAroundPreview,
@@ -6504,6 +6571,7 @@
             box-shadow: none;
         }
         #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #mobileSelectBtn .quick-action-label,
         #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
@@ -6550,6 +6618,69 @@
         #toolbar .toolbar-more-menu {
             position: relative;
             display: inline-flex;
+        }
+        #toolbar #mobileSelectMenu {
+            position: relative;
+            display: inline-flex;
+        }
+        #toolbar #mobileSelectPopover {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            z-index: 1450;
+            box-sizing: border-box;
+            width: 208px;
+            display: grid;
+            gap: 2px;
+            padding: 6px;
+            border: 1px solid rgba(209, 213, 219, 0.5);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+            transform-origin: top left;
+            animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+        }
+        #toolbar #mobileSelectPopover[hidden] {
+            display: none;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-help {
+            padding: 5px 8px 6px;
+            color: #7b8490;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #4b5563;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item:hover:not(:disabled),
+        #toolbar #mobileSelectPopover .mobile-select-item:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.06);
+            color: #1f2937;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item:disabled {
+            opacity: 0.48;
+            cursor: default;
+        }
+        .mobile-box-selection-hud {
+            top: 96px;
+            bottom: auto;
         }
         #toolbar .toolbar-more-popover {
             position: absolute;
@@ -7535,6 +7666,7 @@
             flex-basis: var(--map-ui-icon-size);
         }
         #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #mobileSelectBtn .quick-action-label,
         #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
@@ -8906,65 +9038,9 @@
         #addActionPopover .add-action-menu-item:active {
             background: rgba(15, 23, 42, 0.075);
         }
-        #mobileBoxSelectionOverlay {
-            position: fixed;
-            inset: 0;
-            z-index: 1110;
-            cursor: crosshair;
-            touch-action: none;
-            -webkit-user-select: none;
-            user-select: none;
-        }
-        #mobileBoxSelectionOverlay[hidden] {
-            display: none;
-        }
-        #mobileBoxSelectionRect {
-            position: absolute;
-            min-width: 1px;
-            min-height: 1px;
-            border: 2px solid rgba(13, 148, 136, 0.92);
-            border-radius: 5px;
-            background: rgba(45, 212, 191, 0.16);
-            box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72);
-            pointer-events: none;
-        }
-        #mobileBoxSelectionRect[hidden] {
-            display: none;
-        }
         .mobile-box-selection-hud {
-            position: absolute;
-            left: 50%;
+            top: auto;
             bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 12px);
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            min-height: 42px;
-            padding: 4px 5px 4px 14px;
-            border: 1px solid var(--mobile-tool-border);
-            border-radius: 14px;
-            background: var(--mobile-tool-surface);
-            color: #344054;
-            box-shadow: var(--mobile-tool-shadow);
-            backdrop-filter: blur(18px) saturate(145%);
-            -webkit-backdrop-filter: blur(18px) saturate(145%);
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
-            transform: translateX(-50%);
-        }
-        .mobile-box-selection-hud button {
-            min-width: 64px;
-            min-height: 36px;
-            padding: 0 11px;
-            border: 0;
-            border-radius: 10px;
-            background: rgba(15, 23, 42, 0.065);
-            color: #475467;
-            font: inherit;
-            touch-action: manipulation;
-        }
-        .mobile-box-selection-hud button:active {
-            background: rgba(15, 23, 42, 0.12);
         }
         #addActionPopover .add-action-popover-title {
             padding: 7px 10px 5px;
@@ -9958,7 +10034,7 @@
                             <span class="quick-action-label">Select</span>
                         </button>
                         <div id="mobileSelectPopover" class="mobile-select-popover" role="menu" aria-label="Selection tools" hidden>
-                            <div class="mobile-select-help">Tap features or drag a box to select them.</div>
+                            <div class="mobile-select-help">Click or tap features, or drag a box to select them.</div>
                             <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="box-select">Box Select</button>
                             <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-all">Select All</button>
                             <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-visible">Select Visible</button>
@@ -14626,7 +14702,7 @@
 
         function setMobileSelectPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
             if (!mobileSelectBtn || !mobileSelectPopover) return;
-            const visible = Boolean(show) && !isDesktopDrawFlow();
+            const visible = Boolean(show);
             mobileSelectPopover.hidden = !visible;
             mobileSelectBtn.setAttribute("aria-expanded", visible ? "true" : "false");
             if (visible) {
@@ -14639,7 +14715,7 @@
         }
 
         function setMobileSelectionMode(active, { openMenu = false } = {}) {
-            const nextActive = Boolean(active) && !isDesktopDrawFlow();
+            const nextActive = Boolean(active);
             if (!nextActive && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
             if (nextActive) {
                 if (measurementActive) setMeasurementActive(false);
@@ -14673,7 +14749,6 @@
             const layer = getActiveLayerRecord();
             const nextActive = (
                 Boolean(active)
-                && !isDesktopDrawFlow()
                 && Boolean(layer?.features?.length)
                 && isLayerSelectable(layer)
             );
@@ -14851,6 +14926,7 @@
                 setProjectStatus(`Add an editable ${geometryType} layer before drawing.`, "error");
                 return;
             }
+            setMobileSelectionMode(false);
             if (measurementActive) setMeasurementActive(false);
             if (targetLayer.id !== activeLayerId) switchToLayer(targetLayer.id, { revealTable: false });
             if (!editSessionActive) setEditSessionActive(true, { layerId: targetLayer.id });
@@ -19070,7 +19146,7 @@
             }
             if (!mobileSelectionMode) {
                 setMobileSelectionMode(true, { openMenu: true });
-                setProjectStatus("Selection mode active. Tap features to add or remove them from the selection.", "success");
+                setProjectStatus("Selection mode active. Click or tap features to add or remove them.", "success");
             } else {
                 setMobileSelectPopoverVisibility(mobileSelectPopover?.hidden !== false);
             }
@@ -25198,7 +25274,7 @@
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
-                if (mobileSelectionMode && !isDesktopDrawFlow()) {
+                if (mobileSelectionMode) {
                     setTableRowSelection(annotation.surveyPoint.rowIndex, { ctrlKey: true });
                 } else {
                     syncMapFeatureToTableSelection(annotation.surveyPoint.rowIndex);

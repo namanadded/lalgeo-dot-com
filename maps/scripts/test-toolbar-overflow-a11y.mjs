@@ -343,8 +343,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #addSurveyPointBtn \.quick-action-label,[\s\S]*?#toolbar #toolbarMoreBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
-  "Draw, Add, Locate, Layers, and More should retain icon-and-text presentation.",
+  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #mobileSelectBtn \.quick-action-label,[\s\S]*?#toolbar #addSurveyPointBtn \.quick-action-label,[\s\S]*?#toolbar #toolbarMoreBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
+  "Select, Draw, Add, Locate, Layers, and More should retain icon-and-text presentation.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar #mobileSelectMenu\s*{[\s\S]*?display:\s*inline-flex;[\s\S]*?#toolbar #mobileSelectPopover\s*{[\s\S]*?position:\s*absolute;[\s\S]*?width:\s*208px;/,
+  "Desktop should expose Select and its compact selection-tool popover.",
 );
 assert.match(
   legacyHtml,

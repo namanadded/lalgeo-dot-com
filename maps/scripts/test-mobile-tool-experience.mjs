@@ -101,13 +101,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function showSurveyCallout\(annotation,[\s\S]*?mobileSelectionMode && !isDesktopDrawFlow\(\)[\s\S]*?setTableRowSelection\(annotation\.surveyPoint\.rowIndex, \{ ctrlKey: true \}\)/,
-  "Select mode should add or remove map features through the existing multi-selection set.",
+  /function showSurveyCallout\(annotation,[\s\S]*?if \(mobileSelectionMode\)[\s\S]*?setTableRowSelection\(annotation\.surveyPoint\.rowIndex, \{ ctrlKey: true \}\)/,
+  "Select mode should add or remove map features through the shared multi-selection set.",
 );
 assert.match(
   legacyHtml,
   /data-select-tool="box-select">Box Select<[\s\S]*?id="mobileBoxSelectionOverlay"[^>]*aria-label="Box selection area"[^>]*hidden[\s\S]*?id="mobileBoxSelectionRect"[\s\S]*?id="mobileBoxSelectionCancelBtn"/,
-  "Select should expose a cancellable mobile box-selection surface.",
+  "Select should expose a cancellable box-selection surface.",
 );
 assert.match(
   legacyHtml,
@@ -117,7 +117,7 @@ assert.match(
 assert.match(
   legacyHtml,
   /mobileBoxSelectionOverlay\?\.addEventListener\("pointerdown"[\s\S]*?setPointerCapture[\s\S]*?addEventListener\("pointermove"[\s\S]*?normalizeMobileSelectionRect[\s\S]*?addEventListener\("pointerup", finishMobileBoxSelection\)/,
-  "Box Select should use a one-finger pointer drag with a visible selection rectangle.",
+  "Box Select should use a pointer drag with a visible selection rectangle.",
 );
 assert.match(
   legacyHtml,
