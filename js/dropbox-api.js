@@ -1,5 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
-import { collectCloudFiles, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
+import { collectCloudFiles, copyCloudRevisionSnapshot, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
 import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
@@ -370,19 +370,25 @@ export class LalGeoDropboxClient {
 
   async writeVersionSnapshot(path, rev) {
     try {
-      const download = await this.client.filesDownload({ path });
-      const result = download.result || download;
       const extension = path.split(".").pop() || "lal";
-      const baseName = slugify(result.name?.replace(/\.lal$/i, "") || "layer");
+      const baseName = slugify(path.split("/").pop()?.replace(/\.lal$/i, "") || "layer");
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       const versionPath = `${this.versionsPath}/${baseName}--${stamp}--${rev}.${extension}`;
-      const blob = result.fileBlob || result.fileBinary;
-      await this.client.filesUpload({
-        path: versionPath,
-        contents: blob,
-        mode: { ".tag": "add" },
-        autorename: true,
-        mute: true,
+      await copyCloudRevisionSnapshot({
+        copyRevision: async ({ destinationPath, revision }) => {
+          const response = await this.client.filesCopyV2({
+            from_path: `rev:${revision}`,
+            to_path: destinationPath,
+            autorename: true,
+          });
+          return response.result || response;
+        },
+      }, {
+        sourcePath: path,
+        destinationPath: versionPath,
+        revision: rev,
+      }, {
+        provider: "dropbox",
       });
     } catch {
       // Version snapshots are best-effort; save should still continue.

@@ -186,6 +186,9 @@ jobs:
       - name: Benchmark verified cloud downloads
         working-directory: maps
         run: npm run benchmark:cloud-download
+      - name: Benchmark server-side cloud revision snapshots
+        working-directory: maps
+        run: npm run benchmark:cloud-snapshot
       - name: Benchmark large LalGeo imports
         working-directory: maps
         run: npm run benchmark:lal-import

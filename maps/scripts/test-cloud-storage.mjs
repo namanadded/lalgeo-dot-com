@@ -55,6 +55,40 @@ assert.match(dropboxSource, /downloadBlobVerified\(/);
 assert.match(dropboxSource, /computeDropboxContentHash\(blob\) === file\.content_hash/,
   "Dropbox opens must verify the provider content hash");
 
+const snapshotCalls = [];
+const snapshot = await cloud.copyCloudRevisionSnapshot({
+  async copyRevision(request) {
+    snapshotCalls.push(request);
+    return { rev: "snapshot-rev", path: request.destinationPath };
+  },
+}, {
+  sourcePath: "/safe-test/project.lal",
+  destinationPath: "/safe-test/_versions/project--rev-1.lal",
+  revision: "rev-1",
+}, { provider: "mock" });
+assert.equal(snapshot.rev, "snapshot-rev");
+assert.deepEqual(snapshotCalls, [{
+  sourcePath: "/safe-test/project.lal",
+  destinationPath: "/safe-test/_versions/project--rev-1.lal",
+  revision: "rev-1",
+}]);
+await assert.rejects(
+  cloud.copyCloudRevisionSnapshot({ async copyRevision() { return null; } }, {
+    sourcePath: "/safe-test/project.lal",
+    destinationPath: "/safe-test/_versions/project.lal",
+    revision: "rev-stale",
+  }, { provider: "mock" }),
+  (error) => error.code === "integrity" && !error.retryable,
+  "an unconfirmed server-side snapshot fails closed",
+);
+assert.match(dropboxSource, /filesCopyV2\(\{/,
+  "Dropbox version history must use a server-side copy");
+assert.match(dropboxSource, /from_path:\s*`rev:\$\{revision\}`/,
+  "Dropbox snapshots must address the immutable expected revision");
+const snapshotMethod = dropboxSource.match(/async writeVersionSnapshot[\s\S]*?\n  }/)?.[0] || "";
+assert.doesNotMatch(snapshotMethod, /filesDownload|filesUpload/,
+  "version history must not round-trip project bytes through the browser");
+
 const bytes = new Uint8Array(2_500_000).map((_, index) => index % 251);
 const blob = new Blob([bytes]);
 let remote = new Uint8Array(0);
