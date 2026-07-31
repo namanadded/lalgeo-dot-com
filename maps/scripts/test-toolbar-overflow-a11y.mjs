@@ -181,8 +181,8 @@ assertAttribute(moreButton, "aria-controls", "toolbarMorePopover", "More must id
 assertAttribute(moreButton, "aria-expanded", "false", "More must default to its collapsed state.");
 assert.match(
   mapGroup,
-  /id="toolbarMorePopover"[^>]*role="menu"[\s\S]*?id="toolbarMoreBasemapItem"[^>]*data-toolbar-target="toolbarBasemapBtn"[\s\S]*?<span>Basemap<\/span>[\s\S]*?id="toolbarMoreMeasureItem"[^>]*data-toolbar-target="measureToolBtn"[\s\S]*?<span>Measure<\/span>[\s\S]*?id="toolbarMoreGisItem"[^>]*data-toolbar-target="advancedGisBtn"[\s\S]*?<span>Advanced GIS<\/span>/,
-  "More popover should expose Basemap, Measure, and Advanced GIS using the existing controls as targets.",
+  /id="toolbarMorePopover"[^>]*role="menu"[\s\S]*?id="toolbarMoreBasemapItem"[^>]*data-toolbar-target="toolbarBasemapBtn"[\s\S]*?<span>Basemap<\/span>[\s\S]*?id="toolbarMoreMeasureItem"[^>]*data-toolbar-target="measureToolBtn"[\s\S]*?<span>Measure<\/span>[\s\S]*?id="toolbarMoreGisItem"[^>]*data-toolbar-target="advancedGisBtn"[\s\S]*?<span>Tools<\/span>/,
+  "More popover should expose Basemap, Measure, and Tools using the existing controls as targets.",
 );
 assert.match(
   legacyHtml,
@@ -227,8 +227,8 @@ assert.match(
 assertAttribute(
   advancedGisButton,
   "aria-label",
-  "Open advanced GIS tools",
-  "Renaming GIS to Tools must preserve the existing accessible description.",
+  "Open tools",
+  "Renaming Advanced GIS to Tools must update the accessible description.",
 );
 assert.match(
   toolsGroup,
