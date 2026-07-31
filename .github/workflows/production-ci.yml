@@ -54,6 +54,10 @@ jobs:
         working-directory: maps
         run: npm run test:basemap-journey
 
+      - name: Check mobile selection inspector layout
+        working-directory: maps
+        run: npm run test:mobile-selection-inspector-layout
+
       - name: Check maps mobile search input hints
         working-directory: maps
         run: npm run test:search-input-mobile
@@ -164,6 +168,10 @@ jobs:
       - name: Check KML coordinate, attribute, and style integrity
         working-directory: maps
         run: npm run test:kml-integrity
+
+      - name: Check GeoJSON coordinate and collection integrity
+        working-directory: maps
+        run: npm run test:geojson-integrity
 
       - name: Check local workspace persistence recovery
         working-directory: maps
