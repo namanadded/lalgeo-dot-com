@@ -21,6 +21,11 @@ assert.match(
 );
 assert.match(
   source,
+  /function openCustomBasemapSettings\(\)[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?closeFeatureDrawer\(\)[\s\S]*?setSettingsPanelVisibility\(true\)[\s\S]*?customBasemapUrlInput\?\.focus\(\)/,
+  "Opening the editor should close overlapping feature details before focusing the tile URL.",
+);
+assert.match(
+  source,
   /function normalizeCustomBasemapTileUrl\(value\)[\s\S]*?\{z\\\}[\s\S]*?\{x\\\}[\s\S]*?\{y\\\}[\s\S]*?\/MapServer[\s\S]*?\/tile\/\{z\}\/\{y\}\/\{x\}/,
   "Custom basemaps should accept XYZ templates and normalize ArcGIS MapServer URLs.",
 );
@@ -28,6 +33,26 @@ assert.match(
   source,
   /function normalizeHttpsUrl\(value, fieldLabel\)[\s\S]*?parsed\.protocol !== "https:"[\s\S]*?parsed\.username = ""[\s\S]*?parsed\.password = ""/,
   "Remote tile and attribution URLs should require HTTPS and discard embedded credentials.",
+);
+assert.match(
+  source,
+  /id="customBasemapUrlInput"[^>]*required[^>]*aria-describedby="customBasemapUrlHint customBasemapUrlError"[\s\S]*?id="customBasemapUrlError"[^>]*role="alert"[^>]*hidden/,
+  "The required tile URL should expose durable help and a field-local alert.",
+);
+assert.match(
+  source,
+  /function setCustomBasemapFieldError\(input, errorElement, message = ""\)[\s\S]*?aria-invalid[\s\S]*?errorElement\.hidden = !hasError[\s\S]*?function clearCustomBasemapFieldErrors/,
+  "Custom-basemap validation should synchronize visible and accessible error state.",
+);
+assert.match(
+  source,
+  /normalizeCustomBasemapTileUrl\(sourceUrl\)[\s\S]*?setCustomBasemapFieldError\(customBasemapUrlInput, customBasemapUrlError, message\)[\s\S]*?customBasemapUrlInput\?\.focus\(\)[\s\S]*?normalizeHttpsUrl\(attributionUrlValue, "Attribution link"\)[\s\S]*?setCustomBasemapFieldError\(customBasemapAttributionUrlInput, customBasemapAttributionUrlError, message\)[\s\S]*?customBasemapAttributionUrlInput\?\.focus\(\)/,
+  "Each invalid URL should be explained at, and return focus to, the responsible field.",
+);
+assert.match(
+  source,
+  /customBasemapUrlInput\?\.addEventListener\("input"[\s\S]*?setCustomBasemapFieldError\(customBasemapUrlInput, customBasemapUrlError\)[\s\S]*?customBasemapAttributionUrlInput\?\.addEventListener\("input"/,
+  "Editing an invalid custom-basemap URL should clear stale field error state.",
 );
 assert.match(
   source,
