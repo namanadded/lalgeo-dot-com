@@ -7596,9 +7596,9 @@
         }
         #toolbarMenuTray[data-active-menu="basemap"] {
             box-sizing: border-box;
-            width: 188px;
-            min-width: 188px;
-            max-width: 188px;
+            width: 260px;
+            min-width: 260px;
+            max-width: 260px;
             gap: 0;
             padding: 6px;
             border-radius: 12px;
@@ -7620,6 +7620,32 @@
             font-size: 13px;
             font-weight: 700;
             letter-spacing: -0.01em;
+        }
+        .basemap-popover-helper {
+            display: none;
+        }
+        .basemap-menu-content,
+        #desktopBasemapMenu .basemap-menu-copy {
+            min-width: 0;
+        }
+        #desktopBasemapMenu .basemap-menu-copy {
+            display: grid;
+            gap: 1px;
+        }
+        #desktopBasemapMenu .basemap-menu-name {
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        #desktopBasemapMenu .basemap-menu-description {
+            display: block;
+            overflow: hidden;
+            color: #8b949e;
+            font-size: 10.5px;
+            font-weight: 450;
+            line-height: 1.25;
+            text-overflow: ellipsis;
+            white-space: nowrap;
         }
         .basemap-menu-section {
             display: grid;
@@ -7644,8 +7670,8 @@
             align-items: center;
             justify-content: initial;
             gap: 5px;
-            min-height: 30px;
-            padding: 0 7px;
+            min-height: 44px;
+            padding: 6px 7px;
             border: 0;
             border-radius: 7px;
             background: transparent;
@@ -7853,6 +7879,8 @@
         }
         #desktopBasemapMenu .basemap-menu-item {
             grid-template-columns: var(--map-ui-icon-size) minmax(0, 1fr);
+            min-height: 44px;
+            padding: 6px var(--map-ui-space-4);
         }
         #desktopBasemapMenu .basemap-menu-check {
             width: var(--map-ui-icon-size);
@@ -9866,12 +9894,16 @@
         }
 
         #toolbarMenuTray[data-active-menu="basemap"] {
-            max-height: min(52dvh, 430px);
+            min-width: 0 !important;
+            max-width: none !important;
+            max-height: min(62dvh, 520px);
             padding: 2px var(--mobile-sheet-inline) calc(var(--mobile-map-chrome-clearance) + 12px + env(safe-area-inset-bottom, 0px));
-            overflow-y: auto;
+            overflow: hidden;
         }
         #toolbarMenuTray[data-active-menu="basemap"] #desktopBasemapMenu {
-            display: block;
+            display: flex;
+            min-height: 0;
+            flex-direction: column;
         }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-popover-header {
             min-height: var(--mobile-sheet-header-height);
@@ -9886,6 +9918,19 @@
             font-size: 17px;
             font-weight: 650;
         }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-popover-helper {
+            display: block;
+            margin: -1px 48px 8px 0;
+            color: #667085;
+            font-size: 13px;
+            line-height: 1.35;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-content {
+            min-height: 0;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-mobile-close {
             display: inline-flex;
             align-items: center;
@@ -9899,11 +9944,11 @@
         }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item {
             display: grid;
-            min-height: var(--mobile-sheet-row-height);
+            min-height: 52px;
             grid-template-columns: 22px minmax(0, 1fr);
             gap: 8px;
             width: 100%;
-            padding: 0 4px;
+            padding: 6px 4px;
             border: 0;
             border-radius: 10px;
             background: transparent;
@@ -9911,6 +9956,38 @@
             font-size: 14px;
             justify-content: stretch;
             text-align: left;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-copy {
+            gap: 2px;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-name {
+            color: #374151;
+            font-size: 14px;
+            font-weight: 600;
+            line-height: 1.25;
+            white-space: normal;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-description {
+            display: block;
+            color: #8b949e;
+            font-size: 12px;
+            font-weight: 450;
+            line-height: 1.3;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item:disabled .basemap-menu-description {
+            color: #667085;
+            opacity: 1;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item[data-disabled-reason]::after {
+            display: none !important;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item:disabled .basemap-menu-description {
+            font-size: 0;
+        }
+        #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-item:disabled .basemap-menu-description::after {
+            content: "Create or open a project first";
+            color: #667085;
+            font-size: 12px;
         }
         #toolbarMenuTray[data-active-menu="basemap"] .basemap-menu-check {
             width: 22px;
@@ -10730,28 +10807,30 @@
             </div>
             <button id="menuMyLocationBtn" type="button" class="menu-command"><span>My Location</span><span class="menu-shortcut" data-shortcut="myLocation"></span></button>
         </div>
-        <div id="desktopBasemapMenu" class="menu-dropdown-section basemap-menu-pane" data-menu-pane="basemap" role="menu" aria-label="Basemap" hidden>
+        <div id="desktopBasemapMenu" class="menu-dropdown-section basemap-menu-pane" data-menu-pane="basemap" role="menu" aria-labelledby="basemapPopoverTitle" aria-describedby="basemapPopoverHelper" hidden>
             <div class="basemap-popover-header">
-                <div class="basemap-popover-title">Basemap</div>
+                <div id="basemapPopoverTitle" class="basemap-popover-title">Basemap</div>
                 <button id="mobileBasemapCloseBtn" type="button" class="basemap-mobile-close" aria-label="Close basemap">×</button>
             </div>
+            <p id="basemapPopoverHelper" class="basemap-popover-helper">Choose the map background. Changes apply immediately.</p>
+            <div class="basemap-menu-content">
             <div id="desktopBasemapStyleList" class="basemap-menu-section" role="group" aria-label="Map style">
                 <div class="basemap-menu-section-label">Map style</div>
-                <button type="button" class="menu-command basemap-menu-item" data-map-type="standard" role="menuitemradio" aria-checked="false">
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="standard" role="menuitemradio" aria-checked="false" aria-describedby="basemapStandardDescription">
                     <span class="basemap-menu-check" aria-hidden="true">✓</span>
-                    <span>Standard</span>
+                    <span class="basemap-menu-copy"><span class="basemap-menu-name">Standard</span><span id="basemapStandardDescription" class="basemap-menu-description">Roads, places, and boundaries</span></span>
                 </button>
-                <button type="button" class="menu-command basemap-menu-item" data-map-type="satellite" role="menuitemradio" aria-checked="false">
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="satellite" role="menuitemradio" aria-checked="false" aria-describedby="basemapSatelliteDescription">
                     <span class="basemap-menu-check" aria-hidden="true">✓</span>
-                    <span>Satellite</span>
+                    <span class="basemap-menu-copy"><span class="basemap-menu-name">Satellite</span><span id="basemapSatelliteDescription" class="basemap-menu-description">Aerial imagery without labels</span></span>
                 </button>
-                <button type="button" class="menu-command basemap-menu-item" data-map-type="hybrid" role="menuitemradio" aria-checked="false">
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="hybrid" role="menuitemradio" aria-checked="false" aria-describedby="basemapHybridDescription">
                     <span class="basemap-menu-check" aria-hidden="true">✓</span>
-                    <span>Hybrid</span>
+                    <span class="basemap-menu-copy"><span class="basemap-menu-name">Hybrid</span><span id="basemapHybridDescription" class="basemap-menu-description">Aerial imagery with map labels</span></span>
                 </button>
-                <button type="button" class="menu-command basemap-menu-item" data-map-type="custom" data-custom-basemap-choice role="menuitemradio" aria-checked="false">
+                <button type="button" class="menu-command basemap-menu-item" data-map-type="custom" data-custom-basemap-choice role="menuitemradio" aria-checked="false" aria-describedby="basemapCustomDescription">
                     <span class="basemap-menu-check" aria-hidden="true">✓</span>
-                    <span data-custom-basemap-label>Custom…</span>
+                    <span class="basemap-menu-copy"><span class="basemap-menu-name" data-custom-basemap-label>Custom…</span><span id="basemapCustomDescription" class="basemap-menu-description">Your saved imagery service</span></span>
                 </button>
                 <label class="custom-basemap-opacity" data-custom-basemap-opacity-control hidden>
                     <span>Imagery opacity</span>
@@ -10760,10 +10839,11 @@
             </div>
             <div class="basemap-menu-section" role="group" aria-label="Map details">
                 <div class="basemap-menu-section-label">Map details</div>
-                <button id="desktopBasemapPoisBtn" type="button" class="menu-command basemap-menu-item" data-basemap-pois-proxy role="menuitemcheckbox" aria-checked="true">
+                <button id="desktopBasemapPoisBtn" type="button" class="menu-command basemap-menu-item" data-basemap-pois-proxy role="menuitemcheckbox" aria-checked="true" aria-describedby="basemapPoisDescription">
                     <span class="basemap-menu-check" aria-hidden="true">✓</span>
-                    <span>Points of Interest</span>
+                    <span class="basemap-menu-copy"><span class="basemap-menu-name">Points of Interest</span><span id="basemapPoisDescription" class="basemap-menu-description">Show parks, landmarks, and businesses</span></span>
                 </button>
+            </div>
             </div>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="history" hidden></div>
@@ -14389,6 +14469,11 @@
                 const text = config?.name || "Custom…";
                 if (label) label.textContent = text;
                 else choice.textContent = text;
+            });
+            document.querySelectorAll("[data-custom-basemap-description]").forEach((description) => {
+                description.textContent = activeProjectRecord
+                    ? (config ? "Your saved imagery service" : "Connect an imagery or tile service")
+                    : "Create or open a project first";
             });
             document.querySelectorAll("[data-custom-basemap-option]").forEach((option) => {
                 option.hidden = !config;
