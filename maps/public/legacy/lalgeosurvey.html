@@ -8950,6 +8950,231 @@
             right: auto;
             transform: translateX(-50%);
         }
+
+        /* Keep the desktop map chrome aligned with the four-action mobile model. */
+        #toolbar #leftToolbarExpand,
+        #toolbar #toolbarMenuCommands,
+        #toolbar #editPanelToggleBtn,
+        #toolbar .toolbar-history-group,
+        #toolbar #myLocationBtn {
+            display: none !important;
+        }
+        #toolbar .brand-menu-btn {
+            width: 72px;
+            min-width: 72px;
+            flex-basis: 72px;
+            flex-direction: column;
+            gap: 0;
+        }
+        #toolbar .brand-menu-chevron {
+            display: block;
+            width: 9px;
+            height: 6px;
+            margin-top: -4px;
+            color: rgba(107, 114, 128, 0.72);
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            pointer-events: none;
+            transition: transform var(--toolbar-motion-fast, 120ms) var(--toolbar-motion-ease, ease);
+        }
+        #toolbar .brand-menu-btn[aria-expanded="true"] .brand-menu-chevron {
+            transform: rotate(180deg);
+        }
+        #toolbar .toolbar-quick-actions {
+            gap: 2px;
+            padding: 4px 6px;
+        }
+        #toolbar .toolbar-action-group,
+        #toolbar .toolbar-action-group + .toolbar-action-group {
+            gap: 2px;
+            margin: 0;
+            padding: 0;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
+            display: none;
+        }
+        #toolbar #addSurveyPointBtn,
+        #toolbar #mobileSelectMenu,
+        #toolbar #toolbarLayersBtn,
+        #toolbar #toolbarMoreMenu {
+            flex: 0 0 auto;
+        }
+
+        /* The consolidated logo menu is compact on desktop but keeps mobile's sections. */
+        #toolbarMenuTray[data-active-menu="mobile"] {
+            box-sizing: border-box;
+            width: min(304px, calc(100vw - 20px));
+            min-width: 0;
+            max-width: 304px;
+            max-height: calc(100dvh - 54px);
+            padding: 6px;
+            overflow-x: hidden;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-pane {
+            display: grid;
+            gap: 5px;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-pane[hidden] {
+            display: none;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-group {
+            overflow: hidden;
+            border: 1px solid rgba(209, 213, 219, 0.45);
+            border-radius: 10px;
+            background: rgba(248, 250, 252, 0.66);
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-summary {
+            box-sizing: border-box;
+            min-height: 36px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 7px 10px;
+            color: #475467;
+            font-size: 12px;
+            font-weight: 700;
+            cursor: pointer;
+            list-style: none;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-summary::-webkit-details-marker {
+            display: none;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-summary::after {
+            content: "";
+            width: 6px;
+            height: 6px;
+            margin-right: 2px;
+            border-right: 1.5px solid #98a2b3;
+            border-bottom: 1.5px solid #98a2b3;
+            transform: rotate(45deg) translateY(-2px);
+            transition: transform 120ms ease;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-group[open] > .mobile-menu-summary {
+            border-bottom: 1px solid rgba(209, 213, 219, 0.42);
+            background: rgba(255, 255, 255, 0.62);
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-group[open] > .mobile-menu-summary::after {
+            transform: rotate(225deg) translate(-2px, -2px);
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-command {
+            min-height: 34px;
+            padding: 7px 10px;
+            border-radius: 0;
+            color: #475467;
+            font-size: 12px;
+            font-weight: 550;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-command + .mobile-menu-command,
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-map-type-picker {
+            border-top: 1px solid rgba(209, 213, 219, 0.42);
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-command:hover:not(:disabled),
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-command:focus-visible {
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-command:disabled {
+            opacity: 0.42;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-account-action {
+            margin-top: 4px;
+            color: #667085;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-menu-accessory {
+            color: #98a2b3;
+            font-size: 12px;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-map-type-picker {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 3px;
+            padding: 6px;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-map-type-picker button {
+            min-width: 0;
+            min-height: 32px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #667085;
+            font-size: 11px;
+            font-weight: 650;
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-map-type-picker button:hover:not(:disabled),
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-map-type-picker button:focus-visible {
+            background: rgba(15, 23, 42, 0.055);
+        }
+        #toolbarMenuTray[data-active-menu="mobile"] .mobile-map-type-picker button.active {
+            color: #344054;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+        }
+
+        /* Add owns geometry creation on desktop, just as it does on mobile. */
+        #addActionPopover {
+            width: 252px;
+        }
+        #addActionPopover .mobile-add-only {
+            display: flex;
+        }
+        #addActionPopover .mobile-add-geometry {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 3px;
+            padding-bottom: 5px;
+            border-bottom: 1px solid rgba(209, 213, 219, 0.5);
+        }
+        #addActionPopover .mobile-add-geometry .add-action-menu-item {
+            min-width: 0;
+            min-height: 52px;
+            flex-direction: column;
+            justify-content: center;
+            gap: 3px;
+            padding: 4px;
+            text-align: center;
+        }
+        #addActionPopover #addNewFeatureMenuBtn {
+            display: none;
+        }
+
+        /* Locate is a map control rather than a persistent workflow mode. */
+        #mobileLocationBtn {
+            position: absolute;
+            right: 18px;
+            bottom: 94px;
+            z-index: 1130;
+            width: 46px;
+            height: 46px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+            border: 1px solid rgba(203, 213, 225, 0.95);
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.96);
+            color: #6b7280;
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
+            backdrop-filter: blur(22px) saturate(150%);
+            -webkit-backdrop-filter: blur(22px) saturate(150%);
+            cursor: pointer;
+        }
+        #mobileLocationBtn svg {
+            width: 22px;
+            height: 22px;
+        }
+        #mobileLocationBtn:hover,
+        #mobileLocationBtn:focus-visible {
+            color: #475467;
+            background: #fff;
+        }
+        #mobileLocationBtn.active {
+            color: #0f766e;
+            background: rgba(15, 118, 110, 0.1);
+        }
     }
 
     .map-print-header {
@@ -10175,7 +10400,7 @@
 <body>
     <div id="toolbar">
         <div class="toolbar-left">
-            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LalGeo menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
+            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LalGeo menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="mobile">
                 <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
                 <svg class="brand-menu-chevron" viewBox="0 0 12 8" aria-hidden="true">
                     <path d="M2 2l4 4 4-4"></path>
@@ -13805,10 +14030,9 @@
 
         function renderQuickActionButtons() {
             const hasEditingSession = Boolean(activeProjectRecord && currentSurveyData);
-            const mobile = window.matchMedia("(max-width: 600px)").matches;
             Object.entries(QUICK_ACTION_BUTTONS).forEach(([key, button]) => {
                 if (!button) return;
-                const selected = quickActions.includes(key) || (mobile && key === "addNew");
+                const selected = key === "addNew" || quickActions.includes(key);
                 const available = getQuickActionAvailability(key, hasEditingSession);
                 button.hidden = !selected;
                 button.disabled = !available;
@@ -15192,9 +15416,13 @@
         }
 
         function positionDesktopDrawPanel() {
-            if (!isDesktopDrawFlow() || !editFloatingPanel || editFloatingPanel.hidden || !editPanelToggleBtn) return;
+            if (!isDesktopDrawFlow() || !editFloatingPanel || editFloatingPanel.hidden) return;
+            const anchorButton = editPanelToggleBtn?.getClientRects().length
+                ? editPanelToggleBtn
+                : addSurveyPointBtn;
+            if (!anchorButton) return;
             editFloatingPanel.classList.remove("docked");
-            const anchor = editPanelToggleBtn.getBoundingClientRect();
+            const anchor = anchorButton.getBoundingClientRect();
             const panel = editFloatingPanel.getBoundingClientRect();
             const left = Math.max(8, Math.min(anchor.left, window.innerWidth - panel.width - 8));
             editFloatingPanel.style.left = `${Math.round(left)}px`;
@@ -15209,14 +15437,16 @@
             const nextVisible = Boolean(show);
             if (nextVisible && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
             addActionPopover.hidden = !nextVisible;
-            addSurveyPointBtn.classList.toggle("active", nextVisible);
+            addSurveyPointBtn.classList.toggle("active", nextVisible || isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-expanded", nextVisible ? "true" : "false");
             if (nextVisible) {
                 setToolbarMoreVisibility(false);
                 setMobileSelectPopoverVisibility(false);
                 positionAddActionPopover();
                 if (focusFirst) {
-                    const firstItem = isDesktopDrawFlow() ? addNewFeatureMenuBtn : mobileAddGeometryButtons[0];
+                    const firstItem = mobileAddGeometryButtons.find((item) => !item.hidden && !item.disabled)
+                        || addImportDataMenuBtn
+                        || addLayerMenuBtn;
                     firstItem?.focus();
                 }
             } else if (restoreFocus) {
@@ -15542,6 +15772,8 @@
             renderEditPanelLayerOptions(layerId);
             editPanelToggleBtn?.classList.toggle("active", editSessionActive);
             editPanelToggleBtn?.setAttribute("aria-expanded", editSessionActive ? "true" : "false");
+            addSurveyPointBtn?.classList.toggle("active", isAddingSurveyPoint || addActionPopover?.hidden === false);
+            addSurveyPointBtn?.setAttribute("aria-pressed", isAddingSurveyPoint ? "true" : "false");
             editPanelPinBtn?.classList.toggle("active", editPanelPinned);
             if (editPanelPinBtn) {
                 editPanelPinBtn.textContent = editPanelPinned ? "⇤" : "⇥";
@@ -19642,10 +19874,12 @@
             setAddActionPopoverVisibility(true, { focusFirst: true });
         });
         addActionPopover?.addEventListener("keydown", (event) => {
-            const items = (isDesktopDrawFlow()
-                ? [addNewFeatureMenuBtn, addImportDataMenuBtn, addLayerMenuBtn]
-                : [...mobileAddGeometryButtons, addImportDataMenuBtn, addImportPhotosMenuBtn, addLayerMenuBtn]
-            ).filter((item) => item && !item.hidden && !item.disabled);
+            const items = [
+                ...mobileAddGeometryButtons,
+                addImportDataMenuBtn,
+                addImportPhotosMenuBtn,
+                addLayerMenuBtn
+            ].filter((item) => item && !item.hidden && !item.disabled);
             if (event.key === "Escape") {
                 event.preventDefault();
                 setAddActionPopoverVisibility(false, { restoreFocus: true });
@@ -20025,9 +20259,7 @@
         });
         [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn].forEach((button) => {
             button?.addEventListener("click", () => {
-                const menuKey = button === sidebarToggleBtn && window.matchMedia("(max-width: 600px)").matches
-                    ? "mobile"
-                    : button.dataset.menu;
+                const menuKey = button.dataset.menu;
                 if (!menuKey) return;
                 if (toolbarMenuVisible && toolbarMenuKey === menuKey) {
                     setToolbarMenuVisibility(false);

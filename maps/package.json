@@ -33,6 +33,7 @@
     "test:location-journey": "node scripts/test-location-journey.mjs",
     "test:editing-journey": "node scripts/test-editing-journey.mjs",
     "test:mobile-menu-organization": "node scripts/test-mobile-menu-organization.mjs",
+    "test:desktop-mobile-toolbar-parity": "node scripts/test-desktop-mobile-toolbar-parity.mjs",
     "test:mobile-tool-experience": "node scripts/test-mobile-tool-experience.mjs",
     "test:mobile-sheet-refinement": "node scripts/test-mobile-sheet-refinement.mjs",
     "test:toolbar-interaction-state": "node scripts/test-toolbar-interaction-state.mjs",
