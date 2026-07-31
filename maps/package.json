@@ -52,6 +52,7 @@
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
+    "test:custom-basemap": "node scripts/test-custom-basemap.mjs",
     "test:production-module-integrity": "node scripts/test-production-module-integrity.mjs",
     "test:shapefile-integrity": "node scripts/test-shapefile-integrity.mjs",
     "test:lalgeo-project-integrity": "node scripts/test-lalgeo-project-integrity.mjs",
