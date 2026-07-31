@@ -5,7 +5,7 @@ import { fileURLToPath } from "node:url";
 const legacyHtmlPath = fileURLToPath(new URL("../public/legacy/lalgeosurvey.html", import.meta.url));
 const legacyHtml = await readFile(legacyHtmlPath, "utf8");
 const mobileStyles = legacyHtml.match(
-  /@media \(max-width: 600px\) \{\s*:root \{\s*--mobile-tool-radius:[\s\S]*?(?=\n\s*\.print-prep-summary)/,
+  /@media \(max-width: 600px\) \{[\s\S]*?:root \{\s*--mobile-tool-radius:[\s\S]*?(?=\n\s*\.print-prep-summary)/,
 )?.[0];
 
 assert.ok(mobileStyles, "Expected a dedicated mobile tool experience stylesheet.");

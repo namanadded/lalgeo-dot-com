@@ -59,6 +59,38 @@ export async function retryCloudOperation(operation, options = {}) {
   throw lastError;
 }
 
+/**
+ * Preserve an immutable provider revision without transferring its contents
+ * through the browser. Adapters must address the exact revision, rather than a
+ * mutable path, so a concurrent remote edit cannot be archived as the version
+ * the caller believes it is saving over.
+ */
+export async function copyCloudRevisionSnapshot(adapter, request, options = {}) {
+  if (typeof adapter?.copyRevision !== "function") {
+    throw new TypeError("Cloud revision snapshot adapter requires copyRevision().");
+  }
+  const sourcePath = String(request?.sourcePath || "");
+  const destinationPath = String(request?.destinationPath || "");
+  const revision = String(request?.revision || "");
+  if (!sourcePath || !destinationPath || !revision) {
+    throw new TypeError("Cloud revision snapshot requires sourcePath, destinationPath, and revision.");
+  }
+  throwIfCloudOperationAborted(options.signal);
+  try {
+    const result = await adapter.copyRevision({ sourcePath, destinationPath, revision });
+    if (!result) {
+      throw new CloudStorageError("Cloud provider did not confirm the revision snapshot.", {
+        code: "integrity",
+        provider: options.provider,
+        retryable: false,
+      });
+    }
+    return result;
+  } catch (error) {
+    throw normalizeCloudError(error, options.provider);
+  }
+}
+
 function assertDownloadAdapter(adapter) {
   for (const method of ["download", "getSize", "verify"]) {
     if (typeof adapter?.[method] !== "function") {
