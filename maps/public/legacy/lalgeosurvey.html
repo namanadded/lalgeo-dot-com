@@ -117,6 +117,20 @@
         display: grid;
         gap: 5px;
     }
+    .custom-basemap-field-error {
+        margin: 0;
+        color: #b42318;
+        font-size: 12px;
+        font-weight: 650;
+        line-height: 1.35;
+    }
+    .custom-basemap-field-error[hidden] {
+        display: none;
+    }
+    .custom-basemap-editor input[aria-invalid="true"] {
+        border-color: #d92d20;
+        box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.12);
+    }
     .custom-basemap-editor-actions {
         display: flex;
         flex-wrap: wrap;
@@ -10569,16 +10583,19 @@
             </label>
             <label class="settings-option">
                 <span>HTTPS tile service URL</span>
-                <input id="customBasemapUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" placeholder="https://…/MapServer or https://…/{z}/{x}/{y}.png">
+                <input id="customBasemapUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" required aria-describedby="customBasemapUrlHint customBasemapUrlError" placeholder="https://…/MapServer or https://…/{z}/{x}/{y}.png">
             </label>
+            <p id="customBasemapUrlHint" class="settings-note">Enter an HTTPS XYZ template or ArcGIS MapServer URL.</p>
+            <p id="customBasemapUrlError" class="custom-basemap-field-error" role="alert" hidden></p>
             <label class="settings-option">
                 <span>Attribution</span>
                 <input id="customBasemapAttributionInput" class="workspace-text-input" type="text" maxlength="160" placeholder="Data provider and license">
             </label>
             <label class="settings-option">
                 <span>Attribution link (optional)</span>
-                <input id="customBasemapAttributionUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" placeholder="https://provider.example/dataset">
+                <input id="customBasemapAttributionUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" aria-describedby="customBasemapAttributionUrlError" placeholder="https://provider.example/dataset">
             </label>
+            <p id="customBasemapAttributionUrlError" class="custom-basemap-field-error" role="alert" hidden></p>
             <div class="custom-basemap-editor-actions">
                 <button id="saveCustomBasemapBtn" type="button" class="workspace-secondary-btn">Save &amp; use</button>
                 <button id="removeCustomBasemapBtn" type="button" class="workspace-secondary-btn">Remove</button>
@@ -11499,6 +11516,8 @@
         const customBasemapUrlInput = document.getElementById("customBasemapUrlInput");
         const customBasemapAttributionInput = document.getElementById("customBasemapAttributionInput");
         const customBasemapAttributionUrlInput = document.getElementById("customBasemapAttributionUrlInput");
+        const customBasemapUrlError = document.getElementById("customBasemapUrlError");
+        const customBasemapAttributionUrlError = document.getElementById("customBasemapAttributionUrlError");
         const saveCustomBasemapBtn = document.getElementById("saveCustomBasemapBtn");
         const removeCustomBasemapBtn = document.getElementById("removeCustomBasemapBtn");
         const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
@@ -14489,6 +14508,7 @@
 
         function openCustomBasemapSettings() {
             setToolbarMenuVisibility(false);
+            closeFeatureDrawer();
             setSettingsPanelVisibility(true);
             window.setTimeout(() => {
                 customBasemapUrlInput?.scrollIntoView({ block: "center" });
@@ -14496,18 +14516,51 @@
             }, 0);
         }
 
+        function setCustomBasemapFieldError(input, errorElement, message = "") {
+            const hasError = Boolean(message);
+            input?.setAttribute("aria-invalid", hasError ? "true" : "false");
+            if (!errorElement) return;
+            errorElement.textContent = message;
+            errorElement.hidden = !hasError;
+        }
+
+        function clearCustomBasemapFieldErrors() {
+            setCustomBasemapFieldError(customBasemapUrlInput, customBasemapUrlError);
+            setCustomBasemapFieldError(customBasemapAttributionUrlInput, customBasemapAttributionUrlError);
+        }
+
         function saveCustomBasemap() {
             if (!activeProjectRecord) {
                 setProjectStatus("Create or open a project before adding a custom basemap.", "error");
                 return;
             }
+            clearCustomBasemapFieldErrors();
+            let sourceUrl;
+            let tileUrl;
             try {
-                const sourceUrl = normalizeHttpsUrl(customBasemapUrlInput?.value, "Tile service URL");
-                const tileUrl = normalizeCustomBasemapTileUrl(sourceUrl);
-                const attributionUrlValue = customBasemapAttributionUrlInput?.value.trim();
-                const attributionUrl = attributionUrlValue
+                sourceUrl = normalizeHttpsUrl(customBasemapUrlInput?.value, "Tile service URL");
+                tileUrl = normalizeCustomBasemapTileUrl(sourceUrl);
+            } catch (error) {
+                const message = error?.message || "Enter a valid HTTPS tile service URL.";
+                setCustomBasemapFieldError(customBasemapUrlInput, customBasemapUrlError, message);
+                setProjectStatus(message, "error");
+                customBasemapUrlInput?.focus();
+                return;
+            }
+            const attributionUrlValue = customBasemapAttributionUrlInput?.value.trim();
+            let attributionUrl = "";
+            try {
+                attributionUrl = attributionUrlValue
                     ? normalizeHttpsUrl(attributionUrlValue, "Attribution link")
                     : "";
+            } catch (error) {
+                const message = error?.message || "Enter a valid HTTPS attribution link.";
+                setCustomBasemapFieldError(customBasemapAttributionUrlInput, customBasemapAttributionUrlError, message);
+                setProjectStatus(message, "error");
+                customBasemapAttributionUrlInput?.focus();
+                return;
+            }
+            try {
                 const name = customBasemapNameInput?.value.trim() || "Custom basemap";
                 const attribution = customBasemapAttributionInput?.value.trim() || name;
                 removeCustomBasemapTileOverlay();
@@ -14522,7 +14575,6 @@
                 setProjectStatus(`${name} saved and selected.`, "success");
             } catch (error) {
                 setProjectStatus(error?.message || "Custom basemap settings are invalid.", "error");
-                customBasemapUrlInput?.focus();
             }
         }
 
@@ -20080,6 +20132,12 @@
         });
         saveCustomBasemapBtn?.addEventListener("click", saveCustomBasemap);
         removeCustomBasemapBtn?.addEventListener("click", removeCustomBasemap);
+        customBasemapUrlInput?.addEventListener("input", () => {
+            setCustomBasemapFieldError(customBasemapUrlInput, customBasemapUrlError);
+        });
+        customBasemapAttributionUrlInput?.addEventListener("input", () => {
+            setCustomBasemapFieldError(customBasemapAttributionUrlInput, customBasemapAttributionUrlError);
+        });
         document.querySelectorAll("[data-custom-basemap-opacity]").forEach((input) => {
             input.addEventListener("input", () => setCustomBasemapOpacity(input.value));
             input.addEventListener("change", () => setCustomBasemapOpacity(input.value, { persist: true }));
