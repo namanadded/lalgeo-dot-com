@@ -22,8 +22,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /id="addActionPopover"[^>]*role="menu"[^>]*aria-label="Add"[^>]*hidden[\s\S]*?id="addNewFeatureMenuBtn"[^>]*role="menuitem"[\s\S]*?>New Feature<[\s\S]*?id="addImportDataMenuBtn"[^>]*role="menuitem"[\s\S]*?>Import Data…<[\s\S]*?id="addLayerMenuBtn"[^>]*role="menuitem"[\s\S]*?>Add Layer…</,
-  "Desktop Add should contain only existing New Feature, Import Data, and Add Layer actions.",
+  /id="addActionPopover"[^>]*role="menu"[^>]*aria-label="Add"[^>]*hidden[\s\S]*?data-add-geometry="point"[\s\S]*?>Point<[\s\S]*?data-add-geometry="line"[\s\S]*?>Line<[\s\S]*?data-add-geometry="polygon"[\s\S]*?>Polygon<[\s\S]*?id="addImportDataMenuBtn"[^>]*role="menuitem"[\s\S]*?>Import Data…<[\s\S]*?id="addLayerMenuBtn"[^>]*role="menuitem"[\s\S]*?>Add Layer…</,
+  "Desktop Add should own geometry creation and retain the existing import and layer actions.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(min-width: 601px\)[\s\S]*?#toolbar #editPanelToggleBtn,[\s\S]*?display:\s*none !important;[\s\S]*?#addActionPopover \.mobile-add-only\s*\{\s*display:\s*flex;[\s\S]*?#addActionPopover #addNewFeatureMenuBtn\s*\{\s*display:\s*none;/,
+  "Desktop should remove the duplicate Draw entry and expose geometry choices through Add.",
 );
 assert.match(
   legacyHtml,

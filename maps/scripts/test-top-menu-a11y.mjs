@@ -18,7 +18,7 @@ function assertAttribute(tag, name, value, message) {
 }
 
 const menuButtons = [
-  { id: "sidebarToggleBtn", menu: "app", label: "LalGeo menu" },
+  { id: "sidebarToggleBtn", menu: "mobile", label: "LalGeo menu" },
   { id: "openDataManagerBtn", menu: "file", label: "File menu" },
   { id: "toolbarMenuBtn", menu: "edit", label: "Edit menu" },
   { id: "settingsBtn", menu: "view", label: "View menu" },
@@ -57,8 +57,8 @@ assert.match(
 
 assert.match(
   legacyHtml,
-  /const isMobileLogoMenu = button === sidebarToggleBtn[\s\S]*?toolbarMenuKey === "mobile";[\s\S]*?const isActive = toolbarMenuVisible && \(button\.dataset\.menu === toolbarMenuKey \|\| isMobileLogoMenu\);[\s\S]*?button\.setAttribute\("aria-expanded", isActive \? "true" : "false"\);/,
-  "Top menu state sync must expose the logo as expanded for its mobile pane and preserve desktop menu state.",
+  /const isActive = toolbarMenuVisible && \(button\.dataset\.menu === toolbarMenuKey \|\| isMobileLogoMenu\);[\s\S]*?button\.setAttribute\("aria-expanded", isActive \? "true" : "false"\);/,
+  "Top menu state sync must expose the logo as expanded for the shared consolidated pane.",
 );
 
 assert.match(

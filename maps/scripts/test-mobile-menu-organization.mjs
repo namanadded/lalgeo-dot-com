@@ -15,6 +15,7 @@ const brandMenuButton = legacyHtml.match(/<button id="sidebarToggleBtn"[\s\S]*?<
 assert.ok(brandMenuButton, "Expected the LalGeo brand to remain the mobile menu trigger.");
 assert.match(brandMenuButton, /aria-label="LalGeo menu"/, "The brand trigger should have a clear accessible name.");
 assert.match(brandMenuButton, /aria-expanded="false"/, "The brand trigger should expose its collapsed state.");
+assert.match(brandMenuButton, /data-menu="mobile"/, "The brand trigger should open the consolidated menu at every viewport size.");
 assert.match(brandMenuButton, /class="brand-menu-chevron"[\s\S]*?aria-hidden="true"/, "The brand trigger should include one decorative disclosure icon.");
 
 for (const heading of ["New", "Import", "Workspace", "Edit", "Map", "Share &amp; Export", "Settings &amp; Help"]) {
@@ -109,8 +110,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /const menuKey = button === sidebarToggleBtn && window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?\? "mobile"[\s\S]*?: button\.dataset\.menu;/,
-  "The LalGeo brand should open the consolidated pane on mobile while retaining its desktop menu.",
+  /button\?\.addEventListener\("click", \(\) => \{[\s\S]*?const menuKey = button\.dataset\.menu;[\s\S]*?openToolbarMenu\(menuKey, button\);/,
+  "The LalGeo brand should use the same consolidated menu routing as the other menu triggers.",
 );
 assert.match(
   legacyHtml,

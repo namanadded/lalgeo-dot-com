@@ -283,8 +283,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /button === sidebarToggleBtn && window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?\? "mobile"[\s\S]*?openToolbarMenu\(menuKey, button\)/,
-  "The LalGeo logo should open the unified command pane directly on mobile.",
+  /id="sidebarToggleBtn"[^>]*data-menu="mobile"[\s\S]*?const menuKey = button\.dataset\.menu;[\s\S]*?openToolbarMenu\(menuKey, button\)/,
+  "The LalGeo logo should open the unified command pane directly at every viewport size.",
 );
 assert.match(
   legacyHtml,
