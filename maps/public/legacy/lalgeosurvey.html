@@ -2524,6 +2524,9 @@
         display: inline-flex;
         align-items: center;
     }
+    .brand-menu-chevron {
+        display: none;
+    }
     .brand-menu-btn:hover,
     .brand-menu-btn.active,
     .brand-menu-btn.menu-open {
@@ -5699,10 +5702,31 @@
             flex: 0 0 74px;
             width: 74px;
             min-width: 74px;
-            min-height: 36px;
+            min-height: 44px;
             justify-content: center;
+            flex-direction: column;
+            gap: 0;
             padding: 0 1px;
             border-radius: 11px;
+        }
+
+        #toolbar .brand-menu-chevron {
+            display: block;
+            width: 10px;
+            height: 6px;
+            margin-top: -4px;
+            color: rgba(107, 114, 128, 0.72);
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            pointer-events: none;
+            transition: transform var(--toolbar-motion-fast, 120ms) var(--toolbar-motion-ease, ease);
+        }
+
+        #toolbar .brand-menu-btn[aria-expanded="true"] .brand-menu-chevron {
+            transform: rotate(180deg);
         }
 
         #toolbar .toolbar-center {
@@ -5808,7 +5832,7 @@
             -webkit-backdrop-filter: blur(22px) saturate(150%);
         }
         #toolbar #leftToolbarExpand {
-            left: max(12px, env(safe-area-inset-left, 0px));
+            display: none;
         }
         #toolbar #rightToolbarExpand {
             right: max(12px, env(safe-area-inset-right, 0px));
@@ -5984,6 +6008,12 @@
 
         .mobile-menu-command:disabled {
             opacity: 0.42;
+        }
+
+        .mobile-menu-account-action {
+            margin-top: 6px;
+            border-top: 1px solid rgba(209, 213, 219, 0.7) !important;
+            color: #6b7280;
         }
 
         .mobile-menu-accessory {
@@ -9986,10 +10016,13 @@
 <body>
     <div id="toolbar">
         <div class="toolbar-left">
-            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LAL GEO menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
+            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LalGeo menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
                 <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+                <svg class="brand-menu-chevron" viewBox="0 0 12 8" aria-hidden="true">
+                    <path d="M2 2l4 4 4-4"></path>
+                </svg>
             </button>
-            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands mobileMenuPane" aria-expanded="false">
+            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands" aria-expanded="false">
                 <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M5 7h14"></path>
                     <path d="M5 12h14"></path>
@@ -10492,7 +10525,7 @@
             </details>
             <details class="mobile-menu-group" name="mobile-menu-sections">
                 <summary class="mobile-menu-summary">Workspace</summary>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="workspacePanelBtn"><span>Projects</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
+                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="workspacePanelBtn"><span>Recent</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuToggleDataPaneBtn"><span>Data Manager</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuToggleLayersBtn"><span>Layers</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
             </details>
@@ -10523,7 +10556,7 @@
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuSettingsBtn"><span>Settings</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuHelpCenterBtn"><span>Help Center</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuAboutBtn"><span>About LalGeo</span></button>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuLogoutBtn"><span>Disconnect Dropbox</span></button>
+                <button type="button" class="menu-command mobile-menu-command mobile-menu-account-action" data-mobile-menu-target="menuLogoutBtn"><span>Log Out</span></button>
             </details>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="app">
@@ -13341,7 +13374,10 @@
             const topButtons = [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn];
             topButtons.forEach((button) => {
                 if (!button) return;
-                const isActive = toolbarMenuVisible && button.dataset.menu === toolbarMenuKey;
+                const isMobileLogoMenu = button === sidebarToggleBtn
+                    && window.matchMedia("(max-width: 600px)").matches
+                    && toolbarMenuKey === "mobile";
+                const isActive = toolbarMenuVisible && (button.dataset.menu === toolbarMenuKey || isMobileLogoMenu);
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
@@ -13351,11 +13387,6 @@
             );
             toolbarBasemapBtn?.classList.toggle("active", Boolean(basemapActive));
             toolbarBasemapBtn?.setAttribute("aria-expanded", basemapActive ? "true" : "false");
-            const mobileMenuActive = toolbarMenuVisible && toolbarMenuKey === "mobile";
-            leftToolbarExpandBtn?.classList.toggle("active", mobileMenuActive);
-            if (window.matchMedia("(max-width: 600px)").matches) {
-                leftToolbarExpandBtn?.setAttribute("aria-expanded", mobileMenuActive ? "true" : "false");
-            }
             updateMapTypeControls(activeProjectRecord);
         }
 
@@ -19501,7 +19532,9 @@
         });
         [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn].forEach((button) => {
             button?.addEventListener("click", () => {
-                const menuKey = button.dataset.menu;
+                const menuKey = button === sidebarToggleBtn && window.matchMedia("(max-width: 600px)").matches
+                    ? "mobile"
+                    : button.dataset.menu;
                 if (!menuKey) return;
                 if (toolbarMenuVisible && toolbarMenuKey === menuKey) {
                     setToolbarMenuVisibility(false);
@@ -19510,6 +19543,7 @@
                 }
             });
             button?.addEventListener("mouseenter", () => {
+                if (window.matchMedia("(max-width: 600px)").matches) return;
                 const menuKey = button.dataset.menu;
                 if (!menuKey || !toolbarMenuVisible || toolbarMenuKey === menuKey) return;
                 openToolbarMenu(menuKey, button);
@@ -19764,16 +19798,6 @@
             event.stopPropagation();
             const group = leftToolbarExpandBtn.closest(".toolbar-left");
             if (window.matchMedia("(max-width: 600px)").matches) {
-                const expanded = !(toolbarMenuVisible && toolbarMenuKey === "mobile");
-                group?.classList.remove("expanded");
-                rightToolbarExpandBtn?.closest(".toolbar-right")?.classList.remove("expanded");
-                rightToolbarExpandBtn?.classList.remove("active");
-                rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
-                if (expanded) {
-                    openToolbarMenu("mobile", leftToolbarExpandBtn);
-                } else {
-                    setToolbarMenuVisibility(false);
-                }
                 return;
             }
             const expanded = !group?.classList.contains("expanded");
@@ -20010,6 +20034,18 @@
             setToolbarMenuVisibility(false);
             setLayerToolsVisibility(Boolean(layerToolsPanel?.hidden), { layerId: activeLayerId });
         });
+        document.addEventListener("pointerdown", (event) => {
+            if (
+                !toolbarMenuVisible
+                || toolbarMenuKey !== "mobile"
+                || !window.matchMedia("(max-width: 600px)").matches
+                || toolbarMenuTray?.contains(event.target)
+                || sidebarToggleBtn?.contains(event.target)
+            ) {
+                return;
+            }
+            setToolbarMenuVisibility(false);
+        }, true);
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
@@ -20386,7 +20422,9 @@
                     event.preventDefault();
                     const returnTarget = toolbarMenuKey === "basemap"
                         ? (toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : toolbarBasemapBtn)
-                        : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
+                        : toolbarMenuKey === "mobile"
+                            ? sidebarToggleBtn
+                            : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
                     setToolbarMenuVisibility(false);
                     returnTarget?.focus();
                     return;

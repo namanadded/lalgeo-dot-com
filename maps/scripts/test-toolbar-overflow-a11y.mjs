@@ -106,8 +106,8 @@ assert.match(
 assertAttribute(
   leftToggle,
   "aria-controls",
-  "toolbarMenuCommands mobileMenuPane",
-  "Menu toggle must identify both its desktop command strip and unified mobile pane.",
+  "toolbarMenuCommands",
+  "The desktop overflow toggle should identify only its desktop command strip.",
 );
 assertAttribute(
   leftToggle,
@@ -268,23 +268,23 @@ assert.match(
 
 assert.match(
   legacyHtml,
-  /#toolbar #leftToolbarExpand,\s*#toolbar #rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
-  "Mobile toolbar overflow toggles must provide at least a 44px touch target.",
+  /#toolbar \.brand-menu-btn\s*{[\s\S]*?min-height:\s*44px;/,
+  "The consolidated mobile logo menu must provide at least a 44px touch target.",
 );
 assert.match(
   legacyHtml,
-  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar #leftToolbarExpand,\s*#toolbar #rightToolbarExpand\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*64px\);[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.84\);[\s\S]*?backdrop-filter:\s*blur\(22px\)\s+saturate\(150%\);/,
-  "Mobile menu and tools controls should float below the header using light glass styling.",
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar #leftToolbarExpand\s*{\s*display:\s*none;/,
+  "The desktop overflow trigger should be removed from the mobile map.",
 );
 assert.match(
   legacyHtml,
   /#toolbar \.toolbar-left \.app-menubar\s*{\s*display:\s*none\s*!important;/,
-  "The mobile hamburger should remove the redundant desktop category strip.",
+  "The mobile logo menu should keep the redundant desktop category strip hidden.",
 );
 assert.match(
   legacyHtml,
-  /matchMedia\("\(max-width: 600px\)"\)[\s\S]*?toolbarMenuKey === "mobile"[\s\S]*?openToolbarMenu\("mobile", leftToolbarExpandBtn\)/,
-  "The mobile hamburger should open the unified command pane directly.",
+  /button === sidebarToggleBtn && window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?\? "mobile"[\s\S]*?openToolbarMenu\(menuKey, button\)/,
+  "The LalGeo logo should open the unified command pane directly on mobile.",
 );
 assert.match(
   legacyHtml,
