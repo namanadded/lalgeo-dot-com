@@ -11,6 +11,12 @@ const mobilePane = legacyHtml.match(
 
 assert.ok(mobilePane, "Expected a dedicated unified mobile menu pane.");
 
+const brandMenuButton = legacyHtml.match(/<button id="sidebarToggleBtn"[\s\S]*?<\/button>/)?.[0];
+assert.ok(brandMenuButton, "Expected the LalGeo brand to remain the mobile menu trigger.");
+assert.match(brandMenuButton, /aria-label="LalGeo menu"/, "The brand trigger should have a clear accessible name.");
+assert.match(brandMenuButton, /aria-expanded="false"/, "The brand trigger should expose its collapsed state.");
+assert.match(brandMenuButton, /class="brand-menu-chevron"[\s\S]*?aria-hidden="true"/, "The brand trigger should include one decorative disclosure icon.");
+
 for (const heading of ["New", "Import", "Workspace", "Edit", "Map", "Share &amp; Export", "Settings &amp; Help"]) {
   assert.match(
     mobilePane,
@@ -18,6 +24,22 @@ for (const heading of ["New", "Import", "Workspace", "Edit", "Map", "Share &amp;
     `Expected the mobile menu to include the ${heading} group.`,
   );
 }
+
+assert.match(
+  mobilePane,
+  /<summary class="mobile-menu-summary">Workspace<\/summary>[\s\S]*?data-mobile-menu-target="workspacePanelBtn"><span>Recent<\/span>/,
+  "Recent projects should live in the Workspace section.",
+);
+assert.match(
+  mobilePane,
+  /<summary class="mobile-menu-summary">Settings &amp; Help<\/summary>[\s\S]*?<span>Settings<\/span>[\s\S]*?<span>Help Center<\/span>[\s\S]*?<span>About LalGeo<\/span>[\s\S]*?mobile-menu-account-action[\s\S]*?<span>Log Out<\/span>/,
+  "Settings, Help Center, About, and the separated Log Out action should share one final section.",
+);
+assert.doesNotMatch(
+  mobilePane,
+  /Force Close/,
+  "The developer-oriented Force Close action should not be prominent in the mobile menu.",
+);
 
 assert.match(
   mobilePane,
@@ -79,6 +101,26 @@ assert.match(
   legacyHtml,
   /mobileMenuGroups\.forEach\(\(group\)[\s\S]*?group\.addEventListener\("toggle"[\s\S]*?if \(!group\.open\) return;[\s\S]*?otherGroup\.open = false;/,
   "Opening one mobile menu section should collapse every other section.",
+);
+assert.match(
+  legacyHtml,
+  /document\.addEventListener\("pointerdown", \(event\) => \{[\s\S]*?toolbarMenuKey !== "mobile"[\s\S]*?toolbarMenuTray\?\.contains\(event\.target\)[\s\S]*?sidebarToggleBtn\?\.contains\(event\.target\)[\s\S]*?setToolbarMenuVisibility\(false\);[\s\S]*?\}, true\);/,
+  "Tapping outside the consolidated menu should dismiss it even when the map consumes click events.",
+);
+assert.match(
+  legacyHtml,
+  /const menuKey = button === sidebarToggleBtn && window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?\? "mobile"[\s\S]*?: button\.dataset\.menu;/,
+  "The LalGeo brand should open the consolidated pane on mobile while retaining its desktop menu.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar #leftToolbarExpand\s*{\s*display:\s*none;/,
+  "The obsolete floating mobile hamburger should not occupy map space.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.brand-menu-chevron\s*{[\s\S]*?display:\s*block;[\s\S]*?#toolbar \.brand-menu-btn\[aria-expanded="true"\] \.brand-menu-chevron\s*{[\s\S]*?rotate\(180deg\)/,
+  "The logo disclosure should turn upward while the consolidated menu is open.",
 );
 assert.match(
   legacyHtml,

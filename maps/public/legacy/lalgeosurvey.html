@@ -539,9 +539,76 @@
         display: block;
     }
     #mobileLocationBtn,
-    #mobileSelectMenu,
     .mobile-add-only {
         display: none;
+    }
+    #mobileSelectMenu {
+        position: relative;
+        display: block;
+    }
+    #mobileBoxSelectionOverlay {
+        position: fixed;
+        inset: 0;
+        z-index: 1110;
+        cursor: crosshair;
+        touch-action: none;
+        -webkit-user-select: none;
+        user-select: none;
+    }
+    #mobileBoxSelectionOverlay[hidden] {
+        display: none;
+    }
+    #mobileBoxSelectionRect {
+        position: absolute;
+        min-width: 1px;
+        min-height: 1px;
+        border: 2px solid rgba(13, 148, 136, 0.92);
+        border-radius: 5px;
+        background: rgba(45, 212, 191, 0.16);
+        box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.72);
+        pointer-events: none;
+    }
+    #mobileBoxSelectionRect[hidden] {
+        display: none;
+    }
+    .mobile-box-selection-hud {
+        position: absolute;
+        left: 50%;
+        bottom: 34px;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        min-height: 42px;
+        padding: 4px 5px 4px 14px;
+        border: 1px solid var(--mobile-tool-border, var(--map-ui-border, rgba(209, 213, 219, 0.62)));
+        border-radius: 14px;
+        background: var(--mobile-tool-surface, var(--map-ui-surface, rgba(255, 255, 255, 0.94)));
+        color: var(--map-ui-text, #344054);
+        box-shadow: var(--mobile-tool-shadow, var(--map-ui-elevation, 0 10px 28px rgba(15, 23, 42, 0.14)));
+        backdrop-filter: blur(18px) saturate(145%);
+        -webkit-backdrop-filter: blur(18px) saturate(145%);
+        font-size: 13px;
+        font-weight: 600;
+        white-space: nowrap;
+        transform: translateX(-50%);
+    }
+    .mobile-box-selection-hud button {
+        min-width: 64px;
+        min-height: 36px;
+        padding: 0 11px;
+        border: 0;
+        border-radius: 10px;
+        background: rgba(15, 23, 42, 0.065);
+        color: #475467;
+        font: inherit;
+        cursor: pointer;
+        touch-action: manipulation;
+    }
+    .mobile-box-selection-hud button:hover {
+        background: rgba(15, 23, 42, 0.09);
+    }
+    .mobile-box-selection-hud button:active {
+        background: rgba(15, 23, 42, 0.12);
     }
     body.survey-table-open #layersMapBtn,
     body.survey-table-open #lookAroundPreview,
@@ -2456,6 +2523,9 @@
         cursor: pointer;
         display: inline-flex;
         align-items: center;
+    }
+    .brand-menu-chevron {
+        display: none;
     }
     .brand-menu-btn:hover,
     .brand-menu-btn.active,
@@ -5632,10 +5702,31 @@
             flex: 0 0 74px;
             width: 74px;
             min-width: 74px;
-            min-height: 36px;
+            min-height: 44px;
             justify-content: center;
+            flex-direction: column;
+            gap: 0;
             padding: 0 1px;
             border-radius: 11px;
+        }
+
+        #toolbar .brand-menu-chevron {
+            display: block;
+            width: 10px;
+            height: 6px;
+            margin-top: -4px;
+            color: rgba(107, 114, 128, 0.72);
+            fill: none;
+            stroke: currentColor;
+            stroke-width: 1.5;
+            stroke-linecap: round;
+            stroke-linejoin: round;
+            pointer-events: none;
+            transition: transform var(--toolbar-motion-fast, 120ms) var(--toolbar-motion-ease, ease);
+        }
+
+        #toolbar .brand-menu-btn[aria-expanded="true"] .brand-menu-chevron {
+            transform: rotate(180deg);
         }
 
         #toolbar .toolbar-center {
@@ -5741,7 +5832,7 @@
             -webkit-backdrop-filter: blur(22px) saturate(150%);
         }
         #toolbar #leftToolbarExpand {
-            left: max(12px, env(safe-area-inset-left, 0px));
+            display: none;
         }
         #toolbar #rightToolbarExpand {
             right: max(12px, env(safe-area-inset-right, 0px));
@@ -5917,6 +6008,12 @@
 
         .mobile-menu-command:disabled {
             opacity: 0.42;
+        }
+
+        .mobile-menu-account-action {
+            margin-top: 6px;
+            border-top: 1px solid rgba(209, 213, 219, 0.7) !important;
+            color: #6b7280;
         }
 
         .mobile-menu-accessory {
@@ -6504,6 +6601,7 @@
             box-shadow: none;
         }
         #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #mobileSelectBtn .quick-action-label,
         #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
@@ -6550,6 +6648,69 @@
         #toolbar .toolbar-more-menu {
             position: relative;
             display: inline-flex;
+        }
+        #toolbar #mobileSelectMenu {
+            position: relative;
+            display: inline-flex;
+        }
+        #toolbar #mobileSelectPopover {
+            position: absolute;
+            top: calc(100% + 10px);
+            left: 0;
+            z-index: 1450;
+            box-sizing: border-box;
+            width: 208px;
+            display: grid;
+            gap: 2px;
+            padding: 6px;
+            border: 1px solid rgba(209, 213, 219, 0.5);
+            border-radius: 12px;
+            background: rgba(255, 255, 255, 0.94);
+            box-shadow: 0 14px 34px rgba(15, 23, 42, 0.16), inset 0 1px 0 rgba(255, 255, 255, 0.84);
+            backdrop-filter: blur(24px) saturate(145%);
+            -webkit-backdrop-filter: blur(24px) saturate(145%);
+            transform-origin: top left;
+            animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
+        }
+        #toolbar #mobileSelectPopover[hidden] {
+            display: none;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-help {
+            padding: 5px 8px 6px;
+            color: #7b8490;
+            font-size: 11px;
+            line-height: 1.35;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item {
+            box-sizing: border-box;
+            width: 100%;
+            min-height: 34px;
+            display: flex;
+            align-items: center;
+            padding: 0 9px;
+            border: 0;
+            border-radius: 8px;
+            background: transparent;
+            color: #4b5563;
+            font: inherit;
+            font-size: 12px;
+            font-weight: 600;
+            text-align: left;
+            cursor: pointer;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item:hover:not(:disabled),
+        #toolbar #mobileSelectPopover .mobile-select-item:focus-visible {
+            outline: none;
+            background: rgba(15, 23, 42, 0.06);
+            color: #1f2937;
+        }
+        #toolbar #mobileSelectPopover .mobile-select-item:disabled {
+            opacity: 0.48;
+            cursor: default;
+        }
+        .mobile-box-selection-hud {
+            top: 96px;
+            bottom: auto;
         }
         #toolbar .toolbar-more-popover {
             position: absolute;
@@ -7535,6 +7696,7 @@
             flex-basis: var(--map-ui-icon-size);
         }
         #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #mobileSelectBtn .quick-action-label,
         #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
@@ -8906,6 +9068,10 @@
         #addActionPopover .add-action-menu-item:active {
             background: rgba(15, 23, 42, 0.075);
         }
+        .mobile-box-selection-hud {
+            top: auto;
+            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 12px);
+        }
         #addActionPopover .add-action-popover-title {
             padding: 7px 10px 5px;
             color: #1f2937;
@@ -9850,10 +10016,13 @@
 <body>
     <div id="toolbar">
         <div class="toolbar-left">
-            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LAL GEO menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
+            <button id="sidebarToggleBtn" type="button" class="brand-menu-btn" aria-label="LalGeo menu" aria-controls="toolbarMenuTray" aria-expanded="false" data-menu="app">
                 <img class="brand-logo" src="assets/img/lalgeo-logo.png" alt="LalGeo logo">
+                <svg class="brand-menu-chevron" viewBox="0 0 12 8" aria-hidden="true">
+                    <path d="M2 2l4 4 4-4"></path>
+                </svg>
             </button>
-            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands mobileMenuPane" aria-expanded="false">
+            <button id="leftToolbarExpand" type="button" class="toolbar-overflow-toggle left-overflow-toggle" aria-label="Show menu" aria-controls="toolbarMenuCommands" aria-expanded="false">
                 <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                     <path d="M5 7h14"></path>
                     <path d="M5 12h14"></path>
@@ -9898,7 +10067,8 @@
                             <span class="quick-action-label">Select</span>
                         </button>
                         <div id="mobileSelectPopover" class="mobile-select-popover" role="menu" aria-label="Selection tools" hidden>
-                            <div class="mobile-select-help">Tap features on the map to select them.</div>
+                            <div class="mobile-select-help">Click or tap features, or drag a box to select them.</div>
+                            <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="box-select">Box Select</button>
                             <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-all">Select All</button>
                             <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-visible">Select Visible</button>
                             <button type="button" class="mobile-select-item" role="menuitem" data-select-tool="select-attribute">Select by Attribute…</button>
@@ -10355,7 +10525,7 @@
             </details>
             <details class="mobile-menu-group" name="mobile-menu-sections">
                 <summary class="mobile-menu-summary">Workspace</summary>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="workspacePanelBtn"><span>Projects</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
+                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="workspacePanelBtn"><span>Recent</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuToggleDataPaneBtn"><span>Data Manager</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuToggleLayersBtn"><span>Layers</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
             </details>
@@ -10386,7 +10556,7 @@
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuSettingsBtn"><span>Settings</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuHelpCenterBtn"><span>Help Center</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuAboutBtn"><span>About LalGeo</span></button>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuLogoutBtn"><span>Disconnect Dropbox</span></button>
+                <button type="button" class="menu-command mobile-menu-command mobile-menu-account-action" data-mobile-menu-target="menuLogoutBtn"><span>Log Out</span></button>
             </details>
         </div>
         <div class="menu-dropdown-section" data-menu-pane="app">
@@ -10974,6 +11144,13 @@
         <span id="mapPrintMeta"></span>
     </div>
     <div id="map" tabindex="0" aria-label="Map canvas" style="width: 100%; height: 100vh;"></div>
+    <div id="mobileBoxSelectionOverlay" aria-label="Box selection area" hidden>
+        <div id="mobileBoxSelectionRect" aria-hidden="true" hidden></div>
+        <div class="mobile-box-selection-hud" role="status">
+            <span>Drag over features</span>
+            <button id="mobileBoxSelectionCancelBtn" type="button">Cancel</button>
+        </div>
+    </div>
     <div id="mapLoadError" class="map-load-error" role="alert" hidden>
         <strong>Map could not load</strong>
         <p id="mapLoadErrorMessage">Refresh the page or check the MapKit configuration for this domain.</p>
@@ -11303,6 +11480,9 @@
         const mobileSelectBtn = document.getElementById("mobileSelectBtn");
         const mobileSelectPopover = document.getElementById("mobileSelectPopover");
         const mobileSelectItems = Array.from(document.querySelectorAll("[data-select-tool]"));
+        const mobileBoxSelectionOverlay = document.getElementById("mobileBoxSelectionOverlay");
+        const mobileBoxSelectionRect = document.getElementById("mobileBoxSelectionRect");
+        const mobileBoxSelectionCancelBtn = document.getElementById("mobileBoxSelectionCancelBtn");
         const editPanelToggleBtn = document.getElementById("editPanelToggleBtn");
         const editFloatingPanel = document.getElementById("editFloatingPanel");
         const editPanelDragHandle = document.getElementById("editPanelDragHandle");
@@ -11723,6 +11903,9 @@
         let selectedTableRows = new Set();
         let lastSelectedTableRow = null;
         let mobileSelectionMode = false;
+        let mobileBoxSelectionMode = false;
+        let mobileBoxSelectionPointerId = null;
+        let mobileBoxSelectionStart = null;
         let tableRowFilterMode = "all";
         let fieldCalculatorContext = null;
         let undoStack = [];
@@ -13191,7 +13374,10 @@
             const topButtons = [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn];
             topButtons.forEach((button) => {
                 if (!button) return;
-                const isActive = toolbarMenuVisible && button.dataset.menu === toolbarMenuKey;
+                const isMobileLogoMenu = button === sidebarToggleBtn
+                    && window.matchMedia("(max-width: 600px)").matches
+                    && toolbarMenuKey === "mobile";
+                const isActive = toolbarMenuVisible && (button.dataset.menu === toolbarMenuKey || isMobileLogoMenu);
                 button.classList.toggle("active", isActive);
                 button.setAttribute("aria-expanded", isActive ? "true" : "false");
             });
@@ -13201,11 +13387,6 @@
             );
             toolbarBasemapBtn?.classList.toggle("active", Boolean(basemapActive));
             toolbarBasemapBtn?.setAttribute("aria-expanded", basemapActive ? "true" : "false");
-            const mobileMenuActive = toolbarMenuVisible && toolbarMenuKey === "mobile";
-            leftToolbarExpandBtn?.classList.toggle("active", mobileMenuActive);
-            if (window.matchMedia("(max-width: 600px)").matches) {
-                leftToolbarExpandBtn?.setAttribute("aria-expanded", mobileMenuActive ? "true" : "false");
-            }
             updateMapTypeControls(activeProjectRecord);
         }
 
@@ -13359,7 +13540,10 @@
         function setToolbarMoreVisibility(show, { focusFirst = false, restoreFocus = false } = {}) {
             if (!toolbarMoreBtn || !toolbarMorePopover) return;
             const visible = Boolean(show);
-            if (visible) setToolbarMenuVisibility(false);
+            if (visible) {
+                if (mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
+                setToolbarMenuVisibility(false);
+            }
             toolbarMorePopover.hidden = !visible;
             toolbarMoreBtn.setAttribute("aria-expanded", visible ? "true" : "false");
             toolbar?.classList.toggle("more-tools-open", visible);
@@ -14530,6 +14714,7 @@
         function setAddActionPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
             if (!addActionPopover || !addSurveyPointBtn) return;
             const nextVisible = Boolean(show);
+            if (nextVisible && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
             addActionPopover.hidden = !nextVisible;
             addSurveyPointBtn.classList.toggle("active", nextVisible);
             addSurveyPointBtn.setAttribute("aria-expanded", nextVisible ? "true" : "false");
@@ -14548,7 +14733,7 @@
 
         function setMobileSelectPopoverVisibility(show, { restoreFocus = false, focusFirst = false } = {}) {
             if (!mobileSelectBtn || !mobileSelectPopover) return;
-            const visible = Boolean(show) && !isDesktopDrawFlow();
+            const visible = Boolean(show);
             mobileSelectPopover.hidden = !visible;
             mobileSelectBtn.setAttribute("aria-expanded", visible ? "true" : "false");
             if (visible) {
@@ -14561,7 +14746,8 @@
         }
 
         function setMobileSelectionMode(active, { openMenu = false } = {}) {
-            const nextActive = Boolean(active) && !isDesktopDrawFlow();
+            const nextActive = Boolean(active);
+            if (!nextActive && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
             if (nextActive) {
                 if (measurementActive) setMeasurementActive(false);
                 if (isAddingSurveyPoint) cancelActiveFeaturePlacement();
@@ -14577,6 +14763,148 @@
             mobileSelectBtn?.setAttribute("aria-pressed", nextActive ? "true" : "false");
             setMobileSelectPopoverVisibility(nextActive && openMenu);
             renderSelectedFeatureInspector();
+        }
+
+        function resetMobileBoxSelectionRectangle() {
+            mobileBoxSelectionPointerId = null;
+            mobileBoxSelectionStart = null;
+            if (!mobileBoxSelectionRect) return;
+            mobileBoxSelectionRect.hidden = true;
+            mobileBoxSelectionRect.style.left = "";
+            mobileBoxSelectionRect.style.top = "";
+            mobileBoxSelectionRect.style.width = "";
+            mobileBoxSelectionRect.style.height = "";
+        }
+
+        function setMobileBoxSelectionMode(active) {
+            const layer = getActiveLayerRecord();
+            const nextActive = (
+                Boolean(active)
+                && Boolean(layer?.features?.length)
+                && isLayerSelectable(layer)
+            );
+            const restoreFocus = !nextActive && Boolean(mobileBoxSelectionOverlay?.contains(document.activeElement));
+            if (nextActive && !mobileSelectionMode) setMobileSelectionMode(true);
+            mobileBoxSelectionMode = nextActive;
+            if (mobileBoxSelectionOverlay) mobileBoxSelectionOverlay.hidden = !nextActive;
+            document.body.classList.toggle("mobile-box-selecting", nextActive);
+            resetMobileBoxSelectionRectangle();
+            setMobileSelectPopoverVisibility(false);
+            renderSelectedFeatureInspector();
+            if (nextActive) {
+                setProjectStatus("Box Select active. Drag over features on the map.", "success");
+                window.requestAnimationFrame(() => mobileBoxSelectionCancelBtn?.focus());
+            } else if (restoreFocus) {
+                window.requestAnimationFrame(() => mobileSelectBtn?.focus());
+            }
+        }
+
+        function normalizeMobileSelectionRect(start, end) {
+            const left = Math.min(start.x, end.x);
+            const top = Math.min(start.y, end.y);
+            return {
+                left,
+                top,
+                right: Math.max(start.x, end.x),
+                bottom: Math.max(start.y, end.y),
+                width: Math.abs(end.x - start.x),
+                height: Math.abs(end.y - start.y)
+            };
+        }
+
+        function isScreenPointInsideRect(point, rect) {
+            return Boolean(
+                point
+                && point.x >= rect.left
+                && point.x <= rect.right
+                && point.y >= rect.top
+                && point.y <= rect.bottom
+            );
+        }
+
+        function doScreenSegmentsIntersect(start, end, edgeStart, edgeEnd) {
+            const boundsOverlap = (
+                Math.max(Math.min(start.x, end.x), Math.min(edgeStart.x, edgeEnd.x))
+                    <= Math.min(Math.max(start.x, end.x), Math.max(edgeStart.x, edgeEnd.x))
+                && Math.max(Math.min(start.y, end.y), Math.min(edgeStart.y, edgeEnd.y))
+                    <= Math.min(Math.max(start.y, end.y), Math.max(edgeStart.y, edgeEnd.y))
+            );
+            if (!boundsOverlap) return false;
+            const cross = (a, b, c) => (
+                (b.x - a.x) * (c.y - a.y)
+                - (b.y - a.y) * (c.x - a.x)
+            );
+            const firstStart = cross(start, end, edgeStart);
+            const firstEnd = cross(start, end, edgeEnd);
+            const secondStart = cross(edgeStart, edgeEnd, start);
+            const secondEnd = cross(edgeStart, edgeEnd, end);
+            return firstStart * firstEnd <= 0 && secondStart * secondEnd <= 0;
+        }
+
+        function doesScreenSegmentIntersectRect(start, end, rect) {
+            if (isScreenPointInsideRect(start, rect) || isScreenPointInsideRect(end, rect)) return true;
+            const topLeft = { x: rect.left, y: rect.top };
+            const topRight = { x: rect.right, y: rect.top };
+            const bottomRight = { x: rect.right, y: rect.bottom };
+            const bottomLeft = { x: rect.left, y: rect.bottom };
+            return (
+                doScreenSegmentsIntersect(start, end, topLeft, topRight)
+                || doScreenSegmentsIntersect(start, end, topRight, bottomRight)
+                || doScreenSegmentsIntersect(start, end, bottomRight, bottomLeft)
+                || doScreenSegmentsIntersect(start, end, bottomLeft, topLeft)
+            );
+        }
+
+        function doesFeatureIntersectMobileSelectionRect(feature, geometryType, rect) {
+            if (!map) return false;
+            const rawCoordinates = getGeometryCoordinates(feature);
+            const coordinates = geometryType === "polygon"
+                ? getClosedPolygonCoordinates(rawCoordinates)
+                : rawCoordinates;
+            const screenPoints = coordinates
+                .map((coordinate) => map.convertCoordinateToPointOnPage(coordinate))
+                .filter(Boolean);
+            if (screenPoints.some((point) => isScreenPointInsideRect(point, rect))) return true;
+            for (let index = 1; index < screenPoints.length; index += 1) {
+                if (doesScreenSegmentIntersectRect(screenPoints[index - 1], screenPoints[index], rect)) return true;
+            }
+            const representative = getFeatureRepresentativeCoordinate(feature);
+            const representativePoint = representative ? map.convertCoordinateToPointOnPage(representative) : null;
+            if (isScreenPointInsideRect(representativePoint, rect)) return true;
+            if (geometryType !== "polygon" || coordinates.length < 3) return false;
+            const selectionCorners = [
+                new DOMPoint(rect.left, rect.top),
+                new DOMPoint(rect.right, rect.top),
+                new DOMPoint(rect.right, rect.bottom),
+                new DOMPoint(rect.left, rect.bottom)
+            ].map((point) => map.convertPointOnPageToCoordinate(point)).filter(Boolean);
+            return selectionCorners.some((coordinate) => (
+                isCoordinateInsidePolygon(coordinate, getClosedPolygonCoordinates(coordinates))
+            ));
+        }
+
+        function selectFeaturesInMobileBox(rect) {
+            const layer = getActiveLayerRecord();
+            if (!layer || !isLayerSelectable(layer)) return;
+            const geometryType = normalizeLayerGeometryType(layer.geometryType || "point");
+            const matches = (layer.features || []).map((feature, index) => (
+                doesFeatureIntersectMobileSelectionRect(feature, geometryType, rect) ? index : null
+            )).filter(Number.isInteger);
+            selectedTableRows = new Set(matches);
+            lastSelectedTableRow = matches.length ? matches[matches.length - 1] : null;
+            activeSurveyAnnotation = matches.length ? getFeatureAnnotation(layer, matches[0]) : null;
+            activeFeatureId = activeSurveyAnnotation?.surveyPoint
+                ? activeSurveyAnnotation.surveyPoint.pointId || activeSurveyAnnotation.surveyPoint.rowIndex
+                : null;
+            updateSurveyTable();
+            refreshAnnotationStyles();
+            updateAdvancedGisPanelState();
+            setProjectStatus(
+                matches.length
+                    ? `Selected ${matches.length} feature${matches.length === 1 ? "" : "s"} in the box.`
+                    : "No features found in that box.",
+                "success"
+            );
         }
 
         function updateMobileSelectControls() {
@@ -14629,6 +14957,7 @@
                 setProjectStatus(`Add an editable ${geometryType} layer before drawing.`, "error");
                 return;
             }
+            setMobileSelectionMode(false);
             if (measurementActive) setMeasurementActive(false);
             if (targetLayer.id !== activeLayerId) switchToLayer(targetLayer.id, { revealTable: false });
             if (!editSessionActive) setEditSessionActive(true, { layerId: targetLayer.id });
@@ -15459,6 +15788,7 @@
         function setSidebarVisibility(show) {
             const persistent = window.innerWidth > 980;
             sidebarVisible = Boolean(show);
+            if (sidebarVisible && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
             if (sidebar) {
                 sidebar.hidden = !sidebarVisible;
                 sidebar.classList.toggle("hidden-pane", !sidebarVisible);
@@ -15823,7 +16153,7 @@
             }
             const indexes = getActiveSelectionIndexes();
             const count = indexes.length;
-            if (!count || isAddingSurveyPoint || measurementActive || sidebarVisible || advancedGisPanel?.hidden === false) {
+            if (!count || mobileBoxSelectionMode || isAddingSurveyPoint || measurementActive || sidebarVisible || advancedGisPanel?.hidden === false) {
                 selectedFeatureInspector.classList.remove("visible");
                 selectedFeatureInspector.innerHTML = "";
                 return;
@@ -18840,9 +19170,14 @@
         mobileSelectBtn?.addEventListener("click", (event) => {
             event.stopPropagation();
             if (mobileSelectBtn.disabled) return;
+            if (mobileBoxSelectionMode) {
+                setMobileBoxSelectionMode(false);
+                setMobileSelectPopoverVisibility(true);
+                return;
+            }
             if (!mobileSelectionMode) {
                 setMobileSelectionMode(true, { openMenu: true });
-                setProjectStatus("Selection mode active. Tap features to add or remove them from the selection.", "success");
+                setProjectStatus("Selection mode active. Click or tap features to add or remove them.", "success");
             } else {
                 setMobileSelectPopoverVisibility(mobileSelectPopover?.hidden !== false);
             }
@@ -18872,6 +19207,7 @@
         mobileSelectItems.forEach((item) => {
             item.addEventListener("click", () => {
                 const handlers = {
+                    "box-select": () => setMobileBoxSelectionMode(true),
                     "select-all": selectAllTableRows,
                     "select-visible": selectVisibleFeatures,
                     "select-attribute": selectFeaturesByAttribute,
@@ -18885,6 +19221,57 @@
                 handlers[item.dataset.selectTool]?.();
                 updateMobileSelectControls();
             });
+        });
+        mobileBoxSelectionOverlay?.addEventListener("pointerdown", (event) => {
+            if (!mobileBoxSelectionMode || !event.isPrimary || event.button > 0) return;
+            if (event.target.closest(".mobile-box-selection-hud")) return;
+            event.preventDefault();
+            mobileBoxSelectionPointerId = event.pointerId;
+            mobileBoxSelectionStart = { x: event.clientX, y: event.clientY };
+            mobileBoxSelectionOverlay.setPointerCapture?.(event.pointerId);
+            if (mobileBoxSelectionRect) {
+                mobileBoxSelectionRect.hidden = false;
+                mobileBoxSelectionRect.style.left = `${event.clientX}px`;
+                mobileBoxSelectionRect.style.top = `${event.clientY}px`;
+                mobileBoxSelectionRect.style.width = "0px";
+                mobileBoxSelectionRect.style.height = "0px";
+            }
+        });
+        mobileBoxSelectionOverlay?.addEventListener("pointermove", (event) => {
+            if (event.pointerId !== mobileBoxSelectionPointerId || !mobileBoxSelectionStart) return;
+            event.preventDefault();
+            const rect = normalizeMobileSelectionRect(mobileBoxSelectionStart, { x: event.clientX, y: event.clientY });
+            if (mobileBoxSelectionRect) {
+                mobileBoxSelectionRect.style.left = `${rect.left}px`;
+                mobileBoxSelectionRect.style.top = `${rect.top}px`;
+                mobileBoxSelectionRect.style.width = `${rect.width}px`;
+                mobileBoxSelectionRect.style.height = `${rect.height}px`;
+            }
+        });
+        const finishMobileBoxSelection = (event) => {
+            if (event.pointerId !== mobileBoxSelectionPointerId || !mobileBoxSelectionStart) return;
+            event.preventDefault();
+            const rect = normalizeMobileSelectionRect(mobileBoxSelectionStart, { x: event.clientX, y: event.clientY });
+            mobileBoxSelectionOverlay?.releasePointerCapture?.(event.pointerId);
+            resetMobileBoxSelectionRectangle();
+            if (rect.width < 12 || rect.height < 12) {
+                setProjectStatus("Drag a box over one or more features.", "success");
+                return;
+            }
+            selectFeaturesInMobileBox(rect);
+            setMobileBoxSelectionMode(false);
+            renderSelectedFeatureInspector();
+        };
+        mobileBoxSelectionOverlay?.addEventListener("pointerup", finishMobileBoxSelection);
+        mobileBoxSelectionOverlay?.addEventListener("pointercancel", (event) => {
+            if (event.pointerId !== mobileBoxSelectionPointerId) return;
+            resetMobileBoxSelectionRectangle();
+        });
+        mobileBoxSelectionCancelBtn?.addEventListener("click", (event) => {
+            event.stopPropagation();
+            setMobileBoxSelectionMode(false);
+            mobileSelectBtn?.focus();
+            setProjectStatus("Box selection canceled.", "success");
         });
         [editPanelToggleBtn, addSurveyPointBtn, undoBtn, redoBtn, myLocationBtn, toolbarLayersBtn].forEach((button) => {
             button?.addEventListener("click", () => {
@@ -18901,7 +19288,10 @@
                 attributeFilter: ["class", "aria-expanded", "aria-pressed"]
             });
         });
-        window.matchMedia("(max-width: 600px)").addEventListener?.("change", () => setToolbarMoreVisibility(false));
+        window.matchMedia("(max-width: 600px)").addEventListener?.("change", (event) => {
+            setToolbarMoreVisibility(false);
+            if (!event.matches && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
+        });
         syncToolbarMoreState();
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
@@ -19142,7 +19532,9 @@
         });
         [sidebarToggleBtn, openDataManagerBtn, toolbarMenuBtn, settingsBtn, historyMenuBtn, windowMenuBtn, helpMenuBtn].forEach((button) => {
             button?.addEventListener("click", () => {
-                const menuKey = button.dataset.menu;
+                const menuKey = button === sidebarToggleBtn && window.matchMedia("(max-width: 600px)").matches
+                    ? "mobile"
+                    : button.dataset.menu;
                 if (!menuKey) return;
                 if (toolbarMenuVisible && toolbarMenuKey === menuKey) {
                     setToolbarMenuVisibility(false);
@@ -19151,6 +19543,7 @@
                 }
             });
             button?.addEventListener("mouseenter", () => {
+                if (window.matchMedia("(max-width: 600px)").matches) return;
                 const menuKey = button.dataset.menu;
                 if (!menuKey || !toolbarMenuVisible || toolbarMenuKey === menuKey) return;
                 openToolbarMenu(menuKey, button);
@@ -19405,16 +19798,6 @@
             event.stopPropagation();
             const group = leftToolbarExpandBtn.closest(".toolbar-left");
             if (window.matchMedia("(max-width: 600px)").matches) {
-                const expanded = !(toolbarMenuVisible && toolbarMenuKey === "mobile");
-                group?.classList.remove("expanded");
-                rightToolbarExpandBtn?.closest(".toolbar-right")?.classList.remove("expanded");
-                rightToolbarExpandBtn?.classList.remove("active");
-                rightToolbarExpandBtn?.setAttribute("aria-expanded", "false");
-                if (expanded) {
-                    openToolbarMenu("mobile", leftToolbarExpandBtn);
-                } else {
-                    setToolbarMenuVisibility(false);
-                }
                 return;
             }
             const expanded = !group?.classList.contains("expanded");
@@ -19651,6 +20034,18 @@
             setToolbarMenuVisibility(false);
             setLayerToolsVisibility(Boolean(layerToolsPanel?.hidden), { layerId: activeLayerId });
         });
+        document.addEventListener("pointerdown", (event) => {
+            if (
+                !toolbarMenuVisible
+                || toolbarMenuKey !== "mobile"
+                || !window.matchMedia("(max-width: 600px)").matches
+                || toolbarMenuTray?.contains(event.target)
+                || sidebarToggleBtn?.contains(event.target)
+            ) {
+                return;
+            }
+            setToolbarMenuVisibility(false);
+        }, true);
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
@@ -20027,7 +20422,9 @@
                     event.preventDefault();
                     const returnTarget = toolbarMenuKey === "basemap"
                         ? (toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : toolbarBasemapBtn)
-                        : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
+                        : toolbarMenuKey === "mobile"
+                            ? sidebarToggleBtn
+                            : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
                     setToolbarMenuVisibility(false);
                     returnTarget?.focus();
                     return;
@@ -20055,6 +20452,13 @@
                 }
                 if (settingsPanel && !settingsPanel.hidden) {
                     setSettingsPanelVisibility(false);
+                    return;
+                }
+                if (mobileBoxSelectionMode) {
+                    event.preventDefault();
+                    setMobileBoxSelectionMode(false);
+                    mobileSelectBtn?.focus();
+                    setProjectStatus("Box selection canceled.", "success");
                     return;
                 }
                 if (isAddingSurveyPoint) {
@@ -24908,7 +25312,7 @@
             activeSurveyAnnotation = annotation;
             activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
             if (Number.isInteger(annotation.surveyPoint?.rowIndex)) {
-                if (mobileSelectionMode && !isDesktopDrawFlow()) {
+                if (mobileSelectionMode) {
                     setTableRowSelection(annotation.surveyPoint.rowIndex, { ctrlKey: true });
                 } else {
                     syncMapFeatureToTableSelection(annotation.surveyPoint.rowIndex);
