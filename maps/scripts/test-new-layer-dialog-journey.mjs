@@ -4,7 +4,7 @@ import path from "node:path";
 
 const source = fs.readFileSync(path.resolve("public/legacy/lalgeosurvey.html"), "utf8");
 const journey = source.match(
-  /function addLayerToActiveProject\(\) \{([\s\S]*?)\n        \}\n\n        function editLayerSchema/
+  /function addLayerToActiveProject\([^)]*\) \{([\s\S]*?)\n        \}\n\n        function editLayerSchema/
 )?.[1] || "";
 
 assert.ok(journey, "The New Layer journey should remain available.");
