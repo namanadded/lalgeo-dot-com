@@ -60,6 +60,7 @@
     "test:lalgeo-project-integrity": "node scripts/test-lalgeo-project-integrity.mjs",
     "test:kmz-integrity": "node scripts/test-kmz-integrity.mjs",
     "test:kml-integrity": "node scripts/test-kml-integrity.mjs",
+    "test:geojson-integrity": "node scripts/test-geojson-integrity.mjs",
     "test:cloud-storage": "node scripts/test-cloud-storage.mjs",
     "test:workspace-persistence": "node scripts/test-workspace-persistence.mjs",
     "test:lal-import-normalization": "node scripts/test-lal-import-normalization.mjs",

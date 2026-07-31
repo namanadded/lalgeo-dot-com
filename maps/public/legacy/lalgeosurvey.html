@@ -24283,6 +24283,14 @@
             return Number.isFinite(lat) && Number.isFinite(lng) ? { lat, lng } : null;
         }
 
+        function readGeoJsonVertex(pair, coordinateLabel = "coordinate") {
+            const vertex = coordinatePairToVertex(pair);
+            if (!Array.isArray(pair) || pair.length < 2 || typeof pair[0] !== "number" || typeof pair[1] !== "number" || !vertex || vertex.lat < -90 || vertex.lat > 90 || vertex.lng < -180 || vertex.lng > 180) {
+                throw new Error(`${coordinateLabel} is invalid. Use [longitude, latitude] values in WGS84.`);
+            }
+            return vertex;
+        }
+
         function getRingArea(vertices = []) {
             if (!Array.isArray(vertices) || vertices.length < 3) return 0;
             let area = 0;
@@ -24297,10 +24305,7 @@
             if (!Array.isArray(coordinates)) {
                 throw new Error(`${ringLabel} is missing coordinates.`);
             }
-            const vertices = coordinates.map(coordinatePairToVertex);
-            if (vertices.some((vertex) => !vertex)) {
-                throw new Error(`${ringLabel} contains an invalid longitude or latitude.`);
-            }
+            const vertices = coordinates.map((pair, index) => readGeoJsonVertex(pair, `${ringLabel} coordinate ${index + 1}`));
             if (vertices.length > 1 && coordinatesAreEqual(vertices[0], vertices[vertices.length - 1])) {
                 vertices.pop();
             }
@@ -24322,29 +24327,44 @@
             return createPolygonGeometryFromRings(rings);
         }
 
-        function geometryPartsFromGeoJson(geometry) {
-            if (!geometry) return [];
+        function geometryPartsFromGeoJson(geometry, geometryLabel = "geometry") {
+            if (!geometry || typeof geometry !== "object") throw new Error(`${geometryLabel} is missing.`);
             if (geometry.type === "GeometryCollection") {
-                return (geometry.geometries || []).flatMap(geometryPartsFromGeoJson);
+                if (!Array.isArray(geometry.geometries) || !geometry.geometries.length) {
+                    throw new Error(`${geometryLabel} GeometryCollection does not contain any geometries.`);
+                }
+                return geometry.geometries.flatMap((part, index) => geometryPartsFromGeoJson(part, `${geometryLabel} GeometryCollection member ${index + 1}`));
             }
             if (geometry.type === "Point") {
-                const vertex = coordinatePairToVertex(geometry.coordinates);
-                return vertex ? [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng) }] : [];
+                const vertex = readGeoJsonVertex(geometry.coordinates, `${geometryLabel} Point coordinate`);
+                return [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng) }];
             }
             if (geometry.type === "MultiPoint") {
-                return (geometry.coordinates || []).map(coordinatePairToVertex).filter(Boolean).map((vertex) => ({
+                if (!Array.isArray(geometry.coordinates) || !geometry.coordinates.length) {
+                    throw new Error(`${geometryLabel} MultiPoint does not contain any points.`);
+                }
+                return geometry.coordinates.map((pair, index) => readGeoJsonVertex(pair, `${geometryLabel} MultiPoint coordinate ${index + 1}`)).map((vertex) => ({
                     geometryType: "point",
                     geometry: createPointGeometry(vertex.lat, vertex.lng)
                 }));
             }
             if (geometry.type === "LineString") {
-                const vertices = (geometry.coordinates || []).map(coordinatePairToVertex).filter(Boolean);
-                return vertices.length >= 2 ? [{ geometryType: "line", geometry: createLineGeometry(vertices) }] : [];
+                if (!Array.isArray(geometry.coordinates) || geometry.coordinates.length < 2) {
+                    throw new Error(`${geometryLabel} LineString needs at least two coordinate pairs.`);
+                }
+                const vertices = geometry.coordinates.map((pair, index) => readGeoJsonVertex(pair, `${geometryLabel} LineString coordinate ${index + 1}`));
+                return [{ geometryType: "line", geometry: createLineGeometry(vertices) }];
             }
             if (geometry.type === "MultiLineString") {
-                return (geometry.coordinates || []).flatMap((line) => {
-                    const vertices = (line || []).map(coordinatePairToVertex).filter(Boolean);
-                    return vertices.length >= 2 ? [{ geometryType: "line", geometry: createLineGeometry(vertices) }] : [];
+                if (!Array.isArray(geometry.coordinates) || !geometry.coordinates.length) {
+                    throw new Error(`${geometryLabel} MultiLineString does not contain any lines.`);
+                }
+                return geometry.coordinates.map((line, lineIndex) => {
+                    if (!Array.isArray(line) || line.length < 2) {
+                        throw new Error(`${geometryLabel} MultiLineString part ${lineIndex + 1} needs at least two coordinate pairs.`);
+                    }
+                    const vertices = line.map((pair, coordinateIndex) => readGeoJsonVertex(pair, `${geometryLabel} MultiLineString part ${lineIndex + 1} coordinate ${coordinateIndex + 1}`));
+                    return { geometryType: "line", geometry: createLineGeometry(vertices) };
                 });
             }
             if (geometry.type === "Polygon") {
@@ -24377,7 +24397,7 @@
                     showRepresentativeMarker: index === representativeIndex
                 }));
             }
-            return [];
+            throw new Error(`${geometryLabel} type ${geometry.type || "unknown"} is not supported.`);
         }
 
         function createGeospatialLayer(name, geometryType, sourceFeatures = []) {
@@ -24441,9 +24461,6 @@
                         throw new Error("feature has no geometry.");
                     }
                     const parts = geometryPartsFromGeoJson(feature.geometry);
-                    if (!parts.length) {
-                        throw new Error(`geometry type ${feature.geometry.type || "unknown"} is not supported.`);
-                    }
                     parts.forEach((part) => {
                         grouped[part.geometryType].push({
                             geometry: part.geometry,
