@@ -9122,6 +9122,9 @@
         #toolbar #quickActionBar .toolbar-more-menu {
             display: block !important;
         }
+        body.mobile-survey-table-open #toolbar #quickActionBar {
+            display: none !important;
+        }
         #toolbar #mobileSelectPopover,
         #addActionPopover {
             position: fixed;
@@ -15794,6 +15797,12 @@
         }
 
         function setSurveyTableToggleState(isOpen) {
+            document.body.classList.toggle("mobile-survey-table-open", Boolean(isOpen));
+            if (isOpen && window.matchMedia("(max-width: 600px)").matches) {
+                setToolbarMoreVisibility(false);
+                setMobileSelectPopoverVisibility(false);
+                setAddActionPopoverVisibility(false);
+            }
             if (surveyTableToggle) surveyTableToggle.setAttribute("aria-expanded", isOpen ? "true" : "false");
             if (surveyTableToggleIcon) surveyTableToggleIcon.textContent = isOpen ? "▼" : "▲";
             if (surveyTableToggleLabel) surveyTableToggleLabel.textContent = isOpen ? "Close table" : "Open table";

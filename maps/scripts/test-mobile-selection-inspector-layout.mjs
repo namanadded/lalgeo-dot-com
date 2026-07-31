@@ -17,4 +17,16 @@ assert.match(
   "The mobile selection inspector must reserve the toolbar height and safe-area clearance.",
 );
 
+assert.match(
+  legacyHtml,
+  /body\.mobile-survey-table-open #toolbar #quickActionBar\s*\{\s*display:\s*none !important;/,
+  "The persistent mobile toolbar must not cover an expanded attribute table.",
+);
+
+assert.match(
+  legacyHtml,
+  /function setSurveyTableToggleState\(isOpen\)\s*\{[\s\S]*?classList\.toggle\("mobile-survey-table-open", Boolean\(isOpen\)\)[\s\S]*?setToolbarMoreVisibility\(false\)[\s\S]*?setMobileSelectPopoverVisibility\(false\)[\s\S]*?setAddActionPopoverVisibility\(false\)/,
+  "Opening the mobile table must synchronize toolbar visibility and dismiss its popovers.",
+);
+
 console.log("Mobile selection inspector layout checks passed.");
