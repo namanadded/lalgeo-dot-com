@@ -50,6 +50,10 @@ jobs:
         working-directory: maps
         run: npm run test:custom-basemap
 
+      - name: Check basemap selection journey
+        working-directory: maps
+        run: npm run test:basemap-journey
+
       - name: Check maps mobile search input hints
         working-directory: maps
         run: npm run test:search-input-mobile
