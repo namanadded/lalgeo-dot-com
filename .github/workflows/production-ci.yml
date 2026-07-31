@@ -50,6 +50,10 @@ jobs:
         working-directory: maps
         run: npm run test:custom-basemap
 
+      - name: Check mobile selection inspector layout
+        working-directory: maps
+        run: npm run test:mobile-selection-inspector-layout
+
       - name: Check maps mobile search input hints
         working-directory: maps
         run: npm run test:search-input-mobile
