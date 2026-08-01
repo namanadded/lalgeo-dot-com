@@ -26,10 +26,7 @@ const redoButton = getTagById("redoBtn");
 const advancedGisButton = getTagById("advancedGisBtn");
 const moreButton = getTagById("toolbarMoreBtn");
 const editingGroup = legacyHtml.match(
-  /<div class="toolbar-action-group toolbar-editing-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-history-group"/,
-)?.[0];
-const historyGroup = legacyHtml.match(
-  /<div class="toolbar-action-group toolbar-history-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-map-group"/,
+  /<div class="toolbar-action-group toolbar-editing-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-map-group"/,
 )?.[0];
 const mapGroup = legacyHtml.match(
   /<div class="toolbar-action-group toolbar-map-group"[^>]*>[\s\S]*?<\/div>\s*<div class="toolbar-action-group toolbar-tools-group"/,
@@ -151,7 +148,6 @@ assert.match(
   "Right toolbar overflow target must remain the quick actions group.",
 );
 assert.ok(editingGroup, "Toolbar must include a dedicated Editing control group.");
-assert.ok(historyGroup, "Toolbar must include a compact Undo and Redo group.");
 assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
 assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
 assert.doesNotMatch(
@@ -165,16 +161,16 @@ assert.match(
   "Editing group should contain Draw and Add.",
 );
 assert.match(
-  historyGroup,
-  /id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
-  "Undo and Redo should form their own compact history group.",
+  mapGroup,
+  /id="toolbarLayersBtn"[\s\S]*?<div class="toolbar-action-group toolbar-history-group"[^>]*hidden>[\s\S]*?id="undoBtn"[\s\S]*?id="redoBtn"[\s\S]*?id="toolbarMoreMenu"/,
+  "Contextual Undo and Redo should remain together immediately before More.",
 );
 assertAttribute(undoButton, "aria-label", "Undo", "Icon-only Undo must retain its accessible name.");
 assertAttribute(redoButton, "aria-label", "Redo", "Icon-only Redo must retain its accessible name.");
 assert.match(
   mapGroup,
-  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarMoreBtn"[\s\S]*?<span class="quick-action-label">More<\/span>[\s\S]*?id="toolbarBasemapBtn"/,
-  "Desktop map group should present Locate, Layers, and More before the mobile Basemap control.",
+  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="undoBtn"[\s\S]*?id="redoBtn"[\s\S]*?id="toolbarMoreBtn"[\s\S]*?<span class="quick-action-label">More<\/span>[\s\S]*?id="toolbarBasemapBtn"/,
+  "Desktop map group should place contextual history between Layers and More.",
 );
 assertAttribute(moreButton, "aria-haspopup", "menu", "More must expose its popup-menu behavior.");
 assertAttribute(moreButton, "aria-controls", "toolbarMorePopover", "More must identify its popover.");
