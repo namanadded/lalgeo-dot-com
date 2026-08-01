@@ -8955,9 +8955,18 @@
         #toolbar #leftToolbarExpand,
         #toolbar #toolbarMenuCommands,
         #toolbar #editPanelToggleBtn,
-        #toolbar .toolbar-history-group,
         #toolbar #myLocationBtn {
             display: none !important;
+        }
+        #toolbar .toolbar-history-group[hidden] {
+            display: none !important;
+        }
+        #toolbar .toolbar-history-group:not([hidden]) {
+            display: flex;
+        }
+        #toolbar .toolbar-history-group:not([hidden]) #undoBtn,
+        #toolbar .toolbar-history-group:not([hidden]) #redoBtn {
+            display: inline-flex;
         }
         #toolbar .brand-menu-btn {
             width: 72px;
@@ -9270,8 +9279,12 @@
         #toolbar #quickActionBar #toolbarLayersBtn::before {
             display: none;
         }
-        #toolbar #quickActionBar .toolbar-history-group {
-            display: none;
+        #toolbar #quickActionBar .toolbar-history-group[hidden] {
+            display: none !important;
+        }
+        #toolbar #quickActionBar .toolbar-history-group:not([hidden]) {
+            display: flex;
+            gap: 0;
         }
         #toolbar #quickActionBar #editPanelToggleBtn,
         #toolbar #quickActionBar #myLocationBtn {
@@ -9309,6 +9322,25 @@
         }
         #toolbar #quickActionBar .menu-bar-btn.quick-action[hidden] {
             display: none !important;
+        }
+        #toolbar #quickActionBar .toolbar-history-group:not([hidden]) .menu-bar-btn.quick-action {
+            width: 44px;
+            min-width: 44px;
+            height: 50px;
+            min-height: 50px;
+            padding-inline: 0;
+        }
+        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) {
+            left: 50%;
+            width: min(304px, calc(100vw - 16px));
+            transform: translateX(-50%);
+        }
+        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #mobileSelectBtn,
+        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #addSurveyPointBtn,
+        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #toolbarLayersBtn,
+        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #toolbarMoreBtn {
+            width: 48px;
+            min-width: 48px;
         }
         #toolbar #quickActionBar .quick-action-icon,
         #toolbar #quickActionBar .toolbar-icon {
@@ -10483,26 +10515,6 @@
                         <span class="quick-action-label">Add</span>
                     </button>
                 </div>
-                <div class="toolbar-action-group toolbar-history-group" aria-label="History controls">
-                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Undo" title="Undo">
-                        <span class="quick-action-icon" aria-hidden="true">
-                            <svg class="toolbar-icon" viewBox="0 0 24 24">
-                                <path d="M9 7H4v5"></path>
-                                <path d="M4 12a8 8 0 1 0 2.35-5.65L4 8.7"></path>
-                            </svg>
-                        </span>
-                        <span class="quick-action-label">Undo</span>
-                    </button>
-                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Redo" title="Redo">
-                        <span class="quick-action-icon" aria-hidden="true">
-                            <svg class="toolbar-icon" viewBox="0 0 24 24">
-                                <path d="M15 7h5v5"></path>
-                                <path d="M20 12a8 8 0 1 1-2.35-5.65L20 8.7"></path>
-                            </svg>
-                        </span>
-                        <span class="quick-action-label">Redo</span>
-                    </button>
-                </div>
                 <div class="toolbar-action-group toolbar-map-group" aria-label="Map controls">
                     <button id="myLocationBtn" type="button" class="menu-bar-btn quick-action" aria-label="Locate me" title="Locate">
                         <span class="quick-action-icon" aria-hidden="true">
@@ -10526,6 +10538,26 @@
                         </span>
                         <span class="quick-action-label">Layers</span>
                     </button>
+                    <div class="toolbar-action-group toolbar-history-group" aria-label="History controls" hidden>
+                        <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Undo" title="Undo">
+                            <span class="quick-action-icon" aria-hidden="true">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                    <path d="M9 7H4v5"></path>
+                                    <path d="M4 12a8 8 0 1 0 2.35-5.65L4 8.7"></path>
+                                </svg>
+                            </span>
+                            <span class="quick-action-label">Undo</span>
+                        </button>
+                        <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Redo" title="Redo">
+                            <span class="quick-action-icon" aria-hidden="true">
+                                <svg class="toolbar-icon" viewBox="0 0 24 24">
+                                    <path d="M15 7h5v5"></path>
+                                    <path d="M20 12a8 8 0 1 1-2.35-5.65L20 8.7"></path>
+                                </svg>
+                            </span>
+                            <span class="quick-action-label">Redo</span>
+                        </button>
+                    </div>
                     <div id="toolbarMoreMenu" class="toolbar-more-menu">
                         <button id="toolbarMoreBtn" type="button" class="menu-bar-btn quick-action" aria-label="More tools" aria-haspopup="menu" aria-controls="toolbarMorePopover" aria-expanded="false" title="More">
                             <span class="quick-action-icon" aria-hidden="true">
@@ -12130,6 +12162,7 @@
         const sampleMapKeepBtn = document.getElementById("sampleMapKeepBtn");
         const sampleMapDeleteBtn = document.getElementById("sampleMapDeleteBtn");
         const sampleMapOwnProjectBtn = document.getElementById("sampleMapOwnProjectBtn");
+        const toolbarHistoryGroup = document.querySelector("#quickActionBar .toolbar-history-group");
         const undoBtn = document.getElementById("undoBtn");
         const redoBtn = document.getElementById("redoBtn");
         function createToolbarButtonViewModel({ key, element, group = "", role = "button" }) {
@@ -14041,6 +14074,7 @@
                 button.disabled = !available;
                 button.classList.toggle("is-disabled", !available);
             });
+            syncToolbarHistoryControls();
             updateMobileSelectControls();
         }
 
@@ -16596,8 +16630,18 @@
             const retainedSelection = preserveSelection
                 ? new Set(selectedTableRows)
                 : new Set();
+            const previousProjectId = activeProjectRecord?.id || null;
+            const previousLayerId = activeLayerId || null;
+            const nextProjectId = project?.id || null;
+            const nextLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            const historyContextChanged = previousProjectId !== nextProjectId || previousLayerId !== nextLayerId;
             activeProjectRecord = project || null;
-            activeLayerId = project?.activeLayerId || project?.layers?.[0]?.id || null;
+            activeLayerId = nextLayerId;
+            if (historyContextChanged) {
+                resetHistoryStacks();
+            } else {
+                syncToolbarHistoryControls();
+            }
             selectedTableRows = retainedSelection;
             lastSelectedTableRow = retainedSelection.size ? Math.max(...retainedSelection) : null;
             tableRowFilterMode = "all";
@@ -23534,11 +23578,9 @@
             setSurveyTableVisibility(true);
             updateSurveyTable();
             setAddButtonVisibility(true);
-            undoStack = [];
-            redoStack = [];
+            resetHistoryStacks();
             pendingChanges = false;
             surveyNeedsSave = false;
-            updateHistoryButtons();
             syncActiveLayerFromSurveyState();
 
             if (prevCalloutOpen && prevCalloutPointId) {
@@ -26537,9 +26579,7 @@
                     surveyNeedsSave = false;
                     pendingChanges = false;
                     workspaceDirty = false;
-                    undoStack = [];
-                    redoStack = [];
-                    updateHistoryButtons();
+                    resetHistoryStacks();
                 } catch (error) {
                     console.error(error);
                     setProjectStatus(error.message || "Failed to update Dropbox archive.", "error");
@@ -27481,6 +27521,32 @@ function setImportPanelVisibility(show) {
             updateHistoryButtons();
         }
 
+        function syncToolbarHistoryControls() {
+            const canUndo = undoStack.length > 0;
+            const canRedo = redoStack.length > 0;
+            const hasHistory = canUndo || canRedo;
+            if (toolbarHistoryGroup) {
+                toolbarHistoryGroup.hidden = !hasHistory;
+                toolbarHistoryGroup.setAttribute("aria-hidden", hasHistory ? "false" : "true");
+            }
+            if (undoBtn) {
+                undoBtn.hidden = false;
+                undoBtn.disabled = !canUndo;
+                undoBtn.classList.toggle("is-disabled", !canUndo);
+            }
+            if (redoBtn) {
+                redoBtn.hidden = false;
+                redoBtn.disabled = !canRedo;
+                redoBtn.classList.toggle("is-disabled", !canRedo);
+            }
+        }
+
+        function resetHistoryStacks() {
+            undoStack = [];
+            redoStack = [];
+            updateHistoryButtons();
+        }
+
         function performUndo() {
             if (!undoStack.length) return;
             const action = undoStack.pop();
@@ -27783,8 +27849,7 @@ function setImportPanelVisibility(show) {
         }
 
         function updateHistoryButtons() {
-            if (undoBtn) undoBtn.disabled = !undoStack.length;
-            if (redoBtn) redoBtn.disabled = !redoStack.length;
+            syncToolbarHistoryControls();
             if (editPanelUndoBtn) editPanelUndoBtn.disabled = !undoStack.length;
             if (editPanelRedoBtn) editPanelRedoBtn.disabled = !redoStack.length;
             if (undoBtn) undoBtn.title = undoStack.length ? "Undo the most recent local change." : "Undo becomes available after you add, move, delete, or edit a feature.";

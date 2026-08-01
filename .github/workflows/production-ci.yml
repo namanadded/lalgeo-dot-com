@@ -210,6 +210,10 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-menu-organization
 
+      - name: Check contextual toolbar history controls
+        working-directory: maps
+        run: npm run test:contextual-toolbar-history
+
       - name: Check desktop and mobile toolbar parity
         working-directory: maps
         run: npm run test:desktop-mobile-toolbar-parity
