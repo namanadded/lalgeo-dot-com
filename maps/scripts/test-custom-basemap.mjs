@@ -6,8 +6,8 @@ const source = readFileSync(resolve("public/legacy/lalgeosurvey.html"), "utf8");
 
 assert.match(
   source,
-  /id="customBasemapNameInput"[\s\S]*?id="customBasemapUrlInput"[\s\S]*?id="customBasemapAttributionInput"[\s\S]*?id="saveCustomBasemapBtn"/,
-  "Settings should provide a reusable custom-basemap editor.",
+  /id="customBasemapDialog"[\s\S]*?id="customBasemapNameInput"[\s\S]*?id="customBasemapUrlInput"[\s\S]*?id="customBasemapAttributionInput"[\s\S]*?id="saveCustomBasemapBtn"/,
+  "The dedicated dialog should provide the reusable custom-basemap editor.",
 );
 assert.match(
   source,
@@ -16,13 +16,13 @@ assert.match(
 );
 assert.match(
   source,
-  /mapType === "custom" && !getCustomBasemapConfig\(\)[\s\S]*?openCustomBasemapSettings\(\)/,
-  "Choosing Custom before configuration should open and focus the existing settings editor.",
+  /mapType === "custom" && !getCustomBasemapConfig\(\)[\s\S]*?openCustomBasemapDialog\(mapTypeButton\)/,
+  "Choosing Custom before configuration should open the dedicated dialog.",
 );
 assert.match(
   source,
-  /function openCustomBasemapSettings\(\)[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?closeFeatureDrawer\(\)[\s\S]*?setSettingsPanelVisibility\(true\)[\s\S]*?customBasemapUrlInput\?\.focus\(\)/,
-  "Opening the editor should close overlapping feature details before focusing the tile URL.",
+  /function setCustomBasemapDialogVisibility\(show,[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?closeFeatureDrawer\(\)[\s\S]*?customBasemapBackdrop\.hidden = false[\s\S]*?customBasemapNameInput\)\?\.focus\(\)/,
+  "Opening the editor should close conflicting UI, show the dialog, and focus the relevant field.",
 );
 assert.match(
   source,

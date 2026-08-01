@@ -104,16 +104,52 @@
         width: 100%;
         accent-color: #0f766e;
     }
-    .custom-basemap-editor {
-        display: grid;
-        gap: 9px;
+    .custom-basemap-settings-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
         margin-top: 10px;
-        padding: 12px;
-        border: 1px solid rgba(148, 163, 184, 0.32);
-        border-radius: 12px;
-        background: rgba(248, 250, 252, 0.72);
+        padding: 10px 0;
     }
-    .custom-basemap-editor .settings-option {
+    .custom-basemap-settings-copy {
+        display: grid;
+        gap: 3px;
+        min-width: 0;
+    }
+    .custom-basemap-settings-copy strong {
+        color: #374151;
+        font-size: 13px;
+    }
+    .custom-basemap-settings-copy span {
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
+    }
+    .layer-modal.custom-basemap-dialog {
+        display: flex;
+        flex-direction: column;
+        width: min(560px, calc(100vw - 32px));
+        max-height: calc(100dvh - 48px);
+        padding: 0;
+        overflow: hidden;
+    }
+    .custom-basemap-dialog .layer-modal-header {
+        flex: 0 0 auto;
+        margin: 0;
+        padding: 20px 20px 14px;
+        border-bottom: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .custom-basemap-dialog .layer-modal-header h3 {
+        font-size: 22px;
+    }
+    .custom-basemap-dialog .layer-modal-body {
+        min-height: 0;
+        padding: 18px 20px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
+    }
+    .custom-basemap-dialog .settings-option {
         display: grid;
         gap: 5px;
     }
@@ -127,14 +163,78 @@
     .custom-basemap-field-error[hidden] {
         display: none;
     }
-    .custom-basemap-editor input[aria-invalid="true"] {
+    .custom-basemap-dialog input[aria-invalid="true"] {
         border-color: #d92d20;
         box-shadow: 0 0 0 3px rgba(217, 45, 32, 0.12);
     }
-    .custom-basemap-editor-actions {
+    .custom-basemap-dialog .custom-basemap-opacity {
+        padding: 0;
+    }
+    .custom-basemap-dialog .layer-modal-actions {
+        flex: 0 0 auto;
         display: flex;
-        flex-wrap: wrap;
+        align-items: center;
+        justify-content: flex-end;
         gap: 8px;
+        margin: 0;
+        padding: 14px 20px calc(14px + env(safe-area-inset-bottom));
+        border-top: 1px solid rgba(148, 163, 184, 0.22);
+    }
+    .custom-basemap-dialog .custom-basemap-remove {
+        margin-right: auto;
+        color: #b42318;
+    }
+    .custom-basemap-edit-command {
+        width: auto;
+        min-height: 34px;
+        margin: 2px 8px 4px 42px;
+        padding: 6px 10px;
+        color: #0f766e;
+        font-size: 12px;
+        font-weight: 700;
+    }
+    .custom-basemap-edit-command[hidden],
+    .custom-basemap-dialog .custom-basemap-remove[hidden] {
+        display: none;
+    }
+    body.custom-basemap-dialog-open {
+        overflow: hidden;
+    }
+    @media (max-width: 600px) {
+        #customBasemapBackdrop {
+            align-items: flex-end;
+            padding: 8px 8px max(8px, env(safe-area-inset-bottom));
+        }
+        .layer-modal.custom-basemap-dialog {
+            width: calc(100vw - 16px);
+            max-height: calc(100dvh - 16px - env(safe-area-inset-bottom));
+            border-radius: 22px 22px 16px 16px;
+        }
+        .custom-basemap-dialog .layer-modal-header {
+            position: sticky;
+            top: 0;
+            z-index: 1;
+            padding: 16px 16px 12px;
+            background: rgba(255, 255, 255, 0.96);
+        }
+        .custom-basemap-dialog .layer-modal-body {
+            padding: 14px 16px;
+        }
+        .custom-basemap-dialog .layer-modal-actions {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            padding: 12px 16px calc(12px + env(safe-area-inset-bottom));
+            background: rgba(255, 255, 255, 0.96);
+        }
+        .layer-modal.custom-basemap-dialog input,
+        .layer-modal.custom-basemap-dialog button,
+        .custom-basemap-settings-row button {
+            min-height: 44px;
+        }
+        .custom-basemap-settings-row {
+            align-items: flex-start;
+        }
     }
     #settingsPanel {
         max-height: calc(100dvh - 72px);
@@ -10934,32 +11034,13 @@
             <span>Custom basemap opacity</span>
             <input type="range" min="20" max="100" step="10" value="90" data-custom-basemap-opacity aria-label="Custom basemap opacity">
         </label>
-        <div class="custom-basemap-editor" aria-labelledby="customBasemapEditorTitle">
-            <p id="customBasemapEditorTitle" class="settings-panel-title">Custom basemap</p>
-            <label class="settings-option">
-                <span>Name</span>
-                <input id="customBasemapNameInput" class="workspace-text-input" type="text" maxlength="80" placeholder="Municipal orthophoto">
-            </label>
-            <label class="settings-option">
-                <span>HTTPS tile service URL</span>
-                <input id="customBasemapUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" required aria-describedby="customBasemapUrlHint customBasemapUrlError" placeholder="https://…/MapServer or https://…/{z}/{x}/{y}.png">
-            </label>
-            <p id="customBasemapUrlHint" class="settings-note">Enter an HTTPS XYZ template or ArcGIS MapServer URL.</p>
-            <p id="customBasemapUrlError" class="custom-basemap-field-error" role="alert" hidden></p>
-            <label class="settings-option">
-                <span>Attribution</span>
-                <input id="customBasemapAttributionInput" class="workspace-text-input" type="text" maxlength="160" placeholder="Data provider and license">
-            </label>
-            <label class="settings-option">
-                <span>Attribution link (optional)</span>
-                <input id="customBasemapAttributionUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" aria-describedby="customBasemapAttributionUrlError" placeholder="https://provider.example/dataset">
-            </label>
-            <p id="customBasemapAttributionUrlError" class="custom-basemap-field-error" role="alert" hidden></p>
-            <div class="custom-basemap-editor-actions">
-                <button id="saveCustomBasemapBtn" type="button" class="workspace-secondary-btn">Save &amp; use</button>
-                <button id="removeCustomBasemapBtn" type="button" class="workspace-secondary-btn">Remove</button>
+        <div class="custom-basemap-settings-row">
+            <div class="custom-basemap-settings-copy">
+                <strong>Custom Basemap</strong>
+                <span id="customBasemapSettingsDescription">No custom basemap configured.</span>
+                <span id="customBasemapProjectRequirement" hidden>Create or open a project before adding a custom basemap.</span>
             </div>
-            <p class="settings-note">Supports HTTPS XYZ templates containing {z}, {x}, and {y}, or an ArcGIS MapServer URL.</p>
+            <button id="configureCustomBasemapBtn" type="button" class="workspace-secondary-btn">Configure…</button>
         </div>
         <p class="settings-note">Satellite and hybrid use Apple Maps imagery where available. Custom tiles load only while selected.</p>
         <div class="settings-divider"></div>
@@ -11112,8 +11193,9 @@
                 </button>
                 <button type="button" class="menu-command basemap-menu-item" data-map-type="custom" data-custom-basemap-choice role="menuitemradio" aria-checked="false" aria-describedby="basemapCustomDescription">
                     <span class="basemap-menu-check" aria-hidden="true">✓</span>
-                    <span class="basemap-menu-copy"><span class="basemap-menu-name" data-custom-basemap-label>Custom…</span><span id="basemapCustomDescription" class="basemap-menu-description">Your saved imagery service</span></span>
+                    <span class="basemap-menu-copy"><span class="basemap-menu-name" data-custom-basemap-label>Custom…</span><span id="basemapCustomDescription" class="basemap-menu-description" data-custom-basemap-description>Connect an imagery or tile service</span></span>
                 </button>
+                <button id="editCustomBasemapBtn" type="button" class="menu-command custom-basemap-edit-command" data-custom-basemap-edit aria-label="Edit custom basemap" hidden>Edit…</button>
                 <label class="custom-basemap-opacity" data-custom-basemap-opacity-control hidden>
                     <span>Imagery opacity</span>
                     <input type="range" min="20" max="100" step="10" value="90" data-custom-basemap-opacity aria-label="Custom basemap opacity">
@@ -11702,6 +11784,47 @@
             <div id="layerActionModalActions" class="layer-modal-actions"></div>
         </div>
     </div>
+    <div id="customBasemapBackdrop" class="layer-modal-backdrop" hidden>
+        <section id="customBasemapDialog" class="layer-modal custom-basemap-dialog" role="dialog" aria-modal="true" aria-labelledby="customBasemapDialogTitle" aria-describedby="customBasemapDialogDescription">
+            <div class="layer-modal-header">
+                <div>
+                    <h3 id="customBasemapDialogTitle">Custom Basemap</h3>
+                    <p id="customBasemapDialogDescription" class="workspace-panel-muted">Connect an HTTPS XYZ tile service or ArcGIS MapServer.</p>
+                </div>
+                <button id="customBasemapDialogClose" type="button" class="layer-modal-close" aria-label="Close custom basemap dialog">×</button>
+            </div>
+            <div class="layer-modal-body">
+                <label class="settings-option">
+                    <span>Name</span>
+                    <input id="customBasemapNameInput" class="workspace-text-input" type="text" maxlength="80" placeholder="Municipal orthophoto">
+                </label>
+                <label class="settings-option">
+                    <span>HTTPS tile service URL</span>
+                    <input id="customBasemapUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" required aria-describedby="customBasemapUrlHint customBasemapUrlError" placeholder="https://…/MapServer or https://…/{z}/{x}/{y}.png">
+                </label>
+                <p id="customBasemapUrlHint" class="settings-note">Enter an HTTPS XYZ template containing {z}, {x}, and {y}, or an ArcGIS MapServer URL.</p>
+                <p id="customBasemapUrlError" class="custom-basemap-field-error" role="alert" hidden></p>
+                <label class="settings-option">
+                    <span>Attribution</span>
+                    <input id="customBasemapAttributionInput" class="workspace-text-input" type="text" maxlength="160" placeholder="Data provider and license">
+                </label>
+                <label class="settings-option">
+                    <span>Attribution link (optional)</span>
+                    <input id="customBasemapAttributionUrlInput" class="workspace-text-input" type="url" inputmode="url" spellcheck="false" aria-describedby="customBasemapAttributionUrlError" placeholder="https://provider.example/dataset">
+                </label>
+                <p id="customBasemapAttributionUrlError" class="custom-basemap-field-error" role="alert" hidden></p>
+                <label class="custom-basemap-opacity">
+                    <span>Opacity</span>
+                    <input id="customBasemapDialogOpacity" type="range" min="20" max="100" step="10" value="90" aria-label="Custom basemap opacity">
+                </label>
+            </div>
+            <div class="layer-modal-actions">
+                <button id="removeCustomBasemapBtn" type="button" class="mini-btn custom-basemap-remove" hidden>Remove</button>
+                <button id="cancelCustomBasemapBtn" type="button" class="mini-btn">Cancel</button>
+                <button id="saveCustomBasemapBtn" type="button" class="mini-btn primary">Save &amp; Use</button>
+            </div>
+        </section>
+    </div>
     <div id="surveyCallout">
         <div class="card">
             <button class="close-btn" type="button" aria-label="Close">×</button>
@@ -11828,6 +11951,8 @@
         let mapReady = false;
         let customBasemapTileOverlay = null;
         let customBasemapTileErrorCount = 0;
+        let customBasemapDialogReturnFocus = null;
+        let customBasemapBackgroundElements = [];
         let measurementActive = false;
         let measurementMode = "distance";
         let measurementUnits = "metric";
@@ -11882,6 +12007,15 @@
         const customBasemapAttributionUrlError = document.getElementById("customBasemapAttributionUrlError");
         const saveCustomBasemapBtn = document.getElementById("saveCustomBasemapBtn");
         const removeCustomBasemapBtn = document.getElementById("removeCustomBasemapBtn");
+        const configureCustomBasemapBtn = document.getElementById("configureCustomBasemapBtn");
+        const editCustomBasemapBtn = document.getElementById("editCustomBasemapBtn");
+        const customBasemapSettingsDescription = document.getElementById("customBasemapSettingsDescription");
+        const customBasemapProjectRequirement = document.getElementById("customBasemapProjectRequirement");
+        const customBasemapBackdrop = document.getElementById("customBasemapBackdrop");
+        const customBasemapDialog = document.getElementById("customBasemapDialog");
+        const customBasemapDialogClose = document.getElementById("customBasemapDialogClose");
+        const cancelCustomBasemapBtn = document.getElementById("cancelCustomBasemapBtn");
+        const customBasemapDialogOpacity = document.getElementById("customBasemapDialogOpacity");
         const quickActionToggles = Array.from(document.querySelectorAll(".quick-action-toggle"));
         const toolbarProjectNameCompact = document.getElementById("toolbarProjectName");
         const toolbarProjectMeta = document.getElementById("toolbarProjectMeta");
@@ -14150,6 +14284,7 @@
                 [menuLogoutBtn, dropboxConnected],
                 [menuHelpShortcutsBtn, true],
                 [saveCustomBasemapBtn, hasProject],
+                [configureCustomBasemapBtn, hasProject],
                 [newProjectBtn, true],
                 [openProjectBtn, true],
                 [toggleImportBtn, true],
@@ -14175,6 +14310,7 @@
                 [menuForceCloseBtn, "Open a project, panel, or menu before closing everything."],
                 [menuLogoutBtn, "Connect Dropbox before disconnecting it."],
                 [saveCustomBasemapBtn, "Create or open a project before adding a custom basemap."],
+                [configureCustomBasemapBtn, "Create or open a project before adding a custom basemap."],
                 [shareButton, "Create or open a project before sharing a link."],
                 [exportProjectBtn, "Create or open a project before exporting it."]
             ]);
@@ -14746,6 +14882,7 @@
 
         function updateMapTypeControls(project = activeProjectRecord) {
             const config = getCustomBasemapConfig(project);
+            const hasProject = Boolean(activeProjectRecord);
             const selectedType = getProjectMapType(project) === "custom" && !config ? "standard" : getProjectMapType(project);
             document.querySelectorAll("[data-custom-basemap-choice]").forEach((choice) => {
                 const label = choice.querySelector("[data-custom-basemap-label]");
@@ -14754,7 +14891,7 @@
                 else choice.textContent = text;
             });
             document.querySelectorAll("[data-custom-basemap-description]").forEach((description) => {
-                description.textContent = activeProjectRecord
+                description.textContent = hasProject
                     ? (config ? "Your saved imagery service" : "Connect an imagery or tile service")
                     : "Create or open a project first";
             });
@@ -14799,7 +14936,24 @@
             if (customBasemapUrlInput) customBasemapUrlInput.value = config?.sourceUrl || config?.tileUrl || "";
             if (customBasemapAttributionInput) customBasemapAttributionInput.value = config?.attribution || "";
             if (customBasemapAttributionUrlInput) customBasemapAttributionUrlInput.value = config?.attributionUrl || "";
-            if (removeCustomBasemapBtn) removeCustomBasemapBtn.disabled = !config;
+            if (customBasemapDialogOpacity) customBasemapDialogOpacity.value = String(opacityPercent);
+            if (removeCustomBasemapBtn) {
+                removeCustomBasemapBtn.hidden = !config;
+                removeCustomBasemapBtn.disabled = !config;
+            }
+            if (editCustomBasemapBtn) editCustomBasemapBtn.hidden = !config || !hasProject;
+            if (customBasemapSettingsDescription) {
+                customBasemapSettingsDescription.textContent = config?.name || "No custom basemap configured.";
+            }
+            if (customBasemapProjectRequirement) customBasemapProjectRequirement.hidden = hasProject;
+            if (configureCustomBasemapBtn) {
+                configureCustomBasemapBtn.textContent = config ? "Edit…" : "Configure…";
+                setCommandAvailabilityState(
+                    configureCustomBasemapBtn,
+                    hasProject,
+                    "Create or open a project before adding a custom basemap."
+                );
+            }
         }
 
         function applyProjectMapType(project = activeProjectRecord) {
@@ -14874,16 +15028,6 @@
             setProjectStatus(`Custom basemap opacity set to ${Math.round(opacity * 100)}%.`, "success");
         }
 
-        function openCustomBasemapSettings() {
-            setToolbarMenuVisibility(false);
-            closeFeatureDrawer();
-            setSettingsPanelVisibility(true);
-            window.setTimeout(() => {
-                customBasemapUrlInput?.scrollIntoView({ block: "center" });
-                customBasemapUrlInput?.focus();
-            }, 0);
-        }
-
         function setCustomBasemapFieldError(input, errorElement, message = "") {
             const hasError = Boolean(message);
             input?.setAttribute("aria-invalid", hasError ? "true" : "false");
@@ -14895,6 +15039,87 @@
         function clearCustomBasemapFieldErrors() {
             setCustomBasemapFieldError(customBasemapUrlInput, customBasemapUrlError);
             setCustomBasemapFieldError(customBasemapAttributionUrlInput, customBasemapAttributionUrlError);
+        }
+
+        function trapCustomBasemapDialogFocus(event) {
+            if (event.key !== "Tab" || customBasemapBackdrop?.hidden) return;
+            const focusable = Array.from(customBasemapDialog.querySelectorAll('button, input, select, textarea, [tabindex]:not([tabindex="-1"])'))
+                .filter((element) => !element.disabled && !element.hidden && element.offsetParent !== null);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
+        }
+
+        function setCustomBasemapBackgroundInteraction(blocked) {
+            if (blocked) {
+                customBasemapBackgroundElements = Array.from(document.body.children)
+                    .filter((element) => element !== customBasemapBackdrop && element.tagName !== "SCRIPT")
+                    .map((element) => ({ element, wasInert: element.hasAttribute("inert") }));
+                customBasemapBackgroundElements.forEach(({ element }) => element.setAttribute("inert", ""));
+                return;
+            }
+            customBasemapBackgroundElements.forEach(({ element, wasInert }) => {
+                if (!wasInert) element.removeAttribute("inert");
+            });
+            customBasemapBackgroundElements = [];
+        }
+
+        function closeCustomBasemapDialog({ restoreFocus = true } = {}) {
+            if (!customBasemapBackdrop || customBasemapBackdrop.hidden) return;
+            const returnTarget = customBasemapDialogReturnFocus;
+            customBasemapBackdrop.hidden = true;
+            document.body.classList.remove("custom-basemap-dialog-open");
+            document.removeEventListener("keydown", trapCustomBasemapDialogFocus, true);
+            setCustomBasemapBackgroundInteraction(false);
+            clearCustomBasemapFieldErrors();
+            customBasemapDialogReturnFocus = null;
+            if (restoreFocus) {
+                const focusTarget = returnTarget?.isConnected && !returnTarget.disabled && returnTarget.offsetParent !== null
+                    ? returnTarget
+                    : toolbarMoreBtn;
+                window.requestAnimationFrame(() => focusTarget?.focus());
+            }
+        }
+
+        function setCustomBasemapDialogVisibility(show, { trigger = document.activeElement, restoreFocus = true } = {}) {
+            if (!customBasemapBackdrop || !customBasemapDialog) return;
+            if (!show) {
+                closeCustomBasemapDialog({ restoreFocus });
+                return;
+            }
+            if (!activeProjectRecord) {
+                setProjectStatus("Create or open a project before adding a custom basemap.", "error");
+                return;
+            }
+            customBasemapDialogReturnFocus = trigger instanceof HTMLElement ? trigger : document.activeElement;
+            setToolbarMoreVisibility(false);
+            setToolbarMenuVisibility(false);
+            setAddActionPopoverVisibility(false);
+            setMobileSelectPopoverVisibility(false);
+            closeFeatureDrawer();
+            if (!settingsPanel?.contains(customBasemapDialogReturnFocus)) setSettingsPanelVisibility(false);
+            if (window.matchMedia("(max-width: 600px)").matches && surveyTablePanel && !surveyTablePanel.hidden) {
+                setSurveyTableVisibility(false);
+            }
+            updateMapTypeControls(activeProjectRecord);
+            clearCustomBasemapFieldErrors();
+            customBasemapBackdrop.hidden = false;
+            document.body.classList.add("custom-basemap-dialog-open");
+            setCustomBasemapBackgroundInteraction(true);
+            document.addEventListener("keydown", trapCustomBasemapDialogFocus, true);
+            const config = getCustomBasemapConfig();
+            window.requestAnimationFrame(() => (config ? customBasemapUrlInput : customBasemapNameInput)?.focus());
+        }
+
+        function openCustomBasemapDialog(trigger = document.activeElement) {
+            setCustomBasemapDialogVisibility(true, { trigger });
         }
 
         function saveCustomBasemap() {
@@ -14935,12 +15160,14 @@
                 activeProjectRecord.mapOptions = {
                     ...(activeProjectRecord.mapOptions || {}),
                     mapType: "custom",
+                    customBasemapOpacity: Math.max(0.2, Math.min(1, Number(customBasemapDialogOpacity?.value || 90) / 100)),
                     customBasemap: { name, sourceUrl, tileUrl, attribution, attributionUrl }
                 };
                 markActiveProjectUpdated();
                 scheduleLocalAutosave();
                 applyProjectMapType(activeProjectRecord);
                 setProjectStatus(`${name} saved and selected.`, "success");
+                closeCustomBasemapDialog();
             } catch (error) {
                 setProjectStatus(error?.message || "Custom basemap settings are invalid.", "error");
             }
@@ -14957,6 +15184,7 @@
             scheduleLocalAutosave();
             applyProjectMapType(activeProjectRecord);
             setProjectStatus("Custom basemap removed. Standard basemap selected.", "success");
+            closeCustomBasemapDialog();
         }
 
         function getActiveLayerRecord() {
@@ -16645,6 +16873,9 @@
             refreshApi = true,
             preserveSelection = false
         } = {}) {
+            if (customBasemapBackdrop && !customBasemapBackdrop.hidden) {
+                closeCustomBasemapDialog({ restoreFocus: false });
+            }
             if (localAutosaveTimer) {
                 clearTimeout(localAutosaveTimer);
                 localAutosaveTimer = null;
@@ -20487,13 +20718,20 @@
                 setToolbarMenuVisibility(false);
                 return;
             }
+            const customBasemapEditButton = event.target.closest("[data-custom-basemap-edit]");
+            if (customBasemapEditButton) {
+                event.preventDefault();
+                event.stopPropagation();
+                openCustomBasemapDialog(customBasemapEditButton);
+                return;
+            }
             const mapTypeButton = event.target.closest("[data-map-type]");
             if (mapTypeButton) {
                 event.preventDefault();
                 event.stopPropagation();
                 const mapType = mapTypeButton.getAttribute("data-map-type");
                 if (mapType === "custom" && !getCustomBasemapConfig()) {
-                    openCustomBasemapSettings();
+                    openCustomBasemapDialog(mapTypeButton);
                     return;
                 }
                 setProjectMapType(mapType);
@@ -20538,10 +20776,21 @@
             setProjectStatus(`Project time zone set to ${activeProjectRecord.metadata.timeZone}.`, "success");
         });
         projectMapTypeSelect?.addEventListener("change", () => {
+            if (projectMapTypeSelect.value === "custom" && !getCustomBasemapConfig()) {
+                updateMapTypeControls(activeProjectRecord);
+                openCustomBasemapDialog(projectMapTypeSelect);
+                return;
+            }
             setProjectMapType(projectMapTypeSelect.value);
         });
         saveCustomBasemapBtn?.addEventListener("click", saveCustomBasemap);
         removeCustomBasemapBtn?.addEventListener("click", removeCustomBasemap);
+        configureCustomBasemapBtn?.addEventListener("click", () => openCustomBasemapDialog(configureCustomBasemapBtn));
+        customBasemapDialogClose?.addEventListener("click", () => closeCustomBasemapDialog());
+        cancelCustomBasemapBtn?.addEventListener("click", () => closeCustomBasemapDialog());
+        customBasemapBackdrop?.addEventListener("click", (event) => {
+            if (event.target === customBasemapBackdrop) closeCustomBasemapDialog();
+        });
         customBasemapUrlInput?.addEventListener("input", () => {
             setCustomBasemapFieldError(customBasemapUrlInput, customBasemapUrlError);
         });
@@ -21234,6 +21483,12 @@
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
+                if (customBasemapBackdrop && !customBasemapBackdrop.hidden) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closeCustomBasemapDialog();
+                    return;
+                }
                 if (locationStatusCard && !locationStatusCard.hidden) {
                     event.preventDefault();
                     hideLocationStatus({ restoreFocus: true });
