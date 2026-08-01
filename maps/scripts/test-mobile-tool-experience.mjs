@@ -16,8 +16,13 @@ assert.match(
 );
 assert.match(
   mobileStyles,
-  /#toolbar #quickActionBar \.toolbar-history-group\s*\{\s*display:\s*none;/,
-  "Undo and Redo should not consume persistent mobile toolbar space.",
+  /#toolbar #quickActionBar \.toolbar-history-group\[hidden\]\s*\{\s*display:\s*none !important;[\s\S]*?#toolbar #quickActionBar \.toolbar-history-group:not\(\[hidden\]\)\s*\{\s*display:\s*flex;/,
+  "Undo and Redo should consume mobile toolbar space only while edit history exists.",
+);
+assert.match(
+  mobileStyles,
+  /\.toolbar-history-group:not\(\[hidden\]\) \.menu-bar-btn\.quick-action\s*\{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?min-height:\s*50px;/,
+  "Contextual mobile history controls should retain at least 44px touch targets.",
 );
 assert.match(
   mobileStyles,

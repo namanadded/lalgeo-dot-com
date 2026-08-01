@@ -10,10 +10,15 @@ assert.match(brandButton, /data-menu="mobile"/, "The LalGeo logo should open the
 assert.match(brandButton, /aria-label="LalGeo menu"/, "The shared application-menu trigger should retain its accessible name.");
 assert.match(brandButton, /class="brand-menu-chevron"/, "The shared application-menu trigger should expose a disclosure indicator.");
 
+assert.doesNotMatch(
+  legacyHtml,
+  /#toolbar #editPanelToggleBtn,\s*#toolbar \.toolbar-history-group,\s*#toolbar #myLocationBtn\s*\{\s*display:\s*none !important;/,
+  "Desktop must not permanently hide contextual history controls.",
+);
 assert.match(
   legacyHtml,
-  /@media \(min-width: 601px\)[\s\S]*?#toolbar #leftToolbarExpand,[\s\S]*?#toolbar #toolbarMenuCommands,[\s\S]*?#toolbar #editPanelToggleBtn,[\s\S]*?#toolbar \.toolbar-history-group,[\s\S]*?#toolbar #myLocationBtn\s*\{\s*display:\s*none !important;/,
-  "Desktop should hide the duplicate menubar, Draw, history, and Locate toolbar entries.",
+  /function syncToolbarHistoryControls\(\)[\s\S]*?const hasHistory = canUndo \|\| canRedo;[\s\S]*?toolbarHistoryGroup\.hidden = !hasHistory;/,
+  "Desktop and mobile must share stack-driven contextual history visibility.",
 );
 assert.match(
   legacyHtml,
