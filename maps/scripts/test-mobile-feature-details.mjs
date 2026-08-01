@@ -11,7 +11,9 @@ const checks = [
   ["closing details clears the selected overlay", /map\?\.selectedOverlay\?\.data\?\.surveyFeatureAnnotation[\s\S]*?map\.selectedOverlay\s*=\s*null/],
   ["mobile drawer is anchored as a bottom sheet", /#featureDrawer\s*\{[\s\S]*?top:\s*auto\s*!important;[\s\S]*?bottom:\s*max\(10px,[\s\S]*?height:\s*min\(50dvh,\s*460px\)/],
   ["mobile drawer scrolls its body independently", /\.feature-drawer-body\s*\{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?overflow-y:\s*auto/],
-  ["feature drawer exposes a persistent close control", /id="featureDrawerClose"[\s\S]*?aria-label="Close feature details"/]
+  ["feature drawer exposes a persistent close control", /id="featureDrawerClose"[\s\S]*?aria-label="Close feature details"/],
+  ["opening mobile feature details collapses the table", /collapseSurveyTableForMobileFeatureDetails\(\);[\s\S]*?featureDrawer\.classList\.add\("open"\);[\s\S]*?function collapseSurveyTableForMobileFeatureDetails\(\)[\s\S]*?matchMedia\("\(max-width: 600px\)"\)[\s\S]*?surveyTablePanel\.classList\.remove\("open"\);[\s\S]*?surveyTableWrapper\.hidden = true;[\s\S]*?updateFloatingButtonLayer\(false\);/],
+  ["selection actions participate in the open table layout", /body\.survey-table-open #selectedFeatureInspector\s*\{[\s\S]*?position:\s*static;[\s\S]*?width:\s*100%;[\s\S]*?flex:\s*0 0 auto;[\s\S]*?body\.survey-table-open #surveyTableWrapper\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?flex:\s*1 1 auto;/]
 ];
 
 const failures = checks.filter(([, pattern]) => !pattern.test(source));

@@ -10286,6 +10286,28 @@
             font-size: 13px;
             font-weight: 600;
         }
+        body.survey-table-open #surveyTablePanel {
+            height: 58dvh;
+        }
+        body.survey-table-open #selectedFeatureInspector {
+            position: static;
+            left: auto;
+            right: auto;
+            bottom: auto;
+            width: 100%;
+            flex: 0 0 auto;
+            border-right: 0;
+            border-left: 0;
+            border-radius: 0;
+            box-shadow: none;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        body.survey-table-open #surveyTableWrapper {
+            min-height: 0;
+            max-height: none;
+            flex: 1 1 auto;
+        }
 
         #toolbar #quickActionBar .menu-bar-btn.quick-action:focus-visible,
         #toolbar #toolbarMorePopover .toolbar-more-item:focus-visible,
@@ -17581,8 +17603,26 @@
                 hideSurveyCallout();
                 setProjectStatus(editable ? "Feature details saved and closed." : "Feature details closed.", "success");
             });
+            collapseSurveyTableForMobileFeatureDetails();
             featureDrawer.classList.add("open");
             setOffCanvasAccessibility(featureDrawer, true);
+        }
+
+        function collapseSurveyTableForMobileFeatureDetails() {
+            const tableOpen = Boolean(
+                window.matchMedia("(max-width: 600px)").matches
+                && surveyTablePanel
+                && !surveyTablePanel.hidden
+                && surveyTablePanel.classList.contains("open")
+            );
+            if (!tableOpen) return false;
+            surveyTablePanel.classList.remove("open");
+            if (surveyTableWrapper) surveyTableWrapper.hidden = true;
+            setSurveyTableToggleState(false);
+            updateFloatingButtonLayer(false);
+            renderWorkspaceCollections();
+            renderActiveProjectSidebar();
+            return true;
         }
 
         function addLayerToActiveProject({ geometryType: requestedGeometryType = "point", startDrawing = false } = {}) {
