@@ -69,6 +69,7 @@
     "test:lal-import-normalization": "node scripts/test-lal-import-normalization.mjs",
     "test:lal-serialization": "node scripts/test-lal-serialization.mjs",
     "benchmark:cloud-catalog": "node scripts/benchmark-cloud-catalog.mjs",
+    "benchmark:cloud-catalog-safety": "node scripts/benchmark-cloud-catalog-safety.mjs",
     "benchmark:cloud-recovery": "node scripts/benchmark-cloud-recovery.mjs",
     "test:dropbox-content-hash": "node scripts/test-dropbox-content-hash.mjs",
     "benchmark:large-projects": "node scripts/benchmark-large-projects.mjs",
