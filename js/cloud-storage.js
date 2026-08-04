@@ -12,6 +12,27 @@ export class CloudStorageError extends Error {
   }
 }
 
+function readHeader(headers, name) {
+  if (typeof headers?.get === "function") return headers.get(name);
+  const target = name.toLowerCase();
+  const entry = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === target);
+  return entry?.[1];
+}
+
+export function getCloudRetryAfterMs(error, now = Date.now()) {
+  if (Number.isFinite(error?.retryAfterMs) && error.retryAfterMs >= 0) {
+    return Math.ceil(error.retryAfterMs);
+  }
+  const raw = error?.error?.retry_after
+    ?? readHeader(error?.headers || error?.response?.headers, "retry-after");
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw === "number") return Number.isFinite(raw) && raw >= 0 ? Math.ceil(raw * 1000) : null;
+  const value = String(raw).trim();
+  if (/^\d+(?:\.\d+)?$/.test(value)) return Math.ceil(Number(value) * 1000);
+  const retryAt = Date.parse(value);
+  return Number.isFinite(retryAt) ? Math.max(0, retryAt - now) : null;
+}
+
 export function normalizeCloudError(error, provider = "unknown") {
   if (error instanceof CloudStorageError) return error;
   const status = Number(error?.status || error?.response?.status || 0);
@@ -28,7 +49,7 @@ export function normalizeCloudError(error, provider = "unknown") {
     code,
     provider,
     retryable: code === "rate_limit" || code === "unavailable",
-    details: { status },
+    details: { status, retryAfterMs: getCloudRetryAfterMs(error) },
   });
 }
 
@@ -43,7 +64,10 @@ function throwIfCloudOperationAborted(signal) {
 export async function retryCloudOperation(operation, options = {}) {
   const attempts = Math.max(1, options.attempts || 4);
   const baseDelayMs = Math.max(0, options.baseDelayMs ?? 250);
-  const sleep = options.sleep || ((delay) => new Promise((resolve) => setTimeout(resolve, delay)));
+  const sleep = options.sleep || defaultCloudSleep;
+  const maxDelayMs = Math.max(baseDelayMs, options.maxDelayMs ?? 5 * 60 * 1000);
+  const jitterRatio = Math.min(1, Math.max(0, options.jitterRatio ?? 0));
+  const random = options.random || Math.random;
   let lastError;
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     throwIfCloudOperationAborted(options.signal);
@@ -52,11 +76,64 @@ export async function retryCloudOperation(operation, options = {}) {
     } catch (error) {
       lastError = normalizeCloudError(error, options.provider);
       if (!lastError.retryable || attempt === attempts) throw lastError;
-      await sleep(baseDelayMs * (2 ** (attempt - 1)));
+      const exponentialDelay = baseDelayMs * (2 ** (attempt - 1));
+      const providerDelay = Number(lastError.details?.retryAfterMs) || 0;
+      const uncappedDelay = Math.max(exponentialDelay, providerDelay);
+      const jitter = uncappedDelay * jitterRatio * random();
+      const delayMs = Math.min(maxDelayMs, Math.ceil(uncappedDelay + jitter));
+      options.onRetry?.({ attempt, maxAttempts: attempts, delayMs, error: lastError });
+      await sleepCloudBackoff(sleep, delayMs, options.signal);
       throwIfCloudOperationAborted(options.signal);
     }
   }
   throw lastError;
+}
+
+function defaultCloudSleep(delayMs, signal) {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+      try {
+        throwIfCloudOperationAborted(signal);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function sleepCloudBackoff(sleep, delayMs, signal) {
+  throwIfCloudOperationAborted(signal);
+  if (sleep === defaultCloudSleep) {
+    await sleep(delayMs, signal);
+    return;
+  }
+  if (!signal) {
+    await sleep(delayMs);
+    return;
+  }
+  let onAbort;
+  const aborted = new Promise((_, reject) => {
+    onAbort = () => {
+      try {
+        throwIfCloudOperationAborted(signal);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    await Promise.race([sleep(delayMs), aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
 }
 
 /**
@@ -297,7 +374,11 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
             },
           );
         }
-        await retryOptions.sleep(retryOptions.baseDelayMs * (2 ** (noProgressRecoveries - 1)));
+        await sleepCloudBackoff(
+          retryOptions.sleep,
+          retryOptions.baseDelayMs * (2 ** (noProgressRecoveries - 1)),
+          retryOptions.signal,
+        );
       } else {
         noProgressRecoveries = 0;
       }
