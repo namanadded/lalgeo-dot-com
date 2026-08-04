@@ -2169,7 +2169,7 @@
         left: 0;
         right: 0;
         max-height: 50vh;
-        transform: translateY(calc(100% - 36px));
+        transform: translateY(calc(100% - 58px));
         transition: transform 0.25s ease;
         z-index: 1145;
         font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -2181,6 +2181,7 @@
         transform: translateY(0);
     }
     #surveyTableToggle {
+        min-height: 44px;
         border: none;
         background: rgba(0, 0, 0, 0.65);
         color: #fff;
@@ -2398,12 +2399,28 @@
     }
     #surveyPanelActions {
         display: flex;
+        align-items: center;
+        flex-wrap: wrap;
         justify-content: flex-end;
         gap: 8px;
-        padding: 6px 10px;
+        padding: 8px 10px;
         background: rgba(15, 23, 42, 0.75);
         width: 100%;
     }
+    .survey-table-heading { display: grid; gap: 1px; min-width: 0; margin-right: auto; }
+    .survey-table-heading strong { color: #f8fafc; font-size: 13px; }
+    #surveyTableSummary { color: #cbd8e4; font-size: 11px; }
+    .survey-table-close { display: none; }
+    .survey-table-empty {
+        display: grid;
+        justify-items: center;
+        gap: 8px;
+        padding: 28px 18px;
+        color: #667085;
+        text-align: center;
+    }
+    .survey-table-empty strong { color: #344054; font-size: 15px; }
+    .survey-table-empty p { max-width: 32rem; margin: 0; line-height: 1.45; }
     .panel-action-btn {
         border: none;
         border-radius: 6px;
@@ -8486,6 +8503,8 @@
     #surveyTableContext {
         color: #6b7280;
     }
+    .survey-table-heading strong { color: #374151; }
+    #surveyTableSummary { color: #6b7280; }
     #surveyTableContext .workspace-badge {
         background: #f3f4f6;
         color: #6b7280;
@@ -10419,8 +10438,61 @@
             font-weight: 600;
         }
         body.survey-table-open #surveyTablePanel {
-            height: 58dvh;
+            height: min(72dvh, 620px);
+            max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 12px);
+            border-radius: 18px 18px 0 0;
+            overflow: hidden;
+            background: rgba(255, 255, 255, 0.98);
+            box-shadow: 0 -16px 42px rgba(15, 23, 42, 0.22);
         }
+        body.survey-table-open #surveyTablePanel .bottom-bar { display: none; }
+        body.survey-table-open #surveyPanelActions {
+            flex: 0 0 auto;
+            gap: 6px;
+            padding: 8px max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px));
+            background: rgba(255, 255, 255, 0.98);
+            border-bottom: 1px solid rgba(209, 213, 219, 0.82);
+            box-shadow: none;
+        }
+        body.survey-table-open .survey-table-heading { flex: 1 1 calc(100% - 52px); order: -2; }
+        body.survey-table-open .survey-table-heading strong { color: #1f2937; font-size: 16px; }
+        body.survey-table-open #surveyTableSummary { color: #667085; font-size: 12px; }
+        body.survey-table-open .survey-table-close {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            order: -1;
+            width: 44px;
+            min-width: 44px;
+            height: 44px;
+            padding: 0;
+            border: 0;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.055);
+            color: #475467;
+            font-size: 22px;
+        }
+        body.survey-table-open #surveyTableContext {
+            width: 100%;
+            margin: 0;
+            overflow: hidden;
+            color: #667085;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        body.survey-table-open .panel-action-btn {
+            min-height: 44px;
+            flex: 1 1 0;
+            padding: 8px 10px;
+            border-radius: 10px;
+        }
+        body.survey-table-open #surveySelectionControls {
+            width: 100%;
+            margin: 0;
+            overflow-x: auto;
+            padding-bottom: 2px;
+        }
+        body.survey-table-open #surveySelectionControls .panel-action-btn { min-width: max-content; }
         body.survey-table-open #selectedFeatureInspector {
             position: static;
             left: auto;
@@ -11851,7 +11923,7 @@
         <button type="button" aria-label="Close image">×</button>
         <img src="" alt="Survey photo">
     </div>
-    <div id="surveyTablePanel" hidden>
+    <div id="surveyTablePanel" role="region" aria-labelledby="surveyTableTitle" aria-describedby="surveyTableSummary" hidden>
         <div class="bottom-bar">
             <button id="surveyTableToggle" class="show-survey-table-btn" type="button" aria-controls="surveyTableWrapper" aria-expanded="false">
                 <span id="surveyTableToggleIcon">▲</span>
@@ -11859,6 +11931,11 @@
             </button>
         </div>
         <div id="surveyPanelActions">
+            <div class="survey-table-heading">
+                <strong id="surveyTableTitle">Attributes</strong>
+                <span id="surveyTableSummary" role="status" aria-live="polite">No features</span>
+            </div>
+            <button id="surveyTableCloseBtn" type="button" class="survey-table-close" aria-label="Close attributes table">×</button>
             <div id="surveyTableContext">Create or open a project to view attributes.</div>
             <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
             <button id="tableEditBtn" type="button" class="panel-action-btn" hidden>Edit</button>
@@ -12272,6 +12349,8 @@
         const surveyTableToggle = document.getElementById("surveyTableToggle");
         const surveyTableToggleIcon = document.getElementById("surveyTableToggleIcon");
         const surveyTableToggleLabel = document.getElementById("surveyTableToggleLabel");
+        const surveyTableCloseBtn = document.getElementById("surveyTableCloseBtn");
+        const surveyTableSummary = document.getElementById("surveyTableSummary");
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
         const surveyTableContext = document.getElementById("surveyTableContext");
@@ -21872,6 +21951,14 @@
             renderWorkspaceCollections();
             renderActiveProjectSidebar();
         });
+        surveyTableCloseBtn?.addEventListener("click", () => surveyTableToggle?.click());
+        surveyTable?.addEventListener("click", (event) => {
+            const addButton = event.target.closest("[data-table-empty-add]");
+            if (!addButton) return;
+            if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
+            if (surveyTablePanel?.classList.contains("open")) surveyTableToggle?.click();
+            setProjectStatus("Add a feature on the map.", "success");
+        });
 
         surveyFieldsBtn.addEventListener("click", (event) => {
             if (!currentSurveyData) return;
@@ -27245,7 +27332,8 @@
             const dataset = isArchiveView ? archiveData : currentSurveyData;
             const activeLayer = getActiveLayerRecord();
             if (!dataset?.headers) {
-                surveyTable.innerHTML = "<div style=\"padding:12px; color:#97aabd;\">Open or create a project to view attributes.</div>";
+                if (surveyTableSummary) surveyTableSummary.textContent = "No layer open";
+                surveyTable.innerHTML = `<div class="survey-table-empty"><strong>No attributes to show</strong><p>Create or open a project, then choose a layer.</p></div>`;
                 renderSelectedFeatureInspector();
                 return;
             }
@@ -27272,6 +27360,12 @@
                     if (tableRowFilterMode === "unselected") return !selectedTableRows.has(index);
                     return true;
                 });
+            if (surveyTableSummary) {
+                const total = (dataset.records || []).length;
+                surveyTableSummary.textContent = isArchiveView
+                    ? `${filteredRecords.length} archived feature${filteredRecords.length === 1 ? "" : "s"}`
+                    : `${filteredRecords.length} of ${total} feature${total === 1 ? "" : "s"}`;
+            }
             const renderedRecords = filteredRecords.slice(0, MAX_RENDERED_TABLE_ROWS);
             let activeRowPinned = false;
             if (activeRowIndex !== null && !renderedRecords.some(({ index }) => index === activeRowIndex)) {
@@ -27307,8 +27401,9 @@
                 ${limitNotice}
                 <table>
                     <thead><tr>${headerRow}</tr></thead>
-                    <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">No features yet in this layer.</td></tr>`}</tbody>
+                    <tbody>${bodyRows}</tbody>
                 </table>
+                ${bodyRows ? "" : `<div class="survey-table-empty"><strong>${tableRowFilterMode === "all" ? "No features yet" : "No matching features"}</strong><p>${tableRowFilterMode === "all" ? "Add a feature on the map and its attributes will appear here." : "Change the selection filter to see other features."}</p>${tableRowFilterMode === "all" && !isArchiveView && canEditLayer(activeLayer) ? '<button type="button" class="panel-action-btn" data-table-empty-add>Add first feature</button>' : ""}</div>`}
             `;
             updateSurveySelectionControls();
             renderSelectedFeatureInspector();
