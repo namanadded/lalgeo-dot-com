@@ -13,7 +13,7 @@ assert.match(source, /function requestMapLocation\(\{ center = true, announce = 
 assert.match(source, /id="mobileLocationBtn"[^>]*aria-label="My Location"[\s\S]*?mobileLocationBtn\?\.addEventListener\("click"[\s\S]*?requestMapLocation\(\)/, "The mobile floating location control should reuse the shared location journey.");
 assert.match(source, /function getLocationErrorMessage\(error\)[\s\S]*?Location access is off[\s\S]*?temporarily unavailable[\s\S]*?took too long/, "Permission, unavailable, and timeout failures should have plain-language guidance.");
 assert.match(source, /setLocationStatus\("loading", "Finding your location…", "Your browser may ask for permission\."\)[\s\S]*?setLocationStatus\("success", "Location found", "Your position is marked on the map\."\)/, "The journey should announce useful loading and success states.");
-assert.match(source, /function getDirections\(destLat, destLon\) \{[\s\S]*?requestMapLocation\(\{ center: false \}\)[\s\S]*?\.then\(\(\) => getDirections\(destLat, destLon\)\)/, "Directions should reuse the same location acquisition and feedback journey.");
+assert.match(source, /async function getDirections\(destLat, destLon[\s\S]*?await requestMapLocation\(\{ center: false \}\)[\s\S]*?failDirections\(requestId, "Your location could not be used/, "Directions should reuse the shared location acquisition and recovery journey.");
 assert.doesNotMatch(source, /myLocationBtn\?\.addEventListener\("click"[\s\S]{0,300}watchPosition/, "The locate action should not create an unbounded watch.");
 assert.doesNotMatch(source, /function getDirections\(destLat, destLon\) \{[\s\S]{0,900}alert\("Unable to retrieve your location/, "Directions location errors should not interrupt users with browser alerts.");
 
