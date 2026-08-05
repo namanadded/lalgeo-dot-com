@@ -9384,6 +9384,7 @@
             --mobile-tool-border: rgba(209, 213, 219, 0.58);
             --mobile-tool-shadow: 0 10px 28px rgba(15, 23, 42, 0.14);
             --mobile-tool-muted: #7b8490;
+            --mobile-toolbar-top: calc(56px + env(safe-area-inset-top, 0px));
             --mobile-toolbar-bottom: max(62px, calc(env(safe-area-inset-bottom, 0px) + 10px));
             --mobile-toolbar-height: 58px;
             --mobile-map-chrome-clearance: 44px;
@@ -9420,8 +9421,8 @@
             position: fixed;
             left: max(8px, calc(50% - 116px));
             right: auto;
-            top: auto;
-            bottom: var(--mobile-toolbar-bottom);
+            top: var(--mobile-toolbar-top);
+            bottom: auto;
             z-index: 1280;
             width: min(232px, calc(100vw - 16px));
             max-width: none;
@@ -9567,8 +9568,8 @@
             position: fixed;
             left: max(12px, env(safe-area-inset-left, 0px));
             right: max(12px, env(safe-area-inset-right, 0px));
-            top: auto;
-            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+            top: calc(var(--mobile-toolbar-top) + var(--mobile-toolbar-height) + 8px);
+            bottom: auto;
             z-index: 1320;
             box-sizing: border-box;
             width: auto;
@@ -9619,8 +9620,8 @@
             background: rgba(15, 23, 42, 0.075);
         }
         .mobile-box-selection-hud {
-            top: auto;
-            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 12px);
+            top: calc(var(--mobile-toolbar-top) + var(--mobile-toolbar-height) + 12px);
+            bottom: auto;
         }
         #addActionPopover .add-action-popover-title {
             padding: 7px 10px 5px;
@@ -9664,8 +9665,8 @@
             position: absolute;
             left: 0;
             right: 0;
-            top: auto;
-            bottom: calc(100% + 8px);
+            top: calc(100% + 8px);
+            bottom: auto;
             z-index: 1320;
             width: auto;
             min-width: 0;
@@ -9719,7 +9720,8 @@
             background: rgba(15, 23, 42, 0.075);
         }
         #workspaceHint {
-            bottom: calc(var(--mobile-toolbar-bottom) + var(--mobile-toolbar-height) + 8px);
+            top: calc(var(--mobile-toolbar-top) + var(--mobile-toolbar-height) + 8px);
+            bottom: auto;
         }
         #mapAddHint {
             display: none !important;
@@ -16379,6 +16381,7 @@
                     switchToLayer(targetLayerId, { revealTable: false });
                 }
                 syncEditPanelState();
+                renderSelectedFeatureInspector();
             } else {
                 editFloatingPanel.classList.remove("toolbar-visible");
                 editFloatingPanel.classList.add("toolbar-dismissing");
@@ -16387,9 +16390,11 @@
                     editFloatingPanel.classList.remove("toolbar-dismissing");
                     updateToolbarDockStrip();
                     syncEditPanelState();
+                    renderSelectedFeatureInspector();
                 }, 190);
                 updateToolbarDockStrip();
                 syncEditPanelState();
+                renderSelectedFeatureInspector();
             }
         }
 
@@ -17358,6 +17363,7 @@
                 || sidebarVisible
                 || advancedGisPanel?.hidden === false
                 || featureDrawer?.classList.contains("open")
+                || !editFloatingPanel?.hidden
             ) {
                 selectedFeatureInspector.classList.remove("visible");
                 selectedFeatureInspector.innerHTML = "";

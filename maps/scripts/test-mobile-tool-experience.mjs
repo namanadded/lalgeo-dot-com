@@ -11,8 +11,13 @@ const mobileStyles = legacyHtml.match(
 assert.ok(mobileStyles, "Expected a dedicated mobile tool experience stylesheet.");
 assert.match(
   mobileStyles,
-  /#toolbar #quickActionBar\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?bottom:\s*var\(--mobile-toolbar-bottom\);[\s\S]*?width:\s*min\(232px,\s*calc\(100vw - 16px\)\);/,
-  "The mobile primary toolbar should be a compact, safe-area-aware bottom control.",
+  /--mobile-toolbar-top:\s*calc\(56px \+ env\(safe-area-inset-top, 0px\)\);[\s\S]*?#toolbar #quickActionBar\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*var\(--mobile-toolbar-top\);[\s\S]*?bottom:\s*auto;[\s\S]*?width:\s*min\(232px,\s*calc\(100vw - 16px\)\);/,
+  "The mobile primary toolbar should be a compact, safe-area-aware control below the project header.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #mobileSelectPopover,[\s\S]*?#addActionPopover\s*\{[\s\S]*?top:\s*calc\(var\(--mobile-toolbar-top\) \+ var\(--mobile-toolbar-height\) \+ 8px\);[\s\S]*?bottom:\s*auto;[\s\S]*?#toolbar #toolbarMorePopover\s*\{[\s\S]*?top:\s*calc\(100% \+ 8px\);[\s\S]*?bottom:\s*auto;/,
+  "Mobile Select, Add, and More popovers should open below the top toolbar.",
 );
 assert.match(
   mobileStyles,
