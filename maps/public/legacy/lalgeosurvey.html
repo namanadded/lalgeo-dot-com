@@ -17325,7 +17325,15 @@
             }
             const indexes = getActiveSelectionIndexes();
             const count = indexes.length;
-            if (!count || mobileBoxSelectionMode || isAddingSurveyPoint || measurementActive || sidebarVisible || advancedGisPanel?.hidden === false) {
+            if (
+                !count
+                || mobileBoxSelectionMode
+                || isAddingSurveyPoint
+                || measurementActive
+                || sidebarVisible
+                || advancedGisPanel?.hidden === false
+                || featureDrawer?.classList.contains("open")
+            ) {
                 selectedFeatureInspector.classList.remove("visible");
                 selectedFeatureInspector.innerHTML = "";
                 return;
@@ -17680,8 +17688,8 @@
                 activeSurveyAnnotation = null;
                 setActiveTableRow(-1);
                 refreshAnnotationStyles();
-                renderSelectedFeatureInspector();
             }
+            renderSelectedFeatureInspector();
         }
 
         function normalizeFeatureFieldValue(field, value) {
@@ -18022,6 +18030,7 @@
             collapseSurveyTableForMobileFeatureDetails();
             featureDrawer.classList.add("open");
             setOffCanvasAccessibility(featureDrawer, true);
+            renderSelectedFeatureInspector();
         }
 
         function collapseSurveyTableForMobileFeatureDetails() {

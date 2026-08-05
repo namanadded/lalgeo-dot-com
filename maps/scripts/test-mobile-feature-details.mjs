@@ -13,6 +13,9 @@ const checks = [
   ["mobile drawer scrolls its body independently", /\.feature-drawer-body\s*\{[\s\S]*?flex:\s*1 1 auto;[\s\S]*?overflow-y:\s*auto/],
   ["feature drawer exposes a persistent close control", /id="featureDrawerClose"[\s\S]*?aria-label="Close feature details"/],
   ["opening mobile feature details collapses the table", /collapseSurveyTableForMobileFeatureDetails\(\);[\s\S]*?featureDrawer\.classList\.add\("open"\);[\s\S]*?function collapseSurveyTableForMobileFeatureDetails\(\)[\s\S]*?matchMedia\("\(max-width: 600px\)"\)[\s\S]*?surveyTablePanel\.classList\.remove\("open"\);[\s\S]*?surveyTableWrapper\.hidden = true;[\s\S]*?updateFloatingButtonLayer\(false\);/],
+  ["mobile selection actions stay hidden while feature details are open", /function renderSelectedFeatureInspector\(\)[\s\S]*?featureDrawer\?\.classList\.contains\("open"\)[\s\S]*?selectedFeatureInspector\.classList\.remove\("visible"\);[\s\S]*?selectedFeatureInspector\.innerHTML = "";/],
+  ["opening feature details immediately synchronizes selection actions", /collapseSurveyTableForMobileFeatureDetails\(\);[\s\S]*?featureDrawer\.classList\.add\("open"\);[\s\S]*?setOffCanvasAccessibility\(featureDrawer, true\);[\s\S]*?renderSelectedFeatureInspector\(\);/],
+  ["closing feature details restores selection actions when selection remains", /function closeFeatureDrawer\(\{ clearSelection = false \} = \{\}\)[\s\S]*?featureDrawer\.classList\.remove\("open"\);[\s\S]*?renderSelectedFeatureInspector\(\);/],
   ["selection actions participate in the open table layout", /body\.survey-table-open #selectedFeatureInspector\s*\{[\s\S]*?position:\s*static;[\s\S]*?width:\s*100%;[\s\S]*?flex:\s*0 0 auto;[\s\S]*?body\.survey-table-open #surveyTableWrapper\s*\{[\s\S]*?min-height:\s*0;[\s\S]*?flex:\s*1 1 auto;/]
 ];
 
