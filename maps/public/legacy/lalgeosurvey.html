@@ -19984,6 +19984,16 @@
             }
         }
 
+        function announceFeaturePlacementComplete(geometryType, { featureDetailsOpened = false } = {}) {
+            const normalizedType = normalizeLayerGeometryType(geometryType || "point");
+            const featureName = normalizedType === "point"
+                ? "Point"
+                : normalizedType === "line"
+                    ? "Line"
+                    : "Polygon";
+            setProjectStatus(`${featureName} added.${featureDetailsOpened ? " Feature details opened." : ""}`, "success");
+        }
+
         function trapLayerActionModalFocus(event) {
             if (event.key !== "Tab" || layerActionModalBackdrop?.hidden) return;
             const focusable = Array.from(layerActionModal.querySelectorAll('button, input, textarea, select, [tabindex]:not([tabindex="-1"])'))
@@ -22752,7 +22762,7 @@
                 showSurveyCallout(annotation, { forceEdit: true });
                 renderFeatureDrawer();
             }
-            setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} added.`, "success");
+            announceFeaturePlacementComplete(geometryType, { featureDetailsOpened: Boolean(annotation) });
         }
 
         function getSelectedEditableFeatureContext() {
@@ -23394,6 +23404,9 @@
             }
             setAnnotationDraggable(annotation);
             updateSurveyTable();
+            if (!dropboxMode) {
+                announceFeaturePlacementComplete("point", { featureDetailsOpened: true });
+            }
         }
 
         function removeNewSurveyPoint(annotation) {
