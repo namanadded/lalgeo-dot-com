@@ -25200,7 +25200,7 @@
                 return input.data.map((row) => {
                     const record = {};
                     columns.forEach((name, index) => {
-                        record[name] = row?.[index] ?? "";
+                        record[name] = row?.[index] === undefined ? "" : row[index];
                     });
                     return record;
                 });
@@ -25240,15 +25240,20 @@
 
         function buildGeoJsonFromJsonRows(input) {
             const records = normalizeApiJsonRows(input).filter((row) => row && typeof row === "object");
-            const features = records.flatMap((record) => {
-                const geometryEntry = findEmbeddedGeoJsonGeometry(record);
-                if (!geometryEntry) return [];
+            const geometryEntries = records.map((record) => findEmbeddedGeoJsonGeometry(record));
+            if (!geometryEntries.some(Boolean)) return null;
+            const missingGeometryIndex = geometryEntries.findIndex((entry) => !entry);
+            if (missingGeometryIndex !== -1) {
+                throw new Error(`API JSON row ${missingGeometryIndex + 1} is missing GeoJSON geometry. Add a Point, LineString, Polygon, or multipart geometry to every row.`);
+            }
+            const features = records.map((record, recordIndex) => {
+                const geometryEntry = geometryEntries[recordIndex];
                 const [geometryKey, geometry] = geometryEntry;
                 const properties = { ...record };
                 delete properties[geometryKey];
-                return [{ type: "Feature", properties, geometry }];
+                return { type: "Feature", properties, geometry };
             });
-            return features.length ? { type: "FeatureCollection", features } : null;
+            return { type: "FeatureCollection", features };
         }
 
         function buildGeoJsonPayloadFromJsonRows(input, { projectName = "API Endpoint", url = "" } = {}) {
@@ -25258,17 +25263,18 @@
             if (!latKey || !lonKey) {
                 throw new Error("JSON endpoint imported rows, but no latitude/longitude fields were found.");
             }
-            const features = records.flatMap((record) => {
+            const features = records.map((record, recordIndex) => {
                 const lat = parseNumber(record?.[latKey]);
                 const lon = parseNumber(record?.[lonKey]);
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-                return [{
+                if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    throw new Error(`API JSON row ${recordIndex + 1} has invalid latitude or longitude. Use decimal WGS84 values within latitude -90 to 90 and longitude -180 to 180.`);
+                }
+                return {
                     type: "Feature",
                     properties: { ...record },
                     geometry: { type: "Point", coordinates: [lon, lat] }
-                }];
+                };
             });
-            if (!features.length) throw new Error("JSON endpoint rows did not contain valid coordinates.");
             const payload = buildGeoJsonPayload({ type: "FeatureCollection", features }, {
                 projectName,
                 fileName: projectName,
