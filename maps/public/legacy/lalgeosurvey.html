@@ -17401,7 +17401,7 @@
                 return;
             }
             if (action === "properties" && Number.isInteger(rowIndex)) {
-                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+                openFeaturePropertiesByRow(rowIndex);
                 return;
             }
             if (action === "edit" && Number.isInteger(rowIndex)) {
@@ -17859,11 +17859,12 @@
             setProjectStatus("Feature attributes autosaved.", "success");
         }
 
-        function renderFeatureDrawer({ newFeature = false } = {}) {
+        function renderFeatureDrawer({ newFeature = false, forceOpen = false } = {}) {
             if (!featureDrawerBody || !featureDrawerMeta) return;
             if (
                 window.matchMedia("(max-width: 600px)").matches
                 && !newFeature
+                && !forceOpen
                 && !featureDrawer.classList.contains("open")
             ) {
                 closeFeatureDrawer();
@@ -18083,6 +18084,12 @@
                 editFloatingPanel.hidden = true;
                 setEditPanelVisibility(false);
             }
+        }
+
+        function openFeaturePropertiesByRow(rowIndex) {
+            if (!Number.isInteger(rowIndex)) return;
+            previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+            renderFeatureDrawer({ forceOpen: true });
         }
 
         function collapseSurveyTableForMobileFeatureDetails() {
@@ -21258,7 +21265,7 @@
         drawSelectionPropertiesBtn?.addEventListener("click", () => {
             const rowIndex = getActiveSelectionIndexes()[0];
             if (!Number.isInteger(rowIndex)) return;
-            previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+            openFeaturePropertiesByRow(rowIndex);
         });
         drawSelectionEditBtn?.addEventListener("click", () => {
             const context = getSelectedEditableFeatureContext();
