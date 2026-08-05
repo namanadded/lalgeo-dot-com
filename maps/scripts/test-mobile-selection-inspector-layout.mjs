@@ -55,6 +55,18 @@ assert.match(
 
 assert.match(
   legacyHtml,
+  /if \(action === "edit" && Number\.isInteger\(rowIndex\)\) \{\s*openFeatureEditorByRow\(rowIndex\);/,
+  "The compact mobile Edit action must open the selected feature editor.",
+);
+
+assert.match(
+  legacyHtml,
+  /function openFeatureEditorByRow\(rowIndex\)\s*\{[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?setEditSessionActive\(true\);[\s\S]*?if \(!editSessionActive\) return;[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true \}\);/,
+  "Editing a selected feature must start the existing edit session and explicitly open Feature Details.",
+);
+
+assert.match(
+  legacyHtml,
   /function renderFeatureDrawer\(\{ newFeature = false, forceOpen = false \} = \{\}\)[\s\S]*?&& !newFeature[\s\S]*?&& !forceOpen[\s\S]*?&& !featureDrawer\.classList\.contains\("open"\)/,
   "Ordinary mobile selection must stay compact while an explicit Properties request can open Feature Details.",
 );

@@ -17405,8 +17405,7 @@
                 return;
             }
             if (action === "edit" && Number.isInteger(rowIndex)) {
-                previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
-                setEditSessionActive(true);
+                openFeatureEditorByRow(rowIndex);
                 return;
             }
             if (action === "merge") {
@@ -18089,6 +18088,14 @@
         function openFeaturePropertiesByRow(rowIndex) {
             if (!Number.isInteger(rowIndex)) return;
             previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+            renderFeatureDrawer({ forceOpen: true });
+        }
+
+        function openFeatureEditorByRow(rowIndex) {
+            if (!Number.isInteger(rowIndex)) return;
+            previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
+            setEditSessionActive(true);
+            if (!editSessionActive) return;
             renderFeatureDrawer({ forceOpen: true });
         }
 
