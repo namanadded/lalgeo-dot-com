@@ -2364,37 +2364,79 @@
     }
     #shareToast {
         position: fixed;
-        top: 84px;
-        right: 12px;
+        inset: 0;
         z-index: 1500;
-        background: #0f172a;
-        color: #fff;
-        padding: 10px 12px;
-        border-radius: 10px;
-        box-shadow: 0 12px 32px rgba(15, 23, 42, 0.35);
+        background: rgba(15, 23, 42, 0.38);
         display: none;
         align-items: center;
-        gap: 8px;
-        min-width: 240px;
-        max-width: 360px;
+        justify-content: center;
+        padding: 24px;
     }
     #shareToast.show { display: flex; }
-    #shareToast input {
-        flex: 1;
-        border: none;
-        border-radius: 6px;
-        padding: 6px 8px;
-        font-size: 12px;
+    .share-sheet {
+        width: min(440px, 100%);
+        background: #fff;
+        color: #0f172a;
+        border: 1px solid #dfe3eb;
+        border-radius: 18px;
+        box-shadow: 0 24px 64px rgba(15, 23, 42, 0.28);
+        overflow: hidden;
     }
-    #shareToast button {
+    .share-sheet-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 44px;
+        gap: 12px;
+        align-items: start;
+        padding: 20px 20px 12px;
+    }
+    .share-sheet-header h2 { margin: 0; font-size: 20px; line-height: 1.2; }
+    .share-sheet-header p { margin: 6px 0 0; color: #5f6775; font-size: 14px; line-height: 1.45; }
+    .share-sheet-close {
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 50%;
+        background: #eef1f5;
+        color: #263244;
+        font-size: 24px;
+        cursor: pointer;
+    }
+    .share-sheet-body { padding: 8px 20px 20px; }
+    .share-sheet-label { display: block; margin-bottom: 7px; font-size: 13px; font-weight: 700; }
+    #shareToast input {
+        box-sizing: border-box;
+        width: 100%;
+        border: 1px solid #b9c1ce;
+        border-radius: 10px;
+        padding: 11px 12px;
+        font-size: 14px;
+        background: #f7f8fa;
+        color: #263244;
+    }
+    .share-sheet-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 14px; }
+    .share-sheet-actions button {
         border: none;
-        background: #1a73e8;
-        color: #fff;
-        padding: 6px 10px;
-        border-radius: 6px;
+        min-height: 48px;
+        border-radius: 10px;
         cursor: pointer;
         font-weight: 700;
-        font-size: 12px;
+        font-size: 14px;
+    }
+    #shareToastCopy { background: #1677ff; color: #fff; }
+    #shareToastNative { background: #edf1f6; color: #172033; }
+    #shareToastStatus { min-height: 20px; margin: 12px 0 0; color: #526071; font-size: 13px; line-height: 1.4; }
+    #shareToastStatus[data-state="success"] { color: #087a55; }
+    #shareToastStatus[data-state="error"] { color: #b42318; }
+    .share-sheet-close:focus-visible,
+    .share-sheet-actions button:focus-visible,
+    #shareToast input:focus-visible { outline: 3px solid rgba(22, 119, 255, 0.35); outline-offset: 2px; }
+    @media (max-width: 600px) {
+        #shareToast { align-items: flex-end; padding: 0; }
+        .share-sheet { width: 100%; max-height: calc(100dvh - 24px); border-radius: 20px 20px 0 0; padding-bottom: env(safe-area-inset-bottom); }
+        .share-sheet-header { padding: 18px 16px 10px; }
+        .share-sheet-body { padding: 8px 16px 18px; }
+        .share-sheet-actions { grid-template-columns: 1fr; }
+        .share-sheet-actions button { min-height: 52px; }
     }
     #surveyPanelActions {
         display: flex;
@@ -11831,9 +11873,25 @@
             <div class="callout-content"></div>
         </div>
     </div>
-    <div id="shareToast">
-        <input type="url" id="shareToastInput" aria-label="Share link" readonly>
-        <button id="shareToastCopy" type="button">Copy</button>
+    <div id="shareToast" role="dialog" aria-modal="true" aria-labelledby="shareToastTitle" aria-describedby="shareToastDescription" hidden>
+        <section class="share-sheet">
+            <header class="share-sheet-header">
+                <div>
+                    <h2 id="shareToastTitle">Share this map</h2>
+                    <p id="shareToastDescription">Anyone with this link can open the current Dropbox-backed project.</p>
+                </div>
+                <button id="shareToastClose" class="share-sheet-close" type="button" aria-label="Close share sheet">×</button>
+            </header>
+            <div class="share-sheet-body">
+                <label class="share-sheet-label" for="shareToastInput">Project link</label>
+                <input type="url" id="shareToastInput" aria-label="Share link" readonly>
+                <div class="share-sheet-actions">
+                    <button id="shareToastCopy" type="button">Copy link</button>
+                    <button id="shareToastNative" type="button">Share…</button>
+                </div>
+                <p id="shareToastStatus" role="status" aria-live="polite">Ready to share.</p>
+            </div>
+        </section>
     </div>
     <div id="dropZone" class="drop-zone">
         <div class="drop-zone-inner">
@@ -12509,6 +12567,10 @@
         const shareToast = document.getElementById("shareToast");
         const shareToastInput = document.getElementById("shareToastInput");
         const shareToastCopy = document.getElementById("shareToastCopy");
+        const shareToastClose = document.getElementById("shareToastClose");
+        const shareToastNative = document.getElementById("shareToastNative");
+        const shareToastStatus = document.getElementById("shareToastStatus");
+        let shareToastReturnFocus = null;
         const fieldCalculatorBackdrop = document.getElementById("fieldCalculatorBackdrop");
         const fieldCalculatorClose = document.getElementById("fieldCalculatorClose");
         const fieldCalculatorCancel = document.getElementById("fieldCalculatorCancel");
@@ -19922,6 +19984,16 @@
             }
         }
 
+        function announceFeaturePlacementComplete(geometryType, { featureDetailsOpened = false } = {}) {
+            const normalizedType = normalizeLayerGeometryType(geometryType || "point");
+            const featureName = normalizedType === "point"
+                ? "Point"
+                : normalizedType === "line"
+                    ? "Line"
+                    : "Polygon";
+            setProjectStatus(`${featureName} added.${featureDetailsOpened ? " Feature details opened." : ""}`, "success");
+        }
+
         function trapLayerActionModalFocus(event) {
             if (event.key !== "Tab" || layerActionModalBackdrop?.hidden) return;
             const focusable = Array.from(layerActionModal.querySelectorAll('button, input, textarea, select, [tabindex]:not([tabindex="-1"])'))
@@ -21483,6 +21555,12 @@
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
             if (event.key === "Escape") {
+                if (shareToast?.classList.contains("show")) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    closeShareToast();
+                    return;
+                }
                 if (customBasemapBackdrop && !customBasemapBackdrop.hidden) {
                     event.preventDefault();
                     event.stopPropagation();
@@ -21761,9 +21839,6 @@
                 setProjectStatus("Dropbox link required to share.", "error");
                 return;
             }
-            navigator.clipboard.writeText(shareUrl)
-                .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
-                .catch(() => setProjectStatus("Share link ready to copy: " + shareUrl, "success"));
             showShareToast(shareUrl);
         });
         shareCloseBtn?.addEventListener("click", closeSharePanel);
@@ -22687,7 +22762,7 @@
                 showSurveyCallout(annotation, { forceEdit: true });
                 renderFeatureDrawer();
             }
-            setProjectStatus(`${geometryType === "line" ? "Line" : "Polygon"} added.`, "success");
+            announceFeaturePlacementComplete(geometryType, { featureDetailsOpened: Boolean(annotation) });
         }
 
         function getSelectedEditableFeatureContext() {
@@ -23329,6 +23404,9 @@
             }
             setAnnotationDraggable(annotation);
             updateSurveyTable();
+            if (!dropboxMode) {
+                announceFeaturePlacementComplete("point", { featureDetailsOpened: true });
+            }
         }
 
         function removeNewSurveyPoint(annotation) {
@@ -25122,7 +25200,7 @@
                 return input.data.map((row) => {
                     const record = {};
                     columns.forEach((name, index) => {
-                        record[name] = row?.[index] ?? "";
+                        record[name] = row?.[index] === undefined ? "" : row[index];
                     });
                     return record;
                 });
@@ -25162,15 +25240,20 @@
 
         function buildGeoJsonFromJsonRows(input) {
             const records = normalizeApiJsonRows(input).filter((row) => row && typeof row === "object");
-            const features = records.flatMap((record) => {
-                const geometryEntry = findEmbeddedGeoJsonGeometry(record);
-                if (!geometryEntry) return [];
+            const geometryEntries = records.map((record) => findEmbeddedGeoJsonGeometry(record));
+            if (!geometryEntries.some(Boolean)) return null;
+            const missingGeometryIndex = geometryEntries.findIndex((entry) => !entry);
+            if (missingGeometryIndex !== -1) {
+                throw new Error(`API JSON row ${missingGeometryIndex + 1} is missing GeoJSON geometry. Add a Point, LineString, Polygon, or multipart geometry to every row.`);
+            }
+            const features = records.map((record, recordIndex) => {
+                const geometryEntry = geometryEntries[recordIndex];
                 const [geometryKey, geometry] = geometryEntry;
                 const properties = { ...record };
                 delete properties[geometryKey];
-                return [{ type: "Feature", properties, geometry }];
+                return { type: "Feature", properties, geometry };
             });
-            return features.length ? { type: "FeatureCollection", features } : null;
+            return { type: "FeatureCollection", features };
         }
 
         function buildGeoJsonPayloadFromJsonRows(input, { projectName = "API Endpoint", url = "" } = {}) {
@@ -25180,17 +25263,18 @@
             if (!latKey || !lonKey) {
                 throw new Error("JSON endpoint imported rows, but no latitude/longitude fields were found.");
             }
-            const features = records.flatMap((record) => {
+            const features = records.map((record, recordIndex) => {
                 const lat = parseNumber(record?.[latKey]);
                 const lon = parseNumber(record?.[lonKey]);
-                if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-                return [{
+                if (!Number.isFinite(lat) || !Number.isFinite(lon) || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
+                    throw new Error(`API JSON row ${recordIndex + 1} has invalid latitude or longitude. Use decimal WGS84 values within latitude -90 to 90 and longitude -180 to 180.`);
+                }
+                return {
                     type: "Feature",
                     properties: { ...record },
                     geometry: { type: "Point", coordinates: [lon, lat] }
-                }];
+                };
             });
-            if (!features.length) throw new Error("JSON endpoint rows did not contain valid coordinates.");
             const payload = buildGeoJsonPayload({ type: "FeatureCollection", features }, {
                 projectName,
                 fileName: projectName,
@@ -27471,17 +27555,65 @@
 
         function showShareToast(link) {
             if (!shareToast || !shareToastInput || !shareToastCopy) return;
+            shareToastReturnFocus = document.activeElement;
             shareToastInput.value = link;
+            shareToast.hidden = false;
             shareToast.classList.add("show");
+            if (shareToastStatus) {
+                shareToastStatus.textContent = "Ready to share.";
+                shareToastStatus.dataset.state = "";
+            }
+            if (shareToastNative) shareToastNative.hidden = typeof navigator.share !== "function";
             shareToastCopy.onclick = () => {
                 navigator.clipboard.writeText(link)
-                    .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
-                    .catch(() => setProjectStatus("Unable to copy link. " + link, "error"));
+                    .then(() => {
+                        shareToastCopy.textContent = "Copied";
+                        if (shareToastStatus) {
+                            shareToastStatus.textContent = "Link copied to the clipboard.";
+                            shareToastStatus.dataset.state = "success";
+                        }
+                        setProjectStatus("Share link copied to clipboard.", "success");
+                    })
+                    .catch(() => {
+                        shareToastInput.focus();
+                        shareToastInput.select();
+                        if (shareToastStatus) {
+                            shareToastStatus.textContent = "Copy was blocked. The link is selected so you can copy it manually.";
+                            shareToastStatus.dataset.state = "error";
+                        }
+                    });
             };
-            setTimeout(() => {
-                shareToast.classList.remove("show");
-            }, 8000);
+            shareToastNative.onclick = async () => {
+                try {
+                    await navigator.share({ title: activeProjectName || "LalGeo map", url: link });
+                    if (shareToastStatus) {
+                        shareToastStatus.textContent = "Shared successfully.";
+                        shareToastStatus.dataset.state = "success";
+                    }
+                } catch (error) {
+                    if (error?.name !== "AbortError" && shareToastStatus) {
+                        shareToastStatus.textContent = "Sharing did not complete. You can copy the link instead.";
+                        shareToastStatus.dataset.state = "error";
+                    }
+                }
+            };
+            window.setTimeout(() => shareToastClose?.focus(), 0);
         }
+
+        function closeShareToast() {
+            if (!shareToast?.classList.contains("show")) return;
+            shareToast.classList.remove("show");
+            shareToast.hidden = true;
+            shareToastCopy.textContent = "Copy link";
+            const focusTarget = shareToastReturnFocus?.isConnected ? shareToastReturnFocus : shareButton;
+            shareToastReturnFocus = null;
+            window.setTimeout(() => focusTarget?.focus(), 0);
+        }
+
+        shareToastClose?.addEventListener("click", closeShareToast);
+        shareToast?.addEventListener("click", (event) => {
+            if (event.target === shareToast) closeShareToast();
+        });
 
         surveyTable?.addEventListener("click", (event) => {
             if (event.target.closest("[data-table-field]")) {

@@ -145,6 +145,10 @@ jobs:
         working-directory: maps
         run: npm run test:survey-table-a11y
 
+      - name: Check geometry completion status recovery
+        working-directory: maps
+        run: npm run test:geometry-completion-status
+
       - name: Check maps view menu accessibility
         working-directory: maps
         run: npm run test:view-menu-a11y
@@ -176,6 +180,10 @@ jobs:
       - name: Check GeoJSON coordinate and collection integrity
         working-directory: maps
         run: npm run test:geojson-integrity
+
+      - name: Check API row geometry and attribute integrity
+        working-directory: maps
+        run: npm run test:api-import-integrity
 
       - name: Check local workspace persistence recovery
         working-directory: maps
@@ -273,6 +281,10 @@ jobs:
       - name: Check maps print and PDF preparation
         working-directory: maps
         run: npm run test:print-export-preparation
+
+      - name: Check maps share journey
+        working-directory: maps
+        run: npm run test:share-journey
 
       - name: Check maps location journey
         working-directory: maps
