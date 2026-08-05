@@ -290,6 +290,10 @@ jobs:
         working-directory: maps
         run: npm run test:location-journey
 
+      - name: Check maps directions journey
+        working-directory: maps
+        run: npm run test:directions-journey
+
       - name: Check maps editing journey
         working-directory: maps
         run: npm run test:editing-journey

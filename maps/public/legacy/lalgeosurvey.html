@@ -29436,8 +29436,8 @@ function setImportPanelVisibility(show) {
                     <button id="searchPlaceAddBtn" type="button" class="mini-btn primary">Add to Current Project</button>
                 </div>
             `;
-            content.querySelector("#searchPlaceDirectionsBtn")?.addEventListener("click", () => {
-                getDirections(place.coordinate.latitude, place.coordinate.longitude);
+            content.querySelector("#searchPlaceDirectionsBtn")?.addEventListener("click", (event) => {
+                getDirections(place.coordinate.latitude, place.coordinate.longitude, { trigger: event.currentTarget });
             });
             content.querySelector("#searchPlaceAddBtn")?.addEventListener("click", () => {
                 addSearchPlaceToCurrentProject(place);
@@ -29839,13 +29839,89 @@ function setImportPanelVisibility(show) {
 
         let allRouteOverlays = []; // stores all overlays so we can update styles
         let routeOverlay = null;
+        let directionsRequestId = 0;
+        let lastDirectionsDestination = null;
+        let lastDirectionsTrigger = null;
 
-        function getDirections(destLat, destLon) {
+        function setDirectionsTriggerBusy(trigger, busy) {
+            if (!(trigger instanceof HTMLButtonElement)) return;
+            trigger.disabled = busy;
+            trigger.setAttribute("aria-busy", busy ? "true" : "false");
+            trigger.textContent = busy ? "Getting directions…" : "Get Directions";
+        }
+
+        function renderDirectionsStatus({ state, title, message, requestId }) {
+            if (requestId !== directionsRequestId) return;
+            const sidebarContent = document.getElementById("sidebar-content");
+            if (!sidebarContent) return;
+            const canRetry = state === "error" && lastDirectionsDestination;
+            let statusRegion = sidebarContent.querySelector("#directionsStatusRegion");
+            if (!statusRegion) {
+                statusRegion = document.createElement("section");
+                statusRegion.id = "directionsStatusRegion";
+                statusRegion.className = "directions-status";
+                statusRegion.setAttribute("role", "status");
+                statusRegion.setAttribute("aria-live", "polite");
+                statusRegion.setAttribute("aria-atomic", "true");
+                sidebarContent.appendChild(statusRegion);
+            }
+            statusRegion.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+            statusRegion.innerHTML = `
+                <h3>${escapeHtml(title)}</h3>
+                <p>${escapeHtml(message)}</p>
+                <div class="workspace-inline-actions">
+                    ${canRetry ? '<button id="directionsRetryBtn" type="button" class="mini-btn primary">Try again</button>' : ""}
+                    <button id="directionsCloseBtn" type="button" class="mini-btn">Close</button>
+                </div>
+            `;
+            statusRegion.querySelector("#directionsRetryBtn")?.addEventListener("click", () => {
+                const { latitude, longitude } = lastDirectionsDestination;
+                getDirections(latitude, longitude);
+            });
+            statusRegion.querySelector("#directionsCloseBtn")?.addEventListener("click", () => {
+                directionsRequestId += 1;
+                setDirectionsTriggerBusy(lastDirectionsTrigger, false);
+                statusRegion.remove();
+                if (lastDirectionsTrigger?.isConnected) lastDirectionsTrigger.focus();
+            });
+            setSidebarVisibility(true);
+            if (state === "error") statusRegion.querySelector("#directionsRetryBtn")?.focus();
+        }
+
+        function failDirections(requestId, message) {
+            if (requestId !== directionsRequestId) return;
+            setDirectionsTriggerBusy(lastDirectionsTrigger, false);
+            renderDirectionsStatus({
+                state: "error",
+                title: "Directions unavailable",
+                message,
+                requestId
+            });
+        }
+
+        async function getDirections(destLat, destLon, { trigger = null } = {}) {
+            const requestId = ++directionsRequestId;
+            lastDirectionsDestination = { latitude: destLat, longitude: destLon };
+            if (trigger instanceof HTMLButtonElement && trigger.id === "searchPlaceDirectionsBtn") {
+                lastDirectionsTrigger = trigger;
+            }
+            setDirectionsTriggerBusy(lastDirectionsTrigger, true);
+            renderDirectionsStatus({
+                state: "loading",
+                title: "Getting directions…",
+                message: "Finding a driving route from your current location.",
+                requestId
+            });
+
             if (!myLocationCoord) {
-                requestMapLocation({ center: false })
-                    .then(() => getDirections(destLat, destLon))
-                    .catch((error) => console.error("Geolocation error:", error));
-                return;
+                try {
+                    await requestMapLocation({ center: false });
+                } catch (error) {
+                    console.error("Geolocation error:", error);
+                    failDirections(requestId, "Your location could not be used. Check browser location access, then try again.");
+                    return;
+                }
+                if (requestId !== directionsRequestId) return;
             }
 
             const directions = new mapkit.Directions();
@@ -29860,11 +29936,14 @@ function setImportPanelVisibility(show) {
             };
 
             directions.route(request, (error, data) => {
+                if (requestId !== directionsRequestId) return;
                 if (error || !data || !data.routes || data.routes.length === 0) {
                     console.error("Routing error:", error);
-                    alert("Error getting route.");
+                    failDirections(requestId, "No route was returned. Check your connection or choose another destination, then try again.");
                     return;
                 }
+
+                setDirectionsTriggerBusy(lastDirectionsTrigger, false);
 
                 speechSynthesis.cancel(); // cancel any previous speech
 
@@ -29949,7 +30028,7 @@ function setImportPanelVisibility(show) {
                     const bounds = computeBounds(allCoords);
                     map.region = bounds;
                 } else {
-                    console.warn("⚠️ No route points to zoom.");
+                    failDirections(requestId, "The route contained no usable path. Choose another destination, then try again.");
                 }
             });
         }
