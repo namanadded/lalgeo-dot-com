@@ -262,6 +262,52 @@ for (const [error, code, retryable] of [
   assert.equal(normalized.retryable, retryable);
 }
 
+assert.equal(cloud.getCloudRetryAfterMs({ headers: { "Retry-After": "2.5" } }), 2500);
+assert.equal(cloud.getCloudRetryAfterMs({ error: { retry_after: 7 } }), 7000,
+  "provider retry_after fields use the standard seconds unit");
+assert.equal(cloud.getCloudRetryAfterMs({ retryAfterMs: 125 }), 125,
+  "adapters can provide an explicit millisecond delay without unit ambiguity");
+
+let throttledAttempts = 0;
+const retryDelays = [];
+const throttledResult = await cloud.retryCloudOperation(async () => {
+  throttledAttempts += 1;
+  if (throttledAttempts === 1) {
+    const error = new Error("too_many_requests");
+    error.status = 429;
+    error.headers = { "Retry-After": "3" };
+    throw error;
+  }
+  return "recovered";
+}, {
+  provider: "mock",
+  baseDelayMs: 250,
+  sleep: async (delay) => retryDelays.push(delay),
+  onRetry: (event) => assert.equal(event.error.code, "rate_limit"),
+});
+assert.equal(throttledResult, "recovered");
+assert.deepEqual(retryDelays, [3000], "provider throttling guidance overrides a shorter exponential delay");
+
+const backoffController = new AbortController();
+let backoffStarted = false;
+const cancelledBackoff = cloud.retryCloudOperation(async () => {
+  const error = new Error("offline");
+  error.status = 503;
+  throw error;
+}, {
+  provider: "mock",
+  signal: backoffController.signal,
+  sleep: async () => {
+    backoffStarted = true;
+    await new Promise(() => {});
+  },
+});
+await Promise.resolve();
+assert.equal(backoffStarted, true);
+backoffController.abort(new DOMException("user cancelled", "AbortError"));
+await assert.rejects(cancelledBackoff, (error) => error.name === "AbortError",
+  "cancellation interrupts an active retry wait instead of waiting for its timer");
+
 const catalogCalls = [];
 const catalogPages = new Map([
   ["/projects", { entries: [
@@ -299,5 +345,4 @@ assert.match(dropboxSource, /\{ path: "", recursive: false \}/,
 assert.doesNotMatch(dropboxSource, /filesListFolder\(\{ path: scope\.path, recursive: true \}\)/,
   "provider integration must honor each catalog scope's recursion boundary");
 
-console.log("Cloud storage contract: scoped catalog, resumable recovery, and error taxonomy passed.");
-console.log("Cloud storage contract: resumable recovery, ambiguous commit verification, and error taxonomy passed.");
+console.log("Cloud storage contract: scoped catalog, resumable recovery, rate-limit pacing, cancellation, and error taxonomy passed.");
