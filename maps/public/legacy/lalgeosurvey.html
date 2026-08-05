@@ -5050,8 +5050,27 @@
         font-size: 14px;
         line-height: 1.55;
     }
+    .export-center-summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 2px; }
+    .export-center-pill { padding: 6px 10px; border-radius: 999px; background: #f3f4f6; color: #6b7280; font-size: 12px; font-weight: 700; }
+    .export-center-group { display: grid; gap: 8px; }
+    .export-center-group h4 { margin: 4px 2px 0; color: #6b7280; font-size: 12px; letter-spacing: .05em; text-transform: uppercase; }
+    .export-center-choice { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 14px; align-items: center; width: 100%; min-height: 64px; padding: 12px 14px; border: 1px solid #e5e7eb; border-radius: 14px; background: #fff; color: #374151; text-align: left; cursor: pointer; }
+    .export-center-choice strong { font-size: 15px; }
+    .export-center-choice small { color: #6b7280; line-height: 1.4; }
+    .export-center-choice::after { grid-column: 2; grid-row: 1 / span 2; content: "↓"; color: #007aff; font-size: 18px; font-weight: 800; }
+    .export-center-choice[data-export-choice="pdf"]::after { content: "›"; }
+    .export-center-choice:hover, .export-center-choice:focus-visible { border-color: #8bc3ff; background: #f5faff; outline: 3px solid rgba(0, 122, 255, .18); outline-offset: 1px; }
+    .export-center-choice:disabled { cursor: not-allowed; opacity: .52; background: #f9fafb; }
     .layer-modal-danger {
         color: #ffb5b5;
+    }
+    @media (max-width: 600px) {
+        #layerActionModalBackdrop:has(.export-center) { align-items: flex-end; padding: 0; }
+        .layer-modal.export-center { width: 100%; max-height: calc(100dvh - max(12px, env(safe-area-inset-top, 0px))); box-sizing: border-box; padding: 20px 16px calc(18px + env(safe-area-inset-bottom, 0px)); border-right: 0; border-bottom: 0; border-left: 0; border-radius: 24px 24px 0 0; overscroll-behavior: contain; }
+        .layer-modal.export-center .layer-modal-header { position: sticky; top: -20px; z-index: 1; margin: -2px -16px 14px; padding: 18px 16px 12px; background: rgba(255,255,255,.96); border-bottom: 1px solid #e5e7eb; }
+        .layer-modal.export-center .layer-modal-close { width: 44px; height: 44px; min-width: 44px; }
+        .export-center-choice { min-height: 68px; }
+        .layer-modal.export-center .layer-modal-actions button { min-height: 48px; flex: 1; }
     }
     .schema-editor-list {
         display: grid;
@@ -11221,7 +11240,7 @@
             <details class="mobile-menu-group" name="mobile-menu-sections">
                 <summary class="mobile-menu-summary">Share &amp; Export</summary>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="shareMapBtn"><span>Share Link</span></button>
-                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuExportPdfBtn"><span>Export PDF</span></button>
+                <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="menuExportBtn"><span>Export…</span><span class="mobile-menu-accessory" aria-hidden="true">›</span></button>
                 <button type="button" class="menu-command mobile-menu-command" data-mobile-menu-target="printButton"><span>Print</span></button>
             </details>
             <details class="mobile-menu-group" name="mobile-menu-sections">
@@ -11246,6 +11265,7 @@
             <button id="openProjectBtn" type="button" class="menu-command"><span>Import Project</span><span class="menu-shortcut" data-shortcut="openProject"></span></button>
             <button id="toggleImportBtn" type="button" class="menu-command"><span>Import Layer</span><span class="menu-shortcut" data-shortcut="importProject"></span></button>
             <button id="shareMapBtn" type="button" class="menu-command"><span>Share Link</span><span class="menu-shortcut" data-shortcut="share"></span></button>
+            <button id="menuExportBtn" type="button" class="menu-command"><span>Export…</span><span class="menu-shortcut" data-shortcut="export"></span></button>
             <button id="menuExportPdfBtn" type="button" class="menu-command"><span>Export Map…</span><span class="menu-shortcut" data-shortcut="exportPdf"></span></button>
             <button id="printButton" type="button" class="menu-command"><span>Print…</span><span class="menu-shortcut" data-shortcut="print"></span></button>
             <button id="menuFileHelpBtn" type="button" class="menu-command"><span>Help and Documentation</span></button>
@@ -12368,6 +12388,7 @@
         const menuLogoutBtn = document.getElementById("menuLogoutBtn");
         const menuNewLayerBtn = document.getElementById("menuNewLayerBtn");
         const menuExportPdfBtn = document.getElementById("menuExportPdfBtn");
+        const menuExportBtn = document.getElementById("menuExportBtn");
         const mapPrintTitle = document.getElementById("mapPrintTitle");
         const mapPrintMeta = document.getElementById("mapPrintMeta");
         const menuHistoryRecentBtn = document.getElementById("menuHistoryRecentBtn");
@@ -14419,6 +14440,7 @@
                 [menuCloseLayersBtn, sidebarVisible],
                 [menuCloseDataPaneBtn, dataPaneVisible],
                 [menuExportPdfBtn, hasProject],
+                [menuExportBtn, hasProject],
                 [printButton, hasProject],
                 [menuAboutBtn, true],
                 [menuForceCloseBtn, Boolean(activeProjectRecord || sidebarVisible || dataPaneVisible || toolbarMenuVisible || !settingsPanel?.hidden)],
@@ -14447,6 +14469,7 @@
                 [menuCloseLayersBtn, "Open the Layers panel before closing it."],
                 [menuCloseDataPaneBtn, "Open Data Manager before closing it."],
                 [menuExportPdfBtn, "Create or open a project before exporting a map."],
+                [menuExportBtn, "Create or open a project before exporting."],
                 [printButton, "Create or open a project before printing."],
                 [menuForceCloseBtn, "Open a project, panel, or menu before closing everything."],
                 [menuLogoutBtn, "Connect Dropbox before disconnecting it."],
@@ -19053,6 +19076,55 @@
             setProjectStatus(`Exported ${layer.name} as CSV.`, "success");
         }
 
+        function openExportCenter(returnFocusTo = document.activeElement) {
+            if (!activeProjectRecord) {
+                setProjectStatus("Create or open a project before exporting.", "error");
+                return;
+            }
+            const layer = getActiveLayerRecord();
+            const featureCount = getLayerFeatureCount(layer);
+            const selectedCount = getActiveSelectionIndexes().length;
+            openLayerActionModal({
+                title: "Export",
+                description: "Choose what you want to use outside LalGeo.",
+                modalClass: "export-center",
+                returnFocusTo,
+                bodyHtml: `
+                    <div class="export-center-summary" aria-label="Export summary">
+                        <span class="export-center-pill">${escapeHtml(activeProjectRecord.name || "Untitled project")}</span>
+                        <span class="export-center-pill">${escapeHtml(layer?.name || "No active layer")} · ${featureCount} feature${featureCount === 1 ? "" : "s"}</span>
+                    </div>
+                    <section class="export-center-group" aria-labelledby="exportProjectHeading">
+                        <h4 id="exportProjectHeading">Keep working</h4>
+                        <button type="button" class="export-center-choice" data-export-choice="project" autofocus><strong>Project file</strong><small>All layers and settings in a .lal file you can reopen in LalGeo.</small></button>
+                    </section>
+                    <section class="export-center-group" aria-labelledby="exportLayerHeading">
+                        <h4 id="exportLayerHeading">Use the data</h4>
+                        <button type="button" class="export-center-choice" data-export-choice="geojson" ${layer ? "" : "disabled"}><strong>Layer as GeoJSON</strong><small>Best for GIS apps and web maps.</small></button>
+                        <button type="button" class="export-center-choice" data-export-choice="csv" ${layer ? "" : "disabled"}><strong>Layer as CSV</strong><small>Best for spreadsheets and tabular review.</small></button>
+                        <button type="button" class="export-center-choice" data-export-choice="selected" ${selectedCount ? "" : "disabled"}><strong>Selected features</strong><small>${selectedCount ? `${selectedCount} selected · GeoJSON` : "Select features on the map or in Attributes first."}</small></button>
+                    </section>
+                    <section class="export-center-group" aria-labelledby="exportMapHeading">
+                        <h4 id="exportMapHeading">Share the view</h4>
+                        <button type="button" class="export-center-choice" data-export-choice="pdf"><strong>Map as PDF</strong><small>Prepare a clean map, then save it from the print dialog.</small></button>
+                    </section>
+                `,
+                actions: [{ label: "Done" }]
+            });
+        }
+
+        layerActionModalBody?.addEventListener("click", (event) => {
+            const choice = event.target.closest("[data-export-choice]");
+            if (!choice || choice.disabled) return;
+            const action = choice.dataset.exportChoice;
+            closeLayerActionModal();
+            if (action === "project") downloadActiveProjectPackage();
+            if (action === "geojson") exportActiveLayerGeoJson();
+            if (action === "csv") exportActiveLayerCsv();
+            if (action === "selected") exportSelectedGeoJson();
+            if (action === "pdf") openPrintPreparation("pdf");
+        });
+
         function openGeospatialImportReview(payload) {
             const layers = payload?.geospatialLayers || [];
             if (!layers.length) return openImportedProject(payload);
@@ -20105,6 +20177,7 @@
             layerActionModalState = null;
             layerActionModalBody.innerHTML = "";
             layerActionModalActions.innerHTML = "";
+            layerActionModal.classList.remove("export-center");
             document.removeEventListener("keydown", trapLayerActionModalFocus, true);
             if (returnFocusTarget?.focus) {
                 returnFocusTarget.focus();
@@ -20117,12 +20190,15 @@
             bodyHtml = "",
             actions = [],
             onOpen = null,
+            modalClass = "",
             returnFocusTo = document.activeElement
         }) {
             if (!layerActionModalBackdrop || !layerActionModalTitle || !layerActionModalBody || !layerActionModalActions) return;
             layerActionModalTitle.textContent = title;
             layerActionModalDescription.textContent = description;
+            layerActionModalClose.setAttribute("aria-label", `Close ${title.toLowerCase()} dialog`);
             layerActionModalBody.innerHTML = bodyHtml;
+            layerActionModal.classList.toggle("export-center", modalClass === "export-center");
             layerActionModalActions.innerHTML = actions.map((action, index) => `
                 <button
                     type="button"
@@ -20817,6 +20893,7 @@
             }
         });
         menuExportPdfBtn?.addEventListener("click", () => openPrintPreparation("pdf"));
+        menuExportBtn?.addEventListener("click", () => openExportCenter(mobileMenuInvocationSource ? toolbarMenuBtn : document.activeElement));
         menuHistoryRecentBtn?.addEventListener("click", () => workspacePanelBtn?.click());
         menuCloseLayersBtn?.addEventListener("click", () => setSidebarVisibility(false));
         menuCloseDataPaneBtn?.addEventListener("click", () => setDataPaneVisibility(false));
@@ -21628,7 +21705,7 @@
             (layerId, point) => showLayerContextMenu(layerId, point)
         );
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
-        downloadProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
+        downloadProjectBtn?.addEventListener("click", () => openExportCenter(downloadProjectBtn));
         copyShareLinkBtn?.addEventListener("click", () => {
             const link = buildShareUrl();
             if (!link) {
@@ -23959,15 +24036,15 @@
             if (payload.csvText) {
                 let csvParseError = null;
                 try {
-                    parsed = parseSurveyCSV(payload.csvText);
+                    parsed = ensureParsedCoordinates(parseSurveyCSV(payload.csvText));
                 } catch (err) {
                     csvParseError = err;
                     parsed = null;
                 }
-                if (!parsed && parsedFromDoc) {
-                    parsed = parsedFromDoc;
-                } else if (!parsed && csvParseError) {
+                if (!parsed && csvParseError) {
                     throw csvParseError;
+                } else if (!parsed && parsedFromDoc) {
+                    parsed = parsedFromDoc;
                 }
                 // If doc existed, merge question meta from doc into csv-derived parsed
                 if (parsedFromDoc?.questionMeta && parsed) {
@@ -25904,12 +25981,11 @@
             return { latKey: null, lonKey: null };
         }
 
-        function ensureParsedCoordinates(parsed) {
+        function ensureParsedCoordinates(parsed, { datasetLabel = "CSV" } = {}) {
             if (!parsed) return parsed;
             let coords = collectValidCoords(parsed);
-            if (coords.length) return parsed;
-            // Try explicit header-based detection
-            if (Array.isArray(parsed.headers)) {
+            if (!coords.length && Array.isArray(parsed.headers)) {
+                // Try explicit header-based detection.
                 const normHeaders = new Map();
                 parsed.headers.forEach(h => normHeaders.set(normalizeHeaderName(h), h));
                 const latGuess = normHeaders.get("latitude") || normHeaders.get("lat");
@@ -25920,13 +25996,35 @@
                 }
             }
             coords = collectValidCoords(parsed);
-            if (coords.length) return parsed;
-            const fallback = findLatLonKeys(parsed.records || []);
-            if (fallback.latKey && fallback.lonKey) {
-                parsed.latKey = fallback.latKey;
-                parsed.lonKey = fallback.lonKey;
+            if (!coords.length) {
+                const fallback = findLatLonKeys(parsed.records || []);
+                if (fallback.latKey && fallback.lonKey) {
+                    parsed.latKey = fallback.latKey;
+                    parsed.lonKey = fallback.lonKey;
+                }
             }
+            assertParsedCoordinateRows(parsed, { datasetLabel });
             return parsed;
+        }
+
+        function assertParsedCoordinateRows(parsed, { datasetLabel = "CSV" } = {}) {
+            if (!parsed?.latKey || !parsed?.lonKey) {
+                throw new Error(`${datasetLabel} is missing latitude or longitude fields. Add decimal WGS84 coordinate columns and try again.`);
+            }
+            const validateRows = (records, sectionLabel) => {
+                (records || []).forEach((record, index) => {
+                    const latitude = parseNumber(record?.[parsed.latKey]);
+                    const longitude = parseNumber(record?.[parsed.lonKey]);
+                    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                        throw new Error(`${datasetLabel} ${sectionLabel} row ${index + 1} has a missing or non-numeric coordinate. Use decimal WGS84 latitude and longitude values.`);
+                    }
+                    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                        throw new Error(`${datasetLabel} ${sectionLabel} row ${index + 1} is outside WGS84 bounds. Use latitude -90 to 90 and longitude -180 to 180.`);
+                    }
+                });
+            };
+            validateRows(parsed.records, "response");
+            validateRows(parsed.archiveRecords, "archive");
         }
 
         function collectValidCoords(parsed) {
@@ -28528,14 +28626,74 @@ function setImportPanelVisibility(show) {
                 .replace(/'/g, "&#39;");
         }
 
-        function startVoiceNavigation(steps) {
-            stopVoice(); // Stop any active voice nav
+        let lastVoiceNavigationSteps = [];
+        let lastVoiceNavigationTrigger = null;
+
+        function setVoiceNavigationControls({ active = false, pending = false } = {}) {
+            const startButton = document.getElementById("startVoiceNav");
+            const stopButton = document.getElementById("stopVoiceNav");
+            if (startButton) {
+                startButton.disabled = active || pending;
+                startButton.setAttribute("aria-busy", pending ? "true" : "false");
+                startButton.textContent = pending ? "Starting voice navigation…" : "▶️ Start Voice Navigation";
+            }
+            if (stopButton) stopButton.disabled = !active && !pending;
+        }
+
+        function renderVoiceNavigationStatus(state, title, message) {
+            const sidebarContent = document.getElementById("sidebar-content");
+            if (!sidebarContent) return;
+            let status = sidebarContent.querySelector("#voiceNavigationStatus");
+            if (!status) {
+                status = document.createElement("section");
+                status.id = "voiceNavigationStatus";
+                status.className = "directions-status";
+                status.setAttribute("role", "status");
+                status.setAttribute("aria-live", "polite");
+                status.setAttribute("aria-atomic", "true");
+                sidebarContent.appendChild(status);
+            }
+            status.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+            status.innerHTML = `
+                <h3>${escapeHtml(title)}</h3>
+                <p>${escapeHtml(message)}</p>
+                ${state === "error" ? '<div class="workspace-inline-actions"><button id="voiceNavigationRetryBtn" type="button" class="mini-btn primary">Try again</button></div>' : ""}
+            `;
+            const retryButton = status.querySelector("#voiceNavigationRetryBtn");
+            retryButton?.addEventListener("click", () => {
+                startVoiceNavigation(lastVoiceNavigationSteps, { trigger: lastVoiceNavigationTrigger });
+            });
+            if (state === "error") retryButton?.focus();
+        }
+
+        function startVoiceNavigation(steps, { trigger = null } = {}) {
+            stopVoice({ announce: false });
+            lastVoiceNavigationSteps = Array.isArray(steps) ? steps : [];
+            lastVoiceNavigationTrigger = trigger instanceof HTMLButtonElement ? trigger : document.getElementById("startVoiceNav");
+            if (!navigator.geolocation) {
+                setVoiceNavigationControls();
+                renderVoiceNavigationStatus("error", "Voice navigation unavailable", "This browser doesn’t support location services.");
+                return;
+            }
+            if (lastVoiceNavigationSteps.length === 0) {
+                setVoiceNavigationControls();
+                renderVoiceNavigationStatus("error", "Voice navigation unavailable", "This route has no spoken steps. Choose another route and try again.");
+                return;
+            }
             currentSteps = steps.map(step => ({ ...step, announced: false }));
             voiceNavActive = true;
+            setVoiceNavigationControls({ pending: true });
+            renderVoiceNavigationStatus("loading", "Starting voice navigation…", "Waiting for your current location.");
             const destination = currentSteps[currentSteps.length - 1].path.slice(-1)[0]; // Approximate final destination
+            let receivedPosition = false;
 
             locationWatcher = navigator.geolocation.watchPosition(
                 (position) => {
+                    if (!receivedPosition) {
+                        receivedPosition = true;
+                        setVoiceNavigationControls({ active: true });
+                        renderVoiceNavigationStatus("success", "Voice navigation active", "Live directions are following your location. Use Stop Voice to end navigation.");
+                    }
                     const userCoord = { latitude: position.coords.latitude, longitude: position.coords.longitude };
                     // 🔥 Follow user on map
                     map.region = new mapkit.CoordinateRegion(
@@ -28566,25 +28724,27 @@ function setImportPanelVisibility(show) {
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
-                    if (error.code === error.PERMISSION_DENIED) {
-                        alert("Please allow location access to enable navigation.");
-                    } else if (error.code === error.POSITION_UNAVAILABLE) {
-                        alert("Location position is unavailable.");
-                    } else if (error.code === error.TIMEOUT) {
-                        alert("Location request timed out.");
-                    }
+                    stopVoice({ announce: false });
+                    setVoiceNavigationControls();
+                    renderVoiceNavigationStatus("error", "Voice navigation unavailable", getLocationErrorMessage(error));
                 },
                 { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
             );
         }
 
-        function stopVoice() {
+        function stopVoice({ announce = true } = {}) {
             speechSynthesis.cancel();
+            const wasActive = voiceNavActive || locationWatcher !== null;
             voiceNavActive = false;
             currentSteps = [];
             if (locationWatcher !== null) {
                 navigator.geolocation.clearWatch(locationWatcher);
                 locationWatcher = null;
+            }
+            setVoiceNavigationControls();
+            if (announce && wasActive) {
+                renderVoiceNavigationStatus("idle", "Voice navigation stopped", "Live location tracking and spoken directions are off.");
+                lastVoiceNavigationTrigger?.focus();
             }
         }
 
@@ -28746,10 +28906,11 @@ function setImportPanelVisibility(show) {
                             <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
                         `;
 
-                        document.getElementById("startVoiceNav").addEventListener("click", () => {
-                            startVoiceNavigation(selectedRoute.steps);
+                        document.getElementById("startVoiceNav").addEventListener("click", (event) => {
+                            startVoiceNavigation(selectedRoute.steps, { trigger: event.currentTarget });
                         });
-                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                        document.getElementById("stopVoiceNav").addEventListener("click", () => stopVoice());
+                        setVoiceNavigationControls();
                     }
                 }
             });
@@ -30120,10 +30281,11 @@ function setImportPanelVisibility(show) {
                             <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
                             <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
                         `;
-                        document.getElementById("startVoiceNav").addEventListener("click", () => {
-                            startVoiceNavigation(route.steps);
+                        document.getElementById("startVoiceNav").addEventListener("click", (event) => {
+                            startVoiceNavigation(route.steps, { trigger: event.currentTarget });
                         });
-                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                        document.getElementById("stopVoiceNav").addEventListener("click", () => stopVoice());
+                        setVoiceNavigationControls();
                     }
                 });
 
