@@ -20,6 +20,8 @@ const projectedShapefileWithoutPrj = readFileSync(new URL("../fixtures/interoper
 const shapefileWithoutAttributes = readFileSync(new URL("../fixtures/interoperability/missing-attributes.zip", import.meta.url)).toString("base64");
 const complexKmz = readFileSync(new URL("../fixtures/interoperability/complex-main-document.kmz", import.meta.url)).toString("base64");
 const ambiguousKmz = readFileSync(new URL("../fixtures/interoperability/ambiguous-main-document.kmz", import.meta.url)).toString("base64");
+const complexApiRows = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-api-rows.json", import.meta.url), "utf8"));
+const malformedApiRows = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-api-rows.json", import.meta.url), "utf8"));
 
 class CdpSocket {
   constructor(url) {
@@ -279,6 +281,24 @@ try {
       malformedCollectionMessage = error.message || "";
     }
     assert(malformedCollectionMessage === "GeoJSON feature 1 could not be imported: geometry GeometryCollection member 1 LineString coordinate 2 is invalid. Use [longitude, latitude] values in WGS84.", "GeoJSON rejects an invalid collection coordinate instead of bridging valid vertices");
+
+    const apiRowsPayload = buildGeoJsonPayloadFromJsonRows(${JSON.stringify(complexApiRows)}, {
+      projectName: "Complex API rows",
+      url: "https://example.test/assets.json"
+    });
+    const apiRowsLayer = apiRowsPayload.geospatialLayers[0];
+    assert(apiRowsLayer.features.length === 2, "API JSON imports every coordinate row");
+    assert(apiRowsLayer.features[0].attributes.name === "Station Été 🌲" && apiRowsLayer.features[0].attributes.nullable_note === null, "API JSON preserves Unicode and explicit null attributes");
+    assert(apiRowsLayer.features[0].attributes.field_12 === "A12", "API JSON preserves large field sets");
+    const apiRowsRoundTrip = buildGeoJsonPayload(layerToGeoJson(apiRowsLayer), { format: "API JSON GeoJSON round trip" });
+    assert(apiRowsRoundTrip.geospatialLayers[0].features[0].attributes.inspected_at === "2026-08-03T09:15:00-06:00", "API JSON import-export-import preserves date attributes");
+    let malformedApiRowsMessage = "";
+    try {
+      buildGeoJsonPayloadFromJsonRows(${JSON.stringify(malformedApiRows)}, { projectName: "Malformed API rows" });
+    } catch (error) {
+      malformedApiRowsMessage = error.message || "";
+    }
+    assert(malformedApiRowsMessage === "API JSON row 2 has invalid latitude or longitude. Use decimal WGS84 values within latitude -90 to 90 and longitude -180 to 180.", "API JSON rejects a malformed row instead of silently importing its neighbors");
 
     const polygonHolesPayload = buildGeoJsonPayload(${JSON.stringify(polygonHolesGeoJson)}, {
       projectName: "Polygon holes",
