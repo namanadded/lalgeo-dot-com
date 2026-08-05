@@ -278,6 +278,10 @@ jobs:
         working-directory: maps
         run: npm run test:print-export-preparation
 
+      - name: Check maps share journey
+        working-directory: maps
+        run: npm run test:share-journey
+
       - name: Check maps location journey
         working-directory: maps
         run: npm run test:location-journey
