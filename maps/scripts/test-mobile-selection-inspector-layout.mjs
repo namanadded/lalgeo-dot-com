@@ -29,4 +29,16 @@ assert.match(
   "Opening the mobile table must synchronize toolbar visibility and dismiss its popovers.",
 );
 
+assert.match(
+  legacyHtml,
+  /function renderSelectedFeatureInspector\(\)[\s\S]*?featureDrawer\?\.classList\.contains\("open"\)[\s\S]*?!editFloatingPanel\?\.hidden[\s\S]*?selectedFeatureInspector\.classList\.remove\("visible"\);/,
+  "The compact selection inspector must close when Feature Details or the edit context is visible.",
+);
+
+assert.match(
+  legacyHtml,
+  /function setEditPanelVisibility\(show,[\s\S]*?if \(show\)[\s\S]*?syncEditPanelState\(\);[\s\S]*?renderSelectedFeatureInspector\(\);[\s\S]*?editFloatingPanel\.hidden = true;[\s\S]*?syncEditPanelState\(\);[\s\S]*?renderSelectedFeatureInspector\(\);/,
+  "Opening and closing the edit context must synchronize the compact selection inspector.",
+);
+
 console.log("Mobile selection inspector layout checks passed.");
