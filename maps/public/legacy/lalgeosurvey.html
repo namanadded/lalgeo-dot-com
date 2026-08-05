@@ -24027,15 +24027,15 @@
             if (payload.csvText) {
                 let csvParseError = null;
                 try {
-                    parsed = parseSurveyCSV(payload.csvText);
+                    parsed = ensureParsedCoordinates(parseSurveyCSV(payload.csvText));
                 } catch (err) {
                     csvParseError = err;
                     parsed = null;
                 }
-                if (!parsed && parsedFromDoc) {
-                    parsed = parsedFromDoc;
-                } else if (!parsed && csvParseError) {
+                if (!parsed && csvParseError) {
                     throw csvParseError;
+                } else if (!parsed && parsedFromDoc) {
+                    parsed = parsedFromDoc;
                 }
                 // If doc existed, merge question meta from doc into csv-derived parsed
                 if (parsedFromDoc?.questionMeta && parsed) {
@@ -25972,12 +25972,11 @@
             return { latKey: null, lonKey: null };
         }
 
-        function ensureParsedCoordinates(parsed) {
+        function ensureParsedCoordinates(parsed, { datasetLabel = "CSV" } = {}) {
             if (!parsed) return parsed;
             let coords = collectValidCoords(parsed);
-            if (coords.length) return parsed;
-            // Try explicit header-based detection
-            if (Array.isArray(parsed.headers)) {
+            if (!coords.length && Array.isArray(parsed.headers)) {
+                // Try explicit header-based detection.
                 const normHeaders = new Map();
                 parsed.headers.forEach(h => normHeaders.set(normalizeHeaderName(h), h));
                 const latGuess = normHeaders.get("latitude") || normHeaders.get("lat");
@@ -25988,13 +25987,35 @@
                 }
             }
             coords = collectValidCoords(parsed);
-            if (coords.length) return parsed;
-            const fallback = findLatLonKeys(parsed.records || []);
-            if (fallback.latKey && fallback.lonKey) {
-                parsed.latKey = fallback.latKey;
-                parsed.lonKey = fallback.lonKey;
+            if (!coords.length) {
+                const fallback = findLatLonKeys(parsed.records || []);
+                if (fallback.latKey && fallback.lonKey) {
+                    parsed.latKey = fallback.latKey;
+                    parsed.lonKey = fallback.lonKey;
+                }
             }
+            assertParsedCoordinateRows(parsed, { datasetLabel });
             return parsed;
+        }
+
+        function assertParsedCoordinateRows(parsed, { datasetLabel = "CSV" } = {}) {
+            if (!parsed?.latKey || !parsed?.lonKey) {
+                throw new Error(`${datasetLabel} is missing latitude or longitude fields. Add decimal WGS84 coordinate columns and try again.`);
+            }
+            const validateRows = (records, sectionLabel) => {
+                (records || []).forEach((record, index) => {
+                    const latitude = parseNumber(record?.[parsed.latKey]);
+                    const longitude = parseNumber(record?.[parsed.lonKey]);
+                    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                        throw new Error(`${datasetLabel} ${sectionLabel} row ${index + 1} has a missing or non-numeric coordinate. Use decimal WGS84 latitude and longitude values.`);
+                    }
+                    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                        throw new Error(`${datasetLabel} ${sectionLabel} row ${index + 1} is outside WGS84 bounds. Use latitude -90 to 90 and longitude -180 to 180.`);
+                    }
+                });
+            };
+            validateRows(parsed.records, "response");
+            validateRows(parsed.archiveRecords, "archive");
         }
 
         function collectValidCoords(parsed) {
@@ -28596,14 +28617,74 @@ function setImportPanelVisibility(show) {
                 .replace(/'/g, "&#39;");
         }
 
-        function startVoiceNavigation(steps) {
-            stopVoice(); // Stop any active voice nav
+        let lastVoiceNavigationSteps = [];
+        let lastVoiceNavigationTrigger = null;
+
+        function setVoiceNavigationControls({ active = false, pending = false } = {}) {
+            const startButton = document.getElementById("startVoiceNav");
+            const stopButton = document.getElementById("stopVoiceNav");
+            if (startButton) {
+                startButton.disabled = active || pending;
+                startButton.setAttribute("aria-busy", pending ? "true" : "false");
+                startButton.textContent = pending ? "Starting voice navigation…" : "▶️ Start Voice Navigation";
+            }
+            if (stopButton) stopButton.disabled = !active && !pending;
+        }
+
+        function renderVoiceNavigationStatus(state, title, message) {
+            const sidebarContent = document.getElementById("sidebar-content");
+            if (!sidebarContent) return;
+            let status = sidebarContent.querySelector("#voiceNavigationStatus");
+            if (!status) {
+                status = document.createElement("section");
+                status.id = "voiceNavigationStatus";
+                status.className = "directions-status";
+                status.setAttribute("role", "status");
+                status.setAttribute("aria-live", "polite");
+                status.setAttribute("aria-atomic", "true");
+                sidebarContent.appendChild(status);
+            }
+            status.setAttribute("aria-busy", state === "loading" ? "true" : "false");
+            status.innerHTML = `
+                <h3>${escapeHtml(title)}</h3>
+                <p>${escapeHtml(message)}</p>
+                ${state === "error" ? '<div class="workspace-inline-actions"><button id="voiceNavigationRetryBtn" type="button" class="mini-btn primary">Try again</button></div>' : ""}
+            `;
+            const retryButton = status.querySelector("#voiceNavigationRetryBtn");
+            retryButton?.addEventListener("click", () => {
+                startVoiceNavigation(lastVoiceNavigationSteps, { trigger: lastVoiceNavigationTrigger });
+            });
+            if (state === "error") retryButton?.focus();
+        }
+
+        function startVoiceNavigation(steps, { trigger = null } = {}) {
+            stopVoice({ announce: false });
+            lastVoiceNavigationSteps = Array.isArray(steps) ? steps : [];
+            lastVoiceNavigationTrigger = trigger instanceof HTMLButtonElement ? trigger : document.getElementById("startVoiceNav");
+            if (!navigator.geolocation) {
+                setVoiceNavigationControls();
+                renderVoiceNavigationStatus("error", "Voice navigation unavailable", "This browser doesn’t support location services.");
+                return;
+            }
+            if (lastVoiceNavigationSteps.length === 0) {
+                setVoiceNavigationControls();
+                renderVoiceNavigationStatus("error", "Voice navigation unavailable", "This route has no spoken steps. Choose another route and try again.");
+                return;
+            }
             currentSteps = steps.map(step => ({ ...step, announced: false }));
             voiceNavActive = true;
+            setVoiceNavigationControls({ pending: true });
+            renderVoiceNavigationStatus("loading", "Starting voice navigation…", "Waiting for your current location.");
             const destination = currentSteps[currentSteps.length - 1].path.slice(-1)[0]; // Approximate final destination
+            let receivedPosition = false;
 
             locationWatcher = navigator.geolocation.watchPosition(
                 (position) => {
+                    if (!receivedPosition) {
+                        receivedPosition = true;
+                        setVoiceNavigationControls({ active: true });
+                        renderVoiceNavigationStatus("success", "Voice navigation active", "Live directions are following your location. Use Stop Voice to end navigation.");
+                    }
                     const userCoord = { latitude: position.coords.latitude, longitude: position.coords.longitude };
                     // 🔥 Follow user on map
                     map.region = new mapkit.CoordinateRegion(
@@ -28634,25 +28715,27 @@ function setImportPanelVisibility(show) {
                 },
                 (error) => {
                     console.error("Geolocation error:", error);
-                    if (error.code === error.PERMISSION_DENIED) {
-                        alert("Please allow location access to enable navigation.");
-                    } else if (error.code === error.POSITION_UNAVAILABLE) {
-                        alert("Location position is unavailable.");
-                    } else if (error.code === error.TIMEOUT) {
-                        alert("Location request timed out.");
-                    }
+                    stopVoice({ announce: false });
+                    setVoiceNavigationControls();
+                    renderVoiceNavigationStatus("error", "Voice navigation unavailable", getLocationErrorMessage(error));
                 },
                 { enableHighAccuracy: true, maximumAge: 10000, timeout: 5000 }
             );
         }
 
-        function stopVoice() {
+        function stopVoice({ announce = true } = {}) {
             speechSynthesis.cancel();
+            const wasActive = voiceNavActive || locationWatcher !== null;
             voiceNavActive = false;
             currentSteps = [];
             if (locationWatcher !== null) {
                 navigator.geolocation.clearWatch(locationWatcher);
                 locationWatcher = null;
+            }
+            setVoiceNavigationControls();
+            if (announce && wasActive) {
+                renderVoiceNavigationStatus("idle", "Voice navigation stopped", "Live location tracking and spoken directions are off.");
+                lastVoiceNavigationTrigger?.focus();
             }
         }
 
@@ -28814,10 +28897,11 @@ function setImportPanelVisibility(show) {
                             <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
                         `;
 
-                        document.getElementById("startVoiceNav").addEventListener("click", () => {
-                            startVoiceNavigation(selectedRoute.steps);
+                        document.getElementById("startVoiceNav").addEventListener("click", (event) => {
+                            startVoiceNavigation(selectedRoute.steps, { trigger: event.currentTarget });
                         });
-                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                        document.getElementById("stopVoiceNav").addEventListener("click", () => stopVoice());
+                        setVoiceNavigationControls();
                     }
                 }
             });
@@ -30188,10 +30272,11 @@ function setImportPanelVisibility(show) {
                             <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
                             <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
                         `;
-                        document.getElementById("startVoiceNav").addEventListener("click", () => {
-                            startVoiceNavigation(route.steps);
+                        document.getElementById("startVoiceNav").addEventListener("click", (event) => {
+                            startVoiceNavigation(route.steps, { trigger: event.currentTarget });
                         });
-                        document.getElementById("stopVoiceNav").addEventListener("click", stopVoice);
+                        document.getElementById("stopVoiceNav").addEventListener("click", () => stopVoice());
+                        setVoiceNavigationControls();
                     }
                 });
 
