@@ -23950,15 +23950,15 @@
             if (payload.csvText) {
                 let csvParseError = null;
                 try {
-                    parsed = parseSurveyCSV(payload.csvText);
+                    parsed = ensureParsedCoordinates(parseSurveyCSV(payload.csvText));
                 } catch (err) {
                     csvParseError = err;
                     parsed = null;
                 }
-                if (!parsed && parsedFromDoc) {
-                    parsed = parsedFromDoc;
-                } else if (!parsed && csvParseError) {
+                if (!parsed && csvParseError) {
                     throw csvParseError;
+                } else if (!parsed && parsedFromDoc) {
+                    parsed = parsedFromDoc;
                 }
                 // If doc existed, merge question meta from doc into csv-derived parsed
                 if (parsedFromDoc?.questionMeta && parsed) {
@@ -25895,12 +25895,11 @@
             return { latKey: null, lonKey: null };
         }
 
-        function ensureParsedCoordinates(parsed) {
+        function ensureParsedCoordinates(parsed, { datasetLabel = "CSV" } = {}) {
             if (!parsed) return parsed;
             let coords = collectValidCoords(parsed);
-            if (coords.length) return parsed;
-            // Try explicit header-based detection
-            if (Array.isArray(parsed.headers)) {
+            if (!coords.length && Array.isArray(parsed.headers)) {
+                // Try explicit header-based detection.
                 const normHeaders = new Map();
                 parsed.headers.forEach(h => normHeaders.set(normalizeHeaderName(h), h));
                 const latGuess = normHeaders.get("latitude") || normHeaders.get("lat");
@@ -25911,13 +25910,35 @@
                 }
             }
             coords = collectValidCoords(parsed);
-            if (coords.length) return parsed;
-            const fallback = findLatLonKeys(parsed.records || []);
-            if (fallback.latKey && fallback.lonKey) {
-                parsed.latKey = fallback.latKey;
-                parsed.lonKey = fallback.lonKey;
+            if (!coords.length) {
+                const fallback = findLatLonKeys(parsed.records || []);
+                if (fallback.latKey && fallback.lonKey) {
+                    parsed.latKey = fallback.latKey;
+                    parsed.lonKey = fallback.lonKey;
+                }
             }
+            assertParsedCoordinateRows(parsed, { datasetLabel });
             return parsed;
+        }
+
+        function assertParsedCoordinateRows(parsed, { datasetLabel = "CSV" } = {}) {
+            if (!parsed?.latKey || !parsed?.lonKey) {
+                throw new Error(`${datasetLabel} is missing latitude or longitude fields. Add decimal WGS84 coordinate columns and try again.`);
+            }
+            const validateRows = (records, sectionLabel) => {
+                (records || []).forEach((record, index) => {
+                    const latitude = parseNumber(record?.[parsed.latKey]);
+                    const longitude = parseNumber(record?.[parsed.lonKey]);
+                    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) {
+                        throw new Error(`${datasetLabel} ${sectionLabel} row ${index + 1} has a missing or non-numeric coordinate. Use decimal WGS84 latitude and longitude values.`);
+                    }
+                    if (latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) {
+                        throw new Error(`${datasetLabel} ${sectionLabel} row ${index + 1} is outside WGS84 bounds. Use latitude -90 to 90 and longitude -180 to 180.`);
+                    }
+                });
+            };
+            validateRows(parsed.records, "response");
+            validateRows(parsed.archiveRecords, "archive");
         }
 
         function collectValidCoords(parsed) {

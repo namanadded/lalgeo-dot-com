@@ -185,6 +185,10 @@ jobs:
         working-directory: maps
         run: npm run test:api-import-integrity
 
+      - name: Check CSV coordinate completeness and WGS84 integrity
+        working-directory: maps
+        run: npm run test:csv-coordinate-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
