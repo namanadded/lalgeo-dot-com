@@ -16164,7 +16164,9 @@
             const geometryType = getActiveLayerGeometryType();
             const geometryLabel = geometryType === "line" ? "Line" : geometryType === "polygon" ? "Polygon" : "Point";
             const selectedCount = selectedTableRows?.size || (getSelectedEditableFeatureContext() ? 1 : 0);
-            const showSelection = !isAddingSurveyPoint && selectedCount > 0;
+            const showSelection = !isAddingSurveyPoint
+                && selectedCount > 0
+                && !featureDrawer?.classList.contains("open");
             if (drawContextChooser) drawContextChooser.hidden = isAddingSurveyPoint || showSelection;
             if (drawContextActive) drawContextActive.hidden = !isAddingSurveyPoint;
             if (drawSelectionContext) drawSelectionContext.hidden = !showSelection;
@@ -17702,6 +17704,7 @@
         }
 
         function closeFeatureDrawer({ clearSelection = false } = {}) {
+            const wasOpen = Boolean(featureDrawer?.classList.contains("open"));
             if (featureDrawer) {
                 featureDrawer.classList.remove("open");
                 setOffCanvasAccessibility(featureDrawer, false, mapElement);
@@ -17713,6 +17716,14 @@
                 refreshAnnotationStyles();
             }
             renderSelectedFeatureInspector();
+            if (
+                wasOpen
+                && window.matchMedia("(max-width: 600px)").matches
+                && editSessionActive
+                && getActiveSelectionIndexes().length
+            ) {
+                setEditPanelVisibility(true);
+            }
         }
 
         function normalizeFeatureFieldValue(field, value) {
@@ -17842,8 +17853,16 @@
             setProjectStatus("Feature attributes autosaved.", "success");
         }
 
-        function renderFeatureDrawer() {
+        function renderFeatureDrawer({ newFeature = false } = {}) {
             if (!featureDrawerBody || !featureDrawerMeta) return;
+            if (
+                window.matchMedia("(max-width: 600px)").matches
+                && !newFeature
+                && !featureDrawer.classList.contains("open")
+            ) {
+                closeFeatureDrawer();
+                return;
+            }
             if (tableEditMode) {
                 closeFeatureDrawer();
                 return;
@@ -18054,6 +18073,10 @@
             featureDrawer.classList.add("open");
             setOffCanvasAccessibility(featureDrawer, true);
             renderSelectedFeatureInspector();
+            if (window.matchMedia("(max-width: 600px)").matches && !editFloatingPanel?.hidden) {
+                editFloatingPanel.hidden = true;
+                setEditPanelVisibility(false);
+            }
         }
 
         function collapseSurveyTableForMobileFeatureDetails() {
@@ -22932,7 +22955,7 @@
             const annotation = rowAnnotationMap.get(rowIndex);
             if (annotation) {
                 activeFeatureId = annotation.surveyPoint.pointId || annotation.surveyPoint.rowIndex;
-                showSurveyCallout(annotation, { forceEdit: true });
+                showSurveyCallout(annotation, { forceEdit: true, newFeature: true });
                 renderFeatureDrawer();
             }
             announceFeaturePlacementComplete(geometryType, { featureDetailsOpened: Boolean(annotation) });
@@ -23260,7 +23283,7 @@
             activeFeatureId = feature.id;
             setActiveProject(activeProjectRecord, { preserveRegion: true });
             const annotation = rowAnnotationMap.get(rowIndex);
-            if (annotation) showSurveyCallout(annotation, { forceEdit: true });
+            if (annotation) showSurveyCallout(annotation, { forceEdit: true, newFeature: true });
             setProjectStatus(`${shape === "square" ? "Square" : "Rectangle"} polygon added.`, "success");
             syncEditPanelState();
         }
@@ -23569,10 +23592,10 @@
             refreshAnnotationStyles();
             if (options.openFeatureDrawerOnly) {
                 activeSurveyAnnotation = annotation;
-                renderFeatureDrawer();
+                renderFeatureDrawer({ newFeature: true });
                 featureDrawer?.classList.add("open");
             } else {
-                showSurveyCallout(annotation, { forceEdit: true });
+                showSurveyCallout(annotation, { forceEdit: true, newFeature: true });
                 renderFeatureDrawer();
             }
             setAnnotationDraggable(annotation);
@@ -26705,7 +26728,7 @@
             refreshAnnotationStyles();
             isCalloutEditing = canEditAttributes() && Boolean(options.forceEdit);
             renderSelectedFeatureInspector();
-            renderFeatureDrawer();
+            renderFeatureDrawer({ newFeature: options.newFeature === true });
             syncEditPanelState();
             if (geometryVertexEditMode) renderGeometryVertexHandles();
             if (!USE_INLINE_FEATURE_CALLOUT) {
