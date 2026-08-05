@@ -55,6 +55,58 @@ assert.match(dropboxSource, /downloadBlobVerified\(/);
 assert.match(dropboxSource, /computeDropboxContentHash\(blob\) === file\.content_hash/,
   "Dropbox opens must verify the provider content hash");
 
+const smallBlob = new Blob([new Uint8Array(1_000_000).fill(17)]);
+let smallUploadCalls = 0;
+let smallVerificationCalls = 0;
+const smallCommit = { path: "/safe-test/small.lal", mode: { ".tag": "update", update: "rev-before" } };
+const recoveredSmallCommit = await cloud.uploadBlobWithCommitVerification({
+  async upload() {
+    smallUploadCalls += 1;
+    const error = new Error("response lost after upload commit");
+    error.status = 503;
+    throw error;
+  },
+  async verifyCommit(candidate, commit) {
+    smallVerificationCalls += 1;
+    assert.equal(candidate, smallBlob);
+    assert.equal(commit, smallCommit);
+    return { path: commit.path, rev: "rev-after", size: candidate.size };
+  },
+}, smallBlob, smallCommit, { provider: "mock", baseDelayMs: 0, sleep: async () => {} });
+assert.equal(recoveredSmallCommit.rev, "rev-after");
+assert.equal(smallUploadCalls, 1, "an ambiguous direct upload must never be repeated");
+assert.equal(smallVerificationCalls, 1, "exact remote metadata resolves a lost direct-upload response");
+
+await assert.rejects(
+  cloud.uploadBlobWithCommitVerification({
+    async upload() {
+      const error = new Error("response lost before commit");
+      error.status = 503;
+      throw error;
+    },
+    async verifyCommit() { return null; },
+  }, smallBlob, smallCommit, { provider: "mock", baseDelayMs: 0, sleep: async () => {} }),
+  (error) => error.code === "unavailable",
+  "an unproved direct upload keeps the original retryable failure visible",
+);
+
+let nonRetryableVerifications = 0;
+await assert.rejects(
+  cloud.uploadBlobWithCommitVerification({
+    async upload() {
+      const error = new Error("stale revision conflict");
+      error.status = 409;
+      throw error;
+    },
+    async verifyCommit() { nonRetryableVerifications += 1; },
+  }, smallBlob, smallCommit, { provider: "mock" }),
+  (error) => error.code === "conflict" && !error.retryable,
+  "known stale revisions fail immediately",
+);
+assert.equal(nonRetryableVerifications, 0, "conflicts are not mistaken for ambiguous commits");
+assert.match(dropboxSource, /uploadBlobWithCommitVerification\(/,
+  "Dropbox direct revision updates must use provider-independent commit recovery");
+
 const snapshotCalls = [];
 const snapshot = await cloud.copyCloudRevisionSnapshot({
   async copyRevision(request) {

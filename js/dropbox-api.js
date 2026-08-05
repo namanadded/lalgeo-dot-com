@@ -1,5 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
-import { collectCloudFiles, copyCloudRevisionSnapshot, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, normalizeCloudError, uploadBlobResumably } from "./cloud-storage.js";
+import { collectCloudFiles, copyCloudRevisionSnapshot, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, normalizeCloudError, uploadBlobResumably, uploadBlobWithCommitVerification } from "./cloud-storage.js";
 import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
@@ -286,14 +286,25 @@ export class LalGeoDropboxClient {
       if (contents.size >= this.resumableThreshold) {
         return await this.uploadLargeFile(contents, { path, mode, autorename: !previousRev });
       }
-      const response = await this.client.filesUpload({
-        path,
-        contents,
-        mode,
-        autorename: !previousRev,
-        mute: false,
-      });
-      return response.result || response;
+      const commit = { path, mode, autorename: !previousRev };
+      if (!previousRev) {
+        const response = await this.client.filesUpload({ ...commit, contents, mute: false });
+        return response.result || response;
+      }
+      const client = this.client;
+      let expectedContentHash = null;
+      return await uploadBlobWithCommitVerification({
+        async upload(blob, nextCommit) {
+          const response = await client.filesUpload({ ...nextCommit, contents: blob, mute: false });
+          return response.result || response;
+        },
+        async verifyCommit(blob, nextCommit) {
+          expectedContentHash ||= await computeDropboxContentHash(blob);
+          const response = await client.filesGetMetadata({ path: nextCommit.path });
+          const metadata = response.result || response;
+          return isVerifiedDropboxUpdate(metadata, blob.size, nextCommit, expectedContentHash) ? metadata : null;
+        },
+      }, contents, commit, { provider: "dropbox" });
     } catch (error) {
       if (String(error?.error?.error_summary || error?.message || "").includes("conflict")) {
         const latest = await this.tryGetMetadata(path);
