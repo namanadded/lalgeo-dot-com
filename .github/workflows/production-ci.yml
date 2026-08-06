@@ -145,9 +145,17 @@ jobs:
         working-directory: maps
         run: npm run test:survey-table-a11y
 
+      - name: Check geometry completion status recovery
+        working-directory: maps
+        run: npm run test:geometry-completion-status
+
       - name: Check maps view menu accessibility
         working-directory: maps
         run: npm run test:view-menu-a11y
+
+      - name: Check export center journey
+        working-directory: maps
+        run: npm run test:export-center-journey
 
       - name: Check cloud storage recovery contracts
         working-directory: maps
@@ -177,6 +185,14 @@ jobs:
         working-directory: maps
         run: npm run test:geojson-integrity
 
+      - name: Check API row geometry and attribute integrity
+        working-directory: maps
+        run: npm run test:api-import-integrity
+
+      - name: Check CSV coordinate completeness and WGS84 integrity
+        working-directory: maps
+        run: npm run test:csv-coordinate-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
@@ -195,6 +211,9 @@ jobs:
       - name: Benchmark bounded cloud upload recovery
         working-directory: maps
         run: npm run benchmark:cloud-recovery
+      - name: Benchmark provider-paced cloud retries
+        working-directory: maps
+        run: npm run benchmark:cloud-retry-control
       - name: Check Dropbox upload content verification
         working-directory: maps
         run: npm run test:dropbox-content-hash
@@ -269,6 +288,10 @@ jobs:
         working-directory: maps
         run: npm run test:table-selection-filter-states
 
+      - name: Check attribute table journey
+        working-directory: maps
+        run: npm run test:attribute-table-journey
+
       - name: Check geometry cancellation recovery
         working-directory: maps
         run: npm run test:geometry-cancellation-recovery
@@ -277,9 +300,17 @@ jobs:
         working-directory: maps
         run: npm run test:print-export-preparation
 
+      - name: Check maps share journey
+        working-directory: maps
+        run: npm run test:share-journey
+
       - name: Check maps location journey
         working-directory: maps
         run: npm run test:location-journey
+
+      - name: Check maps directions journey
+        working-directory: maps
+        run: npm run test:directions-journey
 
       - name: Check maps editing journey
         working-directory: maps
