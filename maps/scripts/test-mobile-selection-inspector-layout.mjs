@@ -61,8 +61,14 @@ assert.match(
 
 assert.match(
   legacyHtml,
-  /function openFeatureEditorByRow\(rowIndex\)\s*\{[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?setEditSessionActive\(true\);[\s\S]*?if \(!editSessionActive\) return;[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true \}\);/,
-  "Editing a selected feature must start the existing edit session and explicitly open Feature Details.",
+  /function openFeatureEditorByRow\(rowIndex\)\s*\{[\s\S]*?const layerId = activeSurveyAnnotation\?\.surveyPoint\?\.layerId \|\| activeLayerId;[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?setEditSessionActive\(true, \{ layerId \}\);[\s\S]*?if \(!editSessionActive\) return;[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true \}\);/,
+  "Editing a selected feature must preserve its layer, start the existing edit session, and explicitly open Feature Details.",
+);
+
+assert.match(
+  legacyHtml,
+  /async function deleteActivePoint\(\)[\s\S]*?if \(!deleted\) return;[\s\S]*?hideSurveyCallout\(\);[\s\S]*?clearTableSelection\(\{ update: false \}\);[\s\S]*?updateSurveyTable\(\);/,
+  "Deleting a feature must clear its selection before the shortened table is rendered.",
 );
 
 assert.match(

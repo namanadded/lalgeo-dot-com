@@ -18173,8 +18173,9 @@
 
         function openFeatureEditorByRow(rowIndex) {
             if (!Number.isInteger(rowIndex)) return;
+            const layerId = activeSurveyAnnotation?.surveyPoint?.layerId || activeLayerId;
             previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
-            setEditSessionActive(true);
+            setEditSessionActive(true, { layerId });
             if (!editSessionActive) return;
             renderFeatureDrawer({ forceOpen: true });
         }
@@ -27107,12 +27108,14 @@
             if (!ok) return;
             const rowIndex = activeSurveyAnnotation.surveyPoint.rowIndex;
             const meta = getPointMeta(rowIndex);
+            let deleted = false;
             if (isDropboxSurvey() && getActiveLayerGeometryType() === "point") {
                 try {
                     if (!meta?.id) throw new Error("Missing Dropbox point metadata.");
                     setProjectStatus("Archiving point…");
                     await deleteDropboxPointRequest(meta.id, { version: meta.version });
                     removeRecordAt(rowIndex);
+                    deleted = true;
                     setProjectStatus("Point archived.", "success");
                     pendingChanges = false;
                 } catch (error) {
@@ -27122,6 +27125,7 @@
             } else {
                 const archived = archiveLocalPoint(rowIndex);
                 if (archived) {
+                    deleted = true;
                     recordAction({
                         type: "delete",
                         rowIndex,
@@ -27138,7 +27142,9 @@
                     }
                 }
             }
+            if (!deleted) return;
             hideSurveyCallout();
+            clearTableSelection({ update: false });
             updateSurveyTable();
             updateHistoryButtons();
         }
