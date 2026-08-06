@@ -14,8 +14,8 @@ for (const id of ["showSelectedRowsBtn", "showUnselectedRowsBtn", "showAllRowsBt
 
 assert.match(
   source,
-  /function setSelectionFilterButtonState\(button, \{ active, disabled, disabledReason \}\)[\s\S]*?button\.setAttribute\("aria-pressed", String\(active\)\);[\s\S]*?button\.disabled = disabled;[\s\S]*?button\.setAttribute\("aria-label", `\$\{button\.textContent\.trim\(\)\}\. \$\{disabledReason\}`\)/,
-  "Selection filters should synchronize visual, pressed, disabled, and explained states."
+  /function setSelectionFilterButtonState\(button, \{ active, disabled, disabledReason \}\)[\s\S]*?button\.dataset\.selectionLabel = enabledLabel;[\s\S]*?button\.setAttribute\("aria-pressed", String\(active\)\);[\s\S]*?button\.disabled = disabled;[\s\S]*?button\.setAttribute\("aria-label", `\$\{enabledLabel\}\. \$\{disabledReason\}`\)[\s\S]*?button\.setAttribute\("aria-label", enabledLabel\)/,
+  "Selection filters should synchronize visual, pressed, disabled, and explained states while preserving stable command names."
 );
 assert.match(
   source,
