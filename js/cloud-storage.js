@@ -236,6 +236,47 @@ export async function downloadBlobVerified(adapter, request, options = {}) {
   throw lastError;
 }
 
+/**
+ * Perform a non-resumable revision-controlled write without blindly repeating
+ * an upload whose response may have been lost after the provider committed it.
+ * The adapter's verification must prove the new revision and exact contents;
+ * otherwise the original failure remains visible to the caller.
+ */
+export async function uploadBlobWithCommitVerification(adapter, blob, request, options = {}) {
+  for (const method of ["upload", "verifyCommit"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Verified cloud upload adapter requires ${method}().`);
+    }
+  }
+  throwIfCloudOperationAborted(options.signal);
+  try {
+    return await adapter.upload(blob, request);
+  } catch (error) {
+    const original = normalizeCloudError(error, options.provider);
+    if (!original.retryable) throw original;
+    try {
+      const committed = await retryCloudOperation(
+        () => adapter.verifyCommit(blob, request),
+        {
+          attempts: options.verificationAttempts || 2,
+          baseDelayMs: options.baseDelayMs,
+          maxDelayMs: options.maxDelayMs,
+          sleep: options.sleep,
+          provider: options.provider,
+          signal: options.signal,
+        },
+      );
+      if (committed) {
+        options.onRecovered?.({ bytes: blob.size, error: original });
+        return committed;
+      }
+    } catch (verificationError) {
+      if (verificationError?.name === "AbortError") throw verificationError;
+    }
+    throw original;
+  }
+}
+
 function assertCatalogAdapter(adapter) {
   for (const method of ["list", "continue"]) {
     if (typeof adapter?.[method] !== "function") {
