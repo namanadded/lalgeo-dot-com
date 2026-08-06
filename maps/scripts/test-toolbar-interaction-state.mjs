@@ -42,8 +42,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /--mobile-toolbar-bottom:\s*max\(62px,[\s\S]*?--mobile-map-chrome-clearance:\s*44px;[\s\S]*?#workspaceHint\s*\{[\s\S]*?var\(--mobile-toolbar-bottom\)[\s\S]*?#editFloatingPanel:not\(\[hidden\]\)[\s\S]*?display:\s*block;[\s\S]*?#editFloatingPanel\[hidden\]\s*\{[\s\S]*?display:\s*none !important;/,
-  "Mobile controls should clear native map chrome while hidden Draw controls remain out of layout and tab order.",
+  /--mobile-toolbar-top:\s*calc\(56px \+ env\(safe-area-inset-top, 0px\)\);[\s\S]*?--mobile-map-chrome-clearance:\s*44px;[\s\S]*?#workspaceHint\s*\{[\s\S]*?top:\s*calc\(var\(--mobile-toolbar-top\) \+ var\(--mobile-toolbar-height\) \+ 8px\);[\s\S]*?#editFloatingPanel:not\(\[hidden\]\)[\s\S]*?display:\s*block;[\s\S]*?#editFloatingPanel\[hidden\]\s*\{[\s\S]*?display:\s*none !important;/,
+  "Mobile controls should anchor below the project header while hidden Draw controls remain out of layout and tab order.",
 );
 assert.match(
   legacyHtml,

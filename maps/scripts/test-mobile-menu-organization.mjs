@@ -67,7 +67,7 @@ const expectedTargets = [
   "menuMyLocationBtn",
   "menuShowBasemapPoisBtn",
   "shareMapBtn",
-  "menuExportPdfBtn",
+  "menuExportBtn",
   "printButton",
   "menuSettingsBtn",
   "menuHelpCenterBtn",

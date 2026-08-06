@@ -153,6 +153,10 @@ jobs:
         working-directory: maps
         run: npm run test:view-menu-a11y
 
+      - name: Check export center journey
+        working-directory: maps
+        run: npm run test:export-center-journey
+
       - name: Check cloud storage recovery contracts
         working-directory: maps
         run: npm run test:cloud-storage
@@ -184,6 +188,10 @@ jobs:
       - name: Check API row geometry and attribute integrity
         working-directory: maps
         run: npm run test:api-import-integrity
+
+      - name: Check CSV coordinate completeness and WGS84 integrity
+        working-directory: maps
+        run: npm run test:csv-coordinate-integrity
 
       - name: Check local workspace persistence recovery
         working-directory: maps

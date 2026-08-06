@@ -13,6 +13,7 @@ const malformedKmlCoordinate = readFileSync(new URL("../fixtures/interoperabilit
 const malformedPolygonGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-polygon.geojson", import.meta.url), "utf8"));
 const complexSurveyCsv = readFileSync(new URL("../fixtures/interoperability/complex-survey.csv", import.meta.url), "utf8");
 const malformedSurveyCsv = readFileSync(new URL("../fixtures/interoperability/malformed-survey.csv", import.meta.url), "utf8");
+const malformedCoordinateCsv = readFileSync(new URL("../fixtures/interoperability/malformed-coordinate-row.csv", import.meta.url), "utf8");
 const complexGpx = readFileSync(new URL("../fixtures/interoperability/complex-field-collection.gpx", import.meta.url), "utf8");
 const malformedGpx = readFileSync(new URL("../fixtures/interoperability/malformed-track-point.gpx", import.meta.url), "utf8");
 const complexShapefile = readFileSync(new URL("../fixtures/interoperability/complex-web-mercator.zip", import.meta.url)).toString("base64");
@@ -453,6 +454,14 @@ try {
       malformedCsvMessage = error.message;
     }
     assert(malformedCsvMessage.includes("CSV has an unclosed quoted field"), "malformed CSV explains how to fix an unclosed quote");
+
+    let malformedCoordinateMessage = "";
+    try {
+      ensureParsedCoordinates(parseSurveyCSV(${JSON.stringify(malformedCoordinateCsv)}));
+    } catch (error) {
+      malformedCoordinateMessage = error.message;
+    }
+    assert(malformedCoordinateMessage === "CSV response row 2 has a missing or non-numeric coordinate. Use decimal WGS84 latitude and longitude values.", "CSV blocks a corrupt middle coordinate row before silently dropping its attributes");
 
     const complexGpxPayload = buildGeoJsonPayload(parseGpxText(${JSON.stringify(complexGpx)}), {
       projectName: "Complex GPX",
