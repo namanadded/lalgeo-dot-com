@@ -23,6 +23,7 @@ const complexKmz = readFileSync(new URL("../fixtures/interoperability/complex-ma
 const ambiguousKmz = readFileSync(new URL("../fixtures/interoperability/ambiguous-main-document.kmz", import.meta.url)).toString("base64");
 const complexApiRows = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-api-rows.json", import.meta.url), "utf8"));
 const malformedApiRows = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-api-rows.json", import.meta.url), "utf8"));
+const secondaryUnicodeLines = readFileSync(new URL("../fixtures/interoperability/secondary-unicode-lines.geojson", import.meta.url), "utf8");
 
 class CdpSocket {
   constructor(url) {
@@ -349,6 +350,18 @@ try {
       malformedKmlMessage = error.message || "";
     }
     assert(malformedKmlMessage === "KML placemark 1, line 1, coordinate 2 is invalid. Use longitude,latitude values in WGS84.", "malformed KML blocks false lines with an actionable coordinate error");
+
+    let multiFileMessage = "";
+    try {
+      await buildSurveyPayload([
+        new File([JSON.stringify(${JSON.stringify(polygonHolesGeoJson)})], "primary.geojson", { type: "application/geo+json" }),
+        new File([${JSON.stringify(secondaryUnicodeLines)}], "Rivière secondaire Montréal α.geojson", { type: "application/geo+json" })
+      ]);
+    } catch (error) {
+      multiFileMessage = error.message || "";
+    }
+    assert(multiFileMessage.includes("Multiple datasets were selected (primary.geojson, Rivière secondaire Montréal α.geojson)"), "multi-file import names every dataset that would otherwise be skipped");
+    assert(multiFileMessage.includes("Import one dataset at a time so no geometry or attributes are skipped"), "multi-file import gives actionable data-integrity guidance");
 
     const fileFromBase64 = (base64, name) => {
       const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));

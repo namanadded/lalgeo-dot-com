@@ -24265,6 +24265,7 @@
 
         async function buildSurveyPayload(files) {
             if (!files || !files.length) throw new Error("No files provided.");
+            assertUnambiguousImportSelection(files);
             const geospatialPayload = await buildGeospatialPayload(files);
             if (geospatialPayload) return geospatialPayload;
             const zipFile = files.find((file) => /\.zip$/i.test(file.name || ""));
@@ -24272,6 +24273,22 @@
                 return await extractZipPackage(zipFile, { projectName: stripExtension(zipFile.name) });
             }
             return await extractLoosePackage(files);
+        }
+
+        function assertUnambiguousImportSelection(files) {
+            const candidates = Array.from(files || []).filter((file) => (
+                /\.(zip|lal|csv|json|geojson|kml|kmz|gpx|shp)$/i.test(file?.name || "")
+            ));
+            if (candidates.length <= 1) return;
+            const extensions = candidates.map((file) => (file.name.match(/\.([^.]+)$/)?.[1] || "").toLowerCase());
+            const isLegacySurveyPair = candidates.length === 2
+                && extensions.includes("csv")
+                && extensions.includes("json");
+            const isLooseShapefileSelection = extensions.every((extension) => extension === "shp");
+            if (isLegacySurveyPair || isLooseShapefileSelection) return;
+            const names = candidates.slice(0, 3).map((file) => file.name).join(", ");
+            const suffix = candidates.length > 3 ? ", …" : "";
+            throw new Error(`Multiple datasets were selected (${names}${suffix}). Import one dataset at a time so no geometry or attributes are skipped.`);
         }
 
         async function fetchDropboxSurvey(url) {
@@ -25014,7 +25031,13 @@
                 group.files.set(info.extension, file);
                 groups.set(info.key, group);
             });
-            const group = Array.from(groups.values()).find((item) => item.files.has("shp"));
+            const datasets = Array.from(groups.values()).filter((item) => item.files.has("shp"));
+            if (datasets.length > 1) {
+                const names = datasets.slice(0, 3).map((item) => `${item.basename}.shp`).join(", ");
+                const suffix = datasets.length > 3 ? ", …" : "";
+                throw new Error(`Multiple loose Shapefile datasets were selected (${names}${suffix}). Import one Shapefile dataset at a time so no geometry or attributes are skipped.`);
+            }
+            const group = datasets[0];
             if (!group) {
                 throw new Error("Select the .shp file with its matching .dbf, .shx, and optional .prj files.");
             }
