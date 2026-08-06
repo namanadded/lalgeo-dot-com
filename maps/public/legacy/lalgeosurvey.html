@@ -8624,6 +8624,14 @@
         gap: 8px;
         margin-left: 8px;
     }
+    .survey-table-primary-actions,
+    .survey-selection-actions,
+    .survey-selection-filters {
+        display: contents;
+    }
+    .panel-action-label-mobile {
+        display: none;
+    }
     #surveySelectionControls[hidden] {
         display: none;
     }
@@ -10510,6 +10518,7 @@
         }
         body.survey-table-open #surveyTablePanel .bottom-bar { display: none; }
         body.survey-table-open #surveyPanelActions {
+            box-sizing: border-box;
             flex: 0 0 auto;
             gap: 6px;
             padding: 8px max(10px, env(safe-area-inset-right, 0px)) 8px max(10px, env(safe-area-inset-left, 0px));
@@ -10543,19 +10552,84 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        body.survey-table-open .survey-table-primary-actions {
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 3px;
+            width: 100%;
+            padding: 3px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        body.survey-table-open .survey-table-primary-actions:not(:has(.panel-action-btn:not([hidden]))) {
+            display: none;
+        }
         body.survey-table-open .panel-action-btn {
+            box-sizing: border-box;
+            height: 44px;
             min-height: 44px;
             flex: 1 1 0;
-            padding: 8px 10px;
-            border-radius: 10px;
+            padding: 0 8px;
+            border: 0;
+            border-radius: 9px;
+            background: transparent;
+            box-shadow: none;
+            font-size: 13px;
         }
         body.survey-table-open #surveySelectionControls {
+            box-sizing: border-box;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            gap: 5px;
             width: 100%;
             margin: 0;
-            overflow-x: auto;
-            padding-bottom: 2px;
+            overflow: visible;
+            padding: 0;
         }
-        body.survey-table-open #surveySelectionControls .panel-action-btn { min-width: max-content; }
+        body.survey-table-open #surveySelectionControls[hidden] {
+            display: none;
+        }
+        body.survey-table-open #surveySelectionSummary {
+            min-width: 0;
+            padding: 0 4px;
+            font-size: 12px;
+            font-weight: 650;
+        }
+        body.survey-table-open .survey-selection-actions {
+            display: grid;
+            grid-template-columns: minmax(72px, auto) 1fr 1fr;
+            align-items: center;
+            gap: 4px;
+        }
+        body.survey-table-open .survey-selection-filters {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 3px;
+            padding: 3px;
+            border-radius: 12px;
+            background: rgba(15, 23, 42, 0.055);
+        }
+        body.survey-table-open .survey-selection-actions .panel-action-btn {
+            background: rgba(15, 23, 42, 0.045);
+        }
+        body.survey-table-open .survey-table-primary-actions .panel-action-btn.active,
+        body.survey-table-open .survey-selection-filters .panel-action-btn.active {
+            background: rgba(255, 255, 255, 0.96);
+            color: #1f2937;
+            box-shadow: 0 1px 3px rgba(15, 23, 42, 0.1);
+        }
+        body.survey-table-open .panel-action-btn:disabled {
+            opacity: 0.42;
+            cursor: default;
+            box-shadow: none;
+        }
+        body.survey-table-open .panel-action-label-desktop {
+            display: none;
+        }
+        body.survey-table-open .panel-action-label-mobile {
+            display: inline;
+        }
         body.survey-table-open #selectedFeatureInspector {
             position: static;
             left: auto;
@@ -12017,16 +12091,22 @@
             </div>
             <button id="surveyTableCloseBtn" type="button" class="survey-table-close" aria-label="Close attributes table">×</button>
             <div id="surveyTableContext">Create or open a project to view attributes.</div>
-            <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
-            <button id="tableEditBtn" type="button" class="panel-action-btn" hidden>Edit</button>
-            <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
+            <div class="survey-table-primary-actions" role="group" aria-label="Table actions">
+                <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
+                <button id="tableEditBtn" type="button" class="panel-action-btn" hidden>Edit</button>
+                <button id="archiveToggleBtn" type="button" class="panel-action-btn" hidden>Show archive</button>
+            </div>
             <div id="surveySelectionControls" hidden>
-                <span id="surveySelectionSummary">0 selected</span>
-                <button id="selectAllRowsBtn" type="button" class="panel-action-btn">Select all</button>
-                <button id="clearSelectedRowsBtn" type="button" class="panel-action-btn">Clear selection</button>
-                <button id="showSelectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false">Show selected</button>
-                <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false">Show unselected</button>
-                <button id="showAllRowsBtn" type="button" class="panel-action-btn" aria-pressed="true">Show all</button>
+                <div class="survey-selection-actions" role="group" aria-label="Selection actions">
+                    <span id="surveySelectionSummary">0 selected</span>
+                    <button id="selectAllRowsBtn" type="button" class="panel-action-btn">Select all</button>
+                    <button id="clearSelectedRowsBtn" type="button" class="panel-action-btn" aria-label="Clear selection"><span class="panel-action-label-desktop">Clear selection</span><span class="panel-action-label-mobile" aria-hidden="true">Clear</span></button>
+                </div>
+                <div class="survey-selection-filters" role="group" aria-label="Visible table rows">
+                    <button id="showAllRowsBtn" type="button" class="panel-action-btn" aria-pressed="true" aria-label="Show all rows"><span class="panel-action-label-desktop">Show all</span><span class="panel-action-label-mobile" aria-hidden="true">All</span></button>
+                    <button id="showSelectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false" aria-label="Show selected rows"><span class="panel-action-label-desktop">Show selected</span><span class="panel-action-label-mobile" aria-hidden="true">Selected</span></button>
+                    <button id="showUnselectedRowsBtn" type="button" class="panel-action-btn" aria-pressed="false" aria-label="Show unselected rows"><span class="panel-action-label-desktop">Show unselected</span><span class="panel-action-label-mobile" aria-hidden="true">Unselected</span></button>
+                </div>
             </div>
         </div>
         <div id="surveyFieldControls" hidden>
@@ -27244,15 +27324,19 @@
 
         function setSelectionFilterButtonState(button, { active, disabled, disabledReason }) {
             if (!button) return;
+            const enabledLabel = button.dataset.selectionLabel
+                || button.getAttribute("aria-label")
+                || button.textContent.trim();
+            button.dataset.selectionLabel = enabledLabel;
             button.classList.toggle("active", active);
             button.setAttribute("aria-pressed", String(active));
             button.disabled = disabled;
             if (disabled && disabledReason) {
                 button.title = disabledReason;
-                button.setAttribute("aria-label", `${button.textContent.trim()}. ${disabledReason}`);
+                button.setAttribute("aria-label", `${enabledLabel}. ${disabledReason}`);
             } else {
                 button.removeAttribute("title");
-                button.removeAttribute("aria-label");
+                button.setAttribute("aria-label", enabledLabel);
             }
         }
 

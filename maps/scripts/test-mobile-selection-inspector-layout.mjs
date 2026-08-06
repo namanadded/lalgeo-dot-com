@@ -71,4 +71,34 @@ assert.match(
   "Ordinary mobile selection must stay compact while an explicit Properties request can open Feature Details.",
 );
 
+assert.match(
+  legacyHtml,
+  /<div class="survey-table-primary-actions" role="group" aria-label="Table actions">[\s\S]*?id="surveyFieldsBtn"[\s\S]*?id="tableEditBtn"[\s\S]*?id="archiveToggleBtn"/,
+  "The mobile attribute table must group its primary actions.",
+);
+
+assert.match(
+  legacyHtml,
+  /<div class="survey-selection-actions" role="group" aria-label="Selection actions">[\s\S]*?<div class="survey-selection-filters" role="group" aria-label="Visible table rows">[\s\S]*?panel-action-label-mobile[^>]*>All<[\s\S]*?panel-action-label-mobile[^>]*>Selected<[\s\S]*?panel-action-label-mobile[^>]*>Unselected</,
+  "Selection actions and row filters must be separated into readable mobile groups.",
+);
+
+assert.match(
+  legacyHtml,
+  /body\.survey-table-open #surveyPanelActions\s*\{[\s\S]*?box-sizing:\s*border-box;[\s\S]*?body\.survey-table-open \.panel-action-btn\s*\{[\s\S]*?box-sizing:\s*border-box;[\s\S]*?height:\s*44px;[\s\S]*?padding:\s*0 8px;[\s\S]*?box-shadow:\s*none;/,
+  "Mobile table actions must use a true 44px touch target without additive vertical padding.",
+);
+
+assert.match(
+  legacyHtml,
+  /body\.survey-table-open #surveySelectionControls\[hidden\]\s*\{\s*display:\s*none;/,
+  "Hidden mobile selection controls must not reserve table-header space.",
+);
+
+assert.match(
+  legacyHtml,
+  /function setSelectionFilterButtonState\(button,[\s\S]*?button\.dataset\.selectionLabel = enabledLabel;[\s\S]*?button\.setAttribute\("aria-label", enabledLabel\);/,
+  "Short mobile filter labels must preserve stable accessible command names.",
+);
+
 console.log("Mobile selection inspector layout checks passed.");
