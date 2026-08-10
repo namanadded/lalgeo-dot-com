@@ -18961,7 +18961,7 @@
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = `${(activeProjectRecord.name || "lalgeo-project").replace(/\s+/g, "-").toLowerCase()}.lal`;
+            link.download = portableExportFilename(activeProjectRecord.name, { fallback: "lalgeo-project", extension: ".lal" });
             document.body.appendChild(link);
             link.click();
             link.remove();
@@ -19100,6 +19100,44 @@
             if (advancedGisExportBtn) advancedGisExportBtn.disabled = !hasLayer;
         }
 
+        function portableExportStem(value, fallback = "export") {
+            const reservedWindowsName = /^(?:con|prn|aux|nul|com[1-9]|lpt[1-9])(?:\..*)?$/i;
+            const cleaned = String(value || "")
+                .normalize("NFKC")
+                .replace(/[\u0000-\u001f\u007f]/g, "")
+                .replace(/[\\/:*?"<>|]/g, "-")
+                .replace(/\s+/g, " ")
+                .replace(/-+/g, "-")
+                .replace(/^[\s.-]+|[\s.-]+$/g, "")
+                .slice(0, 120)
+                .replace(/[\s.-]+$/g, "");
+            const safe = cleaned || fallback;
+            return reservedWindowsName.test(safe) ? `_${safe}` : safe;
+        }
+
+        function portableExportFilename(value, { fallback = "export", extension = "" } = {}) {
+            const normalizedExtension = extension && extension.startsWith(".") ? extension : (extension ? `.${extension}` : "");
+            const source = String(value || "");
+            const withoutExtension = normalizedExtension && source.toLowerCase().endsWith(normalizedExtension.toLowerCase())
+                ? source.slice(0, -normalizedExtension.length)
+                : source;
+            return `${portableExportStem(withoutExtension, fallback)}${normalizedExtension}`;
+        }
+
+        function uniquePortableZipPath(directory, value, { fallback = "file", extension = "", usedPaths } = {}) {
+            const filename = portableExportFilename(value, { fallback, extension });
+            const suffix = extension && extension.startsWith(".") ? extension : (extension ? `.${extension}` : "");
+            const stem = suffix ? filename.slice(0, -suffix.length) : filename;
+            let candidate = `${directory}/${filename}`;
+            let counter = 2;
+            while (usedPaths?.has(candidate.toLowerCase())) {
+                candidate = `${directory}/${portableExportStem(`${stem} (${counter})`, fallback)}${suffix}`;
+                counter += 1;
+            }
+            usedPaths?.add(candidate.toLowerCase());
+            return candidate;
+        }
+
         function downloadTextFile(filename, text, type = "application/json") {
             const blob = new Blob([text], { type });
             const url = URL.createObjectURL(blob);
@@ -19179,7 +19217,7 @@
         function exportActiveLayerGeoJson() {
             const layer = getActiveLayerRecord();
             if (!layer) return setProjectStatus("Open a layer before exporting.", "error");
-            downloadTextFile(`${layer.name || "layer"}.geojson`, JSON.stringify(layerToGeoJson(layer), null, 2));
+            downloadTextFile(portableExportFilename(layer.name, { fallback: "layer", extension: ".geojson" }), JSON.stringify(layerToGeoJson(layer), null, 2));
             setProjectStatus(`Exported ${layer.name} as GeoJSON.`, "success");
         }
 
@@ -19187,7 +19225,7 @@
             const layer = getActiveLayerRecord();
             const indexes = getActiveSelectionIndexes();
             if (!layer || !indexes.length) return setProjectStatus("Select features before exporting selected GeoJSON.", "error");
-            downloadTextFile(`${layer.name || "layer"}-selected.geojson`, JSON.stringify(layerToGeoJson(layer, indexes), null, 2));
+            downloadTextFile(portableExportFilename(`${layer.name || "layer"}-selected`, { fallback: "layer-selected", extension: ".geojson" }), JSON.stringify(layerToGeoJson(layer, indexes), null, 2));
             setProjectStatus(`Exported ${indexes.length} selected feature${indexes.length === 1 ? "" : "s"}.`, "success");
         }
 
@@ -19196,7 +19234,8 @@
             if (!layer) return setProjectStatus("Open a layer before exporting CSV.", "error");
             const parsed = buildParsedFromLayer(layer);
             const rows = (parsed.records || []).map((record) => parsed.headers.map((header) => record?.[header] ?? ""));
-            downloadTextFile(`${layer.name || "layer"}.csv`, Papa.unparse({ fields: parsed.headers, data: rows }), "text/csv");
+            const csv = `\uFEFF${Papa.unparse({ fields: parsed.headers, data: rows })}`;
+            downloadTextFile(portableExportFilename(layer.name, { fallback: "layer", extension: ".csv" }), csv, "text/csv;charset=utf-8");
             setProjectStatus(`Exported ${layer.name} as CSV.`, "success");
         }
 
@@ -19935,13 +19974,16 @@
                 return;
             }
             const zip = new JSZip();
-            const baseName = (activeProjectRecord.name || "lalgeo-project").replace(/\s+/g, "-").toLowerCase();
+            const baseName = portableExportStem(activeProjectRecord.name, "lalgeo-project");
+            const usedZipPaths = new Set(["manifest.json"]);
             const lalPayload = {
                 project: serializeProjectForStorage(activeProjectRecord),
                 activeLayerId,
                 survey: currentSurveyData && !isApiReferenceLayer(getActiveLayerRecord()) ? buildSurveyDocumentFromParsed(currentSurveyData) : null
             };
-            zip.file(`${baseName}.lal`, JSON.stringify(lalPayload, null, 2));
+            const projectPath = portableExportFilename(baseName, { fallback: "lalgeo-project", extension: ".lal" });
+            usedZipPaths.add(projectPath.toLowerCase());
+            zip.file(projectPath, JSON.stringify(lalPayload, null, 2));
             zip.file("manifest.json", JSON.stringify({
                 name: activeProjectRecord.name || "LalGeo project",
                 createdAt: new Date().toISOString(),
@@ -19950,14 +19992,21 @@
                 note: "MapKit basemap tiles are not included; project data, GeoJSON layers, and image attachments are packaged for offline transfer."
             }, null, 2));
             (activeProjectRecord.layers || []).forEach((layer) => {
-                zip.file(`layers/${layer.name || layer.id}.geojson`, JSON.stringify(layerToGeoJson(layer), null, 2));
+                const path = uniquePortableZipPath("layers", layer.name || layer.id, { fallback: "layer", extension: ".geojson", usedPaths: usedZipPaths });
+                zip.file(path, JSON.stringify(layerToGeoJson(layer), null, 2));
             });
-            Object.entries(activeProjectRecord.images || {}).forEach(([name, src]) => addDataUrlToZip(zip, `attachments/${name}`, src));
+            Object.entries(activeProjectRecord.images || {}).forEach(([name, src]) => {
+                const match = String(name || "").match(/(\.[a-z0-9]{1,10})$/i);
+                const extension = match?.[1] || "";
+                const stem = extension ? name.slice(0, -extension.length) : name;
+                const path = uniquePortableZipPath("attachments", stem, { fallback: "attachment", extension, usedPaths: usedZipPaths });
+                addDataUrlToZip(zip, path, src);
+            });
             const blob = await zip.generateAsync({ type: "blob" });
             const url = URL.createObjectURL(blob);
             const link = document.createElement("a");
             link.href = url;
-            link.download = `${baseName}-offline.zip`;
+            link.download = portableExportFilename(`${baseName}-offline`, { fallback: "lalgeo-project-offline", extension: ".zip" });
             document.body.appendChild(link);
             link.click();
             link.remove();
