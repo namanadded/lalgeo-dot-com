@@ -207,6 +207,10 @@ export class LalGeoDropboxClient {
       },
     }, {
       scopes: PROJECT_SCAN_SCOPES,
+      provider: "dropbox",
+      maxPages: 2_000,
+      maxExamined: 250_000,
+      maxResults: 50_000,
       accept: (entry) => {
         if (entry[".tag"] !== "file") return false;
         const pathLower = String(entry.path_lower || "").toLowerCase();
