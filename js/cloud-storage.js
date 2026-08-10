@@ -244,6 +244,16 @@ function assertCatalogAdapter(adapter) {
   }
 }
 
+function catalogCursorKey(cursor) {
+  if (typeof cursor === "string") return cursor;
+  if (typeof cursor === "number" || typeof cursor === "boolean") return String(cursor);
+  try {
+    return JSON.stringify(cursor);
+  } catch {
+    return String(cursor);
+  }
+}
+
 /**
  * Walk a provider catalog one page at a time without retaining provider pages.
  * Scopes are deliberately explicit so a provider cannot silently widen a project
@@ -257,12 +267,25 @@ export async function collectCloudFiles(adapter, options = {}) {
   const keyOf = options.keyOf || ((entry) => entry?.id || entry?.pathLower || entry?.pathDisplay || entry?.name);
   const rows = [];
   const seen = new Set();
+  const maxPages = Math.max(1, options.maxPages || 10_000);
+  const maxExamined = Math.max(1, options.maxExamined || 2_000_000);
+  const maxResults = Math.max(1, options.maxResults || 100_000);
   let pages = 0;
   let examined = 0;
 
   for (const scope of scopes) {
     let cursor = null;
+    const scopeCursors = new Set();
     do {
+      throwIfCloudOperationAborted(options.signal);
+      if (pages >= maxPages) {
+        throw new CloudStorageError(`Cloud catalog exceeded the ${maxPages}-page safety limit.`, {
+          code: "catalog_limit",
+          provider: options.provider,
+          retryable: false,
+          details: { pages, examined, matched: rows.length, limit: "pages" },
+        });
+      }
       let page;
       try {
         page = cursor ? await adapter.continue(cursor) : await adapter.list(scope);
@@ -272,16 +295,55 @@ export async function collectCloudFiles(adapter, options = {}) {
       }
       pages += 1;
       const entries = Array.isArray(page?.entries) ? page.entries : [];
+      if (examined + entries.length > maxExamined) {
+        throw new CloudStorageError(`Cloud catalog exceeded the ${maxExamined}-entry safety limit.`, {
+          code: "catalog_limit",
+          provider: options.provider,
+          retryable: false,
+          details: { pages, examined, matched: rows.length, limit: "examined" },
+        });
+      }
       examined += entries.length;
       for (const entry of entries) {
         if (!accept(entry, scope)) continue;
         const row = mapEntry(entry, scope);
         const key = String(keyOf(row, entry, scope) || "").toLowerCase();
         if (!key || seen.has(key)) continue;
+        if (rows.length >= maxResults) {
+          throw new CloudStorageError(`Cloud catalog exceeded the ${maxResults}-project safety limit.`, {
+            code: "catalog_limit",
+            provider: options.provider,
+            retryable: false,
+            details: { pages, examined, matched: rows.length, limit: "results" },
+          });
+        }
         seen.add(key);
         rows.push(row);
       }
-      cursor = page?.hasMore ? page.cursor : null;
+      if (page?.hasMore && (page.cursor === null || page.cursor === undefined || page.cursor === "")) {
+        throw new CloudStorageError("Cloud provider reported more catalog pages without a cursor.", {
+          code: "catalog_integrity",
+          provider: options.provider,
+          retryable: false,
+          details: { pages, examined, matched: rows.length },
+        });
+      }
+      const nextCursor = page?.hasMore ? page.cursor : null;
+      if (nextCursor !== null) {
+        const cursorKey = typeof options.cursorKey === "function"
+          ? String(options.cursorKey(nextCursor, scope))
+          : catalogCursorKey(nextCursor);
+        if (scopeCursors.has(cursorKey)) {
+          throw new CloudStorageError("Cloud provider repeated a catalog cursor.", {
+            code: "catalog_integrity",
+            provider: options.provider,
+            retryable: false,
+            details: { pages, examined, matched: rows.length },
+          });
+        }
+        scopeCursors.add(cursorKey);
+      }
+      cursor = nextCursor;
       options.onPage?.({ scope, pages, examined, matched: rows.length });
     } while (cursor);
   }
