@@ -38,6 +38,10 @@ jobs:
       - name: Check local static links
         run: node .github/scripts/check-static-links.mjs
 
+      - name: Guard complete Maps regression coverage
+        working-directory: maps
+        run: npm run test:production-ci-coverage
+
       - name: Check maps external link security
         working-directory: maps
         run: npm run test:external-link-security
@@ -136,6 +140,14 @@ jobs:
       - name: Check maps toolbar architecture
         working-directory: maps
         run: npm run test:toolbar-architecture
+
+      - name: Check desktop project header
+        working-directory: maps
+        run: npm run test:desktop-project-header
+
+      - name: Check desktop drawing journey
+        working-directory: maps
+        run: npm run test:desktop-draw-flow
 
       - name: Check maps toolbar overflow accessibility
         working-directory: maps
@@ -237,6 +249,14 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-menu-organization
 
+      - name: Check maps mobile tool experience
+        working-directory: maps
+        run: npm run test:mobile-tool-experience
+
+      - name: Check maps mobile sheet refinement
+        working-directory: maps
+        run: npm run test:mobile-sheet-refinement
+
       - name: Check contextual toolbar history controls
         working-directory: maps
         run: npm run test:contextual-toolbar-history
@@ -244,6 +264,14 @@ jobs:
       - name: Check desktop and mobile toolbar parity
         working-directory: maps
         run: npm run test:desktop-mobile-toolbar-parity
+
+      - name: Check toolbar interaction state
+        working-directory: maps
+        run: npm run test:toolbar-interaction-state
+
+      - name: Check large API point performance
+        working-directory: maps
+        run: npm run test:large-api-point-performance
 
       - name: Check maps mobile feature details
         working-directory: maps
