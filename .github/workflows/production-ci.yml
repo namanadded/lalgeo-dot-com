@@ -173,6 +173,10 @@ jobs:
         working-directory: maps
         run: npm run test:export-center-journey
 
+      - name: Check portable export filenames and data retention
+        working-directory: maps
+        run: npm run test:export-filename-integrity
+
       - name: Check cloud storage recovery contracts
         working-directory: maps
         run: npm run test:cloud-storage
