@@ -9,6 +9,7 @@
     "test:basemap-journey": "node scripts/test-basemap-journey.mjs",
     "test:search-input-mobile": "node scripts/test-search-input-mobile.mjs",
     "test:search-journey": "node scripts/test-search-journey.mjs",
+    "test:help-center-journey": "node scripts/test-help-center-journey.mjs",
     "test:button-type-safety": "node scripts/test-button-type-safety.mjs",
     "test:disabled-command-explanations": "node scripts/test-disabled-command-explanations.mjs",
     "test:dropbox-status-a11y": "node scripts/test-dropbox-status-a11y.mjs",
