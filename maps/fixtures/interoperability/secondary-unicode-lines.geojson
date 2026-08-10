@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": {
+        "name": "Rivière secondaire Montréal α",
+        "inspected_at": "2026-08-05T09:15:00-06:00",
+        "nullable_note": null,
+        "field_12": "B12"
+      },
+      "geometry": {
+        "type": "LineString",
+        "coordinates": [
+          [-114.0719, 51.0447],
+          [-113.997, 51.052]
+        ]
+      }
+    }
+  ]
+}

@@ -193,6 +193,10 @@ jobs:
         working-directory: maps
         run: npm run test:csv-coordinate-integrity
 
+      - name: Check multi-file import geometry and attribute integrity
+        working-directory: maps
+        run: npm run test:multifile-import-integrity
+
       - name: Check local workspace persistence recovery
         working-directory: maps
         run: npm run test:workspace-persistence
