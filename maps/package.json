@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
+    "test:production-ci-coverage": "node scripts/test-production-ci-coverage.mjs",
     "test:external-link-security": "node scripts/test-external-link-security.mjs",
     "test:maps-frame-viewport": "node scripts/test-maps-frame-viewport.mjs",
     "test:basemap-journey": "node scripts/test-basemap-journey.mjs",
