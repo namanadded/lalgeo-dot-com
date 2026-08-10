@@ -4851,15 +4851,88 @@
     .help-modal {
         width: min(760px, 100%);
         max-height: min(82vh, 760px);
-        overflow: auto;
+        padding: 0;
+        overflow: hidden;
+    }
+    .help-modal-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16px;
+        padding: 22px 22px 10px;
+    }
+    .help-modal-header h3 { margin: 0; }
+    .help-modal-copy {
+        margin: 5px 0 0;
+        color: #6b7280;
+        line-height: 1.4;
+    }
+    .help-modal-close {
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: 1px solid #e5e7eb;
+        border-radius: 50%;
+        background: #f3f4f6;
+        color: #4b5563;
+        font-size: 22px;
+        line-height: 1;
+    }
+    .help-modal-body {
+        max-height: calc(min(82vh, 760px) - 92px);
+        padding: 0 22px 22px;
+        overflow-y: auto;
+        overscroll-behavior: contain;
     }
     .help-search-row {
-        display: flex;
-        gap: 10px;
-        margin-top: 16px;
+        position: relative;
+        margin-top: 10px;
     }
     .help-search-row input {
-        flex: 1;
+        width: 100%;
+        min-height: 48px;
+        padding-right: 70px;
+    }
+    .help-search-clear {
+        position: absolute;
+        top: 4px;
+        right: 4px;
+        min-width: 58px;
+        min-height: 40px;
+        padding: 0 10px;
+        border: 0;
+        background: transparent;
+        color: #007aff;
+        font-weight: 600;
+    }
+    .help-popular {
+        margin-top: 16px;
+    }
+    .help-popular-title {
+        margin: 0 0 8px;
+        color: #4b5563;
+        font-size: 13px;
+        font-weight: 650;
+    }
+    .help-popular-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .help-topic-chip {
+        min-height: 40px;
+        padding: 0 14px;
+        border: 1px solid #dbe1e8;
+        border-radius: 999px;
+        background: #f8fafc;
+        color: #374151;
+        font-weight: 600;
+    }
+    .help-results-status {
+        margin: 18px 2px 0;
+        color: #6b7280;
+        font-size: 13px;
     }
     .help-topic-list {
         display: grid;
@@ -4867,36 +4940,80 @@
         margin-top: 16px;
     }
     .help-topic-card {
-        padding: 14px;
         border: 1px solid rgba(209, 213, 219, 0.82);
         border-radius: 12px;
         background: #fff;
         color: #374151;
+        overflow: hidden;
+    }
+    .help-topic-card summary {
+        min-height: 52px;
+        padding: 15px 44px 15px 15px;
+        color: #1f2937;
+        font-size: 15px;
+        font-weight: 650;
+        cursor: pointer;
+        list-style: none;
+    }
+    .help-topic-card summary::-webkit-details-marker { display: none; }
+    .help-topic-card summary::after {
+        content: "+";
+        position: absolute;
+        right: 16px;
+        color: #6b7280;
+        font-size: 20px;
+        font-weight: 400;
+    }
+    .help-topic-card[open] summary::after { content: "−"; }
+    .help-topic-card-body {
+        padding: 0 15px 15px;
+        border-top: 1px solid #eef0f3;
     }
     .help-topic-card h4 {
-        margin: 0 0 6px;
+        margin: 0;
         color: #1f2937;
         font-size: 16px;
     }
     .help-topic-card p {
-        margin: 0;
+        margin: 12px 0 0;
         color: #6b7280;
         line-height: 1.45;
     }
-    .help-topic-card .help-keywords {
-        display: block;
-        margin-top: 8px;
-        color: #64748b;
-        font-size: 12px;
+    .help-empty-state {
+        padding: 22px;
+        text-align: center;
     }
-    .help-ai-note {
-        margin-top: 16px;
-        padding: 12px;
-        border-radius: 12px;
-        background: #eff6ff;
-        color: #1e3a8a;
-        font-size: 13px;
-        line-height: 1.45;
+    .help-empty-state h4 { margin-bottom: 7px; }
+    @media (max-width: 600px) {
+        #helpCenterModal {
+            align-items: flex-end;
+            padding: 0;
+        }
+        #helpCenterModal .help-modal {
+            width: 100%;
+            max-width: none;
+            max-height: min(86dvh, 760px);
+            margin: 0;
+            border-radius: 22px 22px 0 0;
+            padding-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        #helpCenterModal .help-modal::before {
+            content: "";
+            display: block;
+            width: 36px;
+            height: 4px;
+            margin: 7px auto 0;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.28);
+        }
+        .help-modal-header { padding: 9px 16px 8px; }
+        .help-modal-header h3 { font-size: 22px; }
+        .help-modal-body {
+            max-height: calc(min(86dvh, 760px) - 88px - env(safe-area-inset-bottom, 0px));
+            padding: 0 16px 18px;
+        }
+        .help-topic-chip { min-height: 44px; }
+        .help-topic-card summary { min-height: 54px; }
     }
     .workspace-validation[hidden] {
         display: none;
@@ -11740,21 +11857,31 @@
         </div>
     </div>
     <div id="helpCenterModal" class="workspace-modal-backdrop" hidden>
-        <div class="workspace-modal help-modal">
-            <h3>Help Center</h3>
-            <p class="workspace-panel-muted">Search the map documentation or ask a question about a tool.</p>
-            <div class="help-search-row">
-                <input id="helpSearchInput" class="workspace-text-input" type="search" placeholder="Search layers, import, editing, reports, API endpoints...">
-                <button id="helpSearchClearBtn" type="button" class="workspace-secondary-btn">Clear</button>
+        <div class="workspace-modal help-modal" role="dialog" aria-modal="true" aria-labelledby="helpCenterTitle" aria-describedby="helpCenterIntro">
+            <div class="help-modal-header">
+                <div>
+                    <h3 id="helpCenterTitle">Help Center</h3>
+                    <p id="helpCenterIntro" class="help-modal-copy">Find a short guide for the task you’re doing.</p>
+                </div>
+                <button id="helpCenterCloseBtn" type="button" class="help-modal-close" aria-label="Close Help Center">×</button>
             </div>
-            <div class="help-search-row">
-                <input id="helpAskInput" class="workspace-text-input" type="text" placeholder="Ask help, for example: how do I import a shapefile?">
-                <button id="helpAskBtn" type="button" class="workspace-primary-btn">Ask</button>
-            </div>
-            <div class="help-ai-note">This help search runs locally inside the browser. It can be upgraded later to use Ollama on your Mac mini or the existing ai-search pattern for natural-language answers over these docs.</div>
-            <div id="helpResults" class="help-topic-list"></div>
-            <div class="workspace-modal-actions">
-                <button id="helpCenterCloseBtn" type="button" class="workspace-secondary-btn">Close</button>
+            <div class="help-modal-body">
+                <label class="workspace-label" for="helpSearchInput">What do you need help with?</label>
+                <div class="help-search-row" role="search">
+                    <input id="helpSearchInput" class="workspace-text-input" type="search" autocomplete="off" placeholder="Try “import a shapefile” or “edit a feature”" aria-describedby="helpResultsStatus">
+                    <button id="helpSearchClearBtn" type="button" class="help-search-clear" hidden>Clear</button>
+                </div>
+                <div class="help-popular">
+                    <p class="help-popular-title">Popular tasks</p>
+                    <div class="help-popular-actions">
+                        <button type="button" class="help-topic-chip" data-help-query="create project">Start a project</button>
+                        <button type="button" class="help-topic-chip" data-help-query="import layer">Import data</button>
+                        <button type="button" class="help-topic-chip" data-help-query="edit feature">Edit features</button>
+                        <button type="button" class="help-topic-chip" data-help-query="share export">Share or export</button>
+                    </div>
+                </div>
+                <div id="helpResultsStatus" class="help-results-status" role="status" aria-live="polite"></div>
+                <div id="helpResults" class="help-topic-list"></div>
             </div>
         </div>
     </div>
@@ -12551,9 +12678,10 @@
         const helpCenterCloseBtn = document.getElementById("helpCenterCloseBtn");
         const helpSearchInput = document.getElementById("helpSearchInput");
         const helpSearchClearBtn = document.getElementById("helpSearchClearBtn");
-        const helpAskInput = document.getElementById("helpAskInput");
-        const helpAskBtn = document.getElementById("helpAskBtn");
+        const helpTopicChips = Array.from(document.querySelectorAll("[data-help-query]"));
+        const helpResultsStatus = document.getElementById("helpResultsStatus");
         const helpResults = document.getElementById("helpResults");
+        let helpCenterReturnFocus = null;
         const sampleMapModal = document.getElementById("sampleMapModal");
         const sampleMapKeepBtn = document.getElementById("sampleMapKeepBtn");
         const sampleMapDeleteBtn = document.getElementById("sampleMapDeleteBtn");
@@ -13020,11 +13148,6 @@
                 keywords: "mobile field inspection survey photos notes work orders forms",
                 body: "LalGeo is designed for field-friendly asset work: collect location updates, inspect assets, attach photos and notes, and keep map records connected to field activity."
             },
-            {
-                title: "AI help option",
-                keywords: "ai ollama mac mini ai-search chat live agent assistant",
-                body: "The current help center searches local documentation. A next step is to connect it to Ollama on your Mac mini or reuse the existing ai-search approach so the Ask box can generate answers from these docs and project context."
-            }
         ];
         let editSnapSettings = {
             vertices: true,
@@ -20045,7 +20168,10 @@
         }
 
         function getHelpMatches(query = "") {
-            const terms = String(query || "").toLowerCase().split(/\s+/).filter(Boolean);
+            const ignoredTerms = new Set(["a", "an", "and", "do", "how", "i", "or", "the", "to"]);
+            const terms = String(query || "").toLowerCase().split(/\s+/)
+                .map((term) => term.replace(/[^a-z0-9-]/g, ""))
+                .filter((term) => term && !ignoredTerms.has(term));
             if (!terms.length) return HELP_TOPICS;
             return HELP_TOPICS
                 .map((topic) => {
@@ -20053,7 +20179,7 @@
                     const score = terms.reduce((total, term) => total + (haystack.includes(term) ? 1 : 0), 0);
                     return { topic, score };
                 })
-                .filter((item) => item.score > 0)
+                .filter((item) => item.score === terms.length)
                 .sort((a, b) => b.score - a.score)
                 .map((item) => item.topic);
         }
@@ -20061,26 +20187,39 @@
         function renderHelpTopics(query = "") {
             if (!helpResults) return;
             const matches = getHelpMatches(query);
+            const hasQuery = Boolean(String(query || "").trim());
+            if (helpSearchClearBtn) helpSearchClearBtn.hidden = !hasQuery;
+            if (helpResultsStatus) {
+                helpResultsStatus.textContent = hasQuery
+                    ? `${matches.length} ${matches.length === 1 ? "guide" : "guides"} found`
+                    : `${matches.length} help guides`;
+            }
             helpResults.innerHTML = matches.length
                 ? matches.map((topic) => `
-                    <article class="help-topic-card">
-                        <h4>${escapeHtml(topic.title)}</h4>
-                        <p>${escapeHtml(topic.body)}</p>
-                        <span class="help-keywords">${escapeHtml(topic.keywords)}</span>
-                    </article>
+                    <details class="help-topic-card" ${hasQuery && matches.length === 1 ? "open" : ""}>
+                        <summary>${escapeHtml(topic.title)}</summary>
+                        <div class="help-topic-card-body"><p>${escapeHtml(topic.body)}</p></div>
+                    </details>
                 `).join("")
-                : `<article class="help-topic-card"><h4>No matching help found</h4><p>Try terms like import, shapefile, layers, editing, API, table, or Dropbox.</p></article>`;
+                : `<article class="help-topic-card help-empty-state"><h4>No guide found</h4><p>Try a shorter search such as import, layers, editing, table, or Dropbox.</p></article>`;
         }
 
         function setHelpCenterVisibility(show, query = "") {
             if (!helpCenterModal) return;
             helpCenterModal.hidden = !show;
             if (show) {
+                helpCenterReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
                 setToolbarMenuVisibility(false);
                 const nextQuery = query || helpSearchInput?.value || "";
                 if (helpSearchInput) helpSearchInput.value = nextQuery;
                 renderHelpTopics(nextQuery);
                 setTimeout(() => helpSearchInput?.focus(), 20);
+            } else {
+                const focusTarget = helpCenterReturnFocus?.offsetParent !== null
+                    ? helpCenterReturnFocus
+                    : sidebarToggleBtn;
+                focusTarget?.focus?.();
+                helpCenterReturnFocus = null;
             }
         }
 
@@ -20124,15 +20263,6 @@
             updateWorkspaceContext();
             setSampleMapModalVisibility(false);
             setProjectStatus("Sample map deleted. Create a project or import your own data to start.", "success");
-        }
-
-        function askHelpCenter() {
-            const question = helpAskInput?.value?.trim() || helpSearchInput?.value?.trim() || "";
-            if (helpSearchInput) helpSearchInput.value = question;
-            renderHelpTopics(question);
-            if (question) {
-                setProjectStatus(`Showing help for "${question}".`, "success");
-            }
         }
 
         function isCalloutOpen() {
@@ -20235,16 +20365,11 @@
                 setHelpCenterVisibility(false);
                 return;
             }
-            if (button.id === "helpAskBtn") {
-                event.preventDefault();
-                askHelpCenter();
-                return;
-            }
             if (button.id === "helpSearchClearBtn") {
                 event.preventDefault();
                 if (helpSearchInput) helpSearchInput.value = "";
-                if (helpAskInput) helpAskInput.value = "";
                 renderHelpTopics("");
+                helpSearchInput?.focus();
                 return;
             }
             if (button.id === "newProjectBtn" || button.id === "drawerNewProjectBtn" || button.id === "emptyCreateProjectBtn") {
@@ -20794,18 +20919,39 @@
         helpSearchInput?.addEventListener("input", () => renderHelpTopics(helpSearchInput.value));
         helpSearchClearBtn?.addEventListener("click", () => {
             if (helpSearchInput) helpSearchInput.value = "";
-            if (helpAskInput) helpAskInput.value = "";
             renderHelpTopics("");
+            helpSearchInput?.focus();
         });
-        helpAskBtn?.addEventListener("click", askHelpCenter);
-        helpAskInput?.addEventListener("keydown", (event) => {
-            if (event.key === "Enter") {
-                event.preventDefault();
-                askHelpCenter();
-            }
+        helpTopicChips.forEach((button) => {
+            button.addEventListener("click", () => {
+                const query = button.dataset.helpQuery || "";
+                if (helpSearchInput) helpSearchInput.value = query;
+                renderHelpTopics(query);
+                helpResults?.querySelector("summary")?.focus();
+            });
         });
         helpCenterModal?.addEventListener("click", (event) => {
             if (event.target === helpCenterModal) setHelpCenterVisibility(false);
+        });
+        helpCenterModal?.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") {
+                event.preventDefault();
+                setHelpCenterVisibility(false);
+                return;
+            }
+            if (event.key !== "Tab") return;
+            const focusable = Array.from(helpCenterModal.querySelectorAll("button:not([hidden]):not(:disabled), input:not(:disabled), summary"))
+                .filter((element) => element.offsetParent !== null);
+            if (!focusable.length) return;
+            const first = focusable[0];
+            const last = focusable[focusable.length - 1];
+            if (event.shiftKey && document.activeElement === first) {
+                event.preventDefault();
+                last.focus();
+            } else if (!event.shiftKey && document.activeElement === last) {
+                event.preventDefault();
+                first.focus();
+            }
         });
 
         async function importSelectedProjectFiles(files) {
@@ -21009,7 +21155,11 @@
         });
         mobileMenuPane?.addEventListener("click", (event) => {
             const button = event.target.closest("[data-mobile-menu-target]");
-            if (!button || button.disabled) return;
+            if (!button) {
+                if (event.target.closest(".mobile-menu-summary")) event.stopPropagation();
+                return;
+            }
+            if (button.disabled) return;
             const target = document.getElementById(button.dataset.mobileMenuTarget || "");
             if (!target || target.disabled) return;
             event.preventDefault();
@@ -21017,6 +21167,10 @@
             mobileMenuInvocationSource = button;
             setToolbarMenuVisibility(false);
             try {
+                if (target === menuHelpCenterBtn) {
+                    setHelpCenterVisibility(true);
+                    return;
+                }
                 target.click();
             } finally {
                 mobileMenuInvocationSource = null;
