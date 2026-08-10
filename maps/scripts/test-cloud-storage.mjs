@@ -142,6 +142,60 @@ assert.equal(result.rev, "test-rev-2");
 assert.deepEqual(remote, bytes, "interrupted upload resumes at provider-reported offset without data loss");
 assert.ok(calls.includes("lookup"), "interruption reconciles the remote cursor");
 
+let hungAppendCalls = 0;
+let hungAppendLookups = 0;
+const deadlineRecovered = await cloud.uploadBlobResumably({
+  async start() { return { sessionId: "hung-append-session" }; },
+  async append() {
+    hungAppendCalls += 1;
+    if (hungAppendCalls === 1) return new Promise(() => {});
+  },
+  async finish() { return { rev: "deadline-recovered" }; },
+  async lookupOffset() {
+    hungAppendLookups += 1;
+    return 2_000_000;
+  },
+}, blob, {
+  chunkSize: 1_000_000,
+  operationTimeoutMs: 5,
+  attempts: 1,
+  baseDelayMs: 0,
+  sleep: async () => {},
+  provider: "mock",
+});
+assert.equal(deadlineRecovered.rev, "deadline-recovered");
+assert.equal(hungAppendCalls, 1, "a timed-out append is not blindly repeated");
+assert.equal(hungAppendLookups, 1, "a timed-out append reconciles the provider cursor");
+
+let hungFinishCalls = 0;
+let hungFinishVerifications = 0;
+const deadlineVerified = await cloud.uploadBlobResumably({
+  async start() { return { sessionId: "hung-finish-session" }; },
+  async append() {},
+  async finish() {
+    hungFinishCalls += 1;
+    return new Promise(() => {});
+  },
+  async lookupOffset() { return blob.size; },
+  async verifyCommit() {
+    hungFinishVerifications += 1;
+    return { rev: "deadline-verified" };
+  },
+}, blob, {
+  chunkSize: 1_000_000,
+  operationTimeoutMs: 5,
+  attempts: 1,
+  baseDelayMs: 0,
+  sleep: async () => {},
+  provider: "mock",
+  commit: { path: "/safe-test/hung-finish.lal" },
+});
+assert.equal(deadlineVerified.rev, "deadline-verified");
+assert.equal(hungFinishCalls, 1, "an ambiguous timed-out finish is never repeated");
+assert.equal(hungFinishVerifications, 1, "a timed-out finish verifies remote content before success");
+assert.match(dropboxSource, /operationTimeoutMs:\s*this\.requestTimeoutMs/,
+  "Dropbox resumable uploads must use the provider-independent request deadline");
+
 let finishAttempts = 0;
 let verificationAttempts = 0;
 const committedMetadata = { rev: "test-rev-3", path: "/safe-test/committed.lal", size: blob.size };

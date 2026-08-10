@@ -61,6 +61,43 @@ function throwIfCloudOperationAborted(signal) {
   throw error;
 }
 
+function runCloudOperationWithDeadline(operation, options = {}) {
+  throwIfCloudOperationAborted(options.signal);
+  if (!Number.isFinite(options.operationTimeoutMs) || options.operationTimeoutMs <= 0) {
+    return operation();
+  }
+  const timeoutMs = Math.max(1, options.operationTimeoutMs);
+  let timer;
+  let onAbort;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(`Cloud storage request timed out after ${timeoutMs} ms.`);
+      error.status = 504;
+      reject(error);
+    }, timeoutMs);
+    if (options.signal) {
+      onAbort = () => {
+        try {
+          throwIfCloudOperationAborted(options.signal);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      options.signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+  let operationResult;
+  try {
+    operationResult = operation();
+  } catch (error) {
+    operationResult = Promise.reject(error);
+  }
+  return Promise.race([Promise.resolve(operationResult), deadline]).finally(() => {
+    clearTimeout(timer);
+    options.signal?.removeEventListener("abort", onAbort);
+  });
+}
+
 export async function retryCloudOperation(operation, options = {}) {
   const attempts = Math.max(1, options.attempts || 4);
   const baseDelayMs = Math.max(0, options.baseDelayMs ?? 250);
@@ -72,8 +109,9 @@ export async function retryCloudOperation(operation, options = {}) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     throwIfCloudOperationAborted(options.signal);
     try {
-      return await operation(attempt);
+      return await runCloudOperationWithDeadline(() => operation(attempt), options);
     } catch (error) {
+      if (error?.name === "AbortError") throw error;
       lastError = normalizeCloudError(error, options.provider);
       if (!lastError.retryable || attempt === attempts) throw lastError;
       const exponentialDelay = baseDelayMs * (2 ** (attempt - 1));
@@ -307,6 +345,7 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
     sleep: recoverySleep,
     provider: options.provider,
     signal: options.signal,
+    operationTimeoutMs: options.operationTimeoutMs,
   };
   const maxNoProgressRecoveries = Math.max(1, options.maxNoProgressRecoveries || 4);
   let sessionId = options.sessionId || null;
@@ -329,13 +368,20 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
       // Append and finish are not blindly retried: a connection can fail after the
       // provider accepted bytes. Reconcile the remote cursor before sending again.
       const result = isLast
-        ? await adapter.finish(sessionId, offset, blob.slice(offset, end), options.commit)
-        : await adapter.append(sessionId, offset, blob.slice(offset, end));
+        ? await runCloudOperationWithDeadline(
+          () => adapter.finish(sessionId, offset, blob.slice(offset, end), options.commit),
+          retryOptions,
+        )
+        : await runCloudOperationWithDeadline(
+          () => adapter.append(sessionId, offset, blob.slice(offset, end)),
+          retryOptions,
+        );
       if (isLast) return result;
       offset = end;
       noProgressRecoveries = 0;
       options.onProgress?.({ loaded: offset, total: blob.size });
     } catch (error) {
+      if (error?.name === "AbortError") throw error;
       const normalized = normalizeCloudError(error, options.provider);
       if (!normalized.retryable) throw normalized;
       // A failed finish may already have committed and closed the session. Providers
@@ -386,5 +432,8 @@ export async function uploadBlobResumably(adapter, blob, options = {}) {
     }
   }
 
-  return adapter.finish(sessionId, offset, new Blob([]), options.commit);
+  return runCloudOperationWithDeadline(
+    () => adapter.finish(sessionId, offset, new Blob([]), options.commit),
+    retryOptions,
+  );
 }
