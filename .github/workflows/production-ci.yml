@@ -235,6 +235,9 @@ jobs:
       - name: Benchmark bounded cloud upload recovery
         working-directory: maps
         run: npm run benchmark:cloud-recovery
+      - name: Benchmark stalled cloud request deadlines
+        working-directory: maps
+        run: npm run benchmark:cloud-deadline
       - name: Benchmark provider-paced cloud retries
         working-directory: maps
         run: npm run benchmark:cloud-retry-control

@@ -8,6 +8,7 @@ export const TOKEN_STORAGE_SESSION_KEY = "lalgeo_dropbox_access_token_session";
 export const CHOOSER_APP_KEY_KEY = "lalgeo_dropbox_chooser_app_key";
 export const SURVEY_DROPBOX_CONNECTED_KEY = "lalgeo_survey_dropbox_connected";
 export const DEFAULT_MAX_CLOUD_OPEN_BYTES = 512 * 1024 * 1024;
+export const DEFAULT_CLOUD_REQUEST_TIMEOUT_MS = 60 * 1000;
 const PROJECT_EXTENSIONS = new Set(["lal", "zip"]);
 const PROJECT_SCAN_SCOPES = [
   { path: "/LalGeoDB", recursive: true },
@@ -48,6 +49,7 @@ export class LalGeoDropboxClient {
     this.resumableThreshold = options.resumableThreshold || DEFAULT_RESUMABLE_THRESHOLD;
     this.chunkSize = options.chunkSize;
     this.maxOpenBytes = options.maxOpenBytes || DEFAULT_MAX_CLOUD_OPEN_BYTES;
+    this.requestTimeoutMs = options.requestTimeoutMs || DEFAULT_CLOUD_REQUEST_TIMEOUT_MS;
   }
 
   setAccessToken(token, persist = true) {
@@ -380,6 +382,7 @@ export class LalGeoDropboxClient {
       commit,
       chunkSize: this.chunkSize,
       provider: "dropbox",
+      operationTimeoutMs: this.requestTimeoutMs,
     });
   }
 
