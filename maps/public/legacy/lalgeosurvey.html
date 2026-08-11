@@ -980,6 +980,82 @@
         font-size: 12px;
         line-height: 1.35;
     }
+    .advanced-gis-empty-state {
+        display: grid;
+        justify-items: center;
+        gap: 12px;
+        padding: 24px 18px 20px;
+        text-align: center;
+    }
+    .advanced-gis-empty-state[hidden] {
+        display: none;
+    }
+    .advanced-gis-panel.is-empty .advanced-gis-desktop-content,
+    .advanced-gis-panel.is-empty .advanced-gis-mobile-content {
+        display: none !important;
+    }
+    .advanced-gis-empty-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #eef8f6;
+        color: #0f766e;
+    }
+    .advanced-gis-empty-icon svg {
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.7;
+    }
+    .advanced-gis-empty-copy {
+        display: grid;
+        gap: 5px;
+        max-width: 310px;
+    }
+    .advanced-gis-empty-copy strong {
+        color: #172033;
+        font-size: 16px;
+    }
+    .advanced-gis-empty-copy p {
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .advanced-gis-empty-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: min(100%, 280px);
+    }
+    .advanced-gis-empty-actions button {
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid #d7dce3;
+        border-radius: 11px;
+        background: #fff;
+        color: #344054;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .advanced-gis-empty-actions button.primary {
+        border-color: #0f766e;
+        background: #0f766e;
+        color: #fff;
+    }
+    .advanced-gis-empty-actions button[hidden] {
+        display: none;
+    }
+    .advanced-gis-empty-actions button[hidden] + button {
+        grid-column: 1 / -1;
+    }
     .measurement-panel-row {
         margin-bottom: 10px;
     }
@@ -7780,6 +7856,12 @@
             overflow-y: auto;
             overscroll-behavior: contain;
         }
+        #advancedGisPanel.is-empty {
+            overflow: hidden;
+        }
+        #advancedGisPanel .advanced-gis-empty-state {
+            padding: 28px 24px 30px;
+        }
         #advancedGisPanel .advanced-gis-command-section {
             padding: 7px 0 8px;
         }
@@ -10251,6 +10333,19 @@
             overflow-y: auto;
             overscroll-behavior: contain;
         }
+        #advancedGisPanel.is-empty {
+            max-height: none;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        }
+        #advancedGisPanel .advanced-gis-empty-state {
+            padding: 18px var(--mobile-sheet-inline) 12px;
+        }
+        #advancedGisPanel .advanced-gis-empty-actions {
+            width: 100%;
+        }
+        #advancedGisPanel .advanced-gis-empty-actions button {
+            min-height: 48px;
+        }
         #advancedGisPanel .advanced-gis-command-section {
             padding: 6px 0;
         }
@@ -11150,6 +11245,19 @@
                 <span id="advancedGisLayerBadge" class="advanced-gis-badge">No layer</span>
             </span>
             <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close tools">×</button>
+        </div>
+        <div id="advancedGisEmptyState" class="advanced-gis-empty-state" role="status" aria-live="polite">
+            <span class="advanced-gis-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M4 17l8 4 8-4"></path></svg>
+            </span>
+            <div class="advanced-gis-empty-copy">
+                <strong id="advancedGisEmptyTitle">Start with a project</strong>
+                <p id="advancedGisEmptyDescription">Tools work with an active layer. Create a project or import one to begin.</p>
+            </div>
+            <div class="advanced-gis-empty-actions">
+                <button id="advancedGisCreateProjectBtn" type="button" class="primary">New project</button>
+                <button id="advancedGisImportProjectBtn" type="button">Import</button>
+            </div>
         </div>
         <div class="advanced-gis-desktop-content">
             <section class="advanced-gis-command-section" aria-labelledby="advancedGisSelectionHeading">
@@ -12403,6 +12511,11 @@
         const advancedGisCloseBtn = document.getElementById("advancedGisCloseBtn");
         const advancedGisLayerBadge = document.getElementById("advancedGisLayerBadge");
         const advancedGisLayerContext = document.getElementById("advancedGisLayerContext");
+        const advancedGisEmptyState = document.getElementById("advancedGisEmptyState");
+        const advancedGisEmptyTitle = document.getElementById("advancedGisEmptyTitle");
+        const advancedGisEmptyDescription = document.getElementById("advancedGisEmptyDescription");
+        const advancedGisCreateProjectBtn = document.getElementById("advancedGisCreateProjectBtn");
+        const advancedGisImportProjectBtn = document.getElementById("advancedGisImportProjectBtn");
         const advancedGisSelectionStatus = document.getElementById("advancedGisSelectionStatus");
         const advancedGisGeometrySection = document.getElementById("advancedGisGeometrySection");
         const advancedGisMoreBtn = document.getElementById("advancedGisMoreBtn");
@@ -19092,7 +19205,7 @@
             setProjectStatus("Project package downloaded.", "success");
         }
 
-        function setAdvancedGisVisible(show) {
+        function setAdvancedGisVisible(show, { restoreFocus = false } = {}) {
             if (!advancedGisPanel) return;
             if (show) {
                 setMobileSelectionMode(false);
@@ -19109,6 +19222,19 @@
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
             updateAdvancedGisPanelState();
             renderSelectedFeatureInspector();
+            if (show && !getActiveLayerRecord()) {
+                requestAnimationFrame(() => {
+                    const readyAction = advancedGisCreateProjectBtn?.hidden
+                        ? advancedGisImportProjectBtn
+                        : advancedGisCreateProjectBtn;
+                    readyAction?.focus();
+                });
+            } else if (!show && restoreFocus) {
+                const trigger = window.matchMedia("(max-width: 600px)").matches
+                    ? toolbarMoreBtn
+                    : advancedGisBtn;
+                requestAnimationFrame(() => trigger?.focus());
+            }
         }
 
         function toggleAdvancedGisDisclosure(button, content) {
@@ -19130,6 +19256,18 @@
                 candidate.id !== layer.id
                 && normalizeLayerGeometryType(candidate.geometryType) === geometryType
             ));
+            if (advancedGisEmptyState) advancedGisEmptyState.hidden = hasLayer;
+            advancedGisPanel?.classList.toggle("is-empty", !hasLayer);
+            if (advancedGisEmptyTitle) {
+                advancedGisEmptyTitle.textContent = hasProject ? "Add a layer to continue" : "Start with a project";
+            }
+            if (advancedGisEmptyDescription) {
+                advancedGisEmptyDescription.textContent = hasProject
+                    ? "Tools work with the active layer. Add or import a layer, then return here."
+                    : "Tools work with an active layer. Create a project or import one to begin.";
+            }
+            if (advancedGisCreateProjectBtn) advancedGisCreateProjectBtn.hidden = hasProject;
+            if (advancedGisImportProjectBtn) advancedGisImportProjectBtn.textContent = hasProject ? "Add a layer" : "Import";
             if (advancedGisLayerBadge) {
                 advancedGisLayerBadge.textContent = layer
                     ? `${layer.name} · ${geometryType} · ${count} selected`
@@ -20880,7 +21018,21 @@
         syncToolbarMoreState();
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
-        advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
+        advancedGisCreateProjectBtn?.addEventListener("click", () => {
+            setAdvancedGisVisible(false);
+            openCreateProjectModal();
+        });
+        advancedGisImportProjectBtn?.addEventListener("click", () => {
+            const hasProject = Boolean(activeProjectRecord);
+            setAdvancedGisVisible(false);
+            if (hasProject) {
+                setSidebarVisibility(true);
+                menuNewLayerBtn?.click();
+            } else {
+                setImportPanelVisibility(true);
+            }
+        });
+        advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false, { restoreFocus: true }));
         mobileBasemapCloseBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
             toolbarMoreBtn?.focus();
