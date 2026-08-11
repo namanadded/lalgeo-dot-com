@@ -250,6 +250,9 @@ jobs:
       - name: Benchmark direct cloud commit recovery
         working-directory: maps
         run: npm run benchmark:cloud-direct-commit
+      - name: Benchmark stalled direct cloud upload deadlines
+        working-directory: maps
+        run: npm run benchmark:cloud-direct-deadline
       - name: Benchmark server-side cloud revision snapshots
         working-directory: maps
         run: npm run benchmark:cloud-snapshot
