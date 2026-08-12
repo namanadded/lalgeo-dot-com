@@ -1,186 +1,308 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="theme-color" content="#ffffff">
-  <title>LalGeo | Open Mapping Infrastructure</title>
-  <meta
-    name="description"
-    content="Open-source GIS for creating, analyzing and sharing maps — with your data, your storage, and your tools."
-  >
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>LalGeo — Maps for humans and agents</title>
+  <meta name="description" content="Open-source GIS for creating, analyzing, and sharing maps with your data, your storage, and your tools." />
   <style>
-    :root {
-      color-scheme: light;
-      --background: #ffffff;
-      --foreground: #050505;
-      --muted: #5f6266;
-      --content-width: 992px;
+    :root{
+      --bg:#fff;
+      --text:#0a0a0a;
+      --muted:#6d6d6d;
+      --line:#dedede;
     }
-
-    * {
-      box-sizing: border-box;
+    *{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font-family:-apple-system,BlinkMacSystemFont,"SF Pro Display","SF Pro Text","Helvetica Neue",Arial,sans-serif;
+      -webkit-font-smoothing:antialiased;
     }
-
-    html {
-      background: var(--background);
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+    nav{
+      height:84px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      border-bottom:1px solid var(--line);
     }
-
-    body {
-      margin: 0;
-      min-height: 100vh;
-      color: var(--foreground);
-      background: var(--background);
-      font-family: Arial, Helvetica, sans-serif;
-      text-rendering: optimizeLegibility;
-      -webkit-font-smoothing: antialiased;
+    .brand{display:inline-flex;align-items:center}
+    .brand img{display:block;width:104px;height:auto}
+    .navlinks{display:flex;gap:28px;align-items:center;font-size:14px}
+    .navlinks a{color:#333}
+    .button{
+      display:inline-flex;
+      align-items:center;
+      justify-content:center;
+      padding:13px 18px;
+      border:1px solid #111;
+      font-size:14px;
+      font-weight:600;
+      transition:.18s ease;
     }
-
-    main {
-      width: min(calc(100% - 48px), var(--content-width));
-      margin: 0 auto;
-      padding: 101px 0 88px;
+    .button.primary{background:#111;color:#fff}
+    .button:hover{background:#111;color:#fff}
+    .button.primary:hover{background:#fff;color:#111}
+    .button:focus-visible,.navlinks a:focus-visible,.brand:focus-visible{
+      outline:2px solid #111;
+      outline-offset:4px;
     }
-
-    .eyebrow {
-      margin: 0 0 38px;
-      color: var(--muted);
-      font-size: 14px;
-      font-weight: 500;
-      letter-spacing: 0.22em;
-      line-height: 1.2;
-      text-transform: uppercase;
+    .hero{
+      min-height:78vh;
+      display:flex;
+      flex-direction:column;
+      justify-content:center;
+      padding:96px 0;
     }
-
-    h1 {
-      max-width: 980px;
-      margin: 0;
-      font-size: clamp(68px, 8vw, 102px);
-      font-weight: 700;
-      letter-spacing: -0.07em;
-      line-height: 0.96;
+    .eyebrow{
+      font-size:13px;
+      text-transform:uppercase;
+      letter-spacing:.14em;
+      color:var(--muted);
+      margin-bottom:28px;
     }
-
-    .intro {
-      max-width: 760px;
-      margin: 42px 0 0;
-      color: #303235;
-      font-size: 24px;
-      line-height: 1.36;
+    h1{
+      font-size:clamp(64px,10vw,132px);
+      line-height:.88;
+      letter-spacing:-.075em;
+      margin:0;
+      max-width:1050px;
+      font-weight:750;
     }
-
-    .actions {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 39px;
+    .hero p{
+      margin:38px 0 0;
+      max-width:650px;
+      font-size:22px;
+      line-height:1.45;
+      color:#3f3f3f;
+      letter-spacing:-.02em;
     }
-
-    .button {
-      display: inline-flex;
-      min-height: 50px;
-      align-items: center;
-      justify-content: center;
-      padding: 13px 20px;
-      border: 1px solid var(--foreground);
-      color: var(--foreground);
-      background: var(--background);
-      font-size: 16px;
-      font-weight: 700;
-      line-height: 1;
-      text-decoration: none;
-      transition: background-color 140ms ease, color 140ms ease, transform 140ms ease;
+    .hero-actions{display:flex;gap:12px;margin-top:36px;flex-wrap:wrap}
+    .statement{
+      border-top:1px solid var(--line);
+      padding:110px 0;
     }
-
-    .button-primary {
-      color: #ffffff;
-      background: var(--foreground);
+    .statement-grid{
+      display:grid;
+      grid-template-columns:1fr 1.25fr;
+      gap:72px;
+      align-items:start;
     }
-
-    .button:hover {
-      color: #ffffff;
-      background: var(--foreground);
-      transform: translateY(-1px);
+    .num{font-size:13px;color:var(--muted);letter-spacing:.12em}
+    h2{
+      margin:0;
+      font-size:clamp(42px,6vw,76px);
+      line-height:.98;
+      letter-spacing:-.055em;
+      font-weight:720;
     }
-
-    .button-primary:hover {
-      color: var(--foreground);
-      background: var(--background);
+    .statement p{
+      font-size:22px;
+      line-height:1.5;
+      color:#444;
+      margin:28px 0 0;
+      max-width:650px;
     }
-
-    .button:focus-visible {
-      outline: 3px solid #3178c6;
-      outline-offset: 3px;
+    .inline-list{
+      display:flex;
+      gap:10px;
+      flex-wrap:wrap;
+      margin-top:30px;
     }
-
-    @media (max-width: 760px) {
-      main {
-        width: min(calc(100% - 32px), var(--content-width));
-        padding-top: 64px;
-      }
-
-      .eyebrow {
-        margin-bottom: 28px;
-        font-size: 12px;
-      }
-
-      h1 {
-        font-size: clamp(52px, 15vw, 76px);
-        letter-spacing: -0.065em;
-      }
-
-      .intro {
-        margin-top: 34px;
-        font-size: 20px;
-      }
+    .pill{
+      border:1px solid #cfcfcf;
+      padding:10px 13px;
+      font-size:13px;
+      background:#fff;
     }
-
-    @media (max-width: 420px) {
-      main {
-        padding-top: 44px;
-      }
-
-      h1 {
-        font-size: clamp(46px, 14.5vw, 62px);
-      }
-
-      .actions {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .button {
-        width: 100%;
-      }
+    .soon{color:#8b8b8b}
+    .flow{
+      border-top:1px solid var(--line);
+      padding:120px 0;
     }
-
-    @media (prefers-reduced-motion: reduce) {
-      .button {
-        transition: none;
-      }
+    .flowline{
+      margin-top:54px;
+      padding:34px 0;
+      border-top:1px solid #111;
+      border-bottom:1px solid #111;
+      font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+      font-size:clamp(18px,3vw,34px);
+      letter-spacing:-.03em;
+      overflow:auto;
+      white-space:nowrap;
+    }
+    .flowline + .flowline{margin-top:16px}
+    .modes{
+      border-top:1px solid var(--line);
+      padding:110px 0;
+    }
+    .mode-grid{
+      display:grid;
+      grid-template-columns:repeat(3,1fr);
+      margin-top:60px;
+      border-top:1px solid #111;
+      border-bottom:1px solid #111;
+    }
+    .mode{
+      min-height:270px;
+      padding:28px;
+      border-right:1px solid var(--line);
+      display:flex;
+      flex-direction:column;
+      justify-content:space-between;
+    }
+    .mode:last-child{border-right:0}
+    .mode h3{font-size:28px;margin:0;letter-spacing:-.04em}
+    .mode p{font-size:16px;line-height:1.5;color:#555;margin:0;max-width:260px}
+    .final{
+      border-top:1px solid var(--line);
+      padding:140px 0 120px;
+    }
+    .final h2{max-width:900px}
+    .final p{font-size:22px;color:#444;margin:28px 0 0;max-width:650px;line-height:1.5}
+    footer{
+      border-top:1px solid var(--line);
+      min-height:110px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      color:#777;
+      font-size:13px;
+    }
+    @media(max-width:760px){
+      .wrap{padding:0 20px}
+      nav{height:72px}
+      .brand img{width:88px}
+      .navlinks a:not(.button){display:none}
+      .hero{min-height:auto;padding:100px 0 90px}
+      h1{font-size:clamp(58px,18vw,86px)}
+      .hero p{font-size:19px}
+      .statement,.modes,.flow{padding:82px 0}
+      .statement-grid{grid-template-columns:1fr;gap:22px}
+      .statement p{font-size:19px}
+      .mode-grid{grid-template-columns:1fr}
+      .mode{border-right:0;border-bottom:1px solid var(--line);min-height:220px}
+      .mode:last-child{border-bottom:0}
+      .final{padding:100px 0}
+      footer{gap:20px;align-items:flex-start;flex-direction:column;justify-content:center}
     }
   </style>
 </head>
 <body>
-  <main>
-    <p class="eyebrow">Open mapping infrastructure</p>
-    <h1>Maps for humans<br>and agents.</h1>
-    <p class="intro">
-      Open-source GIS for creating, analyzing and sharing maps — with your data,
-      your storage, and your tools.
-    </p>
-    <nav class="actions" aria-label="Get started">
-      <a class="button button-primary" href="https://maps.lalgeo.com/maps">Open LalGeo&nbsp; →</a>
-      <a class="button" href="https://github.com/namanadded/lalgeo-dot-com">View on GitHub</a>
+  <div class="wrap">
+    <nav aria-label="Primary navigation">
+      <a href="#" class="brand" aria-label="LalGeo home">
+        <img src="assets/img/lalgeo-logo.png" alt="LalGeo" />
+      </a>
+      <div class="navlinks">
+        <a href="#open">Open Source</a>
+        <a href="#storage">Storage</a>
+        <a href="#agents">Agents</a>
+        <a href="https://maps.lalgeo.com" class="button primary">Open LalGeo →</a>
+      </div>
     </nav>
-  </main>
+
+    <main>
+      <section class="hero">
+        <div class="eyebrow">Open mapping infrastructure</div>
+        <h1>Maps for humans and agents.</h1>
+        <p>Open-source GIS for creating, analyzing and sharing maps — with your data, your storage, and your tools.</p>
+        <div class="hero-actions">
+          <a href="https://maps.lalgeo.com" class="button primary">Open LalGeo →</a>
+          <a href="https://github.com/namanadded/lalgeo-dot-ca" class="button">View on GitHub</a>
+        </div>
+      </section>
+
+      <section class="statement" id="open">
+        <div class="statement-grid">
+          <div class="num">01 / OPEN</div>
+          <div>
+            <h2>Open source.</h2>
+            <p>Use it. Inspect it. Extend it. Self-host it. LalGeo is mapping software without the lock-in.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="statement" id="storage">
+        <div class="statement-grid">
+          <div class="num">02 / STORAGE</div>
+          <div>
+            <h2>Your data stays yours.</h2>
+            <p>Bring your own storage instead of moving everything into another proprietary silo.</p>
+            <div class="inline-list">
+              <span class="pill">Dropbox</span>
+              <span class="pill soon">Google Drive · coming soon</span>
+              <span class="pill soon">OneDrive · coming soon</span>
+              <span class="pill">Local files</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="statement" id="agents">
+        <div class="statement-grid">
+          <div class="num">03 / AGENTS</div>
+          <div>
+            <h2>Built for agents.</h2>
+            <p>Give AI agents real spatial tools: create maps, add data, query features, analyze geography, style layers and share results.</p>
+            <div class="inline-list">
+              <span class="pill soon">MCP · coming soon</span>
+              <span class="pill soon">API · coming soon</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="flow">
+        <div class="num">A SIMPLE IDEA</div>
+        <div class="flowline">your data → LalGeo → map → share</div>
+        <div class="flowline">your data → agent → LalGeo → map → share</div>
+      </section>
+
+      <section class="modes">
+        <div class="num">USE LALGEO YOUR WAY</div>
+        <div class="mode-grid">
+          <div class="mode">
+            <h3>Human</h3>
+            <p>Open LalGeo in your browser. Add data. Make a map. Share it.</p>
+          </div>
+          <div class="mode">
+            <h3>AI</h3>
+            <p>Describe the map you want and let AI help build it.</p>
+          </div>
+          <div class="mode">
+            <h3>Agent</h3>
+            <p>Connect through MCP or API and automate spatial work.</p>
+          </div>
+        </div>
+      </section>
+
+      <section class="final">
+        <h2>Open source. Your storage. Agent accessible.</h2>
+        <p>GIS without the weight.</p>
+        <div class="hero-actions">
+          <a href="https://maps.lalgeo.com" class="button primary">Open LalGeo →</a>
+          <a href="https://github.com/namanadded/lalgeo-dot-ca" class="button">GitHub</a>
+        </div>
+      </section>
+    </main>
+
+    <footer>
+      <div>© 2026 LalGeo</div>
+      <div>Open mapping infrastructure.</div>
+    </footer>
+  </div>
 
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-NLY6QZ7L7B"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag(){dataLayer.push(arguments);}
-    gtag("js", new Date());
-    gtag("config", "G-NLY6QZ7L7B");
+    gtag('js', new Date());
+    gtag('config', 'G-NLY6QZ7L7B');
   </script>
 </body>
 </html>
