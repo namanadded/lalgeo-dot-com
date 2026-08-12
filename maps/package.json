@@ -72,6 +72,7 @@
     "test:kmz-integrity": "node scripts/test-kmz-integrity.mjs",
     "test:kml-integrity": "node scripts/test-kml-integrity.mjs",
     "test:geojson-integrity": "node scripts/test-geojson-integrity.mjs",
+    "test:altitude-integrity": "node scripts/test-altitude-integrity.mjs",
     "test:api-import-integrity": "node scripts/test-api-import-integrity.mjs",
     "test:csv-coordinate-integrity": "node scripts/test-csv-coordinate-integrity.mjs",
     "test:multifile-import-integrity": "node scripts/test-multifile-import-integrity.mjs",

@@ -13593,22 +13593,30 @@
             return "●";
         }
 
-        function createPointGeometry(lat, lng) {
-            return { type: "Point", lat, lng };
+        function copyWorkspaceVertex(vertex = {}) {
+            return {
+                lat: vertex.lat,
+                lng: vertex.lng,
+                ...(Number.isFinite(vertex.altitude) ? { altitude: vertex.altitude } : {})
+            };
+        }
+
+        function createPointGeometry(lat, lng, altitude) {
+            return { type: "Point", lat, lng, ...(Number.isFinite(altitude) ? { altitude } : {}) };
         }
 
         function createLineGeometry(vertices = []) {
-            return { type: "LineString", coordinates: vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })) };
+            return { type: "LineString", coordinates: vertices.map(copyWorkspaceVertex) };
         }
 
         function createPolygonGeometry(vertices = []) {
-            return { type: "Polygon", rings: [vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng }))] };
+            return { type: "Polygon", rings: [vertices.map(copyWorkspaceVertex)] };
         }
 
         function createPolygonGeometryFromRings(rings = []) {
             return {
                 type: "Polygon",
-                rings: rings.map((ring) => ring.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })))
+                rings: rings.map((ring) => ring.map(copyWorkspaceVertex))
             };
         }
 
@@ -13856,6 +13864,9 @@
                 const lng = coordinate?.lng;
                 if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
                     throw new Error(`${label} has an invalid coordinate. Use numeric WGS84 latitude -90 to 90 and longitude -180 to 180.`);
+                }
+                if (Object.prototype.hasOwnProperty.call(coordinate, "altitude") && !Number.isFinite(coordinate.altitude)) {
+                    throw new Error(`${label} has an invalid altitude. Use a finite numeric value in metres, or remove it.`);
                 }
             };
             normalizedProject.layers = normalizedProject.layers.map((layer, layerIndex) => {
@@ -19275,9 +19286,9 @@
 
         function plainCoordsFromGeometry(geometry) {
             if (!geometry) return [];
-            if (geometry.type === "Point") return [{ lat: geometry.lat, lng: geometry.lng }].filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng));
+            if (geometry.type === "Point") return [copyWorkspaceVertex(geometry)].filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng));
             const raw = geometry.type === "Polygon" ? (geometry.rings?.[0] || []) : (geometry.coordinates || []);
-            return raw.filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng)).map((coord) => ({ lat: coord.lat, lng: coord.lng }));
+            return raw.filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng)).map(copyWorkspaceVertex);
         }
 
         function plainRingsFromGeometry(geometry) {
@@ -19285,15 +19296,18 @@
             return (geometry.rings || [])
                 .map((ring) => (ring || [])
                     .filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng))
-                    .map((coord) => ({ lat: coord.lat, lng: coord.lng })))
+                    .map(copyWorkspaceVertex))
                 .filter((ring) => ring.length >= 3);
         }
 
         function geometryToGeoJson(geometry) {
             if (!geometry) return null;
-            if (geometry.type === "Point") return { type: "Point", coordinates: [geometry.lng, geometry.lat] };
+            const coordinateTuple = (coord) => Number.isFinite(coord.altitude)
+                ? [coord.lng, coord.lat, coord.altitude]
+                : [coord.lng, coord.lat];
+            if (geometry.type === "Point") return { type: "Point", coordinates: coordinateTuple(geometry) };
             if (geometry.type === "LineString") {
-                return { type: "LineString", coordinates: plainCoordsFromGeometry(geometry).map((coord) => [coord.lng, coord.lat]) };
+                return { type: "LineString", coordinates: plainCoordsFromGeometry(geometry).map(coordinateTuple) };
             }
             if (geometry.type === "Polygon") {
                 const rings = plainRingsFromGeometry(geometry).map((sourceRing) => {
@@ -19301,7 +19315,7 @@
                     if (ring.length && (ring[0].lat !== ring[ring.length - 1].lat || ring[0].lng !== ring[ring.length - 1].lng)) {
                         ring.push({ ...ring[0] });
                     }
-                    return ring.map((coord) => [coord.lng, coord.lat]);
+                    return ring.map(coordinateTuple);
                 });
                 return { type: "Polygon", coordinates: rings };
             }
@@ -25458,6 +25472,12 @@
             if (!Array.isArray(pair) || pair.length < 2 || typeof pair[0] !== "number" || typeof pair[1] !== "number" || !vertex || vertex.lat < -90 || vertex.lat > 90 || vertex.lng < -180 || vertex.lng > 180) {
                 throw new Error(`${coordinateLabel} is invalid. Use [longitude, latitude] values in WGS84.`);
             }
+            if (pair.length >= 3) {
+                if (typeof pair[2] !== "number" || !Number.isFinite(pair[2])) {
+                    throw new Error(`${coordinateLabel} has an invalid altitude. Use a finite numeric third value in metres, or remove it.`);
+                }
+                vertex.altitude = pair[2];
+            }
             return vertex;
         }
 
@@ -25507,7 +25527,7 @@
             }
             if (geometry.type === "Point") {
                 const vertex = readGeoJsonVertex(geometry.coordinates, `${geometryLabel} Point coordinate`);
-                return [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng) }];
+                return [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng, vertex.altitude) }];
             }
             if (geometry.type === "MultiPoint") {
                 if (!Array.isArray(geometry.coordinates) || !geometry.coordinates.length) {
@@ -25515,7 +25535,7 @@
                 }
                 return geometry.coordinates.map((pair, index) => readGeoJsonVertex(pair, `${geometryLabel} MultiPoint coordinate ${index + 1}`)).map((vertex) => ({
                     geometryType: "point",
-                    geometry: createPointGeometry(vertex.lat, vertex.lng)
+                    geometry: createPointGeometry(vertex.lat, vertex.lng, vertex.altitude)
                 }));
             }
             if (geometry.type === "LineString") {
@@ -25976,6 +25996,13 @@
                 if (parts.length < 2 || !Number.isFinite(lat) || !Number.isFinite(lng) || lng < -180 || lng > 180 || lat < -90 || lat > 90) {
                     throw new Error(`${context}, coordinate ${tupleIndex + 1} is invalid. Use longitude,latitude values in WGS84.`);
                 }
+                if (parts.length >= 3 && parts[2] !== "") {
+                    const altitude = Number(parts[2]);
+                    if (!Number.isFinite(altitude)) {
+                        throw new Error(`${context}, coordinate ${tupleIndex + 1} has an invalid altitude. Use a finite numeric third value in metres, or remove it.`);
+                    }
+                    return [lng, lat, altitude];
+                }
                 return [lng, lat];
             });
         }
@@ -26097,6 +26124,14 @@
                 if (latText === null || lonText === null || !Number.isFinite(lat) || !Number.isFinite(lon)
                     || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
                     throw new Error(`${label} has an invalid latitude or longitude. Use decimal WGS84 coordinates within latitude -90 to 90 and longitude -180 to 180.`);
+                }
+                const elevationText = childText(element, "ele");
+                if (elevationText !== "") {
+                    const elevation = Number(elevationText);
+                    if (!Number.isFinite(elevation)) {
+                        throw new Error(`${label} has an invalid elevation. Use a finite numeric value in metres, or remove the ele element.`);
+                    }
+                    return [lon, lat, elevation];
                 }
                 return [lon, lat];
             };

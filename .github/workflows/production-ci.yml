@@ -205,6 +205,10 @@ jobs:
         working-directory: maps
         run: npm run test:geojson-integrity
 
+      - name: Check GeoJSON, KML, and GPX altitude integrity
+        working-directory: maps
+        run: npm run test:altitude-integrity
+
       - name: Check API row geometry and attribute integrity
         working-directory: maps
         run: npm run test:api-import-integrity
