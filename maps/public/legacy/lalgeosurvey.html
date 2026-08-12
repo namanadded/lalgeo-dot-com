@@ -19460,10 +19460,14 @@
             return null;
         }
 
+        function getGeoJsonExportId(feature) {
+            return Object.prototype.hasOwnProperty.call(feature || {}, "geoJsonId") ? feature.geoJsonId : feature.id;
+        }
+
         function featureToGeoJsonFeature(feature) {
             return {
                 type: "Feature",
-                id: feature.id,
+                id: getGeoJsonExportId(feature),
                 properties: { ...(feature.attributes || {}) },
                 geometry: geometryToGeoJson(feature.geometry)
             };
@@ -25747,7 +25751,7 @@
                 });
             });
             const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
-            const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker }, index) => {
+            const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker, geoJsonId }, index) => {
                 const attributes = Object.fromEntries(schema.map((field) => [
                     field.name,
                     Object.prototype.hasOwnProperty.call(properties, field.name) && properties[field.name] !== undefined
@@ -25765,6 +25769,7 @@
                 }
                 return {
                     id: attributes.ID || generateWorkspaceId("feature"),
+                    ...(geoJsonId !== undefined ? { geoJsonId } : {}),
                     geometry,
                     showRepresentativeMarker,
                     attributes,
@@ -25787,12 +25792,21 @@
             return layer;
         }
 
+        function readGeoJsonFeatureId(feature) {
+            if (!Object.prototype.hasOwnProperty.call(feature || {}, "id")) return undefined;
+            if (typeof feature.id === "string" || (typeof feature.id === "number" && Number.isFinite(feature.id))) {
+                return feature.id;
+            }
+            throw new Error("feature id must be a string or finite number. Repair or remove the top-level id value.");
+        }
+
         function buildGeoJsonPayload(input, { projectName = "Imported GIS Project", fileName = "", format = "GeoJSON" } = {}) {
             const collection = normalizeFeatureCollection(input);
             const grouped = { point: [], line: [], polygon: [] };
             collection.features.forEach((feature, featureIndex) => {
                 const properties = { ...(feature.properties || {}) };
                 try {
+                    const geoJsonId = readGeoJsonFeatureId(feature);
                     if (!feature?.geometry) {
                         throw new Error("feature has no geometry.");
                     }
@@ -25801,6 +25815,7 @@
                         grouped[part.geometryType].push({
                             geometry: part.geometry,
                             properties,
+                            ...(geoJsonId !== undefined ? { geoJsonId } : {}),
                             showRepresentativeMarker: part.showRepresentativeMarker
                         });
                     });

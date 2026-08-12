@@ -201,7 +201,7 @@ jobs:
         working-directory: maps
         run: npm run test:kml-integrity
 
-      - name: Check GeoJSON coordinate and collection integrity
+      - name: Check GeoJSON coordinate, collection, and feature identity integrity
         working-directory: maps
         run: npm run test:geojson-integrity
 

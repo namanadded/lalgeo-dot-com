@@ -7,6 +7,7 @@ const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/rende
 const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
 const complexGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-geometry-collection.geojson", import.meta.url), "utf8"));
 const malformedGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-geometry-collection.geojson", import.meta.url), "utf8"));
+const complexFeatureIdentifiers = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-feature-identifiers.geojson", import.meta.url), "utf8"));
 const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
 const complexStyledKml = readFileSync(new URL("../fixtures/interoperability/complex-styled-multigeometry.kml", import.meta.url), "utf8");
 const malformedKmlCoordinate = readFileSync(new URL("../fixtures/interoperability/malformed-kml-coordinate.kml", import.meta.url), "utf8");
@@ -283,6 +284,30 @@ try {
       malformedCollectionMessage = error.message || "";
     }
     assert(malformedCollectionMessage === "GeoJSON feature 1 could not be imported: geometry GeometryCollection member 1 LineString coordinate 2 is invalid. Use [longitude, latitude] values in WGS84.", "GeoJSON rejects an invalid collection coordinate instead of bridging valid vertices");
+
+    const identityPayload = buildGeoJsonPayload(${JSON.stringify(complexFeatureIdentifiers)}, {
+      projectName: "Feature identity",
+      fileName: "complex-feature-identifiers.geojson",
+      format: "GeoJSON"
+    });
+    const identityPoint = identityPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const identityLines = identityPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const identityPolygon = identityPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(identityPoint.features[0].geoJsonId === "asset/Été-α-001", "GeoJSON import preserves Unicode string feature ids separately from editable LalGeo ids");
+    assert(identityLines.features.length === 2 && identityLines.features.every((feature) => feature.geoJsonId === 0), "GeoJSON multipart import preserves numeric zero feature ids on every part");
+    assert(layerToGeoJson(identityPoint).features[0].id === "asset/Été-α-001", "GeoJSON export restores the original string feature id");
+    assert(layerToGeoJson(identityLines).features.every((feature) => feature.id === 0), "GeoJSON export restores the original numeric multipart feature id");
+    assert(layerToGeoJson(identityPolygon).features[0].id === 9007199254740991, "GeoJSON export preserves a large safe numeric feature id");
+    const identityRoundTrip = buildGeoJsonPayload(layerToGeoJson(identityPoint), { format: "GeoJSON round trip" });
+    assert(identityRoundTrip.geospatialLayers[0].features[0].geoJsonId === "asset/Été-α-001", "GeoJSON import-export-import preserves feature identity");
+    assert(identityRoundTrip.geospatialLayers[0].features[0].attributes.nullable_note === null && identityRoundTrip.geospatialLayers[0].features[0].attributes.field_12 === "A12", "GeoJSON identity round trip retains nulls and large attribute sets");
+    let malformedIdentityMessage = "";
+    try {
+      buildGeoJsonPayload({ type: "FeatureCollection", features: [{ type: "Feature", id: { asset: 7 }, properties: {}, geometry: { type: "Point", coordinates: [-114, 51] } }] }, { format: "GeoJSON" });
+    } catch (error) {
+      malformedIdentityMessage = error.message || "";
+    }
+    assert(malformedIdentityMessage === "GeoJSON feature 1 could not be imported: feature id must be a string or finite number. Repair or remove the top-level id value.", "GeoJSON invalid feature ids fail with actionable repair guidance");
 
     const apiRowsPayload = buildGeoJsonPayloadFromJsonRows(${JSON.stringify(complexApiRows)}, {
       projectName: "Complex API rows",
