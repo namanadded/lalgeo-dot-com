@@ -310,7 +310,10 @@ export class LalGeoDropboxClient {
           const metadata = response.result || response;
           return isVerifiedDropboxUpdate(metadata, blob.size, nextCommit, expectedContentHash) ? metadata : null;
         },
-      }, contents, commit, { provider: "dropbox" });
+      }, contents, commit, {
+        provider: "dropbox",
+        operationTimeoutMs: this.requestTimeoutMs,
+      });
     } catch (error) {
       if (String(error?.error?.error_summary || error?.message || "").includes("conflict")) {
         const latest = await this.tryGetMetadata(path);
