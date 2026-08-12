@@ -16565,6 +16565,20 @@
 
         function setEditPanelVisibility(show, { layerId = null } = {}) {
             if (!editFloatingPanel) return;
+            const mobileFeatureDetailsOpen = Boolean(
+                show
+                && window.matchMedia("(max-width: 600px)").matches
+                && featureDrawer?.classList.contains("open")
+            );
+            if (mobileFeatureDetailsOpen) {
+                window.clearTimeout(editPanelVisibilityTimer);
+                editFloatingPanel.hidden = true;
+                editFloatingPanel.classList.remove("toolbar-visible", "toolbar-dismissing");
+                updateToolbarDockStrip();
+                syncEditPanelState();
+                renderSelectedFeatureInspector();
+                return;
+            }
             if (show && !activeProjectRecord) {
                 setProjectStatus("Create or open a project before editing.", "error");
                 openCreateProjectModal();

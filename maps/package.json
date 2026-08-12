@@ -44,6 +44,7 @@
     "test:toolbar-interaction-state": "node scripts/test-toolbar-interaction-state.mjs",
     "test:large-api-point-performance": "node scripts/test-large-api-point-performance.mjs",
     "test:mobile-feature-details": "node scripts/test-mobile-feature-details.mjs",
+    "test:mobile-feature-edit-exclusivity": "node scripts/test-mobile-feature-edit-exclusivity.mjs",
     "test:feature-editor-labels": "node scripts/test-feature-editor-labels.mjs",
     "test:feature-details-journey": "node scripts/test-feature-details-journey.mjs",
     "test:feature-duplication-journey": "node scripts/test-feature-duplication-journey.mjs",
