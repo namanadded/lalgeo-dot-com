@@ -52,7 +52,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setMeasurementActive\(active\)[\s\S]*?if \(editSessionActive\) \{[\s\S]*?setEditSessionActive\(false\);[\s\S]*?\} else if \(isAddingSurveyPoint\)/,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)[\s\S]*?if \(editSessionActive\) \{[\s\S]*?setEditSessionActive\(false\);[\s\S]*?\} else if \(isAddingSurveyPoint\)/,
   "Starting Measure should close the conflicting Draw interaction mode.",
 );
 assert.match(

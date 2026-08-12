@@ -5,15 +5,15 @@ import { fileURLToPath } from "node:url";
 const legacyHtmlPath = fileURLToPath(new URL("../public/legacy/lalgeosurvey.html", import.meta.url));
 const legacyHtml = await readFile(legacyHtmlPath, "utf8");
 
-for (const [id, label] of [
-  ["measurementPanel", "Measurement tools"],
-  ["advancedGisPanel", "Tools"],
+for (const [id, namePattern] of [
+  ["measurementPanel", /\baria-labelledby=["']measurementTitle["']/i],
+  ["advancedGisPanel", /\baria-label=["']Tools["']/i],
 ]) {
   const panel = legacyHtml.match(new RegExp(`<div\\b[^>]*\\bid=["']${id}["'][^>]*>`, "i"))?.[0] ?? "";
 
   assert.ok(panel, `Expected #${id} to exist.`);
   assert.match(panel, /\brole="region"/i, `#${id} should expose its labeled tool panel as a region.`);
-  assert.match(panel, new RegExp(`\\baria-label=["']${label}["']`, "i"), `#${id} should retain its accessible name.`);
+  assert.match(panel, namePattern, `#${id} should retain its accessible name.`);
 }
 
 assert.match(
@@ -33,7 +33,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /const desktopHint = measurementFinished[\s\S]*?\? "Click to add points\. Double-click to finish\."[\s\S]*?: "Click the map to begin\."[\s\S]*?measurementHint\.hidden = !desktopHint;/,
+  /const desktopHint = measurementFinished[\s\S]*?\? "Measurement complete\. Clear it to start again\."[\s\S]*?\? "Tap or click to add points\. Double-click or use Finish when ready\."[\s\S]*?: "Tap or click the map to add the first point\."[\s\S]*?measurementHint\.hidden = !desktopHint;/,
   "Desktop measurement guidance should adapt to idle, measuring, and completed states."
 );
 assert.match(
