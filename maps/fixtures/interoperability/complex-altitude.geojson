@@ -1,0 +1,21 @@
+{
+  "type": "FeatureCollection",
+  "name": "Altitude integrity — Rocheuses",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "name": "Sommet Été 🏔️", "observed": "2026-08-12T04:15:00-06:00", "nullable": null, "field_12": "A12" },
+      "geometry": { "type": "Point", "coordinates": [-115.5708, 51.1784, 2948.25] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Traverse α", "date": "2026-08-12", "nullable": null, "field_12": "L12" },
+      "geometry": { "type": "LineString", "coordinates": [[-115.571, 51.178, 2910], [-115.568, 51.179, 2932.5], [-115.565, 51.18, 2948.25]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "name": "Plateau 漢字", "date": "2026-08-12", "nullable": null, "field_12": "P12" },
+      "geometry": { "type": "Polygon", "coordinates": [[[-115.58, 51.17, 2200], [-115.57, 51.17, 2205], [-115.57, 51.18, 2210], [-115.58, 51.17, 2200]]] }
+    }
+  ]
+}
