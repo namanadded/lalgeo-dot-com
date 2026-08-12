@@ -14499,6 +14499,16 @@
             });
         }
 
+        function runKeyboardCommand(button) {
+            if (!button) return false;
+            if (button.disabled || button.classList.contains("is-disabled")) {
+                setProjectStatus(button.dataset.disabledReason || "This command is not available yet.", "error");
+                return true;
+            }
+            button.click();
+            return true;
+        }
+
         function loadQuickActionPrefs() {
             try {
                 const raw = localStorage.getItem(WORKSPACE_QUICK_ACTIONS_KEY);
@@ -22187,6 +22197,36 @@
                 openProjectBtn?.click();
                 return;
             }
+            if (!event.defaultPrevented && event.altKey && key === "n") {
+                event.preventDefault();
+                runKeyboardCommand(menuNewLayerBtn);
+                return;
+            }
+            if (!event.defaultPrevented && event.altKey && key === "i") {
+                event.preventDefault();
+                runKeyboardCommand(toggleImportBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && event.shiftKey && key === "s") {
+                event.preventDefault();
+                runKeyboardCommand(shareMapBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && event.shiftKey && key === "e") {
+                event.preventDefault();
+                runKeyboardCommand(menuExportBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && event.shiftKey && key === "p") {
+                event.preventDefault();
+                runKeyboardCommand(menuExportPdfBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && !event.shiftKey && key === "p") {
+                event.preventDefault();
+                runKeyboardCommand(printButton);
+                return;
+            }
             if (!event.defaultPrevented && primaryModifier && key === "l") {
                 event.preventDefault();
                 setSearchExpanded(true);
@@ -22213,6 +22253,11 @@
             if (!event.defaultPrevented && event.altKey && key === "d") {
                 event.preventDefault();
                 setDataPaneVisibility(!dataPaneVisible);
+                return;
+            }
+            if (!event.defaultPrevented && event.altKey && key === "p") {
+                event.preventDefault();
+                runKeyboardCommand(workspacePanelBtn);
                 return;
             }
             if (!event.defaultPrevented && primaryModifier && key === ",") {
@@ -22263,6 +22308,11 @@
                     return;
                 }
                 toggleAddSurveyPointMode();
+                return;
+            }
+            if (key === "m") {
+                event.preventDefault();
+                runKeyboardCommand(menuMyLocationBtn);
                 return;
             }
         });

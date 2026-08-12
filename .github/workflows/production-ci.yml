@@ -141,6 +141,10 @@ jobs:
         working-directory: maps
         run: npm run test:top-menu-a11y
 
+      - name: Check advertised keyboard command journey
+        working-directory: maps
+        run: npm run test:keyboard-command-journey
+
       - name: Check maps toolbar architecture
         working-directory: maps
         run: npm run test:toolbar-architecture

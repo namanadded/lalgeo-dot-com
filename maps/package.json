@@ -27,6 +27,7 @@
     "test:recent-projects-journey": "node scripts/test-recent-projects-journey.mjs",
     "test:project-setup-journey": "node scripts/test-project-setup-journey.mjs",
     "test:top-menu-a11y": "node scripts/test-top-menu-a11y.mjs",
+    "test:keyboard-command-journey": "node scripts/test-keyboard-command-journey.mjs",
     "test:toolbar-architecture": "node scripts/test-toolbar-architecture.mjs",
     "test:desktop-project-header": "node scripts/test-desktop-project-header.mjs",
     "test:desktop-draw-flow": "node scripts/test-desktop-draw-flow.mjs",
