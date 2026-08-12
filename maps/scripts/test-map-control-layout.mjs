@@ -62,12 +62,12 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setAdvancedGisVisible\(show\)\s*{[\s\S]*?if \(show\) \{[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  /function setAdvancedGisVisible\(show(?:\s*,[\s\S]*?)?\)\s*{[\s\S]*?if \(show\) \{[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
   "Opening Advanced GIS on mobile must collapse the quick-action strip.",
 );
 assert.match(
   legacyHtml,
-  /function setMeasurementActive\(active\)\s*{[\s\S]*?measurementActive = Boolean\(active\);[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)\s*{[\s\S]*?measurementActive = Boolean\(active\);[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
   "Opening Measurement on mobile must collapse the quick-action strip.",
 );
 

@@ -182,6 +182,30 @@ await assert.rejects(
 assert.equal(nonRetryableVerifications, 0, "conflicts are not mistaken for ambiguous commits");
 assert.match(dropboxSource, /uploadBlobWithCommitVerification\(/,
   "Dropbox direct revision updates must use provider-independent commit recovery");
+assert.match(dropboxSource, /uploadBlobWithCommitVerification\([\s\S]*?operationTimeoutMs:\s*this\.requestTimeoutMs/,
+  "Dropbox direct revision updates must use the provider-independent request deadline");
+
+let pendingSmallUploads = 0;
+let pendingSmallVerifications = 0;
+const deadlineRecoveredSmallCommit = await cloud.uploadBlobWithCommitVerification({
+  async upload() {
+    pendingSmallUploads += 1;
+    return new Promise(() => {});
+  },
+  async verifyCommit(candidate, commit) {
+    pendingSmallVerifications += 1;
+    assert.equal(candidate, smallBlob);
+    assert.equal(commit, smallCommit);
+    return { path: commit.path, rev: "rev-after-deadline", size: candidate.size };
+  },
+}, smallBlob, smallCommit, {
+  provider: "mock",
+  operationTimeoutMs: 5,
+  verificationAttempts: 1,
+});
+assert.equal(deadlineRecoveredSmallCommit.rev, "rev-after-deadline");
+assert.equal(pendingSmallUploads, 1, "a timed-out direct upload is never blindly repeated");
+assert.equal(pendingSmallVerifications, 1, "a timed-out direct upload verifies exact remote state");
 
 const snapshotCalls = [];
 const snapshot = await cloud.copyCloudRevisionSnapshot({
