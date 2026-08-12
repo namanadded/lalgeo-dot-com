@@ -52,7 +52,7 @@ if (
 }
 
 if (
-  !/function\s+setAdvancedGisVisible\s*\(\s*show\s*\)\s*{[\s\S]*?advancedGisBtn\?\.setAttribute\("aria-expanded",\s*show\s*\?\s*"true"\s*:\s*"false"\)/.test(
+  !/function\s+setAdvancedGisVisible\s*\(\s*show(?:\s*,[\s\S]*?)?\)\s*{[\s\S]*?advancedGisBtn\?\.setAttribute\("aria-expanded",\s*show\s*\?\s*"true"\s*:\s*"false"\)/.test(
     html,
   )
 ) {

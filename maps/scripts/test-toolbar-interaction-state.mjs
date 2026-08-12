@@ -17,7 +17,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setAdvancedGisVisible\(show\)[\s\S]*?if \(show\) \{[\s\S]*?setMeasurementActive\(false\)[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setEditSessionActive\(false\)[\s\S]*?setToolbarMenuVisibility\(false\)/,
+  /function setAdvancedGisVisible\(show(?:\s*,[\s\S]*?)?\)[\s\S]*?if \(show\) \{[\s\S]*?setMeasurementActive\(false\)[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setEditSessionActive\(false\)[\s\S]*?setToolbarMenuVisibility\(false\)/,
   "Opening Tools should close conflicting map tools.",
 );
 assert.match(
