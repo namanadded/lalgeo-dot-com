@@ -298,6 +298,10 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-feature-details
 
+      - name: Check mobile feature edit exclusivity
+        working-directory: maps
+        run: npm run test:mobile-feature-edit-exclusivity
+
       - name: Check feature editor accessible names
         working-directory: maps
         run: npm run test:feature-editor-labels
