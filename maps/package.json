@@ -8,6 +8,7 @@
     "test:external-link-security": "node scripts/test-external-link-security.mjs",
     "test:maps-frame-viewport": "node scripts/test-maps-frame-viewport.mjs",
     "test:basemap-journey": "node scripts/test-basemap-journey.mjs",
+    "test:basemap-layers-tab": "node scripts/test-basemap-layers-tab.mjs",
     "test:search-input-mobile": "node scripts/test-search-input-mobile.mjs",
     "test:search-journey": "node scripts/test-search-journey.mjs",
     "test:help-center-journey": "node scripts/test-help-center-journey.mjs",

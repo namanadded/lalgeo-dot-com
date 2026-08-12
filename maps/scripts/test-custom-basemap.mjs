@@ -16,8 +16,8 @@ assert.match(
 );
 assert.match(
   source,
-  /mapType === "custom" && !getCustomBasemapConfig\(\)[\s\S]*?openCustomBasemapDialog\(mapTypeButton\)/,
-  "Choosing Custom before configuration should open the dedicated dialog.",
+  /mapType === "custom" && !getCustomBasemapConfig\(\)[\s\S]*?requestCustomBasemapSetup\(mapTypeButton\)/,
+  "Choosing Custom before configuration should start the responsive setup flow.",
 );
 assert.match(
   source,
