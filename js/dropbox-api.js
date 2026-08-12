@@ -255,6 +255,7 @@ export class LalGeoDropboxClient {
     }, path, {
       provider: "dropbox",
       maxBytes: this.maxOpenBytes,
+      operationTimeoutMs: this.requestTimeoutMs,
     });
     const result = download.file;
     const buffer = await download.blob.arrayBuffer();

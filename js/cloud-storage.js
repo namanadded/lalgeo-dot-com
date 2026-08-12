@@ -228,7 +228,10 @@ export async function downloadBlobVerified(adapter, request, options = {}) {
   for (let attempt = 1; attempt <= attempts; attempt += 1) {
     throwIfCloudOperationAborted(options.signal);
     try {
-      const result = await adapter.download(request);
+      const result = await runCloudOperationWithDeadline(
+        () => adapter.download(request),
+        options,
+      );
       const blob = result?.blob;
       const declaredSize = Number(adapter.getSize(result));
       const actualSize = Number(blob?.size);
@@ -255,7 +258,7 @@ export async function downloadBlobVerified(adapter, request, options = {}) {
           details: { actualSize, declaredSize },
         });
       }
-      if (!await adapter.verify(result)) {
+      if (!await runCloudOperationWithDeadline(() => adapter.verify(result), options)) {
         throw new CloudStorageError("Cloud download failed provider content verification.", {
           code: "integrity",
           provider: options.provider,
@@ -266,6 +269,7 @@ export async function downloadBlobVerified(adapter, request, options = {}) {
       options.onVerified?.({ attempt, bytes: actualSize });
       return result;
     } catch (error) {
+      if (error?.name === "AbortError") throw error;
       lastError = normalizeCloudError(error, options.provider);
       if (!lastError.retryable || attempt === attempts) throw lastError;
       options.onRetry?.({ attempt, maxAttempts: attempts, error: lastError });

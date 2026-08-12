@@ -255,6 +255,9 @@ jobs:
       - name: Benchmark verified cloud downloads
         working-directory: maps
         run: npm run benchmark:cloud-download
+      - name: Benchmark bounded cloud open recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-open-deadline
       - name: Benchmark direct cloud commit recovery
         working-directory: maps
         run: npm run benchmark:cloud-direct-commit
