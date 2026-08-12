@@ -201,7 +201,7 @@ jobs:
         working-directory: maps
         run: npm run test:kml-integrity
 
-      - name: Check GeoJSON coordinate and collection integrity
+      - name: Check GeoJSON coordinate, collection, and feature identity integrity
         working-directory: maps
         run: npm run test:geojson-integrity
 
@@ -273,6 +273,10 @@ jobs:
         working-directory: maps
         run: npm run test:mobile-tool-experience
 
+      - name: Check Tools readiness journey
+        working-directory: maps
+        run: npm run test:tools-readiness-journey
+
       - name: Check maps mobile sheet refinement
         working-directory: maps
         run: npm run test:mobile-sheet-refinement
@@ -296,6 +300,10 @@ jobs:
       - name: Check maps mobile feature details
         working-directory: maps
         run: npm run test:mobile-feature-details
+
+      - name: Check mobile feature edit exclusivity
+        working-directory: maps
+        run: npm run test:mobile-feature-edit-exclusivity
 
       - name: Check feature editor accessible names
         working-directory: maps
