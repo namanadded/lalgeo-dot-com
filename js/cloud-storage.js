@@ -288,7 +288,7 @@ export async function uploadBlobWithCommitVerification(adapter, blob, request, o
   }
   throwIfCloudOperationAborted(options.signal);
   try {
-    return await adapter.upload(blob, request);
+    return await runCloudOperationWithDeadline(() => adapter.upload(blob, request), options);
   } catch (error) {
     const original = normalizeCloudError(error, options.provider);
     if (!original.retryable) throw original;
@@ -302,6 +302,7 @@ export async function uploadBlobWithCommitVerification(adapter, blob, request, o
           sleep: options.sleep,
           provider: options.provider,
           signal: options.signal,
+          operationTimeoutMs: options.operationTimeoutMs,
         },
       );
       if (committed) {
