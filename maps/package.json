@@ -33,6 +33,7 @@
     "test:toolbar-overflow-a11y": "node scripts/test-toolbar-overflow-a11y.mjs",
     "test:map-control-layout": "node scripts/test-map-control-layout.mjs",
     "test:location-journey": "node scripts/test-location-journey.mjs",
+    "test:measurement-journey": "node scripts/test-measurement-journey.mjs",
     "test:directions-journey": "node scripts/test-directions-journey.mjs",
     "test:editing-journey": "node scripts/test-editing-journey.mjs",
     "test:mobile-menu-organization": "node scripts/test-mobile-menu-organization.mjs",

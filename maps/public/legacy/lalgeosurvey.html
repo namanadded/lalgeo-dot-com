@@ -898,9 +898,16 @@
         margin-bottom: 10px;
     }
     .measurement-panel-title {
+        margin: 0;
         font-size: 13px;
         font-weight: 900;
         color: #111827;
+    }
+    .measurement-panel-description {
+        margin: 3px 0 0;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
     }
     .advanced-gis-panel .measurement-panel-title {
         display: flex;
@@ -985,7 +992,7 @@
     }
     .measurement-mode-btn,
     .measurement-actions button {
-        height: 32px;
+        min-height: 44px;
         border-radius: 8px;
         border: 1px solid #d1d5db;
         background: #fff;
@@ -1003,7 +1010,7 @@
         color: #0f766e;
     }
     #measurementUnitSelect {
-        height: 32px;
+        height: 44px;
         border-radius: 8px;
         border: 1px solid #d1d5db;
         background: #fff;
@@ -1011,6 +1018,13 @@
         font-size: 12px;
         font-weight: 800;
         padding: 0 8px;
+    }
+    .measurement-unit-field {
+        display: grid;
+        gap: 3px;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 700;
     }
     .measurement-result {
         min-height: 58px;
@@ -10119,12 +10133,18 @@
             font-weight: 650;
             letter-spacing: -0.01em;
         }
+        #measurementPanel .measurement-panel-description {
+            max-width: calc(100vw - 88px);
+            margin-top: 2px;
+            font-size: 12px;
+        }
         #measurementPanel .measurement-panel-row {
+            align-items: end;
             gap: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 10px;
         }
         #measurementPanel .measurement-mode-switch {
-            height: 34px;
+            height: 48px;
             gap: 2px;
             padding: 2px;
             border: 0;
@@ -10132,7 +10152,7 @@
             background: rgba(15, 23, 42, 0.055);
         }
         #measurementPanel .measurement-mode-btn {
-            height: 30px;
+            height: 44px;
             border: 0;
             border-radius: 8px;
             background: transparent;
@@ -10145,13 +10165,16 @@
             box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
         }
         #measurementPanel #measurementUnitSelect {
-            height: 34px;
+            height: 44px;
             min-width: 88px;
             border: 0;
             border-radius: 10px;
             background: rgba(15, 23, 42, 0.055);
             color: #4b5563;
             font-size: 12px;
+        }
+        #measurementPanel .measurement-unit-field {
+            flex: 0 0 96px;
         }
         #measurementPanel .measurement-result {
             min-height: 0;
@@ -11109,9 +11132,12 @@
         </div>
     </div>
     <div id="toolbarDockStrip" hidden></div>
-    <div id="measurementPanel" class="measurement-panel" role="region" hidden aria-label="Measurement tools">
+    <div id="measurementPanel" class="measurement-panel" role="region" hidden aria-labelledby="measurementTitle" aria-describedby="measurementDescription measurementHint">
         <div class="measurement-panel-header">
-            <span class="measurement-panel-title">Measure</span>
+            <div>
+                <h2 id="measurementTitle" class="measurement-panel-title">Measure</h2>
+                <p id="measurementDescription" class="measurement-panel-description">Measure a path or outline an area on the map.</p>
+            </div>
             <button id="measurementCloseBtn" type="button" class="measurement-close" aria-label="Close measurement tools">×</button>
         </div>
         <div class="measurement-panel-row">
@@ -11119,17 +11145,21 @@
                 <button id="measurementDistanceModeBtn" type="button" class="measurement-mode-btn active" aria-pressed="true">Distance</button>
                 <button id="measurementAreaModeBtn" type="button" class="measurement-mode-btn" aria-pressed="false">Area</button>
             </div>
-            <select id="measurementUnitSelect" aria-label="Measurement units">
-                <option value="metric">Metric</option>
-                <option value="imperial">Imperial</option>
-            </select>
+            <label class="measurement-unit-field" for="measurementUnitSelect">
+                <span>Units</span>
+                <select id="measurementUnitSelect">
+                    <option value="metric">Metric</option>
+                    <option value="imperial">Imperial</option>
+                </select>
+            </label>
         </div>
-        <div id="measurementResult" class="measurement-result">
+        <div id="measurementResult" class="measurement-result" aria-label="Current measurement">
             <strong class="measurement-result-value">0 m</strong>
             <div class="measurement-result-secondary measurement-result-secondary-mobile">Segments: 0<br>Points: 0</div>
         </div>
-        <p id="measurementHint" class="measurement-hint measurement-hint-desktop">Click the map to begin.</p>
+        <p id="measurementHint" class="measurement-hint measurement-hint-desktop">Tap or click the map to add the first point.</p>
         <p id="measurementHintMobile" class="measurement-hint measurement-hint-mobile">Distance mode: click two or more points. Double-click or Finish to complete.</p>
+        <div id="measurementStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true">Distance measurement ready. Add two or more points.</div>
         <div class="measurement-actions">
             <button id="measurementUndoPointBtn" type="button" aria-label="Undo last measurement point">
                 <span class="measurement-action-label-desktop">Undo</span>
@@ -12317,6 +12347,7 @@
         let customBasemapTileErrorCount = 0;
         let customBasemapDialogReturnFocus = null;
         let customBasemapBackgroundElements = [];
+        let measurementReturnFocus = null;
         let measurementActive = false;
         let measurementMode = "distance";
         let measurementUnits = "metric";
@@ -12395,6 +12426,7 @@
         const measurementResult = document.getElementById("measurementResult");
         const measurementHint = document.getElementById("measurementHint");
         const measurementHintMobile = document.getElementById("measurementHintMobile");
+        const measurementStatus = document.getElementById("measurementStatus");
         const measurementUndoPointBtn = document.getElementById("measurementUndoPointBtn");
         const measurementFinishBtn = document.getElementById("measurementFinishBtn");
         const measurementClearBtn = document.getElementById("measurementClearBtn");
@@ -20899,12 +20931,13 @@
             if (!button || button.disabled) return;
             handleAdvancedGisTool(button.dataset.gisTool);
         });
-        measurementCloseBtn?.addEventListener("click", () => setMeasurementActive(false));
+        measurementCloseBtn?.addEventListener("click", () => setMeasurementActive(false, { restoreFocus: true }));
         measurementDistanceModeBtn?.addEventListener("click", () => setMeasurementMode("distance"));
         measurementAreaModeBtn?.addEventListener("click", () => setMeasurementMode("area"));
         measurementUnitSelect?.addEventListener("change", () => {
             measurementUnits = measurementUnitSelect.value === "imperial" ? "imperial" : "metric";
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = `${measurementUnitSelect.options[measurementUnitSelect.selectedIndex].text} units selected. ${getMeasurementSummaryText()}.`;
         });
         measurementUndoPointBtn?.addEventListener("click", () => {
             measurementCoordinates.pop();
@@ -22077,6 +22110,11 @@
                 if (toolbarMorePopover && !toolbarMorePopover.hidden) {
                     event.preventDefault();
                     setToolbarMoreVisibility(false, { restoreFocus: true });
+                    return;
+                }
+                if (measurementActive) {
+                    event.preventDefault();
+                    setMeasurementActive(false, { restoreFocus: true });
                     return;
                 }
                 if (toolbarMenuVisible) {
@@ -24144,10 +24182,10 @@
             }
             if (measurementHint) {
                 const desktopHint = measurementFinished
-                    ? ""
+                    ? "Measurement complete. Clear it to start again."
                     : pointCount
-                        ? "Click to add points. Double-click to finish."
-                        : "Click the map to begin.";
+                        ? "Tap or click to add points. Double-click or use Finish when ready."
+                        : "Tap or click the map to add the first point.";
                 measurementHint.textContent = desktopHint;
                 measurementHint.hidden = !desktopHint;
             }
@@ -24162,9 +24200,10 @@
             renderMeasurementGraphics();
         }
 
-        function setMeasurementActive(active) {
+        function setMeasurementActive(active, { restoreFocus = false } = {}) {
             measurementActive = Boolean(active);
             if (measurementActive) {
+                measurementReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
                 setMobileSelectionMode(false);
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
@@ -24181,15 +24220,27 @@
                 closeFeatureDrawer({ clearSelection: false });
                 measurementFinished = false;
                 mapElement.style.cursor = "crosshair";
-                setProjectStatus("Measurement active. Click the map to add measurement points.", "success");
+                if (measurementStatus) measurementStatus.textContent = measurementMode === "area"
+                    ? "Area measurement ready. Add at least three points around the boundary."
+                    : "Distance measurement ready. Add two or more points.";
+                setProjectStatus("Measurement ready. Tap or click the map to add points.", "success");
             } else {
+                const returnTarget = measurementReturnFocus;
                 mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
                 measurementCursorCoordinate = null;
                 clearMeasurementGraphics();
                 setProjectStatus("Measurement closed.", "success");
+                measurementReturnFocus = null;
+                if (restoreFocus) {
+                    window.setTimeout(() => {
+                        const fallback = toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : measureToolBtn;
+                        (returnTarget?.isConnected && returnTarget.offsetParent ? returnTarget : fallback)?.focus();
+                    }, 0);
+                }
             }
             updateMeasurementPanel();
             renderSelectedFeatureInspector();
+            if (measurementActive) window.setTimeout(() => measurementDistanceModeBtn?.focus(), 0);
         }
 
         function setMeasurementMode(mode) {
@@ -24198,6 +24249,9 @@
             measurementCursorCoordinate = null;
             measurementFinished = false;
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = measurementMode === "area"
+                ? "Area selected. Add at least three points around the boundary."
+                : "Distance selected. Add two or more points along the path.";
         }
 
         function clearMeasurement() {
@@ -24205,6 +24259,7 @@
             measurementCursorCoordinate = null;
             measurementFinished = false;
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = "Measurement cleared. Add the first point to start again.";
         }
 
         function finishMeasurement() {
@@ -24213,6 +24268,7 @@
             measurementCursorCoordinate = null;
             measurementFinished = true;
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = `Measurement complete. ${getMeasurementSummaryText()}.`;
             setProjectStatus(`Measurement complete: ${getMeasurementSummaryText()}.`, "success");
         }
 
@@ -24226,6 +24282,13 @@
             measurementCoordinates.push(plain);
             measurementCursorCoordinate = null;
             updateMeasurementPanel();
+            if (measurementStatus) {
+                const required = measurementMode === "area" ? 3 : 2;
+                const remaining = Math.max(0, required - measurementCoordinates.length);
+                measurementStatus.textContent = remaining
+                    ? `Point ${measurementCoordinates.length} added. Add ${remaining} more ${remaining === 1 ? "point" : "points"} before finishing.`
+                    : `Point ${measurementCoordinates.length} added. ${getMeasurementSummaryText()}. Add another point or finish.`;
+            }
         }
 
 

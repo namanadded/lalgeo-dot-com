@@ -12,7 +12,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setMeasurementActive\(active\)[\s\S]*?if \(measurementActive\) \{[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?setEditSessionActive\(false\)/,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)[\s\S]*?if \(measurementActive\) \{[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?setEditSessionActive\(false\)/,
   "Starting Measure should close Layers, GIS, menus, and Draw/Edit.",
 );
 assert.match(

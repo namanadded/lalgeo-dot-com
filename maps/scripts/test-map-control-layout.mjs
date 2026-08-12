@@ -67,7 +67,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setMeasurementActive\(active\)\s*{[\s\S]*?measurementActive = Boolean\(active\);[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)\s*{[\s\S]*?measurementActive = Boolean\(active\);[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
   "Opening Measurement on mobile must collapse the quick-action strip.",
 );
 
