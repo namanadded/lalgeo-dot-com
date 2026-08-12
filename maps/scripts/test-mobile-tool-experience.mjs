@@ -136,7 +136,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function setMeasurementActive\(active\)[\s\S]*?setMobileSelectionMode\(false\)[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)/,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)[\s\S]*?setMobileSelectionMode\(false\)[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)/,
   "Opening Measure should close conflicting mobile tool sheets.",
 );
 
