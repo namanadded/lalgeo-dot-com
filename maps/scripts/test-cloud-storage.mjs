@@ -72,6 +72,40 @@ assert.equal(verifiedDownload.blob.size, safeDownloadBytes.byteLength);
 assert.equal(downloadAttempts, 2, "a truncated response is discarded and fetched once more");
 assert.deepEqual(downloadRetries, ["integrity"]);
 
+let stalledDownloadAttempts = 0;
+const stalledDownload = await cloud.downloadBlobVerified({
+  async download() {
+    stalledDownloadAttempts += 1;
+    if (stalledDownloadAttempts === 1) return new Promise(() => {});
+    return {
+      blob: new Blob([safeDownloadBytes]),
+      metadata: { size: safeDownloadBytes.length },
+    };
+  },
+  getSize: ({ metadata }) => metadata.size,
+  async verify() { return true; },
+}, "/safe-test/stalled-download.lal", {
+  provider: "mock",
+  operationTimeoutMs: 10,
+});
+assert.equal(stalledDownload.blob.size, safeDownloadBytes.length);
+assert.equal(stalledDownloadAttempts, 2,
+  "a permanently pending download is bounded and retried exactly once");
+
+const cancelledDownload = new AbortController();
+const pendingDownload = cloud.downloadBlobVerified({
+  async download() { return new Promise(() => {}); },
+  getSize: () => 0,
+  async verify() { return true; },
+}, "/safe-test/cancelled-download.lal", {
+  provider: "mock",
+  operationTimeoutMs: 60_000,
+  signal: cancelledDownload.signal,
+});
+cancelledDownload.abort(new DOMException("cancel cloud open", "AbortError"));
+await assert.rejects(pendingDownload, (error) => error.name === "AbortError",
+  "cancellation interrupts a pending cloud download immediately");
+
 await assert.rejects(
   cloud.downloadBlobVerified({
     async download() { return { blob: new Blob([safeDownloadBytes]), metadata: { size: safeDownloadBytes.length } }; },
@@ -92,6 +126,8 @@ await assert.rejects(
   "declared or actual files over the safe open limit are rejected before parsing",
 );
 assert.match(dropboxSource, /downloadBlobVerified\(/);
+assert.match(dropboxSource, /maxBytes:\s*this\.maxOpenBytes,\s*operationTimeoutMs:\s*this\.requestTimeoutMs/,
+  "Dropbox cloud opens must apply the configured request deadline");
 assert.match(dropboxSource, /computeDropboxContentHash\(blob\) === file\.content_hash/,
   "Dropbox opens must verify the provider content hash");
 
@@ -146,6 +182,30 @@ await assert.rejects(
 assert.equal(nonRetryableVerifications, 0, "conflicts are not mistaken for ambiguous commits");
 assert.match(dropboxSource, /uploadBlobWithCommitVerification\(/,
   "Dropbox direct revision updates must use provider-independent commit recovery");
+assert.match(dropboxSource, /uploadBlobWithCommitVerification\([\s\S]*?operationTimeoutMs:\s*this\.requestTimeoutMs/,
+  "Dropbox direct revision updates must use the provider-independent request deadline");
+
+let pendingSmallUploads = 0;
+let pendingSmallVerifications = 0;
+const deadlineRecoveredSmallCommit = await cloud.uploadBlobWithCommitVerification({
+  async upload() {
+    pendingSmallUploads += 1;
+    return new Promise(() => {});
+  },
+  async verifyCommit(candidate, commit) {
+    pendingSmallVerifications += 1;
+    assert.equal(candidate, smallBlob);
+    assert.equal(commit, smallCommit);
+    return { path: commit.path, rev: "rev-after-deadline", size: candidate.size };
+  },
+}, smallBlob, smallCommit, {
+  provider: "mock",
+  operationTimeoutMs: 5,
+  verificationAttempts: 1,
+});
+assert.equal(deadlineRecoveredSmallCommit.rev, "rev-after-deadline");
+assert.equal(pendingSmallUploads, 1, "a timed-out direct upload is never blindly repeated");
+assert.equal(pendingSmallVerifications, 1, "a timed-out direct upload verifies exact remote state");
 
 const snapshotCalls = [];
 const snapshot = await cloud.copyCloudRevisionSnapshot({

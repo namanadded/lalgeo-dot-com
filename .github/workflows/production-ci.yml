@@ -141,6 +141,10 @@ jobs:
         working-directory: maps
         run: npm run test:top-menu-a11y
 
+      - name: Check advertised keyboard command journey
+        working-directory: maps
+        run: npm run test:keyboard-command-journey
+
       - name: Check maps toolbar architecture
         working-directory: maps
         run: npm run test:toolbar-architecture
@@ -201,9 +205,13 @@ jobs:
         working-directory: maps
         run: npm run test:kml-integrity
 
-      - name: Check GeoJSON coordinate and collection integrity
+      - name: Check GeoJSON coordinate, collection, and feature identity integrity
         working-directory: maps
         run: npm run test:geojson-integrity
+
+      - name: Check GeoJSON, KML, and GPX altitude integrity
+        working-directory: maps
+        run: npm run test:altitude-integrity
 
       - name: Check API row geometry and attribute integrity
         working-directory: maps
@@ -247,9 +255,15 @@ jobs:
       - name: Benchmark verified cloud downloads
         working-directory: maps
         run: npm run benchmark:cloud-download
+      - name: Benchmark bounded cloud open recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-open-deadline
       - name: Benchmark direct cloud commit recovery
         working-directory: maps
         run: npm run benchmark:cloud-direct-commit
+      - name: Benchmark stalled direct cloud upload deadlines
+        working-directory: maps
+        run: npm run benchmark:cloud-direct-deadline
       - name: Benchmark server-side cloud revision snapshots
         working-directory: maps
         run: npm run benchmark:cloud-snapshot
@@ -269,6 +283,10 @@ jobs:
       - name: Check maps mobile tool experience
         working-directory: maps
         run: npm run test:mobile-tool-experience
+
+      - name: Check Tools readiness journey
+        working-directory: maps
+        run: npm run test:tools-readiness-journey
 
       - name: Check maps mobile sheet refinement
         working-directory: maps
@@ -293,6 +311,10 @@ jobs:
       - name: Check maps mobile feature details
         working-directory: maps
         run: npm run test:mobile-feature-details
+
+      - name: Check mobile feature edit exclusivity
+        working-directory: maps
+        run: npm run test:mobile-feature-edit-exclusivity
 
       - name: Check feature editor accessible names
         working-directory: maps
@@ -353,6 +375,10 @@ jobs:
       - name: Check maps location journey
         working-directory: maps
         run: npm run test:location-journey
+
+      - name: Check maps measurement journey
+        working-directory: maps
+        run: npm run test:measurement-journey
 
       - name: Check maps directions journey
         working-directory: maps

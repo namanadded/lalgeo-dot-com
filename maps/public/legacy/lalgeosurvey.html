@@ -898,9 +898,16 @@
         margin-bottom: 10px;
     }
     .measurement-panel-title {
+        margin: 0;
         font-size: 13px;
         font-weight: 900;
         color: #111827;
+    }
+    .measurement-panel-description {
+        margin: 3px 0 0;
+        color: #6b7280;
+        font-size: 12px;
+        line-height: 1.35;
     }
     .advanced-gis-panel .measurement-panel-title {
         display: flex;
@@ -980,12 +987,88 @@
         font-size: 12px;
         line-height: 1.35;
     }
+    .advanced-gis-empty-state {
+        display: grid;
+        justify-items: center;
+        gap: 12px;
+        padding: 24px 18px 20px;
+        text-align: center;
+    }
+    .advanced-gis-empty-state[hidden] {
+        display: none;
+    }
+    .advanced-gis-panel.is-empty .advanced-gis-desktop-content,
+    .advanced-gis-panel.is-empty .advanced-gis-mobile-content {
+        display: none !important;
+    }
+    .advanced-gis-empty-icon {
+        display: grid;
+        place-items: center;
+        width: 44px;
+        height: 44px;
+        border-radius: 14px;
+        background: #eef8f6;
+        color: #0f766e;
+    }
+    .advanced-gis-empty-icon svg {
+        width: 24px;
+        height: 24px;
+        fill: none;
+        stroke: currentColor;
+        stroke-linecap: round;
+        stroke-linejoin: round;
+        stroke-width: 1.7;
+    }
+    .advanced-gis-empty-copy {
+        display: grid;
+        gap: 5px;
+        max-width: 310px;
+    }
+    .advanced-gis-empty-copy strong {
+        color: #172033;
+        font-size: 16px;
+    }
+    .advanced-gis-empty-copy p {
+        margin: 0;
+        color: #667085;
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .advanced-gis-empty-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        width: min(100%, 280px);
+    }
+    .advanced-gis-empty-actions button {
+        min-height: 44px;
+        padding: 0 14px;
+        border: 1px solid #d7dce3;
+        border-radius: 11px;
+        background: #fff;
+        color: #344054;
+        cursor: pointer;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .advanced-gis-empty-actions button.primary {
+        border-color: #0f766e;
+        background: #0f766e;
+        color: #fff;
+    }
+    .advanced-gis-empty-actions button[hidden] {
+        display: none;
+    }
+    .advanced-gis-empty-actions button[hidden] + button {
+        grid-column: 1 / -1;
+    }
     .measurement-panel-row {
         margin-bottom: 10px;
     }
     .measurement-mode-btn,
     .measurement-actions button {
-        height: 32px;
+        min-height: 44px;
         border-radius: 8px;
         border: 1px solid #d1d5db;
         background: #fff;
@@ -1003,7 +1086,7 @@
         color: #0f766e;
     }
     #measurementUnitSelect {
-        height: 32px;
+        height: 44px;
         border-radius: 8px;
         border: 1px solid #d1d5db;
         background: #fff;
@@ -1011,6 +1094,13 @@
         font-size: 12px;
         font-weight: 800;
         padding: 0 8px;
+    }
+    .measurement-unit-field {
+        display: grid;
+        gap: 3px;
+        color: #6b7280;
+        font-size: 11px;
+        font-weight: 700;
     }
     .measurement-result {
         min-height: 58px;
@@ -7880,6 +7970,12 @@
             overflow-y: auto;
             overscroll-behavior: contain;
         }
+        #advancedGisPanel.is-empty {
+            overflow: hidden;
+        }
+        #advancedGisPanel .advanced-gis-empty-state {
+            padding: 28px 24px 30px;
+        }
         #advancedGisPanel .advanced-gis-command-section {
             padding: 7px 0 8px;
         }
@@ -10219,12 +10315,18 @@
             font-weight: 650;
             letter-spacing: -0.01em;
         }
+        #measurementPanel .measurement-panel-description {
+            max-width: calc(100vw - 88px);
+            margin-top: 2px;
+            font-size: 12px;
+        }
         #measurementPanel .measurement-panel-row {
+            align-items: end;
             gap: 8px;
-            margin-bottom: 6px;
+            margin-bottom: 10px;
         }
         #measurementPanel .measurement-mode-switch {
-            height: 34px;
+            height: 48px;
             gap: 2px;
             padding: 2px;
             border: 0;
@@ -10232,7 +10334,7 @@
             background: rgba(15, 23, 42, 0.055);
         }
         #measurementPanel .measurement-mode-btn {
-            height: 30px;
+            height: 44px;
             border: 0;
             border-radius: 8px;
             background: transparent;
@@ -10245,13 +10347,16 @@
             box-shadow: 0 1px 3px rgba(15, 23, 42, 0.11);
         }
         #measurementPanel #measurementUnitSelect {
-            height: 34px;
+            height: 44px;
             min-width: 88px;
             border: 0;
             border-radius: 10px;
             background: rgba(15, 23, 42, 0.055);
             color: #4b5563;
             font-size: 12px;
+        }
+        #measurementPanel .measurement-unit-field {
+            flex: 0 0 96px;
         }
         #measurementPanel .measurement-result {
             min-height: 0;
@@ -10350,6 +10455,19 @@
             overflow-x: hidden;
             overflow-y: auto;
             overscroll-behavior: contain;
+        }
+        #advancedGisPanel.is-empty {
+            max-height: none;
+            padding-bottom: calc(14px + env(safe-area-inset-bottom, 0px));
+        }
+        #advancedGisPanel .advanced-gis-empty-state {
+            padding: 18px var(--mobile-sheet-inline) 12px;
+        }
+        #advancedGisPanel .advanced-gis-empty-actions {
+            width: 100%;
+        }
+        #advancedGisPanel .advanced-gis-empty-actions button {
+            min-height: 48px;
         }
         #advancedGisPanel .advanced-gis-command-section {
             padding: 6px 0;
@@ -11201,9 +11319,12 @@
         </div>
     </div>
     <div id="toolbarDockStrip" hidden></div>
-    <div id="measurementPanel" class="measurement-panel" role="region" hidden aria-label="Measurement tools">
+    <div id="measurementPanel" class="measurement-panel" role="region" hidden aria-labelledby="measurementTitle" aria-describedby="measurementDescription measurementHint">
         <div class="measurement-panel-header">
-            <span class="measurement-panel-title">Measure</span>
+            <div>
+                <h2 id="measurementTitle" class="measurement-panel-title">Measure</h2>
+                <p id="measurementDescription" class="measurement-panel-description">Measure a path or outline an area on the map.</p>
+            </div>
             <button id="measurementCloseBtn" type="button" class="measurement-close" aria-label="Close measurement tools">×</button>
         </div>
         <div class="measurement-panel-row">
@@ -11211,17 +11332,21 @@
                 <button id="measurementDistanceModeBtn" type="button" class="measurement-mode-btn active" aria-pressed="true">Distance</button>
                 <button id="measurementAreaModeBtn" type="button" class="measurement-mode-btn" aria-pressed="false">Area</button>
             </div>
-            <select id="measurementUnitSelect" aria-label="Measurement units">
-                <option value="metric">Metric</option>
-                <option value="imperial">Imperial</option>
-            </select>
+            <label class="measurement-unit-field" for="measurementUnitSelect">
+                <span>Units</span>
+                <select id="measurementUnitSelect">
+                    <option value="metric">Metric</option>
+                    <option value="imperial">Imperial</option>
+                </select>
+            </label>
         </div>
-        <div id="measurementResult" class="measurement-result">
+        <div id="measurementResult" class="measurement-result" aria-label="Current measurement">
             <strong class="measurement-result-value">0 m</strong>
             <div class="measurement-result-secondary measurement-result-secondary-mobile">Segments: 0<br>Points: 0</div>
         </div>
-        <p id="measurementHint" class="measurement-hint measurement-hint-desktop">Click the map to begin.</p>
+        <p id="measurementHint" class="measurement-hint measurement-hint-desktop">Tap or click the map to add the first point.</p>
         <p id="measurementHintMobile" class="measurement-hint measurement-hint-mobile">Distance mode: click two or more points. Double-click or Finish to complete.</p>
+        <div id="measurementStatus" class="sr-only" role="status" aria-live="polite" aria-atomic="true">Distance measurement ready. Add two or more points.</div>
         <div class="measurement-actions">
             <button id="measurementUndoPointBtn" type="button" aria-label="Undo last measurement point">
                 <span class="measurement-action-label-desktop">Undo</span>
@@ -11242,6 +11367,19 @@
                 <span id="advancedGisLayerBadge" class="advanced-gis-badge">No layer</span>
             </span>
             <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close tools">×</button>
+        </div>
+        <div id="advancedGisEmptyState" class="advanced-gis-empty-state" role="status" aria-live="polite">
+            <span class="advanced-gis-empty-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M4 17l8 4 8-4"></path></svg>
+            </span>
+            <div class="advanced-gis-empty-copy">
+                <strong id="advancedGisEmptyTitle">Start with a project</strong>
+                <p id="advancedGisEmptyDescription">Tools work with an active layer. Create a project or import one to begin.</p>
+            </div>
+            <div class="advanced-gis-empty-actions">
+                <button id="advancedGisCreateProjectBtn" type="button" class="primary">New project</button>
+                <button id="advancedGisImportProjectBtn" type="button">Import</button>
+            </div>
         </div>
         <div class="advanced-gis-desktop-content">
             <section class="advanced-gis-command-section" aria-labelledby="advancedGisSelectionHeading">
@@ -12411,6 +12549,7 @@
         let customBasemapDialogReturnFocus = null;
         let customBasemapBackgroundElements = [];
         let pendingCustomBasemapSetup = false;
+        let measurementReturnFocus = null;
         let measurementActive = false;
         let measurementMode = "distance";
         let measurementUnits = "metric";
@@ -12489,6 +12628,7 @@
         const measurementResult = document.getElementById("measurementResult");
         const measurementHint = document.getElementById("measurementHint");
         const measurementHintMobile = document.getElementById("measurementHintMobile");
+        const measurementStatus = document.getElementById("measurementStatus");
         const measurementUndoPointBtn = document.getElementById("measurementUndoPointBtn");
         const measurementFinishBtn = document.getElementById("measurementFinishBtn");
         const measurementClearBtn = document.getElementById("measurementClearBtn");
@@ -12497,6 +12637,11 @@
         const advancedGisCloseBtn = document.getElementById("advancedGisCloseBtn");
         const advancedGisLayerBadge = document.getElementById("advancedGisLayerBadge");
         const advancedGisLayerContext = document.getElementById("advancedGisLayerContext");
+        const advancedGisEmptyState = document.getElementById("advancedGisEmptyState");
+        const advancedGisEmptyTitle = document.getElementById("advancedGisEmptyTitle");
+        const advancedGisEmptyDescription = document.getElementById("advancedGisEmptyDescription");
+        const advancedGisCreateProjectBtn = document.getElementById("advancedGisCreateProjectBtn");
+        const advancedGisImportProjectBtn = document.getElementById("advancedGisImportProjectBtn");
         const advancedGisSelectionStatus = document.getElementById("advancedGisSelectionStatus");
         const advancedGisGeometrySection = document.getElementById("advancedGisGeometrySection");
         const advancedGisMoreBtn = document.getElementById("advancedGisMoreBtn");
@@ -13687,22 +13832,30 @@
             return "●";
         }
 
-        function createPointGeometry(lat, lng) {
-            return { type: "Point", lat, lng };
+        function copyWorkspaceVertex(vertex = {}) {
+            return {
+                lat: vertex.lat,
+                lng: vertex.lng,
+                ...(Number.isFinite(vertex.altitude) ? { altitude: vertex.altitude } : {})
+            };
+        }
+
+        function createPointGeometry(lat, lng, altitude) {
+            return { type: "Point", lat, lng, ...(Number.isFinite(altitude) ? { altitude } : {}) };
         }
 
         function createLineGeometry(vertices = []) {
-            return { type: "LineString", coordinates: vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })) };
+            return { type: "LineString", coordinates: vertices.map(copyWorkspaceVertex) };
         }
 
         function createPolygonGeometry(vertices = []) {
-            return { type: "Polygon", rings: [vertices.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng }))] };
+            return { type: "Polygon", rings: [vertices.map(copyWorkspaceVertex)] };
         }
 
         function createPolygonGeometryFromRings(rings = []) {
             return {
                 type: "Polygon",
-                rings: rings.map((ring) => ring.map((vertex) => ({ lat: vertex.lat, lng: vertex.lng })))
+                rings: rings.map((ring) => ring.map(copyWorkspaceVertex))
             };
         }
 
@@ -13950,6 +14103,9 @@
                 const lng = coordinate?.lng;
                 if (!Number.isFinite(lat) || !Number.isFinite(lng) || lat < -90 || lat > 90 || lng < -180 || lng > 180) {
                     throw new Error(`${label} has an invalid coordinate. Use numeric WGS84 latitude -90 to 90 and longitude -180 to 180.`);
+                }
+                if (Object.prototype.hasOwnProperty.call(coordinate, "altitude") && !Number.isFinite(coordinate.altitude)) {
+                    throw new Error(`${label} has an invalid altitude. Use a finite numeric value in metres, or remove it.`);
                 }
             };
             normalizedProject.layers = normalizedProject.layers.map((layer, layerIndex) => {
@@ -14591,6 +14747,16 @@
                 const action = node.dataset.shortcut;
                 node.textContent = getShortcutLabel(action);
             });
+        }
+
+        function runKeyboardCommand(button) {
+            if (!button) return false;
+            if (button.disabled || button.classList.contains("is-disabled")) {
+                setProjectStatus(button.dataset.disabledReason || "This command is not available yet.", "error");
+                return true;
+            }
+            button.click();
+            return true;
         }
 
         function loadQuickActionPrefs() {
@@ -16743,6 +16909,20 @@
 
         function setEditPanelVisibility(show, { layerId = null } = {}) {
             if (!editFloatingPanel) return;
+            const mobileFeatureDetailsOpen = Boolean(
+                show
+                && window.matchMedia("(max-width: 600px)").matches
+                && featureDrawer?.classList.contains("open")
+            );
+            if (mobileFeatureDetailsOpen) {
+                window.clearTimeout(editPanelVisibilityTimer);
+                editFloatingPanel.hidden = true;
+                editFloatingPanel.classList.remove("toolbar-visible", "toolbar-dismissing");
+                updateToolbarDockStrip();
+                syncEditPanelState();
+                renderSelectedFeatureInspector();
+                return;
+            }
             if (show && !activeProjectRecord) {
                 setProjectStatus("Create or open a project before editing.", "error");
                 openCreateProjectModal();
@@ -19271,7 +19451,7 @@
             setProjectStatus("Project package downloaded.", "success");
         }
 
-        function setAdvancedGisVisible(show) {
+        function setAdvancedGisVisible(show, { restoreFocus = false } = {}) {
             if (!advancedGisPanel) return;
             if (show) {
                 setMobileSelectionMode(false);
@@ -19288,6 +19468,19 @@
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
             updateAdvancedGisPanelState();
             renderSelectedFeatureInspector();
+            if (show && !getActiveLayerRecord()) {
+                requestAnimationFrame(() => {
+                    const readyAction = advancedGisCreateProjectBtn?.hidden
+                        ? advancedGisImportProjectBtn
+                        : advancedGisCreateProjectBtn;
+                    readyAction?.focus();
+                });
+            } else if (!show && restoreFocus) {
+                const trigger = window.matchMedia("(max-width: 600px)").matches
+                    ? toolbarMoreBtn
+                    : advancedGisBtn;
+                requestAnimationFrame(() => trigger?.focus());
+            }
         }
 
         function toggleAdvancedGisDisclosure(button, content) {
@@ -19309,6 +19502,18 @@
                 candidate.id !== layer.id
                 && normalizeLayerGeometryType(candidate.geometryType) === geometryType
             ));
+            if (advancedGisEmptyState) advancedGisEmptyState.hidden = hasLayer;
+            advancedGisPanel?.classList.toggle("is-empty", !hasLayer);
+            if (advancedGisEmptyTitle) {
+                advancedGisEmptyTitle.textContent = hasProject ? "Add a layer to continue" : "Start with a project";
+            }
+            if (advancedGisEmptyDescription) {
+                advancedGisEmptyDescription.textContent = hasProject
+                    ? "Tools work with the active layer. Add or import a layer, then return here."
+                    : "Tools work with an active layer. Create a project or import one to begin.";
+            }
+            if (advancedGisCreateProjectBtn) advancedGisCreateProjectBtn.hidden = hasProject;
+            if (advancedGisImportProjectBtn) advancedGisImportProjectBtn.textContent = hasProject ? "Add a layer" : "Import";
             if (advancedGisLayerBadge) {
                 advancedGisLayerBadge.textContent = layer
                     ? `${layer.name} · ${geometryType} · ${count} selected`
@@ -19454,9 +19659,9 @@
 
         function plainCoordsFromGeometry(geometry) {
             if (!geometry) return [];
-            if (geometry.type === "Point") return [{ lat: geometry.lat, lng: geometry.lng }].filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng));
+            if (geometry.type === "Point") return [copyWorkspaceVertex(geometry)].filter((coord) => Number.isFinite(coord.lat) && Number.isFinite(coord.lng));
             const raw = geometry.type === "Polygon" ? (geometry.rings?.[0] || []) : (geometry.coordinates || []);
-            return raw.filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng)).map((coord) => ({ lat: coord.lat, lng: coord.lng }));
+            return raw.filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng)).map(copyWorkspaceVertex);
         }
 
         function plainRingsFromGeometry(geometry) {
@@ -19464,15 +19669,18 @@
             return (geometry.rings || [])
                 .map((ring) => (ring || [])
                     .filter((coord) => Number.isFinite(coord?.lat) && Number.isFinite(coord?.lng))
-                    .map((coord) => ({ lat: coord.lat, lng: coord.lng })))
+                    .map(copyWorkspaceVertex))
                 .filter((ring) => ring.length >= 3);
         }
 
         function geometryToGeoJson(geometry) {
             if (!geometry) return null;
-            if (geometry.type === "Point") return { type: "Point", coordinates: [geometry.lng, geometry.lat] };
+            const coordinateTuple = (coord) => Number.isFinite(coord.altitude)
+                ? [coord.lng, coord.lat, coord.altitude]
+                : [coord.lng, coord.lat];
+            if (geometry.type === "Point") return { type: "Point", coordinates: coordinateTuple(geometry) };
             if (geometry.type === "LineString") {
-                return { type: "LineString", coordinates: plainCoordsFromGeometry(geometry).map((coord) => [coord.lng, coord.lat]) };
+                return { type: "LineString", coordinates: plainCoordsFromGeometry(geometry).map(coordinateTuple) };
             }
             if (geometry.type === "Polygon") {
                 const rings = plainRingsFromGeometry(geometry).map((sourceRing) => {
@@ -19480,17 +19688,21 @@
                     if (ring.length && (ring[0].lat !== ring[ring.length - 1].lat || ring[0].lng !== ring[ring.length - 1].lng)) {
                         ring.push({ ...ring[0] });
                     }
-                    return ring.map((coord) => [coord.lng, coord.lat]);
+                    return ring.map(coordinateTuple);
                 });
                 return { type: "Polygon", coordinates: rings };
             }
             return null;
         }
 
+        function getGeoJsonExportId(feature) {
+            return Object.prototype.hasOwnProperty.call(feature || {}, "geoJsonId") ? feature.geoJsonId : feature.id;
+        }
+
         function featureToGeoJsonFeature(feature) {
             return {
                 type: "Feature",
-                id: feature.id,
+                id: getGeoJsonExportId(feature),
                 properties: { ...(feature.attributes || {}) },
                 geometry: geometryToGeoJson(feature.geometry)
             };
@@ -21061,7 +21273,21 @@
         syncToolbarMoreState();
         measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
-        advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false));
+        advancedGisCreateProjectBtn?.addEventListener("click", () => {
+            setAdvancedGisVisible(false);
+            openCreateProjectModal();
+        });
+        advancedGisImportProjectBtn?.addEventListener("click", () => {
+            const hasProject = Boolean(activeProjectRecord);
+            setAdvancedGisVisible(false);
+            if (hasProject) {
+                setSidebarVisibility(true);
+                menuNewLayerBtn?.click();
+            } else {
+                setImportPanelVisibility(true);
+            }
+        });
+        advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false, { restoreFocus: true }));
         mobileBasemapCloseBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
             toolbarMoreBtn?.focus();
@@ -21080,12 +21306,13 @@
             if (!button || button.disabled) return;
             handleAdvancedGisTool(button.dataset.gisTool);
         });
-        measurementCloseBtn?.addEventListener("click", () => setMeasurementActive(false));
+        measurementCloseBtn?.addEventListener("click", () => setMeasurementActive(false, { restoreFocus: true }));
         measurementDistanceModeBtn?.addEventListener("click", () => setMeasurementMode("distance"));
         measurementAreaModeBtn?.addEventListener("click", () => setMeasurementMode("area"));
         measurementUnitSelect?.addEventListener("change", () => {
             measurementUnits = measurementUnitSelect.value === "imperial" ? "imperial" : "metric";
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = `${measurementUnitSelect.options[measurementUnitSelect.selectedIndex].text} units selected. ${getMeasurementSummaryText()}.`;
         });
         measurementUndoPointBtn?.addEventListener("click", () => {
             measurementCoordinates.pop();
@@ -22292,6 +22519,11 @@
                     setToolbarMoreVisibility(false, { restoreFocus: true });
                     return;
                 }
+                if (measurementActive) {
+                    event.preventDefault();
+                    setMeasurementActive(false, { restoreFocus: true });
+                    return;
+                }
                 if (toolbarMenuVisible) {
                     event.preventDefault();
                     const returnTarget = toolbarMenuKey === "basemap"
@@ -22400,6 +22632,36 @@
                 openProjectBtn?.click();
                 return;
             }
+            if (!event.defaultPrevented && event.altKey && key === "n") {
+                event.preventDefault();
+                runKeyboardCommand(menuNewLayerBtn);
+                return;
+            }
+            if (!event.defaultPrevented && event.altKey && key === "i") {
+                event.preventDefault();
+                runKeyboardCommand(toggleImportBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && event.shiftKey && key === "s") {
+                event.preventDefault();
+                runKeyboardCommand(shareMapBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && event.shiftKey && key === "e") {
+                event.preventDefault();
+                runKeyboardCommand(menuExportBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && event.shiftKey && key === "p") {
+                event.preventDefault();
+                runKeyboardCommand(menuExportPdfBtn);
+                return;
+            }
+            if (!event.defaultPrevented && primaryModifier && !event.shiftKey && key === "p") {
+                event.preventDefault();
+                runKeyboardCommand(printButton);
+                return;
+            }
             if (!event.defaultPrevented && primaryModifier && key === "l") {
                 event.preventDefault();
                 setSearchExpanded(true);
@@ -22426,6 +22688,11 @@
             if (!event.defaultPrevented && event.altKey && key === "d") {
                 event.preventDefault();
                 setDataPaneVisibility(!dataPaneVisible);
+                return;
+            }
+            if (!event.defaultPrevented && event.altKey && key === "p") {
+                event.preventDefault();
+                runKeyboardCommand(workspacePanelBtn);
                 return;
             }
             if (!event.defaultPrevented && primaryModifier && key === ",") {
@@ -22476,6 +22743,11 @@
                     return;
                 }
                 toggleAddSurveyPointMode();
+                return;
+            }
+            if (key === "m") {
+                event.preventDefault();
+                runKeyboardCommand(menuMyLocationBtn);
                 return;
             }
         });
@@ -24357,10 +24629,10 @@
             }
             if (measurementHint) {
                 const desktopHint = measurementFinished
-                    ? ""
+                    ? "Measurement complete. Clear it to start again."
                     : pointCount
-                        ? "Click to add points. Double-click to finish."
-                        : "Click the map to begin.";
+                        ? "Tap or click to add points. Double-click or use Finish when ready."
+                        : "Tap or click the map to add the first point.";
                 measurementHint.textContent = desktopHint;
                 measurementHint.hidden = !desktopHint;
             }
@@ -24375,9 +24647,10 @@
             renderMeasurementGraphics();
         }
 
-        function setMeasurementActive(active) {
+        function setMeasurementActive(active, { restoreFocus = false } = {}) {
             measurementActive = Boolean(active);
             if (measurementActive) {
+                measurementReturnFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null;
                 setMobileSelectionMode(false);
                 if (window.matchMedia("(max-width: 600px)").matches) {
                     topToolbarViewModel.collapseOverflow("right");
@@ -24394,15 +24667,27 @@
                 closeFeatureDrawer({ clearSelection: false });
                 measurementFinished = false;
                 mapElement.style.cursor = "crosshair";
-                setProjectStatus("Measurement active. Click the map to add measurement points.", "success");
+                if (measurementStatus) measurementStatus.textContent = measurementMode === "area"
+                    ? "Area measurement ready. Add at least three points around the boundary."
+                    : "Distance measurement ready. Add two or more points.";
+                setProjectStatus("Measurement ready. Tap or click the map to add points.", "success");
             } else {
+                const returnTarget = measurementReturnFocus;
                 mapElement.style.cursor = isAddingSurveyPoint ? "crosshair" : "";
                 measurementCursorCoordinate = null;
                 clearMeasurementGraphics();
                 setProjectStatus("Measurement closed.", "success");
+                measurementReturnFocus = null;
+                if (restoreFocus) {
+                    window.setTimeout(() => {
+                        const fallback = toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : measureToolBtn;
+                        (returnTarget?.isConnected && returnTarget.offsetParent ? returnTarget : fallback)?.focus();
+                    }, 0);
+                }
             }
             updateMeasurementPanel();
             renderSelectedFeatureInspector();
+            if (measurementActive) window.setTimeout(() => measurementDistanceModeBtn?.focus(), 0);
         }
 
         function setMeasurementMode(mode) {
@@ -24411,6 +24696,9 @@
             measurementCursorCoordinate = null;
             measurementFinished = false;
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = measurementMode === "area"
+                ? "Area selected. Add at least three points around the boundary."
+                : "Distance selected. Add two or more points along the path.";
         }
 
         function clearMeasurement() {
@@ -24418,6 +24706,7 @@
             measurementCursorCoordinate = null;
             measurementFinished = false;
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = "Measurement cleared. Add the first point to start again.";
         }
 
         function finishMeasurement() {
@@ -24426,6 +24715,7 @@
             measurementCursorCoordinate = null;
             measurementFinished = true;
             updateMeasurementPanel();
+            if (measurementStatus) measurementStatus.textContent = `Measurement complete. ${getMeasurementSummaryText()}.`;
             setProjectStatus(`Measurement complete: ${getMeasurementSummaryText()}.`, "success");
         }
 
@@ -24439,6 +24729,13 @@
             measurementCoordinates.push(plain);
             measurementCursorCoordinate = null;
             updateMeasurementPanel();
+            if (measurementStatus) {
+                const required = measurementMode === "area" ? 3 : 2;
+                const remaining = Math.max(0, required - measurementCoordinates.length);
+                measurementStatus.textContent = remaining
+                    ? `Point ${measurementCoordinates.length} added. Add ${remaining} more ${remaining === 1 ? "point" : "points"} before finishing.`
+                    : `Point ${measurementCoordinates.length} added. ${getMeasurementSummaryText()}. Add another point or finish.`;
+            }
         }
 
 
@@ -25671,6 +25968,12 @@
             if (!Array.isArray(pair) || pair.length < 2 || typeof pair[0] !== "number" || typeof pair[1] !== "number" || !vertex || vertex.lat < -90 || vertex.lat > 90 || vertex.lng < -180 || vertex.lng > 180) {
                 throw new Error(`${coordinateLabel} is invalid. Use [longitude, latitude] values in WGS84.`);
             }
+            if (pair.length >= 3) {
+                if (typeof pair[2] !== "number" || !Number.isFinite(pair[2])) {
+                    throw new Error(`${coordinateLabel} has an invalid altitude. Use a finite numeric third value in metres, or remove it.`);
+                }
+                vertex.altitude = pair[2];
+            }
             return vertex;
         }
 
@@ -25720,7 +26023,7 @@
             }
             if (geometry.type === "Point") {
                 const vertex = readGeoJsonVertex(geometry.coordinates, `${geometryLabel} Point coordinate`);
-                return [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng) }];
+                return [{ geometryType: "point", geometry: createPointGeometry(vertex.lat, vertex.lng, vertex.altitude) }];
             }
             if (geometry.type === "MultiPoint") {
                 if (!Array.isArray(geometry.coordinates) || !geometry.coordinates.length) {
@@ -25728,7 +26031,7 @@
                 }
                 return geometry.coordinates.map((pair, index) => readGeoJsonVertex(pair, `${geometryLabel} MultiPoint coordinate ${index + 1}`)).map((vertex) => ({
                     geometryType: "point",
-                    geometry: createPointGeometry(vertex.lat, vertex.lng)
+                    geometry: createPointGeometry(vertex.lat, vertex.lng, vertex.altitude)
                 }));
             }
             if (geometry.type === "LineString") {
@@ -25794,7 +26097,7 @@
                 });
             });
             const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
-            const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker }, index) => {
+            const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker, geoJsonId }, index) => {
                 const attributes = Object.fromEntries(schema.map((field) => [
                     field.name,
                     Object.prototype.hasOwnProperty.call(properties, field.name) && properties[field.name] !== undefined
@@ -25812,6 +26115,7 @@
                 }
                 return {
                     id: attributes.ID || generateWorkspaceId("feature"),
+                    ...(geoJsonId !== undefined ? { geoJsonId } : {}),
                     geometry,
                     showRepresentativeMarker,
                     attributes,
@@ -25834,12 +26138,21 @@
             return layer;
         }
 
+        function readGeoJsonFeatureId(feature) {
+            if (!Object.prototype.hasOwnProperty.call(feature || {}, "id")) return undefined;
+            if (typeof feature.id === "string" || (typeof feature.id === "number" && Number.isFinite(feature.id))) {
+                return feature.id;
+            }
+            throw new Error("feature id must be a string or finite number. Repair or remove the top-level id value.");
+        }
+
         function buildGeoJsonPayload(input, { projectName = "Imported GIS Project", fileName = "", format = "GeoJSON" } = {}) {
             const collection = normalizeFeatureCollection(input);
             const grouped = { point: [], line: [], polygon: [] };
             collection.features.forEach((feature, featureIndex) => {
                 const properties = { ...(feature.properties || {}) };
                 try {
+                    const geoJsonId = readGeoJsonFeatureId(feature);
                     if (!feature?.geometry) {
                         throw new Error("feature has no geometry.");
                     }
@@ -25848,6 +26161,7 @@
                         grouped[part.geometryType].push({
                             geometry: part.geometry,
                             properties,
+                            ...(geoJsonId !== undefined ? { geoJsonId } : {}),
                             showRepresentativeMarker: part.showRepresentativeMarker
                         });
                     });
@@ -26189,6 +26503,13 @@
                 if (parts.length < 2 || !Number.isFinite(lat) || !Number.isFinite(lng) || lng < -180 || lng > 180 || lat < -90 || lat > 90) {
                     throw new Error(`${context}, coordinate ${tupleIndex + 1} is invalid. Use longitude,latitude values in WGS84.`);
                 }
+                if (parts.length >= 3 && parts[2] !== "") {
+                    const altitude = Number(parts[2]);
+                    if (!Number.isFinite(altitude)) {
+                        throw new Error(`${context}, coordinate ${tupleIndex + 1} has an invalid altitude. Use a finite numeric third value in metres, or remove it.`);
+                    }
+                    return [lng, lat, altitude];
+                }
                 return [lng, lat];
             });
         }
@@ -26310,6 +26631,14 @@
                 if (latText === null || lonText === null || !Number.isFinite(lat) || !Number.isFinite(lon)
                     || lat < -90 || lat > 90 || lon < -180 || lon > 180) {
                     throw new Error(`${label} has an invalid latitude or longitude. Use decimal WGS84 coordinates within latitude -90 to 90 and longitude -180 to 180.`);
+                }
+                const elevationText = childText(element, "ele");
+                if (elevationText !== "") {
+                    const elevation = Number(elevationText);
+                    if (!Number.isFinite(elevation)) {
+                        throw new Error(`${label} has an invalid elevation. Use a finite numeric value in metres, or remove the ele element.`);
+                    }
+                    return [lon, lat, elevation];
                 }
                 return [lon, lat];
             };
