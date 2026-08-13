@@ -232,7 +232,7 @@ try {
     const oneDegreeDistance = measurementDistanceMeters(new mapkit.Coordinate(0, 0), new mapkit.Coordinate(0, 1));
     assert(oneDegreeDistance > 111000 && oneDegreeDistance < 111300, "measurement distance uses geodesic coordinate scale");
     setMeasurementActive(true);
-    assert(measurementActive && !makeEl("measurementPanel").hidden && makeEl("measureToolBtn").classList.contains("active"), "measurement toolbar opens panel");
+    assert(measurementActive && !makeEl("measurementPanel").hidden && makeEl("advancedGisMeasureBtn").classList.contains("active"), "measurement toolbar opens panel");
     addMeasurementPoint(new mapkit.Coordinate(51, -114));
     addMeasurementPoint(new mapkit.Coordinate(51.001, -114));
     assert(measurementCoordinates.length === 2, "distance measurement records clicked points");

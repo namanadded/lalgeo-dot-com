@@ -29,8 +29,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /id="toolbarLayersBtn"[\s\S]*?class="toolbar-action-group toolbar-history-group"[\s\S]*?id="toolbarMoreMenu"/,
-  "History controls should appear immediately before More in DOM order.",
+  /id="toolbarLayersBtn"[\s\S]*?class="toolbar-action-group toolbar-history-group"[\s\S]*?id="toolbarBasemapBtn"/,
+  "History controls should appear immediately before Basemap in DOM order.",
 );
 assert.match(
   legacyHtml,

@@ -7093,9 +7093,6 @@
         animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
     }
     @media (min-width: 601px) {
-        #toolbar.more-tools-open {
-            z-index: 1400;
-        }
         #toolbar .toolbar-quick-actions {
             gap: 0;
             padding: 4px 6px;
@@ -7145,7 +7142,7 @@
         #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
-        #toolbar #toolbarMoreBtn .quick-action-label {
+        #toolbar #advancedGisBtn .quick-action-label {
             display: inline;
             font-size: 10px;
             font-weight: 700;
@@ -7165,8 +7162,7 @@
             border: 0;
             box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
         }
-        #toolbar .toolbar-map-group #toolbarBasemapBtn,
-        #toolbar .toolbar-tools-group {
+        #toolbar .toolbar-map-group #toolbarBasemapBtn {
             display: none;
         }
         #toolbar #undoBtn,
@@ -7362,7 +7358,6 @@
         #toolbar .toolbar-right.expanded #myLocationBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #toolbarLayersBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #toolbarBasemapBtn .quick-action-label,
-        #toolbar .toolbar-right.expanded #measureToolBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #advancedGisBtn .quick-action-label {
             display: inline;
             font-size: 11px;
@@ -7964,7 +7959,7 @@
         #advancedGisPanel .advanced-gis-desktop-content {
             display: block;
             min-height: 0;
-            max-height: calc(min(620px, calc(100vh - 128px)) - 51px);
+            max-height: calc(min(620px, calc(100vh - 128px)) - 101px);
             padding: 6px 7px 8px;
             overflow-x: hidden;
             overflow-y: auto;
@@ -7981,6 +7976,10 @@
         }
         #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
             border-top: 1px solid rgba(209, 213, 219, 0.56);
+        }
+        #advancedGisPanel .advanced-gis-general-section {
+            padding: 7px;
+            border-bottom: 1px solid rgba(209, 213, 219, 0.56);
         }
         #advancedGisPanel .advanced-gis-section-heading {
             display: flex;
@@ -8293,7 +8292,7 @@
         #toolbar #addSurveyPointBtn .quick-action-label,
         #toolbar #myLocationBtn .quick-action-label,
         #toolbar #toolbarLayersBtn .quick-action-label,
-        #toolbar #toolbarMoreBtn .quick-action-label {
+        #toolbar #advancedGisBtn .quick-action-label {
             font-size: 11px;
             font-weight: 600;
             letter-spacing: 0;
@@ -9508,8 +9507,7 @@
         }
         #toolbar #addSurveyPointBtn,
         #toolbar #mobileSelectMenu,
-        #toolbar #toolbarLayersBtn,
-        #toolbar #toolbarMoreMenu {
+        #toolbar #toolbarLayersBtn {
             flex: 0 0 auto;
         }
 
@@ -9796,9 +9794,7 @@
             position: static;
             display: block;
         }
-        #toolbar #quickActionBar #toolbarBasemapBtn,
-        #toolbar #quickActionBar #measureToolBtn,
-        #toolbar #quickActionBar #advancedGisBtn {
+        #toolbar #quickActionBar #toolbarBasemapBtn {
             display: none !important;
         }
         #toolbar #quickActionBar .menu-bar-btn.quick-action {
@@ -9840,7 +9836,7 @@
         #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #mobileSelectBtn,
         #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #addSurveyPointBtn,
         #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #toolbarLayersBtn,
-        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #toolbarMoreBtn {
+        #toolbar #quickActionBar:has(.toolbar-history-group:not([hidden])) #advancedGisBtn {
             width: 48px;
             min-width: 48px;
         }
@@ -9856,7 +9852,7 @@
         #toolbar .toolbar-right.expanded #addSurveyPointBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #myLocationBtn .quick-action-label,
         #toolbar .toolbar-right.expanded #toolbarLayersBtn .quick-action-label,
-        #toolbar .toolbar-right.expanded #toolbarMoreBtn .quick-action-label {
+        #toolbar .toolbar-right.expanded #advancedGisBtn .quick-action-label {
             display: block;
             max-width: 48px;
             overflow: hidden;
@@ -9872,14 +9868,10 @@
             transform: scale(0.96);
         }
         #toolbar #quickActionBar .menu-bar-btn.quick-action.active,
-        #toolbar #quickActionBar .menu-bar-btn.quick-action[aria-expanded="true"],
-        #toolbar #quickActionBar #toolbarMoreBtn.has-active-tool {
+        #toolbar #quickActionBar .menu-bar-btn.quick-action[aria-expanded="true"] {
             background: rgba(15, 118, 110, 0.11);
             color: #0f766e;
             box-shadow: inset 0 0 0 1px rgba(15, 118, 110, 0.12);
-        }
-        #toolbar #quickActionBar .toolbar-more-menu {
-            display: block !important;
         }
         body.mobile-survey-table-open #toolbar #quickActionBar {
             display: none !important;
@@ -9981,64 +9973,6 @@
         }
         #addActionPopover #addNewFeatureMenuBtn {
             display: none;
-        }
-        #toolbar #toolbarMorePopover {
-            position: absolute;
-            left: 0;
-            right: 0;
-            top: calc(100% + 8px);
-            bottom: auto;
-            z-index: 1320;
-            width: auto;
-            min-width: 0;
-            max-width: none;
-            display: grid;
-            gap: 2px;
-            padding: 7px;
-            border: 1px solid var(--mobile-tool-border);
-            border-radius: 16px;
-            background: var(--mobile-tool-surface);
-            box-shadow: var(--mobile-tool-shadow);
-            backdrop-filter: blur(22px) saturate(150%);
-            -webkit-backdrop-filter: blur(22px) saturate(150%);
-        }
-        #toolbar #toolbarMorePopover[hidden] {
-            display: none;
-        }
-        #toolbar #toolbarMorePopover .toolbar-more-item {
-            min-height: 44px;
-            display: grid;
-            grid-template-columns: 20px minmax(0, 1fr);
-            align-items: center;
-            justify-content: initial;
-            column-gap: 12px;
-            padding: 0 12px;
-            border: 0;
-            border-radius: 10px;
-            background: transparent;
-            color: #667085;
-            box-shadow: none;
-            font-size: 14px;
-            text-align: left;
-        }
-        #toolbar #toolbarMorePopover .toolbar-more-item .toolbar-icon {
-            justify-self: center;
-        }
-        #toolbar #toolbarMorePopover .toolbar-more-item > span {
-            min-width: 0;
-            text-align: left;
-        }
-        #toolbar #toolbarMorePopover .toolbar-more-item:hover,
-        #toolbar #toolbarMorePopover .toolbar-more-item:focus-visible {
-            color: #374151;
-            background: rgba(15, 23, 42, 0.055);
-        }
-        #toolbar #toolbarMorePopover .toolbar-more-item.active {
-            color: #0f766e;
-            background: rgba(15, 118, 110, 0.08);
-        }
-        #toolbar #toolbarMorePopover .toolbar-more-item:active {
-            background: rgba(15, 23, 42, 0.075);
         }
         #workspaceHint {
             top: calc(var(--mobile-toolbar-top) + var(--mobile-toolbar-height) + 8px);
@@ -10450,7 +10384,7 @@
         }
         #advancedGisPanel .advanced-gis-desktop-content {
             display: block;
-            max-height: calc(min(68dvh, 620px) - var(--mobile-map-chrome-clearance) - 64px - env(safe-area-inset-bottom, 0px));
+            max-height: calc(min(68dvh, 620px) - var(--mobile-map-chrome-clearance) - 114px - env(safe-area-inset-bottom, 0px));
             padding: 0 var(--mobile-sheet-inline);
             overflow-x: hidden;
             overflow-y: auto;
@@ -10474,6 +10408,10 @@
         }
         #advancedGisPanel .advanced-gis-command-section + .advanced-gis-command-section {
             border-top: 1px solid rgba(209, 213, 219, 0.56);
+        }
+        #advancedGisPanel .advanced-gis-general-section {
+            padding: 6px var(--mobile-sheet-inline);
+            border-bottom: 1px solid rgba(209, 213, 219, 0.56);
         }
         #advancedGisPanel .advanced-gis-command-section:not(:has(.advanced-gis-command:not([hidden]):not([disabled]))) {
             display: none;
@@ -10986,7 +10924,6 @@
         }
 
         #toolbar #quickActionBar .menu-bar-btn.quick-action:focus-visible,
-        #toolbar #toolbarMorePopover .toolbar-more-item:focus-visible,
         #sidebar button:focus-visible,
         #measurementPanel button:focus-visible,
         #measurementPanel select:focus-visible,
@@ -11224,38 +11161,6 @@
                             <span class="quick-action-label">Redo</span>
                         </button>
                     </div>
-                    <div id="toolbarMoreMenu" class="toolbar-more-menu">
-                        <button id="toolbarMoreBtn" type="button" class="menu-bar-btn quick-action" aria-label="More tools" aria-haspopup="menu" aria-controls="toolbarMorePopover" aria-expanded="false" title="More">
-                            <span class="quick-action-icon" aria-hidden="true">
-                                <svg class="toolbar-icon" viewBox="0 0 24 24">
-                                    <circle cx="5" cy="12" r="1"></circle>
-                                    <circle cx="12" cy="12" r="1"></circle>
-                                    <circle cx="19" cy="12" r="1"></circle>
-                                </svg>
-                            </span>
-                            <span class="quick-action-label">More</span>
-                        </button>
-                        <div id="toolbarMorePopover" class="toolbar-more-popover" role="menu" aria-label="More map tools" hidden>
-                            <button id="toolbarMoreMeasureItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="measureToolBtn">
-                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M4 15l9-9 7 7-9 9-7-7z"></path>
-                                    <path d="M9 10l2 2"></path>
-                                    <path d="M12 7l2 2"></path>
-                                    <path d="M6 13l2 2"></path>
-                                </svg>
-                                <span>Measure</span>
-                            </button>
-                            <button id="toolbarMoreGisItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="advancedGisBtn">
-                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
-                                    <path d="M12 11l7-4"></path>
-                                    <path d="M12 11v8"></path>
-                                    <path d="M12 11L5 7"></path>
-                                </svg>
-                                <span>Tools</span>
-                            </button>
-                        </div>
-                    </div>
                     <button id="toolbarBasemapBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open basemap controls" aria-controls="toolbarMenuTray" aria-expanded="false" title="Basemap">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -11267,18 +11172,7 @@
                         <span class="quick-action-label">Basemap</span>
                     </button>
                 </div>
-                <div class="toolbar-action-group toolbar-tools-group" aria-label="Measurement and GIS controls">
-                    <button id="measureToolBtn" type="button" class="menu-bar-btn quick-action" aria-label="Measure distance or area" aria-controls="measurementPanel" aria-expanded="false" title="Measure">
-                        <span class="quick-action-icon" aria-hidden="true">
-                            <svg class="toolbar-icon" viewBox="0 0 24 24">
-                                <path d="M4 15l9-9 7 7-9 9-7-7z"></path>
-                                <path d="M9 10l2 2"></path>
-                                <path d="M12 7l2 2"></path>
-                                <path d="M6 13l2 2"></path>
-                            </svg>
-                        </span>
-                        <span class="quick-action-label">Measure</span>
-                    </button>
+                <div class="toolbar-action-group toolbar-tools-group" aria-label="Map tools">
                     <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Tools">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
@@ -11368,6 +11262,17 @@
             </span>
             <button id="advancedGisCloseBtn" type="button" class="measurement-close" aria-label="Close tools">×</button>
         </div>
+        <section class="advanced-gis-command-section advanced-gis-general-section" aria-labelledby="advancedGisGeneralHeading">
+            <h4 id="advancedGisGeneralHeading" class="advanced-gis-section-heading"><span>General</span></h4>
+            <div class="advanced-gis-command-list">
+                <button id="advancedGisMeasureBtn" type="button" class="advanced-gis-command" aria-controls="measurementPanel" aria-expanded="false">
+                    <span class="advanced-gis-command-icon" aria-hidden="true">
+                        <svg viewBox="0 0 24 24"><path d="M4 15l9-9 7 7-9 9-7-7z"></path><path d="M9 10l2 2"></path><path d="M12 7l2 2"></path><path d="M6 13l2 2"></path></svg>
+                    </span>
+                    <span>Measure</span>
+                </button>
+            </div>
+        </section>
         <div id="advancedGisEmptyState" class="advanced-gis-empty-state" role="status" aria-live="polite">
             <span class="advanced-gis-empty-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M4 17l8 4 8-4"></path></svg>
@@ -12587,10 +12492,6 @@
         const historyMenuBtn = document.getElementById("historyMenuBtn");
         const windowMenuBtn = document.getElementById("windowMenuBtn");
         const helpMenuBtn = document.getElementById("helpMenuBtn");
-        const toolbarMoreMenu = document.getElementById("toolbarMoreMenu");
-        const toolbarMoreBtn = document.getElementById("toolbarMoreBtn");
-        const toolbarMorePopover = document.getElementById("toolbarMorePopover");
-        const toolbarMoreItems = Array.from(document.querySelectorAll("[data-toolbar-target]"));
         const settingsPanel = document.getElementById("settingsPanel");
         const rememberSessionToggle = document.getElementById("rememberSessionToggle");
         const rememberSessionOption = rememberSessionToggle?.closest(".settings-option");
@@ -12619,7 +12520,6 @@
         const renameProjectBtn = document.getElementById("renameProjectBtn");
         const toolbarSearchShell = document.getElementById("toolbarSearchShell");
         const collapseSearchBtn = document.getElementById("collapseSearchBtn");
-        const measureToolBtn = document.getElementById("measureToolBtn");
         const measurementPanel = document.getElementById("measurementPanel");
         const measurementCloseBtn = document.getElementById("measurementCloseBtn");
         const measurementDistanceModeBtn = document.getElementById("measurementDistanceModeBtn");
@@ -12633,6 +12533,7 @@
         const measurementFinishBtn = document.getElementById("measurementFinishBtn");
         const measurementClearBtn = document.getElementById("measurementClearBtn");
         const advancedGisBtn = document.getElementById("advancedGisBtn");
+        const advancedGisMeasureBtn = document.getElementById("advancedGisMeasureBtn");
         const advancedGisPanel = document.getElementById("advancedGisPanel");
         const advancedGisCloseBtn = document.getElementById("advancedGisCloseBtn");
         const advancedGisLayerBadge = document.getElementById("advancedGisLayerBadge");
@@ -13002,7 +12903,6 @@
                 locate: { element: myLocationBtn, group: "quickActions", role: "action" },
                 layers: { element: toolbarLayersBtn, group: "quickActions", role: "panel-toggle" },
                 basemap: { element: toolbarBasemapBtn, group: "quickActions", role: "menu" },
-                measure: { element: measureToolBtn, group: "quickActions", role: "action" },
                 gis: { element: advancedGisBtn, group: "quickActions", role: "action" },
                 search: { element: document.getElementById("searchIconBtn"), group: "helpSearch", role: "search" },
                 clearSearch: { element: collapseSearchBtn, group: "helpSearch", role: "search" }
@@ -14801,45 +14701,6 @@
             }
         }
 
-        function getToolbarMoreItems() {
-            return toolbarMoreItems.filter((item) => !item.hidden && !item.disabled);
-        }
-
-        function setToolbarMoreVisibility(show, { focusFirst = false, restoreFocus = false } = {}) {
-            if (!toolbarMoreBtn || !toolbarMorePopover) return;
-            const visible = Boolean(show);
-            if (visible) {
-                if (mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
-                setToolbarMenuVisibility(false);
-            }
-            toolbarMorePopover.hidden = !visible;
-            toolbarMoreBtn.setAttribute("aria-expanded", visible ? "true" : "false");
-            toolbar?.classList.toggle("more-tools-open", visible);
-            if (visible && focusFirst) {
-                window.requestAnimationFrame(() => getToolbarMoreItems()[0]?.focus());
-            } else if (!visible && restoreFocus && toolbarMorePopover.contains(document.activeElement)) {
-                toolbarMoreBtn.focus();
-            }
-        }
-
-        function syncToolbarMoreState() {
-            if (!toolbarMoreBtn) return;
-            let hasActiveChild = false;
-            toolbarMoreItems.forEach((item) => {
-                const target = document.getElementById(item.dataset.toolbarTarget || "");
-                const active = Boolean(target && (
-                    target.classList.contains("active")
-                    || target.getAttribute("aria-expanded") === "true"
-                    || target.getAttribute("aria-pressed") === "true"
-                ));
-                item.classList.toggle("active", active);
-                hasActiveChild = hasActiveChild || active;
-            });
-            toolbarMoreBtn.classList.toggle("active", hasActiveChild);
-            toolbarMoreBtn.dataset.childActive = hasActiveChild ? "true" : "false";
-            toolbarMoreBtn.setAttribute("aria-label", hasActiveChild ? "More tools, active tool open" : "More tools");
-        }
-
         function getQuickActionAvailability(key, hasEditingSession) {
             if (key === "addNew") return Boolean(activeProjectRecord);
             if (key === "undo") return undoStack.length > 0;
@@ -15717,7 +15578,7 @@
             if (restoreFocus) {
                 const focusTarget = returnTarget?.isConnected && !returnTarget.disabled && returnTarget.offsetParent !== null
                     ? returnTarget
-                    : toolbarMoreBtn;
+                    : toolbarBasemapBtn;
                 window.requestAnimationFrame(() => focusTarget?.focus());
             }
         }
@@ -19468,18 +19329,10 @@
             advancedGisBtn?.setAttribute("aria-expanded", show ? "true" : "false");
             updateAdvancedGisPanelState();
             renderSelectedFeatureInspector();
-            if (show && !getActiveLayerRecord()) {
-                requestAnimationFrame(() => {
-                    const readyAction = advancedGisCreateProjectBtn?.hidden
-                        ? advancedGisImportProjectBtn
-                        : advancedGisCreateProjectBtn;
-                    readyAction?.focus();
-                });
+            if (show) {
+                requestAnimationFrame(() => advancedGisMeasureBtn?.focus());
             } else if (!show && restoreFocus) {
-                const trigger = window.matchMedia("(max-width: 600px)").matches
-                    ? toolbarMoreBtn
-                    : advancedGisBtn;
-                requestAnimationFrame(() => trigger?.focus());
+                requestAnimationFrame(() => advancedGisBtn?.focus());
             }
         }
 
@@ -21083,42 +20936,6 @@
             }
         });
         menuAppHelpBtn?.addEventListener("click", () => setHelpCenterVisibility(true));
-        toolbarMoreBtn?.addEventListener("click", (event) => {
-            event.stopPropagation();
-            setAddActionPopoverVisibility(false);
-            setMobileSelectPopoverVisibility(false);
-            setToolbarMoreVisibility(Boolean(toolbarMorePopover?.hidden));
-        });
-        toolbarMoreBtn?.addEventListener("keydown", (event) => {
-            if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
-            event.preventDefault();
-            setToolbarMoreVisibility(true, { focusFirst: true });
-        });
-        toolbarMorePopover?.addEventListener("keydown", (event) => {
-            const items = getToolbarMoreItems();
-            if (event.key === "Escape") {
-                event.preventDefault();
-                setToolbarMoreVisibility(false, { restoreFocus: true });
-                return;
-            }
-            if (!["ArrowDown", "ArrowUp"].includes(event.key) || !items.length) return;
-            event.preventDefault();
-            const currentIndex = items.indexOf(document.activeElement);
-            const direction = event.key === "ArrowDown" ? 1 : -1;
-            const nextIndex = currentIndex < 0
-                ? (direction > 0 ? 0 : items.length - 1)
-                : (currentIndex + direction + items.length) % items.length;
-            items[nextIndex]?.focus();
-        });
-        toolbarMoreItems.forEach((item) => {
-            item.addEventListener("click", (event) => {
-                event.stopPropagation();
-                const target = document.getElementById(item.dataset.toolbarTarget || "");
-                setToolbarMoreVisibility(false);
-                target?.click();
-                syncToolbarMoreState();
-            });
-        });
         addSurveyPointBtn?.addEventListener("keydown", (event) => {
             if (!["ArrowDown", "Enter", " "].includes(event.key)) return;
             event.preventDefault();
@@ -21258,21 +21075,12 @@
                 if (button !== addSurveyPointBtn) setAddActionPopoverVisibility(false);
             });
         });
-        const toolbarMoreStateObserver = new MutationObserver(syncToolbarMoreState);
-        [toolbarBasemapBtn, measureToolBtn, advancedGisBtn].forEach((button) => {
-            if (!button) return;
-            toolbarMoreStateObserver.observe(button, {
-                attributes: true,
-                attributeFilter: ["class", "aria-expanded", "aria-pressed"]
-            });
-        });
         window.matchMedia("(max-width: 600px)").addEventListener?.("change", (event) => {
             setToolbarMoreVisibility(false);
             if (!event.matches && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
         });
-        syncToolbarMoreState();
-        measureToolBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
+        advancedGisMeasureBtn?.addEventListener("click", () => setMeasurementActive(!measurementActive));
         advancedGisCreateProjectBtn?.addEventListener("click", () => {
             setAdvancedGisVisible(false);
             openCreateProjectModal();
@@ -21290,7 +21098,7 @@
         advancedGisCloseBtn?.addEventListener("click", () => setAdvancedGisVisible(false, { restoreFocus: true }));
         mobileBasemapCloseBtn?.addEventListener("click", () => {
             setToolbarMenuVisibility(false);
-            toolbarMoreBtn?.focus();
+            toolbarBasemapBtn?.focus();
         });
         advancedGisPanel?.addEventListener("click", (event) => {
             const disclosure = event.target.closest(".advanced-gis-disclosure");
@@ -21650,7 +21458,7 @@
         function openBasemapControls() {
             const desktop = window.matchMedia("(min-width: 601px)").matches;
             const anchor = desktop
-                ? (toolbarMoreBtn || toolbarBasemapBtn || settingsBtn)
+                ? (toolbarBasemapBtn || settingsBtn)
                 : (toolbarBasemapBtn || settingsBtn);
             if (measurementActive) setMeasurementActive(false);
             if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
@@ -22105,7 +21913,6 @@
         document.addEventListener("click", (event) => {
             const insideToolbarMenu = toolbarMenuTray?.contains(event.target);
             const onToolbarMenuButton = topToolbarViewModel.containsMenuButton(event.target);
-            const insideToolbarMoreMenu = toolbarMoreMenu?.contains(event.target);
             const insideMobileSelectMenu = document.getElementById("mobileSelectMenu")?.contains(event.target);
             const insideAddActionPopover = addActionPopover?.contains(event.target);
             const onAddActionButton = addSurveyPointBtn?.contains(event.target);
@@ -22120,9 +21927,6 @@
             }
             if (toolbarMenuVisible && !insideToolbarMenu && !onToolbarMenuButton) {
                 setToolbarMenuVisibility(false);
-            }
-            if (toolbarMorePopover && !toolbarMorePopover.hidden && !insideToolbarMoreMenu) {
-                setToolbarMoreVisibility(false);
             }
             if (mobileSelectPopover && !mobileSelectPopover.hidden && !insideMobileSelectMenu) {
                 setMobileSelectPopoverVisibility(false);
@@ -22514,11 +22318,6 @@
                     setMobileSelectPopoverVisibility(false, { restoreFocus: true });
                     return;
                 }
-                if (toolbarMorePopover && !toolbarMorePopover.hidden) {
-                    event.preventDefault();
-                    setToolbarMoreVisibility(false, { restoreFocus: true });
-                    return;
-                }
                 if (measurementActive) {
                     event.preventDefault();
                     setMeasurementActive(false, { restoreFocus: true });
@@ -22527,7 +22326,7 @@
                 if (toolbarMenuVisible) {
                     event.preventDefault();
                     const returnTarget = toolbarMenuKey === "basemap"
-                        ? (toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : toolbarBasemapBtn)
+                        ? toolbarBasemapBtn
                         : toolbarMenuKey === "mobile"
                             ? sidebarToggleBtn
                             : document.querySelector(`[data-menu="${toolbarMenuKey}"]`);
@@ -24593,8 +24392,8 @@
 
         function updateMeasurementPanel() {
             measurementPanel.hidden = !measurementActive;
-            measureToolBtn?.classList.toggle("active", measurementActive);
-            measureToolBtn?.setAttribute("aria-expanded", measurementActive ? "true" : "false");
+            advancedGisMeasureBtn?.classList.toggle("active", measurementActive);
+            advancedGisMeasureBtn?.setAttribute("aria-expanded", measurementActive ? "true" : "false");
             measurementDistanceModeBtn?.classList.toggle("active", measurementMode === "distance");
             measurementAreaModeBtn?.classList.toggle("active", measurementMode === "area");
             measurementDistanceModeBtn?.setAttribute("aria-pressed", measurementMode === "distance" ? "true" : "false");
@@ -24680,7 +24479,7 @@
                 measurementReturnFocus = null;
                 if (restoreFocus) {
                     window.setTimeout(() => {
-                        const fallback = toolbarMoreBtn?.offsetParent ? toolbarMoreBtn : measureToolBtn;
+                        const fallback = advancedGisBtn;
                         (returnTarget?.isConnected && returnTarget.offsetParent ? returnTarget : fallback)?.focus();
                     }, 0);
                 }

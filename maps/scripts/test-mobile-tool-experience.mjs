@@ -16,8 +16,8 @@ assert.match(
 );
 assert.match(
   mobileStyles,
-  /#toolbar #mobileSelectPopover,[\s\S]*?#addActionPopover\s*\{[\s\S]*?top:\s*calc\(var\(--mobile-toolbar-top\) \+ var\(--mobile-toolbar-height\) \+ 8px\);[\s\S]*?bottom:\s*auto;[\s\S]*?#toolbar #toolbarMorePopover\s*\{[\s\S]*?top:\s*calc\(100% \+ 8px\);[\s\S]*?bottom:\s*auto;/,
-  "Mobile Select, Add, and More popovers should open below the top toolbar.",
+  /#toolbar #mobileSelectPopover,[\s\S]*?#addActionPopover\s*\{[\s\S]*?top:\s*calc\(var\(--mobile-toolbar-top\) \+ var\(--mobile-toolbar-height\) \+ 8px\);[\s\S]*?bottom:\s*auto;/,
+  "Mobile Select and Add popovers should open below the top toolbar.",
 );
 assert.match(
   mobileStyles,
@@ -36,23 +36,18 @@ assert.match(
 );
 assert.match(
   mobileStyles,
-  /#toolbar #quickActionBar #toolbarBasemapBtn,[\s\S]*?#toolbar #quickActionBar #measureToolBtn,[\s\S]*?#toolbar #quickActionBar #advancedGisBtn\s*\{\s*display:\s*none !important;/,
-  "Secondary tools should be hidden from the persistent mobile toolbar.",
+  /#toolbar #quickActionBar #toolbarBasemapBtn\s*\{\s*display:\s*none !important;/,
+  "Basemap should stay out of the persistent mobile toolbar.",
+);
+assert.doesNotMatch(
+  mobileStyles,
+  /#toolbar #quickActionBar #advancedGisBtn\s*\{\s*display:\s*none !important;/,
+  "Tools should remain visible in the persistent mobile toolbar.",
 );
 assert.match(
   mobileStyles,
   /#toolbar #quickActionBar \.menu-bar-btn\.quick-action\s*\{[\s\S]*?width:\s*52px;[\s\S]*?min-height:\s*50px;/,
   "Mobile controls should remain visually compact with accessible touch targets.",
-);
-assert.match(
-  mobileStyles,
-  /#toolbar #toolbarMorePopover \.toolbar-more-item\s*\{[\s\S]*?color:\s*#667085;[\s\S]*?#toolbar #toolbarMorePopover \.toolbar-more-item\.active\s*\{[\s\S]*?color:\s*#0f766e;/,
-  "Mobile More rows should use the toolbar's neutral icon color and a consistent active-child treatment.",
-);
-assert.match(
-  mobileStyles,
-  /#toolbar #toolbarMorePopover \.toolbar-more-item\s*\{[\s\S]*?display:\s*grid;[\s\S]*?grid-template-columns:\s*20px minmax\(0, 1fr\);[\s\S]*?column-gap:\s*12px;[\s\S]*?text-align:\s*left;/,
-  "Mobile More rows should keep icons and labels in a compact, left-aligned grid.",
 );
 assert.match(
   mobileStyles,
@@ -76,28 +71,28 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /id="mobileSelectBtn"[\s\S]*?>Select<[\s\S]*?id="addSurveyPointBtn"[\s\S]*?>Add<[\s\S]*?id="toolbarLayersBtn"[\s\S]*?>Layers<[\s\S]*?id="toolbarMoreBtn"[\s\S]*?>More</,
-  "The mobile toolbar should expose Select, Add, Layers, and More in order.",
+  /id="mobileSelectBtn"[\s\S]*?>Select<[\s\S]*?id="addSurveyPointBtn"[\s\S]*?>Add<[\s\S]*?id="toolbarLayersBtn"[\s\S]*?>Layers<[\s\S]*?id="advancedGisBtn"[\s\S]*?>Tools</,
+  "The mobile toolbar should expose Select, Add, Layers, and Tools in order.",
 );
 assert.match(
   legacyHtml,
   /data-add-geometry="point"[\s\S]*?data-add-geometry="line"[\s\S]*?data-add-geometry="polygon"[\s\S]*?id="addImportDataMenuBtn"[\s\S]*?id="addImportPhotosMenuBtn"/,
   "Add should expose existing drawing and import entry points.",
 );
+assert.doesNotMatch(
+  legacyHtml,
+  /id="toolbarMoreBtn"|id="toolbarMorePopover"/,
+  "The obsolete More action and popover should be removed.",
+);
 assert.match(
   legacyHtml,
-  /id="toolbarMoreGisItem"[\s\S]*?<span>Tools<\/span>/,
-  "More should use the simpler Tools label.",
+  /id="advancedGisGeneralHeading"[\s\S]*?id="advancedGisMeasureBtn"[^>]*aria-controls="measurementPanel"[\s\S]*?<span>Measure<\/span>/,
+  "Measure should be available from the Tools sheet.",
 );
 assert.match(
   mobileStyles,
   /#mobileLocationBtn\s*\{[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*94px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
   "Locate should be a touch-sized floating map control.",
-);
-assert.match(
-  legacyHtml,
-  /function setToolbarMoreVisibility\(show,[\s\S]*?const visible = Boolean\(show\);/,
-  "The shared More popover should be available on mobile.",
 );
 assert.match(
   legacyHtml,

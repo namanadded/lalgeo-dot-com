@@ -15,7 +15,7 @@ function expectAttribute(tag, attr, value, message) {
   if (!pattern.test(tag)) failures.push(message);
 }
 
-const measureButton = getTagById("measureToolBtn");
+const measureButton = getTagById("advancedGisMeasureBtn");
 const advancedGisButton = getTagById("advancedGisBtn");
 
 expectAttribute(
@@ -44,7 +44,7 @@ expectAttribute(
 );
 
 if (
-  !/function\s+updateMeasurementPanel\s*\(\s*\)\s*{[\s\S]*?measureToolBtn\?\.setAttribute\("aria-expanded",\s*measurementActive\s*\?\s*"true"\s*:\s*"false"\)/.test(
+  !/function\s+updateMeasurementPanel\s*\(\s*\)\s*{[\s\S]*?advancedGisMeasureBtn\?\.setAttribute\("aria-expanded",\s*measurementActive\s*\?\s*"true"\s*:\s*"false"\)/.test(
     html,
   )
 ) {
