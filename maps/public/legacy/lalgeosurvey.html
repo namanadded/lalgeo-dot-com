@@ -11031,6 +11031,213 @@
             height: 100% !important;
         }
     }
+    .directions-planner,
+    .directions-summary {
+        display: grid;
+        gap: 14px;
+    }
+    .directions-planner-header {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    .directions-planner-header h3,
+    .directions-summary h3 {
+        margin: 0;
+        color: var(--map-ui-title, #1f2937);
+        font-size: 20px;
+        line-height: 1.2;
+    }
+    .directions-planner-header p,
+    .directions-summary p,
+    .directions-field-help {
+        margin: 5px 0 0;
+        color: var(--map-ui-muted, #6b7280);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .directions-close {
+        flex: 0 0 44px;
+        width: 44px;
+        height: 44px;
+        border: 0;
+        border-radius: 50%;
+        background: rgba(15,23,42,0.055);
+        color: var(--map-ui-text, #4b5563);
+        font-size: 24px;
+        cursor: pointer;
+    }
+    .directions-close:hover,
+    .directions-close:focus-visible {
+        outline: 2px solid #0f766e;
+        outline-offset: 2px;
+        background: rgba(15,23,42,0.09);
+    }
+    .directions-fieldset {
+        margin: 0;
+        padding: 0;
+        border: 0;
+    }
+    .directions-fieldset legend,
+    .directions-field label {
+        display: block;
+        margin-bottom: 7px;
+        color: var(--map-ui-title, #1f2937);
+        font-size: 13px;
+        font-weight: 700;
+    }
+    .directions-choice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .directions-choice {
+        position: relative;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 48px;
+        padding: 8px 10px;
+        border: 1px solid var(--map-ui-border, #d1d5db);
+        border-radius: 12px;
+        color: var(--map-ui-text, #4b5563);
+        font-size: 13px;
+        font-weight: 700;
+        text-align: center;
+        cursor: pointer;
+    }
+    .directions-choice:has(input:checked) {
+        border-color: rgba(15,118,110,0.48);
+        background: #ecfdf9;
+        color: #0f766e;
+    }
+    .directions-choice:has(input:focus-visible) {
+        outline: 2px solid #0f766e;
+        outline-offset: 2px;
+    }
+    .directions-choice input {
+        position: absolute;
+        opacity: 0;
+        pointer-events: none;
+    }
+    .directions-field[hidden] {
+        display: none;
+    }
+    .directions-input {
+        box-sizing: border-box;
+        width: 100%;
+        min-height: 48px;
+        padding: 0 13px;
+        border: 1px solid var(--map-ui-border, #d1d5db);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.9);
+        color: var(--map-ui-title, #1f2937);
+        font: inherit;
+    }
+    .directions-input:focus-visible {
+        outline: 2px solid #0f766e;
+        outline-offset: 2px;
+        border-color: transparent;
+    }
+    .directions-input[aria-invalid="true"] {
+        border-color: #ff9f95;
+    }
+    .directions-mode-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+    .directions-submit {
+        width: 100%;
+        min-height: 52px;
+        border: 0;
+        border-radius: 13px;
+        background: #0f766e;
+        color: #ffffff;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+    }
+    .directions-submit:hover,
+    .directions-submit:focus-visible {
+        background: #115e59;
+        outline: 2px solid #0f766e;
+        outline-offset: 2px;
+    }
+    .directions-submit:disabled {
+        opacity: 0.6;
+        cursor: wait;
+    }
+    .directions-form-status {
+        min-height: 20px;
+        margin: 0;
+        color: var(--map-ui-muted, #6b7280);
+        font-size: 13px;
+        line-height: 1.45;
+    }
+    .directions-route-facts {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+    }
+    .directions-route-fact {
+        padding: 10px;
+        border-radius: 12px;
+        background: rgba(15,23,42,0.055);
+    }
+    .directions-route-fact span {
+        display: block;
+        color: var(--map-ui-muted, #6b7280);
+        font-size: 10px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+    }
+    .directions-route-fact strong {
+        display: block;
+        margin-top: 4px;
+        color: var(--map-ui-title, #1f2937);
+        font-size: 14px;
+    }
+    #sidebar.directions-open .sidebar-topbar,
+    #sidebar.directions-open .sidebar-tabs {
+        display: none;
+    }
+    #sidebar.directions-open #sidebar-content {
+        max-height: none;
+    }
+    @media (max-width: 600px) {
+        #sidebar.directions-open {
+            position: fixed;
+            top: auto;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            width: auto;
+            max-height: calc(100dvh - max(72px, env(safe-area-inset-top, 0px)));
+            box-sizing: border-box;
+            padding: 20px 18px calc(18px + env(safe-area-inset-bottom, 0px));
+            border-radius: 24px 24px 0 0;
+            overflow-y: auto;
+            overscroll-behavior: contain;
+        }
+        .directions-choice-grid {
+            gap: 10px;
+        }
+        .directions-choice,
+        .directions-input {
+            min-height: 52px;
+        }
+        .directions-submit {
+            position: sticky;
+            bottom: 0;
+            z-index: 1;
+            min-height: 56px;
+            box-shadow: 0 -10px 18px rgba(255,255,255,0.92);
+        }
+        .directions-route-facts {
+            grid-template-columns: 1fr;
+        }
+    }
 </style>
     </head>
 <body>
@@ -22257,6 +22464,18 @@
                     closeCustomBasemapDialog();
                     return;
                 }
+                if (document.getElementById("sidebar")?.classList.contains("directions-open")) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    directionsRequestId += 1;
+                    stopVoice({ announce: false });
+                    allRouteOverlays.forEach((overlay) => map.removeOverlay(overlay));
+                    allRouteOverlays = [];
+                    window.currentRouteData = null;
+                    showSidebar(lastDirectionsPlace);
+                    if (lastDirectionsTrigger?.isConnected) lastDirectionsTrigger.focus();
+                    return;
+                }
                 if (locationStatusCard && !locationStatusCard.hidden) {
                     event.preventDefault();
                     hideLocationStatus({ restoreFocus: true });
@@ -30342,6 +30561,7 @@ function setImportPanelVisibility(show) {
         function showSidebar(place) {
             const sidebar = document.getElementById("sidebar");
             const content = document.getElementById("sidebar-content");
+            sidebar?.classList.remove("directions-open");
             const placeAttributes = buildPlaceAttributeMap(place);
             // Fallback UI using place properties
             content.innerHTML = `
@@ -30356,7 +30576,7 @@ function setImportPanelVisibility(show) {
                 </div>
             `;
             content.querySelector("#searchPlaceDirectionsBtn")?.addEventListener("click", (event) => {
-                getDirections(place.coordinate.latitude, place.coordinate.longitude, { trigger: event.currentTarget });
+                openDirectionsPlanner(place, { trigger: event.currentTarget });
             });
             content.querySelector("#searchPlaceAddBtn")?.addEventListener("click", () => {
                 addSearchPlaceToCurrentProject(place);
@@ -30761,6 +30981,157 @@ function setImportPanelVisibility(show) {
         let directionsRequestId = 0;
         let lastDirectionsDestination = null;
         let lastDirectionsTrigger = null;
+        let lastDirectionsPlace = null;
+        let lastDirectionsRequestOptions = null;
+
+        function getDirectionsTransport(value) {
+            return {
+                walking: mapkit.Directions.Transport.Walking,
+                transit: mapkit.Directions.Transport.Transit,
+                driving: mapkit.Directions.Transport.Automobile
+            }[value] || mapkit.Directions.Transport.Automobile;
+        }
+
+        async function resolveDirectionsOrigin(query) {
+            const places = await searchPlaces(query);
+            return places.find((place) => place?.coordinate) || null;
+        }
+
+        function openDirectionsPlanner(place, { trigger = null } = {}) {
+            if (!place?.coordinate) return;
+            directionsRequestId += 1;
+            lastDirectionsPlace = place;
+            lastDirectionsDestination = {
+                latitude: place.coordinate.latitude,
+                longitude: place.coordinate.longitude
+            };
+            if (trigger instanceof HTMLButtonElement) lastDirectionsTrigger = trigger;
+            const sidebarContent = document.getElementById("sidebar-content");
+            if (!sidebarContent) return;
+            document.getElementById("sidebar")?.classList.add("directions-open");
+            const destinationName = place.name || "Selected place";
+            const destinationAddress = place.formattedAddress || "";
+            sidebarContent.innerHTML = `
+                <form id="directionsPlanner" class="directions-planner" aria-labelledby="directionsPlannerTitle">
+                    <div class="directions-planner-header">
+                        <div>
+                            <h3 id="directionsPlannerTitle">Plan a route</h3>
+                            <p>To ${escapeHtml(destinationName)}${destinationAddress ? `<br>${escapeHtml(destinationAddress)}` : ""}</p>
+                        </div>
+                        <button id="directionsPlannerClose" class="directions-close" type="button" aria-label="Close route planner">×</button>
+                    </div>
+                    <fieldset class="directions-fieldset">
+                        <legend>Start</legend>
+                        <div class="directions-choice-grid">
+                            <label class="directions-choice"><input type="radio" name="directionsOriginMode" value="location" checked> My location</label>
+                            <label class="directions-choice"><input type="radio" name="directionsOriginMode" value="search"> Enter a place</label>
+                        </div>
+                    </fieldset>
+                    <div id="directionsOriginField" class="directions-field" hidden>
+                        <label for="directionsOriginInput">Starting place</label>
+                        <input id="directionsOriginInput" class="directions-input" type="search" autocomplete="street-address" enterkeyhint="search" placeholder="Address or place name" aria-describedby="directionsOriginHelp directionsFormStatus">
+                        <p id="directionsOriginHelp" class="directions-field-help">We’ll use the closest matching place.</p>
+                    </div>
+                    <fieldset class="directions-fieldset">
+                        <legend>Travel by</legend>
+                        <div class="directions-choice-grid directions-mode-grid">
+                            <label class="directions-choice"><input type="radio" name="directionsTravelMode" value="driving" checked> Drive</label>
+                            <label class="directions-choice"><input type="radio" name="directionsTravelMode" value="walking"> Walk</label>
+                            <label class="directions-choice"><input type="radio" name="directionsTravelMode" value="transit"> Transit</label>
+                        </div>
+                    </fieldset>
+                    <p id="directionsFormStatus" class="directions-form-status" role="status" aria-live="polite" aria-atomic="true">Location is requested only after you choose Show route.</p>
+                    <button id="directionsSubmitBtn" class="directions-submit" type="submit">Show route</button>
+                </form>
+            `;
+            setSidebarVisibility(true);
+
+            const form = sidebarContent.querySelector("#directionsPlanner");
+            const originField = sidebarContent.querySelector("#directionsOriginField");
+            const originInput = sidebarContent.querySelector("#directionsOriginInput");
+            const status = sidebarContent.querySelector("#directionsFormStatus");
+            const submit = sidebarContent.querySelector("#directionsSubmitBtn");
+            const originChoices = Array.from(form?.elements?.directionsOriginMode || []);
+
+            function closePlanner() {
+                directionsRequestId += 1;
+                setDirectionsTriggerBusy(lastDirectionsTrigger, false);
+                showSidebar(lastDirectionsPlace);
+                if (lastDirectionsTrigger?.isConnected) lastDirectionsTrigger.focus();
+            }
+
+            originChoices.forEach((choice) => choice.addEventListener("change", () => {
+                const useSearch = choice.checked && choice.value === "search";
+                if (!choice.checked) return;
+                originField.hidden = !useSearch;
+                status.textContent = useSearch
+                    ? "Enter a starting place, then choose Show route."
+                    : "Location is requested only after you choose Show route.";
+                if (useSearch) originInput.focus();
+            }));
+            originInput?.addEventListener("input", () => {
+                originInput.removeAttribute("aria-invalid");
+                status.textContent = "Enter a starting place, then choose Show route.";
+            });
+            sidebarContent.querySelector("#directionsPlannerClose")?.addEventListener("click", closePlanner);
+            form?.addEventListener("submit", async (event) => {
+                event.preventDefault();
+                const originMode = form.elements.directionsOriginMode.value;
+                const travelMode = form.elements.directionsTravelMode.value;
+                let origin = null;
+                submit.disabled = true;
+                submit.setAttribute("aria-busy", "true");
+                submit.textContent = originMode === "search" ? "Finding start…" : "Finding location…";
+                status.textContent = submit.textContent;
+                if (originMode === "search") {
+                    const query = originInput.value.trim();
+                    if (query.length < 2) {
+                        originInput.setAttribute("aria-invalid", "true");
+                        status.textContent = "Enter at least two characters for the starting place.";
+                        submit.disabled = false;
+                        submit.setAttribute("aria-busy", "false");
+                        submit.textContent = "Show route";
+                        originInput.focus();
+                        return;
+                    }
+                    origin = await resolveDirectionsOrigin(query);
+                    if (!origin) {
+                        originInput.setAttribute("aria-invalid", "true");
+                        status.textContent = "We couldn’t find that starting place. Try a fuller address or nearby landmark.";
+                        submit.disabled = false;
+                        submit.setAttribute("aria-busy", "false");
+                        submit.textContent = "Show route";
+                        originInput.focus();
+                        return;
+                    }
+                } else {
+                    try {
+                        const coordinate = await requestMapLocation({ center: false, announce: false });
+                        origin = { coordinate, name: "My location" };
+                    } catch (error) {
+                        originField.hidden = false;
+                        const locationChoice = originChoices.find((choice) => choice.value === "location");
+                        const searchChoice = originChoices.find((choice) => choice.value === "search");
+                        if (locationChoice) locationChoice.checked = false;
+                        if (searchChoice) searchChoice.checked = true;
+                        status.textContent = "Location access is unavailable. Enter a starting place instead.";
+                        submit.disabled = false;
+                        submit.setAttribute("aria-busy", "false");
+                        submit.textContent = "Show route";
+                        originInput.focus();
+                        return;
+                    }
+                }
+                getDirections(place.coordinate.latitude, place.coordinate.longitude, {
+                    trigger: lastDirectionsTrigger,
+                    origin: origin.coordinate,
+                    transportType: getDirectionsTransport(travelMode),
+                    destinationName,
+                    originName: origin.name || origin.formattedAddress || originInput.value.trim()
+                });
+            });
+            form?.querySelector('input[name="directionsOriginMode"]')?.focus();
+        }
 
         function setDirectionsTriggerBusy(trigger, busy) {
             if (!(trigger instanceof HTMLButtonElement)) return;
@@ -30795,7 +31166,7 @@ function setImportPanelVisibility(show) {
             `;
             statusRegion.querySelector("#directionsRetryBtn")?.addEventListener("click", () => {
                 const { latitude, longitude } = lastDirectionsDestination;
-                getDirections(latitude, longitude);
+                getDirections(latitude, longitude, lastDirectionsRequestOptions || {});
             });
             statusRegion.querySelector("#directionsCloseBtn")?.addEventListener("click", () => {
                 directionsRequestId += 1;
@@ -30818,9 +31189,16 @@ function setImportPanelVisibility(show) {
             });
         }
 
-        async function getDirections(destLat, destLon, { trigger = null } = {}) {
+        async function getDirections(destLat, destLon, {
+            trigger = null,
+            origin = null,
+            transportType = mapkit.Directions.Transport.Automobile,
+            destinationName = "Destination",
+            originName = "My location"
+        } = {}) {
             const requestId = ++directionsRequestId;
             lastDirectionsDestination = { latitude: destLat, longitude: destLon };
+            lastDirectionsRequestOptions = { trigger, origin, transportType, destinationName, originName };
             if (trigger instanceof HTMLButtonElement && trigger.id === "searchPlaceDirectionsBtn") {
                 lastDirectionsTrigger = trigger;
             }
@@ -30828,30 +31206,30 @@ function setImportPanelVisibility(show) {
             renderDirectionsStatus({
                 state: "loading",
                 title: "Getting directions…",
-                message: "Finding a driving route from your current location.",
+                message: `Finding a route from ${originName} to ${destinationName}.`,
                 requestId
             });
 
-            if (!myLocationCoord) {
+            let routeOrigin = origin;
+            if (!routeOrigin && !myLocationCoord) {
                 try {
-                    await requestMapLocation({ center: false });
+                    routeOrigin = await requestMapLocation({ center: false, announce: false });
                 } catch (error) {
                     console.error("Geolocation error:", error);
-                    failDirections(requestId, "Your location could not be used. Check browser location access, then try again.");
+                    openDirectionsPlanner(lastDirectionsPlace, { trigger: lastDirectionsTrigger });
                     return;
                 }
                 if (requestId !== directionsRequestId) return;
             }
 
             const directions = new mapkit.Directions();
-            const origin = myLocationCoord;
             const destination = new mapkit.Coordinate(destLat, destLon);
 
             const request = {
-                origin: origin,
+                origin: routeOrigin || myLocationCoord,
                 destination: destination,
                 requestsAlternateRoutes: true,
-                transportType: mapkit.Directions.Transport.Automobile
+                transportType
             };
 
             directions.route(request, (error, data) => {
@@ -30914,31 +31292,55 @@ function setImportPanelVisibility(show) {
                         const arrivalTimeStr = arrivalTime.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         const routeName = route.name || "Unnamed Route";
                         const mode = {
-                            [mapkit.Directions.Transport.Automobile]: "Automobile",
-                            [mapkit.Directions.Transport.Walking]: "Walking",
+                            [mapkit.Directions.Transport.Automobile]: "Drive",
+                            [mapkit.Directions.Transport.Walking]: "Walk",
                             [mapkit.Directions.Transport.Transit]: "Transit"
-                        }[route.transportType] || "Unknown";
+                        }[route.transportType] || "Route";
 
                         sidebarContent.innerHTML = `
-                            <p>⏱️ Estimated Time: ${durationMinutes} min</p>
-                            <p>📏 Distance: ${distanceKm} km</p>
-                            <p>🕒 Arrive by: ${arrivalTimeStr}</p>
-                            <p>🛣️ Route: ${routeName}</p>
-                            <p>🚗 Mode: ${mode}</p>
-                            <label for="langSelect">🌐 Language:</label>
-                            <select id="langSelect">
-                                <option value="en-US">English</option>
-                                <option value="fr-FR">French</option>
-                                <option value="hi-IN">Hindi</option>
-                            </select>
-                            <br><br>
-                            <button id="startVoiceNav" type="button">▶️ Start Voice Navigation</button>
-                            <button id="stopVoiceNav" type="button">⛔ Stop Voice</button>
+                            <section class="directions-summary" aria-labelledby="directionsSummaryTitle">
+                                <div class="directions-planner-header">
+                                    <div>
+                                        <h3 id="directionsSummaryTitle">Route to ${escapeHtml(destinationName)}</h3>
+                                        <p>${escapeHtml(originName)} · ${escapeHtml(routeName)}</p>
+                                    </div>
+                                    <button id="directionsSummaryClose" class="directions-close" type="button" aria-label="Close directions">×</button>
+                                </div>
+                                <div class="directions-route-facts" aria-label="Route summary">
+                                    <div class="directions-route-fact"><span>Time</span><strong>${durationMinutes} min</strong></div>
+                                    <div class="directions-route-fact"><span>Distance</span><strong>${distanceKm} km</strong></div>
+                                    <div class="directions-route-fact"><span>Arrive</span><strong>${arrivalTimeStr}</strong></div>
+                                </div>
+                                <p>${mode} route. Select another line on the map to compare alternate routes.</p>
+                                <div class="directions-field">
+                                    <label for="langSelect">Voice language</label>
+                                    <select id="langSelect" class="directions-input">
+                                        <option value="en-US">English</option>
+                                        <option value="fr-FR">French</option>
+                                        <option value="hi-IN">Hindi</option>
+                                    </select>
+                                </div>
+                                <div class="workspace-inline-actions">
+                                    <button id="startVoiceNav" type="button" class="mini-btn primary">Start voice</button>
+                                    <button id="stopVoiceNav" type="button" class="mini-btn">Stop voice</button>
+                                    <button id="changeRouteBtn" type="button" class="mini-btn">Change route</button>
+                                </div>
+                            </section>
                         `;
                         document.getElementById("startVoiceNav").addEventListener("click", (event) => {
                             startVoiceNavigation(route.steps, { trigger: event.currentTarget });
                         });
                         document.getElementById("stopVoiceNav").addEventListener("click", () => stopVoice());
+                        document.getElementById("changeRouteBtn").addEventListener("click", (event) => {
+                            openDirectionsPlanner(lastDirectionsPlace, { trigger: event.currentTarget });
+                        });
+                        document.getElementById("directionsSummaryClose").addEventListener("click", () => {
+                            directionsRequestId += 1;
+                            allRouteOverlays.forEach((overlay) => map.removeOverlay(overlay));
+                            allRouteOverlays = [];
+                            window.currentRouteData = null;
+                            showSidebar(lastDirectionsPlace);
+                        });
                         setVoiceNavigationControls();
                     }
                 });
