@@ -10450,11 +10450,9 @@
         #advancedGisPanel .advanced-gis-command:disabled {
             display: none;
         }
-        #advancedGisPanel [data-gis-tool="select-all"],
-        #advancedGisPanel [data-gis-tool="select-visible"],
-        #advancedGisPanel [data-gis-tool="select-attribute"],
-        #advancedGisPanel [data-gis-tool="select-invert"],
-        #advancedGisPanel [data-gis-tool="select-clear"],
+        #advancedGisPanel .advanced-gis-command[data-gis-tool="buffer"]:disabled {
+            display: grid;
+        }
         #advancedGisPanel [data-gis-tool="photo-import"] {
             display: none;
         }
@@ -11287,34 +11285,6 @@
             </div>
         </div>
         <div class="advanced-gis-desktop-content">
-            <section class="advanced-gis-command-section" aria-labelledby="advancedGisSelectionHeading">
-                <h4 id="advancedGisSelectionHeading" class="advanced-gis-section-heading">
-                    <span>Selection</span>
-                    <span id="advancedGisSelectionStatus" class="advanced-gis-selection-status" hidden></span>
-                </h4>
-                <div class="advanced-gis-command-list">
-                    <button type="button" class="advanced-gis-command" data-gis-tool="select-all">
-                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="3"></rect><path d="M8 12l3 3 5-6"></path></svg></span>
-                        <span>Select All</span>
-                    </button>
-                    <button type="button" class="advanced-gis-command" data-gis-tool="select-visible">
-                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 12s3.5-6 9-6 9 6 9 6-3.5 6-9 6-9-6-9-6z"></path><circle cx="12" cy="12" r="2.5"></circle></svg></span>
-                        <span>Select Visible</span>
-                    </button>
-                    <button type="button" class="advanced-gis-command" data-gis-tool="select-attribute">
-                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 6h10"></path><path d="M4 11h7"></path><path d="M4 16h5"></path><circle cx="16" cy="15" r="3"></circle><path d="M18.2 17.2L21 20"></path></svg></span>
-                        <span>Select by Attribute…</span>
-                    </button>
-                    <button type="button" class="advanced-gis-command" data-gis-tool="select-invert">
-                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 7h11l-3-3"></path><path d="M17 17H6l3 3"></path><path d="M18 7l-3 3"></path><path d="M6 17l3-3"></path></svg></span>
-                        <span>Invert Selection</span>
-                    </button>
-                    <button type="button" class="advanced-gis-command" data-gis-tool="select-clear">
-                        <span class="advanced-gis-command-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"></circle><path d="M9 9l6 6"></path><path d="M15 9l-6 6"></path></svg></span>
-                        <span>Clear Selection</span>
-                    </button>
-                </div>
-            </section>
             <section id="advancedGisGeometrySection" class="advanced-gis-command-section" aria-labelledby="advancedGisGeometryHeading">
                 <h4 id="advancedGisGeometryHeading" class="advanced-gis-section-heading"><span>Geometry</span></h4>
                 <div class="advanced-gis-command-list">
@@ -11419,17 +11389,6 @@
                     <button type="button" data-gis-tool="export-layer"><span class="advanced-gis-icon">⇩</span><span>Layer GeoJSON</span></button>
                     <button type="button" data-gis-tool="export-selected"><span class="advanced-gis-icon">◫</span><span>Selected</span></button>
                     <button type="button" data-gis-tool="export-csv"><span class="advanced-gis-icon">▤</span><span>Layer CSV</span></button>
-                </div>
-            </div>
-            <div class="advanced-gis-section">
-                <h4>Selection</h4>
-                <div class="advanced-gis-grid">
-                    <button type="button" data-gis-tool="select-all"><span class="advanced-gis-icon">☑</span><span>All</span></button>
-                    <button type="button" data-gis-tool="select-visible"><span class="advanced-gis-icon">▣</span><span>Visible</span></button>
-                    <button type="button" data-gis-tool="select-attribute"><span class="advanced-gis-icon">ƒ</span><span>By Field</span></button>
-                    <button type="button" data-gis-tool="select-invert"><span class="advanced-gis-icon">⇄</span><span>Invert</span></button>
-                    <button type="button" data-gis-tool="select-clear"><span class="advanced-gis-icon">⊘</span><span>Clear</span></button>
-                    <button type="button" data-gis-tool="copy-geometry"><span class="advanced-gis-icon">⧉</span><span>Copy Coords</span></button>
                 </div>
             </div>
             <div class="advanced-gis-section">
@@ -12543,7 +12502,6 @@
         const advancedGisEmptyDescription = document.getElementById("advancedGisEmptyDescription");
         const advancedGisCreateProjectBtn = document.getElementById("advancedGisCreateProjectBtn");
         const advancedGisImportProjectBtn = document.getElementById("advancedGisImportProjectBtn");
-        const advancedGisSelectionStatus = document.getElementById("advancedGisSelectionStatus");
         const advancedGisGeometrySection = document.getElementById("advancedGisGeometrySection");
         const advancedGisMoreBtn = document.getElementById("advancedGisMoreBtn");
         const advancedGisMoreCommands = document.getElementById("advancedGisMoreCommands");
@@ -19377,10 +19335,6 @@
                     ? `${layer.name} · ${geometryType[0]?.toUpperCase() || ""}${geometryType.slice(1)}`
                     : "No active layer";
                 advancedGisLayerContext.title = layer?.name || "";
-            }
-            if (advancedGisSelectionStatus) {
-                advancedGisSelectionStatus.hidden = count === 0;
-                advancedGisSelectionStatus.textContent = `${count} selected`;
             }
             if (advancedGisGeometrySection) advancedGisGeometrySection.hidden = !hasLayer;
 
