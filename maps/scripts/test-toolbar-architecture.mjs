@@ -62,7 +62,7 @@ assertContains(
   "Toolbar Layers button should use the same behavior as the existing map layers button.",
 );
 assertContains(
-  /function openBasemapControls\(\) \{[\s\S]*?const desktop = window\.matchMedia\("\(min-width: 601px\)"\)\.matches;[\s\S]*?\(toolbarMoreBtn \|\| toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\("basemap", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
+  /function openBasemapControls\(\) \{[\s\S]*?const desktop = window\.matchMedia\("\(min-width: 601px\)"\)\.matches;[\s\S]*?\(toolbarBasemapBtn \|\| settingsBtn\)[\s\S]*?openToolbarMenu\("basemap", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/s,
   "Toolbar Basemap should open the focused Basemap pane on desktop and mobile.",
 );
 assertContains(

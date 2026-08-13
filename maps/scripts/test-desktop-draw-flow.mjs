@@ -42,7 +42,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /if \(event\.key === "Escape"\) \{[\s\S]*?addActionPopover[\s\S]*?toolbarMorePopover[\s\S]*?isAddingSurveyPoint[\s\S]*?cancelActiveFeaturePlacement\(\);[\s\S]*?selectedTableRows\?\.size \|\| activeSurveyAnnotation[\s\S]*?clearTableSelection\(\);/,
+  /if \(event\.key === "Escape"\) \{[\s\S]*?addActionPopover[\s\S]*?mobileSelectPopover[\s\S]*?isAddingSurveyPoint[\s\S]*?cancelActiveFeaturePlacement\(\);[\s\S]*?selectedTableRows\?\.size \|\| activeSurveyAnnotation[\s\S]*?clearTableSelection\(\);/,
   "Escape should close popovers first, then cancel drawing, then clear selection.",
 );
 assert.match(

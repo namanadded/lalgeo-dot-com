@@ -48,8 +48,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /class="advanced-gis-desktop-content"[\s\S]*?>Selection<[\s\S]*?>Select All<[\s\S]*?>Select Visible<[\s\S]*?>Select by Attribute…<[\s\S]*?>Invert Selection<[\s\S]*?>Clear Selection<[\s\S]*?>Geometry<[\s\S]*?>Buffer…<[\s\S]*?>Merge<[\s\S]*?>Simplify…<[\s\S]*?id="advancedGisMoreBtn"[\s\S]*?>More<[\s\S]*?>Data<[\s\S]*?>Style by Attribute…<[\s\S]*?id="advancedGisExportBtn"[\s\S]*?>Export…<[\s\S]*?>Download for Offline Use…</,
-  "Desktop Tools should present compact Selection, Geometry, and Data command sections."
+  /class="advanced-gis-desktop-content"[\s\S]*?>Geometry<[\s\S]*?>Buffer…<[\s\S]*?>Merge<[\s\S]*?>Simplify…<[\s\S]*?id="advancedGisMoreBtn"[\s\S]*?>More<[\s\S]*?>Data<[\s\S]*?>Style by Attribute…<[\s\S]*?id="advancedGisExportBtn"[\s\S]*?>Export…<[\s\S]*?>Download for Offline Use…</,
+  "Desktop Tools should present compact Geometry and Data command sections."
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="advancedGisSelectionHeading"|class="advanced-gis-section">\s*<h4>Selection<\/h4>/,
+  "Selection commands should stay in the primary Select action instead of appearing in Tools."
 );
 assert.match(
   legacyHtml,
@@ -58,8 +63,13 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /class="advanced-gis-mobile-content"[\s\S]*?>Layer GeoJSON<[\s\S]*?>Selected<[\s\S]*?>Layer CSV<[\s\S]*?>All<[\s\S]*?>Visible<[\s\S]*?>By Field<[\s\S]*?>Cut Hole<[\s\S]*?>Offline Pack</,
+  /class="advanced-gis-mobile-content"[\s\S]*?>Layer GeoJSON<[\s\S]*?>Selected<[\s\S]*?>Layer CSV<[\s\S]*?>Buffer<[\s\S]*?>Cut Hole<[\s\S]*?>Offline Pack</,
   "The existing mobile Tools grid and labels should remain available."
+);
+assert.match(
+  legacyHtml,
+  /#advancedGisPanel \.advanced-gis-command\[data-gis-tool="buffer"\]:disabled\s*\{\s*display:\s*grid;/,
+  "Mobile Tools should keep Buffer visible while it waits for a feature selection."
 );
 assert.match(
   legacyHtml,

@@ -51,7 +51,7 @@ assert.match(
 );
 assert.match(
   source,
-  /mobileBasemapCloseBtn\?\.addEventListener\("click",[\s\S]*?setToolbarMenuVisibility\(false\);[\s\S]*?toolbarMoreBtn\?\.focus\(\)/,
+  /mobileBasemapCloseBtn\?\.addEventListener\("click",[\s\S]*?setToolbarMenuVisibility\(false\);[\s\S]*?toolbarBasemapBtn\?\.focus\(\)/,
   "The close control should dismiss the sheet and restore focus.",
 );
 assert.match(

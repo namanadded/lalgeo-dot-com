@@ -27,8 +27,13 @@ assert.match(
 );
 assert.match(
   source,
-  /function setAdvancedGisVisible\(show, \{ restoreFocus = false \} = \{\}\)[\s\S]*?readyAction\?\.focus\(\)[\s\S]*?toolbarMoreBtn[\s\S]*?advancedGisBtn[\s\S]*?trigger\?\.focus\(\)/,
-  "Tools should focus the useful recovery action and restore focus to the visible trigger when closed.",
+  /function setAdvancedGisVisible\(show, \{ restoreFocus = false \} = \{\}\)[\s\S]*?advancedGisMeasureBtn\?\.focus\(\)[\s\S]*?advancedGisBtn\?\.focus\(\)/,
+  "Tools should focus Measure and restore focus to its visible trigger when closed.",
+);
+assert.match(
+  source,
+  /id="advancedGisGeneralHeading"[\s\S]*?id="advancedGisMeasureBtn"[^>]*aria-controls="measurementPanel"[^>]*aria-expanded="false"[\s\S]*?<span>Measure<\/span>/,
+  "Tools should expose Measure in a global General section before layer-dependent commands.",
 );
 assert.match(
   source,
