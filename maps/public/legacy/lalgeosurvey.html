@@ -19507,10 +19507,16 @@
         }
 
         function featureToGeoJsonFeature(feature) {
+            const properties = { ...(feature.attributes || {}) };
+            Object.entries(feature.sourcePropertyAliases || {}).forEach(([sourceName, alias]) => {
+                if (!Object.prototype.hasOwnProperty.call(properties, alias)) return;
+                properties[sourceName] = properties[alias];
+                delete properties[alias];
+            });
             return {
                 type: "Feature",
                 id: getGeoJsonExportId(feature),
-                properties: { ...(feature.attributes || {}) },
+                properties,
                 geometry: geometryToGeoJson(feature.geometry)
             };
         }
@@ -25842,19 +25848,38 @@
         function createGeospatialLayer(name, geometryType, sourceFeatures = []) {
             const defaultSchema = getDefaultLayerSchema(geometryType);
             const defaultNames = new Set(defaultSchema.map((field) => field.name));
+            const sourceNames = new Set(sourceFeatures.flatMap(({ properties = {} }) => Object.keys(properties)));
+            const reservedPropertyAliases = {};
+            sourceNames.forEach((sourceName) => {
+                if (!defaultNames.has(sourceName)) return;
+                let alias = `Source ${sourceName}`;
+                let suffix = 2;
+                while (defaultNames.has(alias) || sourceNames.has(alias) || Object.values(reservedPropertyAliases).includes(alias)) {
+                    alias = `Source ${sourceName} ${suffix}`;
+                    suffix += 1;
+                }
+                reservedPropertyAliases[sourceName] = alias;
+            });
             const propertyNames = [];
             sourceFeatures.forEach(({ properties = {} }) => {
                 Object.keys(properties).forEach((key) => {
-                    if (!key || defaultNames.has(key) || propertyNames.includes(key)) return;
-                    propertyNames.push(key);
+                    const fieldName = reservedPropertyAliases[key] || key;
+                    if (!fieldName || defaultNames.has(fieldName) || propertyNames.includes(fieldName)) return;
+                    propertyNames.push(fieldName);
                 });
             });
             const schema = cloneLayerSchema(defaultSchema).concat(propertyNames.map((name) => ({ name, type: "text", options: [], defaultValue: "", locked: false })));
             const features = sourceFeatures.map(({ geometry, properties = {}, showRepresentativeMarker, geoJsonId }, index) => {
+                const sourcePropertyAliases = Object.fromEntries(Object.entries(reservedPropertyAliases)
+                    .filter(([sourceName]) => Object.prototype.hasOwnProperty.call(properties, sourceName)));
+                const importedProperties = Object.fromEntries(Object.entries(properties).map(([key, value]) => [
+                    reservedPropertyAliases[key] || key,
+                    value
+                ]));
                 const attributes = Object.fromEntries(schema.map((field) => [
                     field.name,
-                    Object.prototype.hasOwnProperty.call(properties, field.name) && properties[field.name] !== undefined
-                        ? properties[field.name]
+                    Object.prototype.hasOwnProperty.call(importedProperties, field.name) && importedProperties[field.name] !== undefined
+                        ? importedProperties[field.name]
                         : ""
                 ]));
                 attributes.ID = attributes.ID || generateSurveyPointId();
@@ -25869,6 +25894,7 @@
                 return {
                     id: attributes.ID || generateWorkspaceId("feature"),
                     ...(geoJsonId !== undefined ? { geoJsonId } : {}),
+                    ...(Object.keys(sourcePropertyAliases).length ? { sourcePropertyAliases } : {}),
                     geometry,
                     showRepresentativeMarker,
                     attributes,
