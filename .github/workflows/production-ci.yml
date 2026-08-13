@@ -62,6 +62,10 @@ jobs:
         working-directory: maps
         run: npm run test:basemap-journey
 
+      - name: Check basemap Layers tab
+        working-directory: maps
+        run: npm run test:basemap-layers-tab
+
       - name: Check mobile selection inspector layout
         working-directory: maps
         run: npm run test:mobile-selection-inspector-layout
