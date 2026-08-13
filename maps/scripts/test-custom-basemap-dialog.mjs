@@ -34,7 +34,8 @@ assert.match(visibility, /setToolbarMoreVisibility\(false\)[\s\S]*?setToolbarMen
 assert.match(visibility, /updateMapTypeControls\(activeProjectRecord\)[\s\S]*?clearCustomBasemapFieldErrors\(\)[\s\S]*?customBasemapBackdrop\.hidden = false/, "Opening should populate current values and clear stale errors before showing the dialog.");
 assert.match(visibility, /Create or open a project before adding a custom basemap\./, "Opening must be blocked without an active project.");
 
-assert.match(source, /mapType === "custom" && !getCustomBasemapConfig\(\)[\s\S]*?openCustomBasemapDialog\(mapTypeButton\)/, "Selecting unconfigured Custom should open the dedicated dialog.");
+assert.match(source, /mapType === "custom" && !getCustomBasemapConfig\(\)[\s\S]*?requestCustomBasemapSetup\(mapTypeButton\)/, "Selecting unconfigured Custom should start the dedicated setup flow.");
+assert.match(source, /function requestCustomBasemapSetup[\s\S]*?pendingCustomBasemapSetup = true[\s\S]*?openCreateProjectModal\(\)[\s\S]*?function continuePendingCustomBasemapSetup[\s\S]*?openCustomBasemapDialog\(createProjectSubmitBtn\)/, "Custom should guide an empty workspace through project creation and then open its editor.");
 assert.match(source, /data-custom-basemap-edit[^>]*aria-label="Edit custom basemap"|aria-label="Edit custom basemap"[^>]*data-custom-basemap-edit/, "Configured Custom should provide an accessible Edit action.");
 assert.match(source, /data-custom-basemap-description>Connect an imagery or tile service<[\s\S]*?querySelectorAll\("\[data-custom-basemap-description\]"\)/, "The visible description markup and synchronization selector should share one data attribute.");
 

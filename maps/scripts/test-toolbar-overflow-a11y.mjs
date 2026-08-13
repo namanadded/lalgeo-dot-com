@@ -177,9 +177,10 @@ assertAttribute(moreButton, "aria-controls", "toolbarMorePopover", "More must id
 assertAttribute(moreButton, "aria-expanded", "false", "More must default to its collapsed state.");
 assert.match(
   mapGroup,
-  /id="toolbarMorePopover"[^>]*role="menu"[\s\S]*?id="toolbarMoreBasemapItem"[^>]*data-toolbar-target="toolbarBasemapBtn"[\s\S]*?<span>Basemap<\/span>[\s\S]*?id="toolbarMoreMeasureItem"[^>]*data-toolbar-target="measureToolBtn"[\s\S]*?<span>Measure<\/span>[\s\S]*?id="toolbarMoreGisItem"[^>]*data-toolbar-target="advancedGisBtn"[\s\S]*?<span>Tools<\/span>/,
-  "More popover should expose Basemap, Measure, and Tools using the existing controls as targets.",
+  /id="toolbarMorePopover"[^>]*role="menu"[\s\S]*?id="toolbarMoreMeasureItem"[^>]*data-toolbar-target="measureToolBtn"[\s\S]*?<span>Measure<\/span>[\s\S]*?id="toolbarMoreGisItem"[^>]*data-toolbar-target="advancedGisBtn"[\s\S]*?<span>Tools<\/span>/,
+  "More popover should expose Measure and Tools using the existing controls as targets.",
 );
+assert.doesNotMatch(mapGroup, /id="toolbarMoreBasemapItem"/, "Basemap should live in the Layers panel instead of More.");
 assert.match(
   legacyHtml,
   /toolbarMoreItems\.forEach\(\(item\) => \{[\s\S]*?const target = document\.getElementById\(item\.dataset\.toolbarTarget \|\| ""\);[\s\S]*?target\?\.click\(\);/,

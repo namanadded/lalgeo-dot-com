@@ -3708,7 +3708,7 @@
     }
     .sidebar-tabs {
         display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 4px;
         padding: 4px;
         border-radius: 12px;
@@ -3735,6 +3735,85 @@
         background: rgba(92, 200, 192, 0.14);
         color: #8ff0dc;
         box-shadow: inset 0 0 0 1px rgba(92, 200, 192, 0.2);
+    }
+    .sidebar-basemap-pane {
+        display: grid;
+        gap: 12px;
+    }
+    .sidebar-basemap-pane .basemap-menu-section {
+        display: grid;
+        gap: 4px;
+    }
+    .sidebar-basemap-pane .basemap-menu-section + .basemap-menu-section {
+        margin-top: 0;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-basemap-pane .basemap-menu-section-label {
+        padding: 0 4px 4px;
+    }
+    .sidebar-basemap-pane .basemap-menu-item {
+        display: grid;
+        grid-template-columns: 22px minmax(0, 1fr);
+        align-items: center;
+        gap: 8px;
+        width: 100%;
+        min-height: 52px;
+        padding: 7px 8px;
+        border: 0;
+        border-radius: 10px;
+        background: transparent;
+        color: #eef6fb;
+        font: inherit;
+        text-align: left;
+        cursor: pointer;
+    }
+    .sidebar-basemap-pane .basemap-menu-item:hover,
+    .sidebar-basemap-pane .basemap-menu-item:focus-visible {
+        outline: none;
+        background: rgba(255,255,255,0.07);
+    }
+    .sidebar-basemap-pane .basemap-menu-item:disabled {
+        cursor: default;
+        opacity: 0.72;
+    }
+    .sidebar-basemap-pane .basemap-menu-check {
+        color: #8ff0dc;
+        font-weight: 800;
+        opacity: 0;
+        text-align: center;
+    }
+    .sidebar-basemap-pane .basemap-menu-item.active .basemap-menu-check {
+        opacity: 1;
+    }
+    .sidebar-basemap-pane .basemap-menu-copy {
+        min-width: 0;
+        display: grid;
+        gap: 2px;
+    }
+    .sidebar-basemap-pane .basemap-menu-name {
+        color: inherit;
+        font-size: 14px;
+        font-weight: 700;
+    }
+    .sidebar-basemap-pane .basemap-menu-description {
+        color: #97aabd;
+        font-size: 12px;
+        font-weight: 450;
+        line-height: 1.35;
+    }
+    .sidebar-basemap-pane .custom-basemap-edit-command {
+        justify-self: end;
+        min-height: 34px;
+        padding: 0 12px;
+        border: 1px solid rgba(255,255,255,0.12);
+        border-radius: 9px;
+        background: rgba(255,255,255,0.05);
+        color: #eef6fb;
+        cursor: pointer;
+    }
+    .sidebar-basemap-pane .custom-basemap-opacity {
+        padding: 8px;
     }
     .selection-pane-actions {
         display: grid;
@@ -7407,6 +7486,27 @@
         background: #fff;
         color: #374151;
         box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+    #sidebar .sidebar-basemap-pane .basemap-menu-section + .basemap-menu-section {
+        border-top-color: #e5e7eb;
+    }
+    #sidebar .sidebar-basemap-pane .basemap-menu-item {
+        color: #374151;
+    }
+    #sidebar .sidebar-basemap-pane .basemap-menu-item:hover,
+    #sidebar .sidebar-basemap-pane .basemap-menu-item:focus-visible {
+        background: #f9fafb;
+    }
+    #sidebar .sidebar-basemap-pane .basemap-menu-check {
+        color: #0f766e;
+    }
+    #sidebar .sidebar-basemap-pane .basemap-menu-description {
+        color: #6b7280;
+    }
+    #sidebar .sidebar-basemap-pane .custom-basemap-edit-command {
+        border-color: #d1d5db;
+        background: #fff;
+        color: #374151;
     }
     #sidebar .selection-layer-row {
         background: #fff;
@@ -11136,14 +11236,6 @@
                             <span class="quick-action-label">More</span>
                         </button>
                         <div id="toolbarMorePopover" class="toolbar-more-popover" role="menu" aria-label="More map tools" hidden>
-                            <button id="toolbarMoreBasemapItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="toolbarBasemapBtn">
-                                <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M9 18l-6 3V6l6-3 6 3 6-3v15l-6 3-6-3z"></path>
-                                    <path d="M9 3v15"></path>
-                                    <path d="M15 6v15"></path>
-                                </svg>
-                                <span>Basemap</span>
-                            </button>
                             <button id="toolbarMoreMeasureItem" type="button" class="toolbar-more-item" role="menuitem" data-toolbar-target="measureToolBtn">
                                 <svg class="toolbar-icon" viewBox="0 0 24 24" aria-hidden="true">
                                     <path d="M4 15l9-9 7 7-9 9-7-7z"></path>
@@ -12122,6 +12214,7 @@
             <div id="sidebarTabs" class="sidebar-tabs" role="tablist" aria-label="Layer panel views">
                 <button id="sidebarLayersTab" type="button" class="sidebar-tab active" role="tab" data-sidebar-tab="layers" aria-selected="true" aria-controls="sidebar-content">Layers</button>
                 <button id="sidebarSelectionTab" type="button" class="sidebar-tab" role="tab" data-sidebar-tab="selection" aria-selected="false" aria-controls="sidebar-content">Selection</button>
+                <button id="sidebarBasemapTab" type="button" class="sidebar-tab" role="tab" data-sidebar-tab="basemap" aria-selected="false" aria-controls="sidebar-content">Basemap</button>
             </div>
             <div id="sidebar-content"></div>
         </div>
@@ -12455,6 +12548,7 @@
         let customBasemapTileErrorCount = 0;
         let customBasemapDialogReturnFocus = null;
         let customBasemapBackgroundElements = [];
+        let pendingCustomBasemapSetup = false;
         let measurementReturnFocus = null;
         let measurementActive = false;
         let measurementMode = "distance";
@@ -14855,11 +14949,7 @@
                 setCommandAvailabilityState(button, enabled, reason);
             });
             document.querySelectorAll("[data-custom-basemap-choice]").forEach((button) => {
-                setCommandAvailabilityState(
-                    button,
-                    hasProject,
-                    "Create or open a project before adding a custom basemap."
-                );
+                setCommandAvailabilityState(button, true, "");
             });
             updatePopoutsMenuState();
             syncMobileMenuCommandStates();
@@ -15413,6 +15503,10 @@
             if (label) label.textContent = `${visible ? "✓" : ""} Show POIs in Basemap`;
             desktopBasemapPoisBtn?.classList.toggle("active", visible);
             desktopBasemapPoisBtn?.setAttribute("aria-checked", visible ? "true" : "false");
+            sidebarContent?.querySelectorAll("[data-basemap-pois-proxy]").forEach((button) => {
+                button.classList.toggle("active", visible);
+                button.setAttribute("aria-checked", visible ? "true" : "false");
+            });
         }
 
         function updateMapTypeControls(project = activeProjectRecord) {
@@ -15451,6 +15545,11 @@
                 button.classList.toggle("active", type === selectedType);
             });
             desktopBasemapStyleList?.querySelectorAll("[data-map-type]").forEach((button) => {
+                const selected = button.getAttribute("data-map-type") === selectedType;
+                button.classList.toggle("active", selected);
+                button.setAttribute("aria-checked", selected ? "true" : "false");
+            });
+            sidebarContent?.querySelectorAll("[data-map-type]").forEach((button) => {
                 const selected = button.getAttribute("data-map-type") === selectedType;
                 button.classList.toggle("active", selected);
                 button.setAttribute("aria-checked", selected ? "true" : "false");
@@ -15651,6 +15750,25 @@
             document.addEventListener("keydown", trapCustomBasemapDialogFocus, true);
             const config = getCustomBasemapConfig();
             window.requestAnimationFrame(() => (config ? customBasemapUrlInput : customBasemapNameInput)?.focus());
+        }
+
+        function requestCustomBasemapSetup(trigger = document.activeElement) {
+            if (activeProjectRecord) {
+                openCustomBasemapDialog(trigger);
+                return;
+            }
+            pendingCustomBasemapSetup = true;
+            setSidebarVisibility(false);
+            setToolbarMenuVisibility(false);
+            setToolbarMoreVisibility(false);
+            openCreateProjectModal();
+            setProjectStatus("Create a project, then add your custom basemap.");
+        }
+
+        function continuePendingCustomBasemapSetup() {
+            if (!pendingCustomBasemapSetup || !activeProjectRecord) return;
+            pendingCustomBasemapSetup = false;
+            window.requestAnimationFrame(() => openCustomBasemapDialog(createProjectSubmitBtn));
         }
 
         function openCustomBasemapDialog(trigger = document.activeElement) {
@@ -15961,8 +16079,60 @@
             );
         }
 
+        function getSidebarTabLabelId(tabName = activeSidebarTab) {
+            if (tabName === "selection") return "sidebarSelectionTab";
+            if (tabName === "basemap") return "sidebarBasemapTab";
+            return "sidebarLayersTab";
+        }
+
+        function renderSidebarBasemapPane() {
+            const config = getCustomBasemapConfig();
+            const customName = escapeHtml(config?.name || "Custom…");
+            const customDescription = activeProjectRecord
+                ? (config ? "Your saved imagery service" : "Connect an imagery or tile service")
+                : "Create a project, then connect a tile service";
+            const poisDisabled = activeProjectRecord ? "" : "disabled aria-disabled=\"true\"";
+            sidebarContent.innerHTML = `
+                <div class="workspace-sidebar-section sidebar-basemap-pane">
+                    <div class="basemap-menu-section" role="radiogroup" aria-label="Map style">
+                        <div class="basemap-menu-section-label">Map style</div>
+                        <button type="button" class="basemap-menu-item" data-map-type="standard" role="radio" aria-checked="false">
+                            <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                            <span class="basemap-menu-copy"><span class="basemap-menu-name">Standard</span><span class="basemap-menu-description">Roads, places, and boundaries</span></span>
+                        </button>
+                        <button type="button" class="basemap-menu-item" data-map-type="satellite" role="radio" aria-checked="false">
+                            <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                            <span class="basemap-menu-copy"><span class="basemap-menu-name">Satellite</span><span class="basemap-menu-description">Aerial imagery without labels</span></span>
+                        </button>
+                        <button type="button" class="basemap-menu-item" data-map-type="hybrid" role="radio" aria-checked="false">
+                            <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                            <span class="basemap-menu-copy"><span class="basemap-menu-name">Hybrid</span><span class="basemap-menu-description">Aerial imagery with map labels</span></span>
+                        </button>
+                        <button type="button" class="basemap-menu-item" data-map-type="custom" data-custom-basemap-choice role="radio" aria-checked="false">
+                            <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                            <span class="basemap-menu-copy"><span class="basemap-menu-name" data-custom-basemap-label>${customName}</span><span class="basemap-menu-description" data-custom-basemap-description>${escapeHtml(customDescription)}</span></span>
+                        </button>
+                        <button type="button" class="custom-basemap-edit-command" data-custom-basemap-edit ${config && activeProjectRecord ? "" : "hidden"}>Edit custom basemap…</button>
+                        <label class="custom-basemap-opacity" data-custom-basemap-opacity-control hidden>
+                            <span>Imagery opacity</span>
+                            <input type="range" min="20" max="100" step="10" value="90" data-custom-basemap-opacity aria-label="Custom basemap opacity">
+                        </label>
+                    </div>
+                    <div class="basemap-menu-section" role="group" aria-label="Map details">
+                        <div class="basemap-menu-section-label">Map details</div>
+                        <button type="button" class="basemap-menu-item" data-basemap-pois-proxy role="checkbox" aria-checked="true" ${poisDisabled}>
+                            <span class="basemap-menu-check" aria-hidden="true">✓</span>
+                            <span class="basemap-menu-copy"><span class="basemap-menu-name">Points of Interest</span><span class="basemap-menu-description">${activeProjectRecord ? "Show parks, landmarks, and businesses" : "Create or open a project first"}</span></span>
+                        </button>
+                    </div>
+                </div>
+            `;
+            updateMapTypeControls(activeProjectRecord);
+            updateBasemapPoisMenuState();
+        }
+
         function setSidebarTab(tabName) {
-            activeSidebarTab = tabName === "selection" ? "selection" : "layers";
+            activeSidebarTab = ["layers", "selection", "basemap"].includes(tabName) ? tabName : "layers";
             sidebarTabs?.querySelectorAll("[data-sidebar-tab]").forEach((button) => {
                 const active = button.dataset.sidebarTab === activeSidebarTab;
                 button.classList.toggle("active", active);
@@ -15982,7 +16152,11 @@
             });
             if (!activeProjectRecord) {
                 sidebarContent.setAttribute("role", "tabpanel");
-                sidebarContent.setAttribute("aria-labelledby", activeSidebarTab === "selection" ? "sidebarSelectionTab" : "sidebarLayersTab");
+                sidebarContent.setAttribute("aria-labelledby", getSidebarTabLabelId());
+                if (activeSidebarTab === "basemap") {
+                    renderSidebarBasemapPane();
+                    return;
+                }
                 sidebarContent.innerHTML = `
                     <p class="layer-pane-helper">Create or open a project from File to manage layers here.</p>
                 `;
@@ -15990,7 +16164,11 @@
             }
             const layers = activeProjectRecord.layers || [];
             sidebarContent.setAttribute("role", "tabpanel");
-            sidebarContent.setAttribute("aria-labelledby", activeSidebarTab === "selection" ? "sidebarSelectionTab" : "sidebarLayersTab");
+            sidebarContent.setAttribute("aria-labelledby", getSidebarTabLabelId());
+            if (activeSidebarTab === "basemap") {
+                renderSidebarBasemapPane();
+                return;
+            }
             if (activeSidebarTab === "selection") {
                 sidebarContent.innerHTML = `
                     <div class="workspace-sidebar-section selection-pane">
@@ -17314,8 +17492,9 @@
             }
         }
 
-        function closeCreateProjectModal() {
+        function closeCreateProjectModal({ preservePendingCustomBasemap = false } = {}) {
             if (createProjectModal) createProjectModal.hidden = true;
+            if (!preservePendingCustomBasemap) pendingCustomBasemapSetup = false;
         }
 
         function setFeatureDrawerMinimized(minimized) {
@@ -20532,8 +20711,9 @@
             createProjectNameInput?.focus();
         }
 
-        function closeCreateProjectModalFallback() {
+        function closeCreateProjectModalFallback({ preservePendingCustomBasemap = false } = {}) {
             if (createProjectModal) createProjectModal.hidden = true;
+            if (!preservePendingCustomBasemap) pendingCustomBasemapSetup = false;
         }
 
         function handleCreateProjectSubmitFallback(event) {
@@ -20542,10 +20722,11 @@
             const project = createProjectFromForm();
             if (!project) return;
             addProjectToWorkspace(project);
-            closeCreateProjectModalFallback();
+            closeCreateProjectModalFallback({ preservePendingCustomBasemap: true });
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
             setWorkspaceDirty(false);
+            continuePendingCustomBasemapSetup();
             if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 showWorkspaceHint("Click on the map to place your first feature.");
@@ -21522,7 +21703,7 @@
                 event.stopPropagation();
                 const mapType = mapTypeButton.getAttribute("data-map-type");
                 if (mapType === "custom" && !getCustomBasemapConfig()) {
-                    openCustomBasemapDialog(mapTypeButton);
+                    requestCustomBasemapSetup(mapTypeButton);
                     return;
                 }
                 setProjectMapType(mapType);
@@ -22071,10 +22252,11 @@
             const project = createProjectFromForm();
             if (!project) return;
             addProjectToWorkspace(project);
-            closeCreateProjectModal();
+            closeCreateProjectModal({ preservePendingCustomBasemap: true });
             setProjectStatus(`Created project ${project.name}.`, "success");
             setImportPanelVisibility(false);
             setWorkspaceDirty(false);
+            continuePendingCustomBasemapSetup();
             if ((getActiveLayerRecord()?.geometryType || "point") === "point" && !(currentSurveyData?.records || []).length) {
                 if (!isAddingSurveyPoint) toggleAddSurveyPointMode();
                 showWorkspaceHint("Click on the map to place your first feature.");
@@ -22192,11 +22374,23 @@
         sidebarTabs?.addEventListener("keydown", (event) => {
             if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
             event.preventDefault();
-            const nextTab = activeSidebarTab === "layers" ? "selection" : "layers";
+            const tabOrder = ["layers", "selection", "basemap"];
+            const direction = event.key === "ArrowRight" ? 1 : -1;
+            const currentIndex = Math.max(0, tabOrder.indexOf(activeSidebarTab));
+            const nextTab = tabOrder[(currentIndex + direction + tabOrder.length) % tabOrder.length];
             setSidebarTab(nextTab);
             sidebarTabs.querySelector(`[data-sidebar-tab="${nextTab}"]`)?.focus();
         });
+        sidebarContent?.addEventListener("input", (event) => {
+            const opacityInput = event.target.closest("[data-custom-basemap-opacity]");
+            if (opacityInput) setCustomBasemapOpacity(opacityInput.value);
+        });
         sidebarContent?.addEventListener("change", (event) => {
+            const opacityInput = event.target.closest("[data-custom-basemap-opacity]");
+            if (opacityInput) {
+                setCustomBasemapOpacity(opacityInput.value, { persist: true });
+                return;
+            }
             const checkbox = event.target.closest("[data-layer-selectable]");
             if (!checkbox) return;
             setLayerSelectable(checkbox.dataset.layerSelectable, checkbox.checked);
@@ -22206,6 +22400,25 @@
             );
         });
         sidebarContent?.addEventListener("click", (event) => {
+            const customBasemapEditButton = event.target.closest("[data-custom-basemap-edit]");
+            if (customBasemapEditButton) {
+                requestCustomBasemapSetup(customBasemapEditButton);
+                return;
+            }
+            const mapTypeButton = event.target.closest("[data-map-type]");
+            if (mapTypeButton) {
+                const mapType = mapTypeButton.getAttribute("data-map-type");
+                if (mapType === "custom" && !getCustomBasemapConfig()) {
+                    requestCustomBasemapSetup(mapTypeButton);
+                    return;
+                }
+                setProjectMapType(mapType);
+                return;
+            }
+            if (event.target.closest("[data-basemap-pois-proxy]")) {
+                if (activeProjectRecord) setProjectBasemapPoisVisible(!getProjectBasemapPoisVisible());
+                return;
+            }
             if (event.target.closest("[data-selection-all]")) {
                 setAllLayersSelectable(true);
                 return;
