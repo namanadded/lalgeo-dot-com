@@ -13260,6 +13260,8 @@
         let localAutosaveTimer = null;
         let isFeatureDrawerMinimized = false;
         let featureDrawerDragState = null;
+        let featureDrawerReturnFocus = null;
+        let featureDrawerReturnAction = null;
         let layerActionModalState = null;
         let deferredReloadPath = null;
         const USE_INLINE_FEATURE_CALLOUT = false;
@@ -17782,11 +17784,11 @@
                 return;
             }
             if (action === "properties" && Number.isInteger(rowIndex)) {
-                openFeaturePropertiesByRow(rowIndex);
+                openFeaturePropertiesByRow(rowIndex, button);
                 return;
             }
             if (action === "edit" && Number.isInteger(rowIndex)) {
-                openFeatureEditorByRow(rowIndex);
+                openFeatureEditorByRow(rowIndex, button);
                 return;
             }
             if (action === "merge") {
@@ -18093,7 +18095,6 @@
             const wasOpen = Boolean(featureDrawer?.classList.contains("open"));
             if (featureDrawer) {
                 featureDrawer.classList.remove("open");
-                setOffCanvasAccessibility(featureDrawer, false, mapElement);
             }
             if (clearSelection) {
                 activeFeatureId = null;
@@ -18102,6 +18103,17 @@
                 refreshAnnotationStyles();
             }
             renderSelectedFeatureInspector();
+            if (featureDrawer) {
+                const restoredMobileAction = featureDrawerReturnAction
+                    ? selectedFeatureInspector?.querySelector(`[data-mobile-selection-action="${featureDrawerReturnAction}"]`)
+                    : null;
+                const returnTarget = featureDrawerReturnFocus?.isConnected && featureDrawerReturnFocus.offsetParent !== null
+                    ? featureDrawerReturnFocus
+                    : restoredMobileAction || mapElement;
+                setOffCanvasAccessibility(featureDrawer, false, returnTarget);
+            }
+            featureDrawerReturnFocus = null;
+            featureDrawerReturnAction = null;
             if (
                 wasOpen
                 && window.matchMedia("(max-width: 600px)").matches
@@ -18239,7 +18251,7 @@
             setProjectStatus("Feature attributes autosaved.", "success");
         }
 
-        function renderFeatureDrawer({ newFeature = false, forceOpen = false } = {}) {
+        function renderFeatureDrawer({ newFeature = false, forceOpen = false, focusOnOpen = false, returnFocus = null, returnAction = null } = {}) {
             if (!featureDrawerBody || !featureDrawerMeta) return;
             if (
                 window.matchMedia("(max-width: 600px)").matches
@@ -18457,6 +18469,10 @@
                 setProjectStatus(editable ? "Feature details saved and closed." : "Feature details closed.", "success");
             });
             collapseSurveyTableForMobileFeatureDetails();
+            if (focusOnOpen) {
+                featureDrawerReturnFocus = returnFocus;
+                featureDrawerReturnAction = returnAction;
+            }
             featureDrawer.classList.add("open");
             setOffCanvasAccessibility(featureDrawer, true);
             renderSelectedFeatureInspector();
@@ -18464,21 +18480,29 @@
                 editFloatingPanel.hidden = true;
                 setEditPanelVisibility(false);
             }
+            if (focusOnOpen) {
+                window.requestAnimationFrame(() => {
+                    const focusTarget = editable
+                        ? featureDrawerBody.querySelector("[data-feature-field]:not([readonly]):not(:disabled)")
+                        : featureDrawerClose;
+                    focusTarget?.focus({ preventScroll: true });
+                });
+            }
         }
 
-        function openFeaturePropertiesByRow(rowIndex) {
+        function openFeaturePropertiesByRow(rowIndex, returnFocus = document.activeElement) {
             if (!Number.isInteger(rowIndex)) return;
             previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
-            renderFeatureDrawer({ forceOpen: true });
+            renderFeatureDrawer({ forceOpen: true, focusOnOpen: true, returnFocus, returnAction: "properties" });
         }
 
-        function openFeatureEditorByRow(rowIndex) {
+        function openFeatureEditorByRow(rowIndex, returnFocus = document.activeElement) {
             if (!Number.isInteger(rowIndex)) return;
             const layerId = activeSurveyAnnotation?.surveyPoint?.layerId || activeLayerId;
             previewAnnotationByRow(rowIndex, { preserveSelectionView: true });
             setEditSessionActive(true, { layerId });
             if (!editSessionActive) return;
-            renderFeatureDrawer({ forceOpen: true });
+            renderFeatureDrawer({ forceOpen: true, focusOnOpen: true, returnFocus, returnAction: "edit" });
         }
 
         function collapseSurveyTableForMobileFeatureDetails() {
