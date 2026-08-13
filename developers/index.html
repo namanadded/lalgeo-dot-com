@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>Developer API | LalGeo</title>
+  <meta name="description" content="Create maps, layers, and GeoJSON features with the LalGeo API for agents and developers.">
+  <style>
+    :root { --ink:#050505; --muted:#5f6266; --line:#dedede; --soft:#f5f5f3; --accent:#136f63; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#fff; font-family:Arial,Helvetica,sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:inherit; }
+    header { display:flex; align-items:center; justify-content:space-between; max-width:1120px; margin:auto; padding:28px 32px; border-bottom:1px solid var(--line); }
+    .brand { font-size:20px; font-weight:800; text-decoration:none; letter-spacing:-.04em; }
+    .toplinks { display:flex; gap:22px; color:var(--muted); font-size:14px; font-weight:700; }
+    main { max-width:1120px; margin:auto; padding:84px 32px 112px; }
+    .eyebrow { margin:0 0 24px; color:var(--accent); font-size:13px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; }
+    h1 { max-width:870px; margin:0; font-size:clamp(56px,8vw,94px); line-height:.94; letter-spacing:-.07em; }
+    .lede { max-width:760px; margin:36px 0 0; color:#303235; font-size:23px; line-height:1.42; }
+    .status { display:inline-flex; gap:9px; align-items:center; margin-top:30px; padding:9px 12px; background:#e7f5f0; color:#125e54; font-size:13px; font-weight:800; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#16806f; }
+    .grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.9fr); gap:64px; margin-top:88px; }
+    .grid > * { min-width:0; }
+    section { margin-bottom:72px; }
+    h2 { margin:0 0 17px; font-size:32px; letter-spacing:-.045em; }
+    h3 { margin:32px 0 10px; font-size:17px; }
+    p,li { color:#414347; font-size:16px; line-height:1.65; }
+    ol { padding-left:22px; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    pre { overflow:auto; margin:18px 0 0; padding:24px; border:1px solid #202020; color:#f6f6f6; background:#0b0c0d; font-size:13px; line-height:1.58; }
+    .endpoint { display:grid; grid-template-columns:68px 1fr; gap:12px; align-items:baseline; padding:15px 0; border-top:1px solid var(--line); }
+    .endpoint:last-child { border-bottom:1px solid var(--line); }
+    .method { color:var(--accent); font-size:12px; font-weight:900; letter-spacing:.08em; }
+    .path { overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px; }
+    .card { position:sticky; top:24px; padding:30px; background:var(--soft); }
+    .card code { overflow-wrap:anywhere; }
+    .card h2 { font-size:25px; }
+    .button { display:inline-flex; min-height:48px; align-items:center; justify-content:center; margin-top:18px; padding:12px 18px; border:1px solid var(--ink); color:#fff; background:var(--ink); font-weight:800; text-decoration:none; }
+    .note { padding:18px; border-left:3px solid var(--accent); background:#f3f9f7; }
+    footer { max-width:1120px; margin:auto; padding:32px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; }
+    @media(max-width:760px) {
+      header { padding:22px 20px; }
+      .toplinks a:first-child { display:none; }
+      main { padding:56px 20px 80px; }
+      h1 { font-size:clamp(50px,15vw,72px); }
+      .lede { font-size:20px; }
+      .grid { grid-template-columns:1fr; gap:0; margin-top:68px; }
+      .card { position:static; order:-1; margin-bottom:64px; }
+      pre { margin-left:-20px; margin-right:-20px; padding:20px; border-left:0; border-right:0; font-size:12px; }
+      footer { padding:28px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">LAL GEO</a>
+    <nav class="toplinks" aria-label="Developer navigation"><a href="https://maps.lalgeo.com/maps">Open Maps</a><a href="https://github.com/namanadded/lalgeo-dot-com">GitHub</a></nav>
+  </header>
+  <main>
+    <p class="eyebrow">Developer API · v1</p>
+    <h1>Maps that agents<br>can actually make.</h1>
+    <p class="lede">Create a map, organize it into geometry-safe layers, add standard GeoJSON, and export a portable project that opens in LalGeo Maps.</p>
+    <div class="status"><span class="dot"></span>Agent-ready REST + OpenAPI</div>
+
+    <div class="grid">
+      <div>
+        <section>
+          <h2>One predictable workflow</h2>
+          <ol><li>Create a map.</li><li>Add a <code>Point</code>, <code>LineString</code>, or <code>Polygon</code> layer.</li><li>Post GeoJSON features to that layer.</li><li>Export the finished map as a LalGeo project.</li></ol>
+          <pre><code>curl https://api.lalgeo.com/v1/maps \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "calgary_field_map",
+    "name": "Calgary field map",
+    "center": {"latitude": 51.0447, "longitude": -114.0719},
+    "zoom": 12
+  }'</code></pre>
+        </section>
+
+        <section>
+          <h2>Add real geography</h2>
+          <p>Features use ordinary GeoJSON: longitude first, latitude second. A layer enforces one geometry type so agent mistakes fail early and clearly.</p>
+          <pre><code>curl https://api.lalgeo.com/v1/maps/calgary_field_map/\
+layers/places/features \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Content-Type: application/geo+json" \
+  -d '{
+    "type": "Feature",
+    "id": "central_library",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-114.0510, 51.0453]
+    },
+    "properties": {"name": "Central Library"}
+  }'</code></pre>
+          <p class="note">Client-supplied IDs make agent retries safe and understandable. Duplicate IDs return <code>409 ID_CONFLICT</code> instead of silently duplicating data.</p>
+        </section>
+
+        <section>
+          <h2>API surface</h2>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps</span></div>
+          <div class="endpoint"><span class="method">GET</span><span class="path">/v1/maps</span></div>
+          <div class="endpoint"><span class="method">PATCH</span><span class="path">/v1/maps/{mapId}</span></div>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/layers</span></div>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/layers/{layerId}/features</span></div>
+          <div class="endpoint"><span class="method">GET</span><span class="path">/v1/maps/{mapId}/export</span></div>
+        </section>
+
+        <section>
+          <h2>Designed for safe automation</h2>
+          <p>Every data route uses a bearer API key. Keys are stored only as SHA-256 hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Errors return stable codes and a request ID.</p>
+        </section>
+      </div>
+
+      <aside>
+        <div class="card">
+          <p class="eyebrow">Machine discovery</p>
+          <h2>Give your agent the contract.</h2>
+          <p>The OpenAPI document contains named operations, authentication, inputs, limits, and error responses for every v1 route.</p>
+          <a class="button" href="https://api.lalgeo.com/v1/openapi.json">Open API specification&nbsp; →</a>
+          <h3>Base URL</h3><code>https://api.lalgeo.com</code>
+          <h3>Authentication</h3><code>Authorization: Bearer &lt;key&gt;</code>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <footer>LalGeo · Open mapping infrastructure for humans and agents.</footer>
+</body>
+</html>

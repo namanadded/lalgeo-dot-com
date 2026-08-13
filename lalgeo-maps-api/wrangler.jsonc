@@ -1,0 +1,17 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "lalgeo-maps-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-05-03",
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "lalgeo-maps",
+      "database_id": "REPLACE_WITH_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
+    }
+  ],
+  "vars": {
+    "CORS_ALLOWED_ORIGINS": "https://lalgeo.com,https://maps.lalgeo.com"
+  }
+}
