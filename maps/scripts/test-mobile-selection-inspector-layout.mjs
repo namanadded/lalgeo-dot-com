@@ -43,25 +43,25 @@ assert.match(
 
 assert.match(
   legacyHtml,
-  /function openFeaturePropertiesByRow\(rowIndex\)\s*\{[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true \}\);/,
+  /function openFeaturePropertiesByRow\(rowIndex, returnFocus = document\.activeElement\)\s*\{[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true, focusOnOpen: true, returnFocus, returnAction: "properties" \}\);/,
   "Properties must explicitly open Feature Details after selecting the requested feature.",
 );
 
 assert.match(
   legacyHtml,
-  /if \(action === "properties" && Number\.isInteger\(rowIndex\)\) \{\s*openFeaturePropertiesByRow\(rowIndex\);/,
+  /if \(action === "properties" && Number\.isInteger\(rowIndex\)\) \{\s*openFeaturePropertiesByRow\(rowIndex, button\);/,
   "The compact mobile Properties action must use the explicit Feature Details path.",
 );
 
 assert.match(
   legacyHtml,
-  /if \(action === "edit" && Number\.isInteger\(rowIndex\)\) \{\s*openFeatureEditorByRow\(rowIndex\);/,
+  /if \(action === "edit" && Number\.isInteger\(rowIndex\)\) \{\s*openFeatureEditorByRow\(rowIndex, button\);/,
   "The compact mobile Edit action must open the selected feature editor.",
 );
 
 assert.match(
   legacyHtml,
-  /function openFeatureEditorByRow\(rowIndex\)\s*\{[\s\S]*?const layerId = activeSurveyAnnotation\?\.surveyPoint\?\.layerId \|\| activeLayerId;[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?setEditSessionActive\(true, \{ layerId \}\);[\s\S]*?if \(!editSessionActive\) return;[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true \}\);/,
+  /function openFeatureEditorByRow\(rowIndex, returnFocus = document\.activeElement\)\s*\{[\s\S]*?const layerId = activeSurveyAnnotation\?\.surveyPoint\?\.layerId \|\| activeLayerId;[\s\S]*?previewAnnotationByRow\(rowIndex, \{ preserveSelectionView: true \}\);[\s\S]*?setEditSessionActive\(true, \{ layerId \}\);[\s\S]*?if \(!editSessionActive\) return;[\s\S]*?renderFeatureDrawer\(\{ forceOpen: true, focusOnOpen: true, returnFocus, returnAction: "edit" \}\);/,
   "Editing a selected feature must preserve its layer, start the existing edit session, and explicitly open Feature Details.",
 );
 
@@ -73,7 +73,7 @@ assert.match(
 
 assert.match(
   legacyHtml,
-  /function renderFeatureDrawer\(\{ newFeature = false, forceOpen = false \} = \{\}\)[\s\S]*?&& !newFeature[\s\S]*?&& !forceOpen[\s\S]*?&& !featureDrawer\.classList\.contains\("open"\)/,
+  /function renderFeatureDrawer\(\{ newFeature = false, forceOpen = false,[^}]+\} = \{\}\)[\s\S]*?&& !newFeature[\s\S]*?&& !forceOpen[\s\S]*?&& !featureDrawer\.classList\.contains\("open"\)/,
   "Ordinary mobile selection must stay compact while an explicit Properties request can open Feature Details.",
 );
 
