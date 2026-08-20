@@ -207,6 +207,63 @@ assert.equal(deadlineRecoveredSmallCommit.rev, "rev-after-deadline");
 assert.equal(pendingSmallUploads, 1, "a timed-out direct upload is never blindly repeated");
 assert.equal(pendingSmallVerifications, 1, "a timed-out direct upload verifies exact remote state");
 
+let moveCalls = 0;
+let moveMetadataCalls = 0;
+const recoveredMove = await cloud.moveCloudObjectWithVerification({
+  async getMetadata(path) {
+    moveMetadataCalls += 1;
+    return path.endsWith("before.lal")
+      ? { id: "id:project", rev: "rev-7", size: 3_630_000 }
+      : { id: "id:project", rev: "rev-7", size: 3_630_000, path };
+  },
+  async move() {
+    moveCalls += 1;
+    return new Promise(() => {});
+  },
+  isSameObject: (source, destination) => source.id === destination.id
+    && source.rev === destination.rev
+    && source.size === destination.size,
+}, {
+  sourcePath: "/safe-test/before.lal",
+  destinationPath: "/safe-test/after.lal",
+}, {
+  provider: "mock",
+  operationTimeoutMs: 5,
+  verificationAttempts: 1,
+});
+assert.equal(recoveredMove.path, "/safe-test/after.lal");
+assert.equal(moveCalls, 1, "an ambiguous move must never be repeated");
+assert.equal(moveMetadataCalls, 2, "move recovery identifies the source then verifies the destination");
+
+await assert.rejects(
+  cloud.moveCloudObjectWithVerification({
+    async getMetadata(path) {
+      return path.endsWith("before.lal")
+        ? { id: "id:project", rev: "rev-7", size: 3_630_000 }
+        : { id: "id:different", rev: "rev-1", size: 3_630_000 };
+    },
+    async move() {
+      const error = new Error("move response lost");
+      error.status = 503;
+      throw error;
+    },
+    isSameObject: (source, destination) => source.id === destination.id
+      && source.rev === destination.rev
+      && source.size === destination.size,
+  }, {
+    sourcePath: "/safe-test/before.lal",
+    destinationPath: "/safe-test/after.lal",
+  }, { provider: "mock", verificationAttempts: 1 }),
+  (error) => error.code === "unavailable",
+  "an unrelated destination cannot falsely resolve an ambiguous move",
+);
+assert.match(dropboxSource, /moveCloudObjectWithVerification\(/,
+  "Dropbox rename must use provider-independent ambiguous-move recovery");
+assert.match(dropboxSource, /moveCloudObjectWithVerification\([\s\S]*?operationTimeoutMs:\s*this\.requestTimeoutMs/,
+  "Dropbox rename must apply the configured request deadline");
+assert.match(dropboxSource, /source\.id === destination\?\.id[\s\S]*?source\.rev === destination\?\.rev[\s\S]*?source\.size\) === Number\(destination\?\.size/,
+  "Dropbox rename recovery must prove stable identity, revision, and byte size");
+
 const snapshotCalls = [];
 const snapshot = await cloud.copyCloudRevisionSnapshot({
   async copyRevision(request) {

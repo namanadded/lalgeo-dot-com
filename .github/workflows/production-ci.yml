@@ -271,6 +271,9 @@ jobs:
       - name: Benchmark server-side cloud revision snapshots
         working-directory: maps
         run: npm run benchmark:cloud-snapshot
+      - name: Benchmark verified cloud rename recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-rename
       - name: Benchmark large LalGeo imports
         working-directory: maps
         run: npm run benchmark:lal-import
@@ -327,6 +330,10 @@ jobs:
       - name: Check feature details journey
         working-directory: maps
         run: npm run test:feature-details-journey
+
+      - name: Check feature details focus journey
+        working-directory: maps
+        run: npm run test:feature-details-focus-journey
 
       - name: Check feature duplication journey
         working-directory: maps

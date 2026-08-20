@@ -101,7 +101,7 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /function renderSelectedFeatureInspector\(\)[\s\S]*?window\.matchMedia\("\(min-width: 601px\)"\)\.matches[\s\S]*?selectedFeatureInspector\.classList\.add\("visible"\);[\s\S]*?selectedFeatureInspector\?\.addEventListener\("click"[\s\S]*?openFeatureEditorByRow\(rowIndex\)[\s\S]*?mergeSelectedFeatures\([\s\S]*?exportSelectedGeoJson\([\s\S]*?function openFeatureEditorByRow\(rowIndex\)[\s\S]*?previewAnnotationByRow\([\s\S]*?setEditSessionActive\(true, \{ layerId \}\)/,
+  /function renderSelectedFeatureInspector\(\)[\s\S]*?window\.matchMedia\("\(min-width: 601px\)"\)\.matches[\s\S]*?selectedFeatureInspector\.classList\.add\("visible"\);[\s\S]*?selectedFeatureInspector\?\.addEventListener\("click"[\s\S]*?openFeatureEditorByRow\(rowIndex, button\)[\s\S]*?mergeSelectedFeatures\([\s\S]*?exportSelectedGeoJson\([\s\S]*?function openFeatureEditorByRow\(rowIndex, returnFocus = document\.activeElement\)[\s\S]*?previewAnnotationByRow\([\s\S]*?setEditSessionActive\(true, \{ layerId \}\)/,
   "The mobile selection surface should reuse existing selection and editing handlers.",
 );
 assert.match(

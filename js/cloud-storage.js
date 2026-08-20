@@ -206,6 +206,84 @@ export async function copyCloudRevisionSnapshot(adapter, request, options = {}) 
   }
 }
 
+/**
+ * Move a cloud object without blindly repeating an ambiguous provider write.
+ * The source is identified before the move; if the move response is lost, the
+ * destination must prove that exact identity before callers treat it as success.
+ */
+export async function moveCloudObjectWithVerification(adapter, request, options = {}) {
+  for (const method of ["getMetadata", "move", "isSameObject"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Verified cloud move adapter requires ${method}().`);
+    }
+  }
+  const sourcePath = String(request?.sourcePath || "");
+  const destinationPath = String(request?.destinationPath || "");
+  if (!sourcePath || !destinationPath || sourcePath === destinationPath) {
+    throw new TypeError("Cloud move requires distinct sourcePath and destinationPath values.");
+  }
+  throwIfCloudOperationAborted(options.signal);
+  let sourceMetadata;
+  try {
+    sourceMetadata = await runCloudOperationWithDeadline(
+      () => adapter.getMetadata(sourcePath),
+      options,
+    );
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    throw normalizeCloudError(error, options.provider);
+  }
+  if (!sourceMetadata) {
+    throw new CloudStorageError("Cloud move source could not be identified.", {
+      code: "integrity",
+      provider: options.provider,
+      retryable: false,
+    });
+  }
+
+  try {
+    return await runCloudOperationWithDeadline(
+      () => adapter.move({ sourcePath, destinationPath }),
+      options,
+    );
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    const original = normalizeCloudError(error, options.provider);
+    if (!original.retryable) throw original;
+    try {
+      const destinationMetadata = await retryCloudOperation(
+        async () => {
+          const metadata = await adapter.getMetadata(destinationPath);
+          if (!metadata) {
+            throw new CloudStorageError("Cloud move destination is not visible yet.", {
+              code: "unavailable",
+              provider: options.provider,
+              retryable: true,
+            });
+          }
+          return metadata;
+        },
+        {
+          attempts: options.verificationAttempts || 2,
+          baseDelayMs: options.baseDelayMs,
+          maxDelayMs: options.maxDelayMs,
+          sleep: options.sleep,
+          provider: options.provider,
+          signal: options.signal,
+          operationTimeoutMs: options.operationTimeoutMs,
+        },
+      );
+      if (destinationMetadata && adapter.isSameObject(sourceMetadata, destinationMetadata)) {
+        options.onRecovered?.({ sourcePath, destinationPath, error: original });
+        return destinationMetadata;
+      }
+    } catch (verificationError) {
+      if (verificationError?.name === "AbortError") throw verificationError;
+    }
+    throw original;
+  }
+}
+
 function assertDownloadAdapter(adapter) {
   for (const method of ["download", "getSize", "verify"]) {
     if (typeof adapter?.[method] !== "function") {
