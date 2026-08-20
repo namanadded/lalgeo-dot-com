@@ -15554,7 +15554,6 @@
                 return;
             }
             customBasemapDialogReturnFocus = trigger instanceof HTMLElement ? trigger : document.activeElement;
-            setToolbarMoreVisibility(false);
             setToolbarMenuVisibility(false);
             setAddActionPopoverVisibility(false);
             setMobileSelectPopoverVisibility(false);
@@ -15581,7 +15580,6 @@
             pendingCustomBasemapSetup = true;
             setSidebarVisibility(false);
             setToolbarMenuVisibility(false);
-            setToolbarMoreVisibility(false);
             openCreateProjectModal();
             setProjectStatus("Create a project, then add your custom basemap.");
         }
@@ -16261,7 +16259,6 @@
             addSurveyPointBtn.classList.toggle("active", nextVisible || isAddingSurveyPoint);
             addSurveyPointBtn.setAttribute("aria-expanded", nextVisible ? "true" : "false");
             if (nextVisible) {
-                setToolbarMoreVisibility(false);
                 setMobileSelectPopoverVisibility(false);
                 positionAddActionPopover();
                 if (focusFirst) {
@@ -16281,7 +16278,6 @@
             mobileSelectPopover.hidden = !visible;
             mobileSelectBtn.setAttribute("aria-expanded", visible ? "true" : "false");
             if (visible) {
-                setToolbarMoreVisibility(false);
                 setAddActionPopoverVisibility(false);
                 if (focusFirst) window.requestAnimationFrame(() => mobileSelectItems.find((item) => !item.disabled)?.focus());
             } else if (restoreFocus && mobileSelectPopover.contains(document.activeElement)) {
@@ -16299,7 +16295,6 @@
                 if (sidebarVisible) setSidebarVisibility(false);
                 if (advancedGisPanel?.hidden === false) setAdvancedGisVisible(false);
                 if (toolbarMenuVisible) setToolbarMenuVisibility(false);
-                setToolbarMoreVisibility(false);
                 setAddActionPopoverVisibility(false);
             }
             mobileSelectionMode = nextActive;
@@ -16868,7 +16863,6 @@
         function setSurveyTableToggleState(isOpen) {
             document.body.classList.toggle("mobile-survey-table-open", Boolean(isOpen));
             if (isOpen && window.matchMedia("(max-width: 600px)").matches) {
-                setToolbarMoreVisibility(false);
                 setMobileSelectPopoverVisibility(false);
                 setAddActionPopoverVisibility(false);
             }
@@ -21048,13 +21042,11 @@
         });
         [editPanelToggleBtn, addSurveyPointBtn, undoBtn, redoBtn, myLocationBtn, toolbarLayersBtn].forEach((button) => {
             button?.addEventListener("click", () => {
-                setToolbarMoreVisibility(false);
                 if (button !== mobileSelectBtn) setMobileSelectPopoverVisibility(false);
                 if (button !== addSurveyPointBtn) setAddActionPopoverVisibility(false);
             });
         });
         window.matchMedia("(max-width: 600px)").addEventListener?.("change", (event) => {
-            setToolbarMoreVisibility(false);
             if (!event.matches && mobileBoxSelectionMode) setMobileBoxSelectionMode(false);
         });
         advancedGisBtn?.addEventListener("click", () => setAdvancedGisVisible(advancedGisPanel?.hidden !== false));
