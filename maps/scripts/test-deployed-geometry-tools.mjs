@@ -8,6 +8,7 @@ const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interop
 const complexGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-geometry-collection.geojson", import.meta.url), "utf8"));
 const malformedGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-geometry-collection.geojson", import.meta.url), "utf8"));
 const complexFeatureIdentifiers = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-feature-identifiers.geojson", import.meta.url), "utf8"));
+const complexReservedProperties = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-reserved-properties.geojson", import.meta.url), "utf8"));
 const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
 const complexStyledKml = readFileSync(new URL("../fixtures/interoperability/complex-styled-multigeometry.kml", import.meta.url), "utf8");
 const malformedKmlCoordinate = readFileSync(new URL("../fixtures/interoperability/malformed-kml-coordinate.kml", import.meta.url), "utf8");
@@ -308,6 +309,28 @@ try {
       malformedIdentityMessage = error.message || "";
     }
     assert(malformedIdentityMessage === "GeoJSON feature 1 could not be imported: feature id must be a string or finite number. Repair or remove the top-level id value.", "GeoJSON invalid feature ids fail with actionable repair guidance");
+
+    const reservedPayload = buildGeoJsonPayload(${JSON.stringify(complexReservedProperties)}, {
+      projectName: "Reserved property integrity",
+      fileName: "complex-reserved-properties.geojson",
+      format: "GeoJSON"
+    });
+    const reservedPoint = reservedPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const reservedLine = reservedPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const reservedPolygon = reservedPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(reservedPoint.features[0].attributes["Source ID 2"] === 0, "reserved ID is visible under a collision-safe alias without overwriting workspace identity");
+    assert(reservedPoint.features[0].attributes["Source Date"] === null, "reserved Date retains an explicit null under a collision-safe alias");
+    assert(reservedPoint.features[0].attributes["Source Latitude"] === "surveyed latitude text" && reservedPoint.features[0].attributes.Latitude === 51.0447, "source Latitude remains distinct from geometry latitude");
+    assert(reservedPoint.features[0].attributes["Source symbol_color"] === "ultraviolet-custom", "unsupported source style text is retained without changing LalGeo styling");
+    const reservedPointExport = layerToGeoJson(reservedPoint).features[0];
+    assert(reservedPointExport.properties.ID === 0 && reservedPointExport.properties.Date === null, "GeoJSON export restores falsy and null reserved properties exactly");
+    assert(reservedPointExport.properties.Latitude === "surveyed latitude text" && reservedPointExport.properties.Longitude === 0, "GeoJSON export restores coordinate-named source properties independently of geometry");
+    assert(reservedPointExport.properties["Source ID"] === "pre-existing alias" && !("Source ID 2" in reservedPointExport.properties), "pre-existing alias-like fields survive while temporary aliases never leak");
+    assert(layerToGeoJson(reservedLine).features[0].properties.symbol_color === null, "line export restores explicit null style collision");
+    assert(layerToGeoJson(reservedPolygon).features[0].properties.symbol_shape === false && reservedPolygon.features[0].geometry.rings.length === 2, "polygon export restores false collision values without losing holes");
+    const reservedRoundTrip = buildGeoJsonPayload(layerToGeoJson(reservedPoint), { format: "GeoJSON reserved-property round trip" });
+    const reservedRoundTripExport = layerToGeoJson(reservedRoundTrip.geospatialLayers[0]).features[0];
+    assert(reservedRoundTripExport.properties.ID === 0 && reservedRoundTripExport.properties.Date === null && reservedRoundTripExport.properties.field_12 === "A12", "import-export-import preserves reserved values, nulls, Unicode, and large field sets");
 
     const apiRowsPayload = buildGeoJsonPayloadFromJsonRows(${JSON.stringify(complexApiRows)}, {
       projectName: "Complex API rows",
