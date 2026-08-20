@@ -13,7 +13,7 @@ const checks = [
   ["Feature Details has a durable map focus return target", /id="map"[^>]*tabindex="0"[^>]*aria-label="Map canvas"/],
   ["Data Manager visibility updates its accessible state", /function setDataPaneVisibility\(show\)[\s\S]*?setOffCanvasAccessibility\(dataCatalogPane, dataPaneVisible, openDataManagerBtn\)/],
   ["Feature Details becomes accessible only while open", /featureDrawer\.classList\.add\("open"\);\s*setOffCanvasAccessibility\(featureDrawer, true\)/],
-  ["Feature Details close path removes it from keyboard navigation", /function closeFeatureDrawer[\s\S]*?featureDrawer\.classList\.remove\("open"\);\s*setOffCanvasAccessibility\(featureDrawer, false, mapElement\)/]
+  ["Feature Details close path removes it from keyboard navigation", /function closeFeatureDrawer[\s\S]*?featureDrawer\.classList\.remove\("open"\);[\s\S]*?const returnTarget =[\s\S]*?setOffCanvasAccessibility\(featureDrawer, false, returnTarget\)/]
 ];
 
 const failures = checks.filter(([, pattern]) => !pattern.test(source));
