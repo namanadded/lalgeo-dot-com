@@ -331,6 +331,10 @@ jobs:
         working-directory: maps
         run: npm run test:feature-details-journey
 
+      - name: Check feature details focus journey
+        working-directory: maps
+        run: npm run test:feature-details-focus-journey
+
       - name: Check feature duplication journey
         working-directory: maps
         run: npm run test:feature-duplication-journey
