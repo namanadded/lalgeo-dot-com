@@ -1,5 +1,5 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
-import { collectCloudFiles, copyCloudRevisionSnapshot, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, normalizeCloudError, uploadBlobResumably, uploadBlobWithCommitVerification } from "./cloud-storage.js";
+import { collectCloudFiles, copyCloudRevisionSnapshot, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, moveCloudObjectWithVerification, normalizeCloudError, uploadBlobResumably, uploadBlobWithCommitVerification } from "./cloud-storage.js";
 import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
@@ -420,13 +420,42 @@ export class LalGeoDropboxClient {
   async renameLayer(path, nextName) {
     const extension = nextName.toLowerCase().endsWith(".lal") ? "" : ".lal";
     const target = `${this.folderPath}/${nextName}${extension}`;
-    const response = await this.client.filesMoveV2({
-      from_path: path,
-      to_path: target,
-      autorename: false,
-      allow_ownership_transfer: false,
+    const client = this.client;
+    const readMetadata = async (metadataPath) => {
+      try {
+        const response = await client.filesGetMetadata({ path: metadataPath });
+        return response.result || response;
+      } catch (error) {
+        const summary = String(error?.error?.error_summary || error?.error || error?.message || "");
+        if (summary.includes("not_found")) return null;
+        throw error;
+      }
+    };
+    return moveCloudObjectWithVerification({
+      getMetadata: readMetadata,
+      move: async ({ sourcePath, destinationPath }) => {
+        const response = await client.filesMoveV2({
+          from_path: sourcePath,
+          to_path: destinationPath,
+          autorename: false,
+          allow_ownership_transfer: false,
+        });
+        return response.result?.metadata || response.metadata || null;
+      },
+      isSameObject: (source, destination) => Boolean(
+        source?.id
+        && source.id === destination?.id
+        && source.rev
+        && source.rev === destination?.rev
+        && Number(source.size) === Number(destination?.size)
+      ),
+    }, {
+      sourcePath: path,
+      destinationPath: target,
+    }, {
+      provider: "dropbox",
+      operationTimeoutMs: this.requestTimeoutMs,
     });
-    return response.result?.metadata || response.metadata || null;
   }
 
   async duplicateLayer(path, nextName) {
