@@ -68,6 +68,8 @@
     "test:export-filename-integrity": "node scripts/test-export-filename-integrity.mjs",
     "test:share-journey": "node scripts/test-share-journey.mjs",
     "test:survey-table-a11y": "node scripts/test-survey-table-a11y.mjs",
+    "test:date-time-display": "node scripts/test-date-time-display.mjs",
+    "test:attribute-layer-tabs": "node scripts/test-attribute-layer-tabs.mjs",
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "test:custom-basemap": "node scripts/test-custom-basemap.mjs",
