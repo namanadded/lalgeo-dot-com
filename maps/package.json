@@ -101,6 +101,7 @@
     "benchmark:cloud-direct-commit": "node scripts/benchmark-cloud-direct-commit.mjs",
     "benchmark:cloud-direct-deadline": "node scripts/benchmark-cloud-direct-deadline.mjs",
     "benchmark:cloud-snapshot": "node --expose-gc scripts/benchmark-cloud-snapshot.mjs",
+    "benchmark:cloud-rename": "node scripts/benchmark-cloud-rename.mjs",
     "benchmark:lal-import": "node --expose-gc scripts/benchmark-lal-import.mjs",
     "benchmark:lal-serialization": "node --expose-gc scripts/benchmark-lal-serialization.mjs",
     "benchmark:autosave-coalescing": "node --expose-gc scripts/benchmark-autosave-coalescing.mjs",
