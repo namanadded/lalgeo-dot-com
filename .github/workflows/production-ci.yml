@@ -169,6 +169,14 @@ jobs:
         working-directory: maps
         run: npm run test:survey-table-a11y
 
+      - name: Check project-local date and time display
+        working-directory: maps
+        run: npm run test:date-time-display
+
+      - name: Check attribute layer tabs
+        working-directory: maps
+        run: npm run test:attribute-layer-tabs
+
       - name: Check geometry completion status recovery
         working-directory: maps
         run: npm run test:geometry-completion-status
@@ -271,6 +279,9 @@ jobs:
       - name: Benchmark server-side cloud revision snapshots
         working-directory: maps
         run: npm run benchmark:cloud-snapshot
+      - name: Benchmark verified cloud rename recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-rename
       - name: Benchmark large LalGeo imports
         working-directory: maps
         run: npm run benchmark:lal-import
