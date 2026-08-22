@@ -30,7 +30,7 @@ assert.match(source, /id="customBasemapUrlInput"[^>]*aria-describedby="customBas
 
 const visibility = functionBody("setCustomBasemapDialogVisibility", "openCustomBasemapDialog");
 assert.doesNotMatch(visibility, /setSettingsPanelVisibility\(true\)/, "The dedicated dialog flow must never open Settings.");
-assert.match(visibility, /setToolbarMoreVisibility\(false\)[\s\S]*?setToolbarMenuVisibility\(false\)[\s\S]*?setAddActionPopoverVisibility\(false\)[\s\S]*?setMobileSelectPopoverVisibility\(false\)[\s\S]*?closeFeatureDrawer\(\)/, "Opening should close conflicting menus, popovers, and Feature Details.");
+assert.match(visibility, /setToolbarMenuVisibility\(false\)[\s\S]*?setAddActionPopoverVisibility\(false\)[\s\S]*?setMobileSelectPopoverVisibility\(false\)[\s\S]*?closeFeatureDrawer\(\)/, "Opening should close conflicting menus, popovers, and Feature Details.");
 assert.match(visibility, /updateMapTypeControls\(activeProjectRecord\)[\s\S]*?clearCustomBasemapFieldErrors\(\)[\s\S]*?customBasemapBackdrop\.hidden = false/, "Opening should populate current values and clear stale errors before showing the dialog.");
 assert.match(visibility, /Create or open a project before adding a custom basemap\./, "Opening must be blocked without an active project.");
 

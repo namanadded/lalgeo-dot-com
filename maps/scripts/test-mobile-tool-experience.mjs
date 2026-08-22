@@ -84,6 +84,11 @@ assert.doesNotMatch(
   /id="toolbarMoreBtn"|id="toolbarMorePopover"/,
   "The obsolete More action and popover should be removed.",
 );
+assert.doesNotMatch(
+  legacyHtml,
+  /setToolbarMoreVisibility/,
+  "Select and Add must not call the removed More-popover handler.",
+);
 assert.match(
   legacyHtml,
   /id="advancedGisGeneralHeading"[\s\S]*?id="advancedGisMeasureBtn"[^>]*aria-controls="measurementPanel"[\s\S]*?<span>Measure<\/span>/,
