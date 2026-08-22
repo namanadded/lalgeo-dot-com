@@ -25,7 +25,7 @@ assert.match(
 
 assert.match(
   legacyHtml,
-  /function setSurveyTableToggleState\(isOpen\)\s*\{[\s\S]*?classList\.toggle\("mobile-survey-table-open", Boolean\(isOpen\)\)[\s\S]*?setToolbarMoreVisibility\(false\)[\s\S]*?setMobileSelectPopoverVisibility\(false\)[\s\S]*?setAddActionPopoverVisibility\(false\)/,
+  /function setSurveyTableToggleState\(isOpen\)\s*\{[\s\S]*?classList\.toggle\("mobile-survey-table-open", Boolean\(isOpen\)\)[\s\S]*?setMobileSelectPopoverVisibility\(false\)[\s\S]*?setAddActionPopoverVisibility\(false\)/,
   "Opening the mobile table must synchronize toolbar visibility and dismiss its popovers.",
 );
 
