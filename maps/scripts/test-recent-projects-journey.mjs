@@ -8,7 +8,7 @@ const checks = [
   [html.includes('id="recentProjectList"') && html.includes('aria-label="Recent projects"'), "missing the named recent-project list"],
   [html.includes("const sortedProjects = [...workspaceProjects].sort"), "recent projects must be ordered by update time"],
   [html.includes("sortedProjects.slice(0, 4)") && html.includes("Show ${remainingProjects.length} more project"), "long histories must use progressive disclosure"],
-  [html.includes("formatProjectRecency(project?.metadata?.updatedAt)"), "project rows must explain recency"],
+  [/formatProjectRecency\(project\?\.metadata\?\.updatedAt(?:,\s*project)?\)/.test(html), "project rows must explain recency"],
   [html.includes("layerCount === 1") && html.includes("getStorageLabel(project)"), "project rows must distinguish layer count and storage"],
   [html.includes('data-open-recent-project="${escapeHtml(project.id)}"'), "each recent project must have a direct open action"],
   [html.includes('aria-current="true"') && html.includes('${isCurrent ? "Current" : "Open"}'), "the current project must be visibly identified"],

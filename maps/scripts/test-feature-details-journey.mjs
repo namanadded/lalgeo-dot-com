@@ -11,7 +11,7 @@ assert.match(
 );
 assert.match(
   source,
-  /const isEmpty = value === "" \|\| value === null \|\| value === undefined;[\s\S]*?const displayValue = isEmpty \? "Not set" : String\(value\);[\s\S]*?class="feature-drawer-value-row"/,
+  /const isEmpty = value === "" \|\| value === null \|\| value === undefined;[\s\S]*?const displayValue = formatAttributeValueForDisplay\(field, value\);[\s\S]*?class="feature-drawer-value-row"[\s\S]*?\$\{isEmpty \? "Not set" : escapeHtml\(displayValue\.text\)\}/,
   "Read-only attributes should expose explicit empty values."
 );
 assert.match(

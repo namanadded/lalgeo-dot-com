@@ -6051,6 +6051,13 @@
         margin-right: 8px;
         transform: translateY(-1px);
     }
+    .survey-layer-tabs { display:flex; flex:1 1 100%; gap:4px; min-width:0; padding:4px; overflow-x:auto; overscroll-behavior-x:contain; scrollbar-width:thin; border:1px solid rgba(255,255,255,.08); border-radius:10px; background:rgba(255,255,255,.04); }
+    .survey-layer-tabs[hidden] { display:none; }
+    .survey-layer-tab { display:inline-flex; align-items:center; gap:7px; min-width:max-content; max-width:240px; min-height:36px; padding:7px 10px; border:0; border-radius:7px; background:transparent; color:#9fb1c2; font:inherit; font-size:12px; font-weight:700; cursor:pointer; }
+    .survey-layer-tab:hover, .survey-layer-tab:focus-visible { color:#eef6fb; outline:2px solid rgba(141,223,212,.45); outline-offset:-2px; }
+    .survey-layer-tab[aria-selected="true"] { background:rgba(92,200,192,.16); color:#8ff0dc; box-shadow:inset 0 0 0 1px rgba(92,200,192,.22); }
+    .survey-layer-tab-name { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .survey-layer-tab-count { flex:0 0 auto; min-width:20px; padding:1px 5px; border-radius:999px; background:rgba(255,255,255,.08); text-align:center; font-variant-numeric:tabular-nums; }
     #surveyTableWrapper {
         background: rgba(10, 18, 29, 0.96);
         border-top: 1px solid rgba(255,255,255,0.08);
@@ -8882,6 +8889,11 @@
         background: #f3f4f6;
         color: #6b7280;
     }
+    .survey-layer-tabs { border-color:rgba(209,213,219,.82); background:rgba(15,23,42,.045); }
+    .survey-layer-tab { color:#667085; }
+    .survey-layer-tab:hover, .survey-layer-tab:focus-visible { color:#1f2937; }
+    .survey-layer-tab[aria-selected="true"] { background:#fff; color:#1f2937; box-shadow:0 1px 3px rgba(15,23,42,.12); }
+    .survey-layer-tab-count { background:rgba(15,23,42,.07); }
     .panel-action-btn {
         background: #fff;
         color: #4b5563;
@@ -8928,8 +8940,9 @@
         outline-offset: -1px;
     }
     #surveyTableWrapper th[data-table-column] {
-        cursor: context-menu;
+        cursor: pointer;
     }
+    .temporal-display-value { font-variant-numeric:tabular-nums; }
     #surveySelectionControls {
         display: inline-flex;
         align-items: center;
@@ -10823,6 +10836,9 @@
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        body.survey-table-open .survey-layer-tabs { order:0; width:100%; flex:0 0 auto; min-height:52px; padding:4px; overflow-x:auto; overflow-y:hidden; overscroll-behavior-x:contain; scrollbar-width:none; scroll-snap-type:x proximity; -webkit-overflow-scrolling:touch; }
+        body.survey-table-open .survey-layer-tabs::-webkit-scrollbar { display:none; }
+        body.survey-table-open .survey-layer-tab { min-height:44px; max-width:min(72vw,240px); scroll-snap-align:nearest; }
         body.survey-table-open .survey-table-primary-actions {
             box-sizing: border-box;
             display: grid;
@@ -12520,6 +12536,7 @@
             </div>
             <button id="surveyTableCloseBtn" type="button" class="survey-table-close" aria-label="Close attributes table">×</button>
             <div id="surveyTableContext">Create or open a project to view attributes.</div>
+            <div id="surveyLayerTabs" class="survey-layer-tabs" role="tablist" aria-label="Attribute table layers" hidden></div>
             <div class="survey-table-primary-actions" role="group" aria-label="Table actions">
                 <button id="surveyFieldsBtn" type="button" class="panel-action-btn" hidden>Fields</button>
                 <button id="tableEditBtn" type="button" class="panel-action-btn" hidden>Edit</button>
@@ -12947,6 +12964,7 @@
         const surveyTableWrapper = document.getElementById("surveyTableWrapper");
         const surveyTable = document.getElementById("surveyTable");
         const surveyTableContext = document.getElementById("surveyTableContext");
+        const surveyLayerTabs = document.getElementById("surveyLayerTabs");
         const surveySelectionControls = document.getElementById("surveySelectionControls");
         const surveySelectionSummary = document.getElementById("surveySelectionSummary");
         const selectAllRowsBtn = document.getElementById("selectAllRowsBtn");
@@ -13224,6 +13242,9 @@
         let mobileBoxSelectionPointerId = null;
         let mobileBoxSelectionStart = null;
         let tableRowFilterMode = "all";
+        const tableViewStateByLayerId = new Map();
+        let tableSortField = null;
+        let tableSortDirection = "ascending";
         let fieldCalculatorContext = null;
         let undoStack = [];
         let redoStack = [];
@@ -13627,12 +13648,31 @@
             return ["ID", "Date", "TimeZone", "Latitude", "Longitude"].includes(name);
         }
 
+        const dateDisplayFormatterCache = new Map();
+        const STRICT_DATE_ONLY_PATTERN = /^(\d{4})-(\d{2})-(\d{2})$/;
+        const STRICT_DATE_TIME_PATTERN = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d{1,9})?)?(?:Z|[+-]\d{2}:\d{2})?$/i;
+
         function getDetectedTimeZone() {
-            return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+            try {
+                return Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+            } catch {
+                return "UTC";
+            }
         }
 
-        function getProjectTimeZone() {
-            return activeProjectRecord?.metadata?.timeZone || getDetectedTimeZone();
+        function normalizeProjectTimeZone(value) {
+            const detected = getDetectedTimeZone();
+            const candidate = !value || String(value).toLowerCase() === "auto" ? detected : String(value);
+            try {
+                new Intl.DateTimeFormat(undefined, { timeZone: candidate }).format(new Date(0));
+                return candidate;
+            } catch {
+                return detected;
+            }
+        }
+
+        function getProjectTimeZone(project = activeProjectRecord) {
+            return normalizeProjectTimeZone(project?.metadata?.timeZone);
         }
 
         function ensureProjectTimeZone(project = activeProjectRecord) {
@@ -13641,24 +13681,96 @@
             if (!project.metadata.timeZone) {
                 project.metadata.timeZone = getDetectedTimeZone();
             }
-            if (projectTimeZoneSelect) projectTimeZoneSelect.value = project.metadata.timeZone;
-            return project.metadata.timeZone;
+            const normalizedTimeZone = normalizeProjectTimeZone(project.metadata.timeZone);
+            if (projectTimeZoneSelect) projectTimeZoneSelect.value = normalizedTimeZone;
+            return normalizedTimeZone;
         }
 
-        function formatFeatureDateTime(value, timeZone = getProjectTimeZone()) {
-            if (!value) return "";
-            const date = new Date(value);
-            if (Number.isNaN(date.getTime())) return String(value);
-            try {
-                return new Intl.DateTimeFormat(undefined, {
-                    dateStyle: "medium",
-                    timeStyle: "medium",
-                    timeZone,
-                    timeZoneName: "short"
-                }).format(date);
-            } catch {
-                return date.toLocaleString();
+        function getDateDisplayFormatter({ timeZone = getProjectTimeZone(), type = "datetime", includeSeconds = false } = {}) {
+            const safeTimeZone = type === "date" ? "UTC" : normalizeProjectTimeZone(timeZone);
+            const cacheKey = `${safeTimeZone}|${type}|${includeSeconds ? "seconds" : "minutes"}`;
+            if (!dateDisplayFormatterCache.has(cacheKey)) {
+                const options = type === "date"
+                    ? { timeZone: "UTC", year: "numeric", month: "short", day: "numeric" }
+                    : {
+                        timeZone: safeTimeZone,
+                        year: "numeric",
+                        month: "short",
+                        day: "numeric",
+                        hour: "numeric",
+                        minute: "2-digit",
+                        ...(includeSeconds ? { second: "2-digit" } : {}),
+                        hour12: true,
+                        timeZoneName: "short"
+                    };
+                dateDisplayFormatterCache.set(cacheKey, new Intl.DateTimeFormat(undefined, options));
             }
+            return dateDisplayFormatterCache.get(cacheKey);
+        }
+
+        function parseCalendarDate(value) {
+            const match = STRICT_DATE_ONLY_PATTERN.exec(String(value || ""));
+            if (!match) return null;
+            const year = Number(match[1]);
+            const month = Number(match[2]);
+            const day = Number(match[3]);
+            const date = new Date(Date.UTC(year, month - 1, day, 12));
+            if (date.getUTCFullYear() !== year || date.getUTCMonth() !== month - 1 || date.getUTCDate() !== day) return null;
+            return { date, ordinal: Date.UTC(year, month - 1, day) };
+        }
+
+        function classifyTemporalValue(value, field = null) {
+            if (value === null || value === undefined || value === "") return null;
+            const fieldType = String(field?.type || field?.normalizedType || "").trim().toLowerCase().replace(/_/g, "-");
+            const fieldName = String(field?.name || "").trim().toLowerCase().replace(/[_\s-]/g, "");
+            if (["date-time", "datetime", "timestamp"].includes(fieldType)) return "datetime";
+            if (fieldType === "date") return "date";
+            if (["date", "createdat", "updatedat", "lastsavedat", "timestamp"].includes(fieldName) && STRICT_DATE_TIME_PATTERN.test(String(value))) return "datetime";
+            if (parseCalendarDate(value)) return "date";
+            return STRICT_DATE_TIME_PATTERN.test(String(value)) ? "datetime" : null;
+        }
+
+        function parseTemporalValue(value, type) {
+            if (type === "date") return parseCalendarDate(value)?.ordinal ?? null;
+            if (type !== "datetime" || !STRICT_DATE_TIME_PATTERN.test(String(value || ""))) return null;
+            const epoch = new Date(String(value)).getTime();
+            return Number.isFinite(epoch) ? epoch : null;
+        }
+
+        function formatDateForDisplay(value) {
+            const parsed = parseCalendarDate(value);
+            return parsed ? getDateDisplayFormatter({ type: "date" }).format(parsed.date) : String(value ?? "");
+        }
+
+        function formatDateTimeForDisplay(value, { timeZone = getProjectTimeZone(), includeSeconds = false } = {}) {
+            const epoch = parseTemporalValue(value, "datetime");
+            if (epoch === null) return String(value ?? "");
+            try {
+                return getDateDisplayFormatter({ timeZone, type: "datetime", includeSeconds }).format(new Date(epoch));
+            } catch {
+                return String(value ?? "");
+            }
+        }
+
+        function formatAttributeValueForDisplay(field, value, options = {}) {
+            const rawText = value === null || value === undefined ? "" : String(value);
+            const temporalType = classifyTemporalValue(value, field);
+            const sortValue = temporalType ? parseTemporalValue(value, temporalType) : null;
+            const text = sortValue === null ? rawText : temporalType === "date" ? formatDateForDisplay(value) : formatDateTimeForDisplay(value, options);
+            return {
+                text,
+                rawText,
+                temporalType: sortValue === null ? null : temporalType,
+                sortValue,
+                accessibleLabel: sortValue === null || text === rawText ? text : `${text}. Stored value: ${rawText}`
+            };
+        }
+
+        function renderAttributeDisplayMarkup(field, value, { emptyText = "" } = {}) {
+            const display = formatAttributeValueForDisplay(field, value);
+            if (!display.rawText) return escapeHtml(emptyText);
+            if (!display.temporalType) return escapeHtml(display.text);
+            return `<span class="temporal-display-value" title="${escapeHtml(display.rawText)}" aria-label="${escapeHtml(display.accessibleLabel)}">${escapeHtml(display.text)}</span>`;
         }
 
         function populateProjectTimeZoneSelect() {
@@ -14623,16 +14735,12 @@
             return project.storageSource || "Web workspace";
         }
 
-        function formatProjectDate(value) {
+        function formatProjectDate(value, project = activeProjectRecord) {
             if (!value) return "Just now";
-            try {
-                return new Date(value).toLocaleString();
-            } catch {
-                return value;
-            }
+            return formatDateTimeForDisplay(value, { timeZone:getProjectTimeZone(project) });
         }
 
-        function formatProjectRecency(value) {
+        function formatProjectRecency(value, project = activeProjectRecord) {
             const timestamp = new Date(value || 0).getTime();
             if (!Number.isFinite(timestamp) || timestamp <= 0) return "Updated recently";
             const elapsedMinutes = Math.max(0, Math.round((Date.now() - timestamp) / 60000));
@@ -14642,13 +14750,13 @@
             if (elapsedHours < 24) return `Updated ${elapsedHours} hr${elapsedHours === 1 ? "" : "s"} ago`;
             const elapsedDays = Math.round(elapsedHours / 24);
             if (elapsedDays < 7) return `Updated ${elapsedDays} day${elapsedDays === 1 ? "" : "s"} ago`;
-            return `Updated ${new Date(timestamp).toLocaleDateString(undefined, { month: "short", day: "numeric" })}`;
+            return `Updated ${formatDateTimeForDisplay(new Date(timestamp).toISOString(), { timeZone:getProjectTimeZone(project) })}`;
         }
 
         function getProjectJourneySummary(project) {
             const layerCount = project?.layers?.length || 0;
             const storage = getStorageLabel(project);
-            return `${formatProjectRecency(project?.metadata?.updatedAt)} · ${layerCount} layer${layerCount === 1 ? "" : "s"} · ${storage}`;
+            return `${formatProjectRecency(project?.metadata?.updatedAt, project)} · ${layerCount} layer${layerCount === 1 ? "" : "s"} · ${storage}`;
         }
 
         function renderRecentProjectRow(project) {
@@ -15909,6 +16017,72 @@
 
         workspaceHintCloseBtn?.addEventListener("click", hideWorkspaceHint);
 
+        function getSurveyTableLayers(project = activeProjectRecord) {
+            return (project?.layers || []).filter((layer) => ["point", "line", "polygon"].includes(normalizeLayerGeometryType(layer?.geometryType)));
+        }
+
+        function saveSurveyTableViewState(layerId = activeLayerId) {
+            if (!layerId) return;
+            tableViewStateByLayerId.set(layerId, { sortField:tableSortField, sortDirection:tableSortDirection, rowFilterMode:tableRowFilterMode, scrollLeft:surveyTableWrapper?.scrollLeft || 0, scrollTop:surveyTableWrapper?.scrollTop || 0 });
+        }
+
+        function restoreSurveyTableViewState(layerId = activeLayerId) {
+            const state = layerId ? tableViewStateByLayerId.get(layerId) : null;
+            tableSortField = state?.sortField || null;
+            tableSortDirection = state?.sortDirection === "descending" ? "descending" : "ascending";
+            tableRowFilterMode = state?.rowFilterMode || "all";
+            if (surveyTableWrapper) requestAnimationFrame(() => { surveyTableWrapper.scrollLeft = state?.scrollLeft || 0; surveyTableWrapper.scrollTop = state?.scrollTop || 0; });
+        }
+
+        function renderSurveyLayerTabs() {
+            if (!surveyLayerTabs) return;
+            const layers = getSurveyTableLayers();
+            surveyLayerTabs.replaceChildren();
+            surveyLayerTabs.hidden = layers.length < 2;
+            if (layers.length < 2) return;
+            layers.forEach((layer) => {
+                const selected = layer.id === activeLayerId;
+                const count = getLayerFeatureCount(layer);
+                const tab = document.createElement("button");
+                tab.type = "button";
+                tab.className = "survey-layer-tab";
+                tab.setAttribute("role", "tab");
+                tab.setAttribute("aria-selected", selected ? "true" : "false");
+                tab.setAttribute("aria-controls", "surveyTableWrapper");
+                tab.setAttribute("aria-label", `${layer.name || "Untitled layer"}, ${count} ${count === 1 ? "feature" : "features"}`);
+                tab.tabIndex = selected ? 0 : -1;
+                tab.dataset.layerId = layer.id;
+                tab.title = layer.name || "Untitled layer";
+                const name = document.createElement("span");
+                name.className = "survey-layer-tab-name";
+                name.textContent = layer.name || "Untitled layer";
+                const countBadge = document.createElement("span");
+                countBadge.className = "survey-layer-tab-count";
+                countBadge.textContent = count.toLocaleString();
+                countBadge.setAttribute("aria-hidden", "true");
+                tab.append(name, countBadge);
+                surveyLayerTabs.appendChild(tab);
+            });
+            const activeTab = surveyLayerTabs.querySelector('[role="tab"][aria-selected="true"]');
+            requestAnimationFrame(() => activeTab?.scrollIntoView?.({ block:"nearest", inline:"nearest" }));
+        }
+
+        function activateSurveyLayerTab(layerId, { focus = false } = {}) {
+            if (!layerId || layerId === activeLayerId) {
+                if (focus) surveyLayerTabs?.querySelector(`[data-layer-id="${CSS.escape(layerId || "")}"]`)?.focus();
+                return;
+            }
+            const activeEditor = document.activeElement?.closest?.("[data-table-field]");
+            if (activeEditor) commitTableCellChange(activeEditor);
+            saveSurveyTableViewState(activeLayerId);
+            setPointGeometryEditMode(false);
+            setGeometryVertexEditMode(false);
+            switchToLayer(layerId, { revealTable:true });
+            restoreSurveyTableViewState(layerId);
+            updateSurveyTable();
+            if (focus) requestAnimationFrame(() => surveyLayerTabs?.querySelector(`[data-layer-id="${CSS.escape(layerId)}"]`)?.focus());
+        }
+
         function updateWorkspaceContext() {
             const layer = getActiveLayerRecord();
             const hasProject = Boolean(activeProjectRecord);
@@ -15948,10 +16122,12 @@
                 if (!hasProject) {
                     surveyTableContext.textContent = "Create or open a project to view attributes.";
                 } else {
-                    const storage = getStorageLabel();
-                    surveyTableContext.innerHTML = `<span class="workspace-badge">${escapeHtml(storage)}</span>${escapeHtml(activeProjectRecord.name)} · ${escapeHtml(layer ? layer.name : "No active layer")}`;
+                    const featureCount = getLayerFeatureCount(layer);
+                    const geometryLabel = normalizeLayerGeometryType(layer?.geometryType || "point");
+                    surveyTableContext.textContent = layer ? `${featureCount.toLocaleString()} ${featureCount === 1 ? "feature" : "features"} · ${geometryLabel.charAt(0).toUpperCase() + geometryLabel.slice(1)} layer` : "No active layer";
                 }
             }
+            renderSurveyLayerTabs();
             if (workspaceEmptyState) workspaceEmptyState.hidden = hasProject;
             if (!hasProject) {
                 setSidebarVisibility(false);
@@ -16010,7 +16186,7 @@
                                     <div class="workspace-record-meta">
                                         <span class="workspace-badge">${escapeHtml(project.storageSource || "Web")}</span>
                                         <span>${escapeHtml(project.type || "Project")}</span>
-                                        <span>${escapeHtml(formatProjectDate(project.metadata?.updatedAt))}</span>
+                                        <span>${escapeHtml(formatProjectDate(project.metadata?.updatedAt, project))}</span>
                                     </div>
                                 </div>
                             </div>
@@ -17717,7 +17893,7 @@
             rebuildPointIndexes(currentSurveyData);
             if (render && mapReady && map) {
                 void renderSurveyProject({
-                    parsed: ensureParsedCoordinates(currentSurveyData),
+                    parsed: currentSurveyData,
                     projectName: project.name,
                     preserveRegion
                 });
@@ -18486,7 +18662,8 @@
             const attrs = feature.attributes || {};
             const featureId = attrs.ID || feature.id || `feature-${rowIndex + 1}`;
             const featureDate = attrs.Date || "";
-            const featureTimeZone = attrs.TimeZone || getProjectTimeZone();
+            const featureTimeZone = getProjectTimeZone();
+            const featureDateDisplay = formatAttributeValueForDisplay({ name:"Date", type:"datetime" }, featureDate, { timeZone:featureTimeZone });
             const attributesCanBeEdited = canEditAttributes() && !isArchiveView;
             const editable = editSessionActive && attributesCanBeEdited;
             const canStartEditing = !editable && attributesCanBeEdited;
@@ -18506,7 +18683,7 @@
                     <summary>System details</summary>
                     <div class="feature-drawer-system-grid">
                         <div><strong>Feature ID:</strong> ${escapeHtml(featureId)}</div>
-                        <div><strong>Date:</strong> ${escapeHtml(formatFeatureDateTime(featureDate, featureTimeZone))}</div>
+                        <div><strong>Date:</strong> ${featureDateDisplay.rawText ? `<span class="temporal-display-value" title="${escapeHtml(featureDateDisplay.rawText)}" aria-label="${escapeHtml(featureDateDisplay.accessibleLabel)}">${escapeHtml(featureDateDisplay.text)}</span>` : ""}</div>
                         ${featureTimeZone ? `<div><strong>Time zone:</strong> ${escapeHtml(featureTimeZone)}</div>` : ""}
                         ${coordinateText ? `
                             <div class="feature-drawer-compact-row">
@@ -18575,7 +18752,7 @@
             const attributeSummary = attributeFields.map((field) => {
                 const value = feature.attributes?.[field.name];
                 const isEmpty = value === "" || value === null || value === undefined;
-                const displayValue = isEmpty ? "Not set" : String(value);
+                const displayValue = formatAttributeValueForDisplay(field, value);
                 const fieldKey = String(field.name || "").trim().toLowerCase();
                 const actionButton = !isEmpty && fieldKey === "phone"
                     ? `<button type="button" class="feature-drawer-icon-btn" data-feature-action="phone" data-feature-value="${escapeHtml(String(value).replace(/[^\d+]/g, ""))}" aria-label="Call phone number" title="Call phone number">☎</button>`
@@ -18586,7 +18763,7 @@
                     <div class="feature-drawer-value-row">
                         <dt class="feature-drawer-value-label">${escapeHtml(field.name)}</dt>
                         <dd class="feature-drawer-value-cell${actionButton ? " feature-drawer-inline-control" : ""}">
-                            <span class="feature-drawer-value${isEmpty ? " empty" : ""}">${escapeHtml(displayValue)}</span>
+                            <span class="feature-drawer-value${isEmpty ? " empty" : ""}"${displayValue.temporalType ? ` title="${escapeHtml(displayValue.rawText)}" aria-label="${escapeHtml(displayValue.accessibleLabel)}"` : ""}>${isEmpty ? "Not set" : escapeHtml(displayValue.text)}</span>
                             ${actionButton}
                         </dd>
                     </div>
@@ -19245,10 +19422,13 @@
                 renderActiveProjectSidebar();
                 return;
             }
+            saveSurveyTableViewState(activeLayerId);
+            syncActiveLayerFromSurveyState();
             activeProjectRecord.activeLayerId = layerId;
             activeLayerId = layerId;
-            markActiveProjectUpdated();
             setActiveProject(activeProjectRecord, { preserveRegion: true });
+            markActiveProjectUpdated();
+            restoreSurveyTableViewState(layerId);
             if (revealTable && surveyTablePanel && surveyTableWrapper) {
                 setSurveyTableVisibility(true);
                 surveyTablePanel.classList.add("open");
@@ -19257,6 +19437,7 @@
                 updateSurveyTable();
                 updateFloatingButtonLayer(true);
             }
+            renderSurveyLayerTabs();
         }
 
         function toggleLayerVisibility(layerId) {
@@ -19465,9 +19646,12 @@
                         label: "Delete layer",
                         danger: true,
                         onClick: () => {
+                            const deletedIndex = activeProjectRecord.layers.findIndex((item) => item.id === layerId);
                             activeProjectRecord.layers = activeProjectRecord.layers.filter((item) => item.id !== layerId);
-                            activeProjectRecord.activeLayerId = activeProjectRecord.layers[0]?.id || null;
+                            const fallbackIndex = Math.min(Math.max(deletedIndex, 0), activeProjectRecord.layers.length - 1);
+                            activeProjectRecord.activeLayerId = layerId === activeLayerId ? activeProjectRecord.layers[fallbackIndex]?.id || null : activeLayerId;
                             activeLayerId = activeProjectRecord.activeLayerId;
+                            tableViewStateByLayerId.delete(layerId);
                             markActiveProjectUpdated();
                             scheduleLocalAutosave();
                             setActiveProject(activeProjectRecord, { preserveRegion: true });
@@ -19921,8 +20105,9 @@
             const value = prompt(`Value to match in ${field}:`, "");
             if (value === null) return;
             const needle = String(value).toLowerCase();
+            const schemaField = (layer.schema || []).find((item) => item.name === field) || { name:field };
             selectedTableRows = new Set((layer.features || []).map((feature, index) => (
-                String(feature.attributes?.[field] ?? "").toLowerCase().includes(needle) ? index : null
+                (() => { const rawValue = feature.attributes?.[field] ?? ""; const displayValue = formatAttributeValueForDisplay(schemaField, rawValue).text; return String(rawValue).toLowerCase().includes(needle) || displayValue.toLowerCase().includes(needle) ? index : null; })()
             )).filter(Number.isInteger));
             lastSelectedTableRow = selectedTableRows.size ? Math.max(...selectedTableRows) : null;
             updateSurveyTable();
@@ -21728,21 +21913,12 @@
         projectTimeZoneSelect?.addEventListener("change", () => {
             if (!activeProjectRecord) return;
             activeProjectRecord.metadata = activeProjectRecord.metadata || {};
-            activeProjectRecord.metadata.timeZone = projectTimeZoneSelect.value || getDetectedTimeZone();
-            (activeProjectRecord.layers || []).forEach((layer) => {
-                (layer.features || []).forEach((feature) => {
-                    feature.attributes = feature.attributes || {};
-                    feature.attributes.TimeZone = activeProjectRecord.metadata.timeZone;
-                });
-            });
-            if (currentSurveyData?.records) {
-                currentSurveyData.records.forEach((record) => {
-                    record.TimeZone = activeProjectRecord.metadata.timeZone;
-                });
-            }
-            updateActiveProjectFromSurveyData();
+            activeProjectRecord.metadata.timeZone = normalizeProjectTimeZone(projectTimeZoneSelect.value);
+            markActiveProjectUpdated();
             updateSurveyTable();
             renderFeatureDrawer();
+            renderSurveyCalloutContent();
+            renderWorkspaceCollections();
             scheduleLocalAutosave();
             setProjectStatus(`Project time zone set to ${activeProjectRecord.metadata.timeZone}.`, "success");
         });
@@ -27774,7 +27950,8 @@
             } else {
                 const attributeRows = headers.map(header => {
                     const value = attributes?.[header];
-                    const shown = (value === undefined || value === null || value === "") ? "—" : escapeHtml(String(value));
+                    const field = (getActiveLayerRecord()?.schema || []).find((item) => item.name === header) || { name:header };
+                    const shown = (value === undefined || value === null || value === "") ? "—" : renderAttributeDisplayMarkup(field, value);
                     return `<div><strong>${escapeHtml(header)}:</strong> ${shown}</div>`;
                 }).join("") || "<div>No attributes</div>";
                 const editButton = canEditAttributes()
@@ -28443,6 +28620,7 @@
 
         function updateSurveyTable() {
             if (!surveyTable) return;
+            renderSurveyLayerTabs();
             const dataset = isArchiveView ? archiveData : currentSurveyData;
             const activeLayer = getActiveLayerRecord();
             if (!dataset?.headers) {
@@ -28461,7 +28639,7 @@
                 return;
             }
             const inlineEditEnabled = tableEditMode && !isArchiveView && editSessionActive && canEditAttributes();
-            const headerRow = visibleHeaders.map(header => `<th data-table-column="${escapeHtml(header)}">${escapeHtml(header)}</th>`).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
+            const headerRow = visibleHeaders.map((header) => { const ariaSort = tableSortField === header ? tableSortDirection : "none"; return `<th data-table-column="${escapeHtml(header)}" aria-sort="${ariaSort}" title="Sort by ${escapeHtml(header)}">${escapeHtml(header)}</th>`; }).join("") + (isArchiveView ? "<th>Restore</th>" : "<th>Photo</th>");
             const activeRowIndex = !isArchiveView && Number.isInteger(activeSurveyAnnotation?.surveyPoint?.rowIndex)
                 ? activeSurveyAnnotation.surveyPoint.rowIndex
                 : null;
@@ -28474,6 +28652,22 @@
                     if (tableRowFilterMode === "unselected") return !selectedTableRows.has(index);
                     return true;
                 });
+            if (tableSortField) {
+                const sortField = (activeLayer?.schema || []).find((field) => field.name === tableSortField) || { name:tableSortField };
+                const direction = tableSortDirection === "descending" ? -1 : 1;
+                filteredRecords.sort((left, right) => {
+                    const leftDisplay = formatAttributeValueForDisplay(sortField, left.record?.[tableSortField]);
+                    const rightDisplay = formatAttributeValueForDisplay(sortField, right.record?.[tableSortField]);
+                    if (leftDisplay.sortValue !== null || rightDisplay.sortValue !== null) {
+                        if (leftDisplay.sortValue === null) return direction;
+                        if (rightDisplay.sortValue === null) return -direction;
+                        const temporalDifference = leftDisplay.sortValue - rightDisplay.sortValue;
+                        return temporalDifference === 0 ? left.index - right.index : temporalDifference * direction;
+                    }
+                    const textDifference = leftDisplay.rawText.localeCompare(rightDisplay.rawText, undefined, { numeric:true, sensitivity:"base" });
+                    return textDifference === 0 ? left.index - right.index : textDifference * direction;
+                });
+            }
             if (surveyTableSummary) {
                 const total = (dataset.records || []).length;
                 surveyTableSummary.textContent = isArchiveView
@@ -28496,7 +28690,8 @@
                 const hasPhoto = Boolean(annotation?.surveyPoint?.imageSrc);
                 const cells = visibleHeaders.map(header => {
                     if (inlineEditEnabled) return `<td>${renderTableCellEditor(index, header, record, activeLayer)}</td>`;
-                    return `<td>${escapeHtml(record?.[header] ?? "")}</td>`;
+                    const field = (activeLayer?.schema || []).find((item) => item.name === header) || { name:header };
+                    return `<td>${renderAttributeDisplayMarkup(field, record?.[header] ?? "")}</td>`;
                 }).join("");
                 const actionCell = isArchiveView
                     ? `<td><button type="button" class="restore-btn" data-archive-index="${index}">Restore</button></td>`
@@ -28528,7 +28723,7 @@
             const value = record?.[header] ?? "";
             const schemaField = (layer?.schema || []).find((field) => field.name === header);
             const isLocked = schemaField?.locked === true || isCoordinateField(header, currentSurveyData) || isAutoManagedField(header);
-            if (isLocked) return escapeHtml(value);
+            if (isLocked) return renderAttributeDisplayMarkup(schemaField || { name:header }, value);
             const options = dropdownFieldOptions[header] || schemaField?.options || [];
             const controlLabel = `${header || "Attribute"}, feature ${rowIndex + 1}`;
             const attrs = `class="table-cell-editor" data-table-field="${escapeHtml(header)}" data-row-index="${rowIndex}" aria-label="${escapeHtml(controlLabel)}"`;
@@ -28649,7 +28844,8 @@
                     if (!header || header === latKey || header === lonKey || header === activeLabelField) return;
                     const value = record?.[header];
                     if (value !== undefined && value !== null && value !== "") {
-                        metaFields.push(`<span><strong>${escapeHtml(header)}:</strong> ${escapeHtml(String(value)).slice(0, 80)}</span>`);
+                        const field = (activeLayer?.schema || []).find((item) => item.name === header) || { name:header };
+                        metaFields.push(`<span><strong>${escapeHtml(header)}:</strong> ${renderAttributeDisplayMarkup(field, value)}</span>`);
                     }
                     if (metaFields.length >= 3) return;
                 });
@@ -28740,9 +28936,38 @@
             if (event.target === shareToast) closeShareToast();
         });
 
+        surveyLayerTabs?.addEventListener("click", (event) => {
+            const tab = event.target.closest('[role="tab"][data-layer-id]');
+            if (tab) activateSurveyLayerTab(tab.dataset.layerId);
+        });
+
+        surveyLayerTabs?.addEventListener("keydown", (event) => {
+            const tab = event.target.closest('[role="tab"][data-layer-id]');
+            if (!tab) return;
+            const tabs = Array.from(surveyLayerTabs.querySelectorAll('[role="tab"]:not(:disabled)'));
+            const currentIndex = tabs.indexOf(tab);
+            let nextIndex = currentIndex;
+            if (event.key === "ArrowLeft") nextIndex = (currentIndex - 1 + tabs.length) % tabs.length;
+            else if (event.key === "ArrowRight") nextIndex = (currentIndex + 1) % tabs.length;
+            else if (event.key === "Home") nextIndex = 0;
+            else if (event.key === "End") nextIndex = tabs.length - 1;
+            else return;
+            event.preventDefault();
+            activateSurveyLayerTab(tabs[nextIndex]?.dataset.layerId, { focus:true });
+        });
+
         surveyTable?.addEventListener("click", (event) => {
             if (event.target.closest("[data-table-field]")) {
                 event.stopPropagation();
+                return;
+            }
+            const sortHeader = event.target.closest("th[data-table-column]");
+            if (sortHeader) {
+                const nextField = sortHeader.dataset.tableColumn;
+                tableSortDirection = tableSortField === nextField && tableSortDirection === "ascending" ? "descending" : "ascending";
+                tableSortField = nextField;
+                saveSurveyTableViewState();
+                updateSurveyTable();
                 return;
             }
             const button = event.target.closest(".view-photo-btn");
