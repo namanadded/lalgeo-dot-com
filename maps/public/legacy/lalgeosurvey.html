@@ -1538,6 +1538,18 @@
     #projectStatus.error {
         color: #c62828;
     }
+    #importPanel #projectStatus.error,
+    #layerImportStatus.error {
+        display: block;
+        padding: 11px 12px;
+        border: 1px solid rgba(220, 38, 38, 0.24);
+        border-radius: 12px;
+        background: rgba(254, 242, 242, 0.96);
+        color: #b42318 !important;
+        font-size: 13px;
+        font-weight: 650;
+        line-height: 1.45;
+    }
     .map-load-error {
         position: fixed;
         left: 50%;
@@ -3102,6 +3114,88 @@
         line-height: 1.45;
         color: #97aabd;
     }
+    .sidebar-tabs {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 4px;
+        padding: 4px;
+        border-radius: 12px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+    .sidebar-tab {
+        min-height: 44px;
+        border: 0;
+        border-radius: 9px;
+        background: transparent;
+        color: #97aabd;
+        font: inherit;
+        font-size: 13px;
+        font-weight: 700;
+        cursor: pointer;
+    }
+    .sidebar-tab:hover,
+    .sidebar-tab:focus-visible {
+        color: #eef6fb;
+        outline: none;
+    }
+    .sidebar-tab.active {
+        background: rgba(92, 200, 192, 0.14);
+        color: #8ff0dc;
+        box-shadow: inset 0 0 0 1px rgba(92, 200, 192, 0.2);
+    }
+    .selection-pane-actions {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+        margin-bottom: 12px;
+    }
+    .selection-pane-actions .mini-btn {
+        min-height: 40px;
+    }
+    .selection-layer-list {
+        display: grid;
+        gap: 8px;
+    }
+    .selection-layer-row {
+        display: grid;
+        grid-template-columns: 24px minmax(0, 1fr);
+        align-items: center;
+        gap: 10px;
+        min-height: 54px;
+        padding: 10px 12px;
+        border: 1px solid rgba(255,255,255,0.08);
+        border-radius: 12px;
+        background: rgba(255,255,255,0.04);
+        color: #eef6fb;
+        cursor: pointer;
+    }
+    .selection-layer-row:hover {
+        background: rgba(255,255,255,0.07);
+    }
+    .selection-layer-row input {
+        width: 20px;
+        height: 20px;
+        margin: 0;
+        accent-color: #38b2a6;
+    }
+    .selection-layer-copy {
+        min-width: 0;
+        display: grid;
+        gap: 3px;
+    }
+    .selection-layer-name {
+        overflow: hidden;
+        color: inherit;
+        font-size: 14px;
+        font-weight: 700;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+    .selection-layer-meta {
+        color: #97aabd;
+        font-size: 12px;
+    }
     .layer-pane-row {
         display: flex;
         align-items: center;
@@ -3946,6 +4040,170 @@
     }
     .layer-modal-danger {
         color: #ffb5b5;
+    }
+    .layer-sql-filter-card {
+        display: grid;
+        gap: 12px;
+        padding: 16px;
+        border: 1px solid rgba(0, 122, 255, 0.16);
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(247, 250, 255, 0.98), rgba(242, 247, 255, 0.92));
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 8px 24px rgba(15, 23, 42, 0.06);
+    }
+    .layer-sql-filter-heading {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 11px;
+    }
+    .layer-sql-filter-heading > div {
+        display: grid;
+        gap: 3px;
+    }
+    .layer-sql-filter-heading strong {
+        color: #1d1d1f;
+        font-size: 15px;
+        letter-spacing: -0.015em;
+    }
+    .layer-sql-filter-heading span:not(.layer-sql-filter-icon):not(.layer-sql-filter-state) {
+        color: #6e6e73;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    .layer-sql-filter-icon {
+        width: 34px;
+        height: 34px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 10px;
+        background: #007aff;
+        color: #fff;
+        font-size: 22px;
+        font-weight: 700;
+        box-shadow: 0 5px 14px rgba(0, 122, 255, 0.22);
+    }
+    .layer-sql-filter-state {
+        min-width: 34px;
+        padding: 4px 9px;
+        border-radius: 999px;
+        background: #e5e5ea;
+        color: #6e6e73;
+        font-size: 11px;
+        font-weight: 750;
+        text-align: center;
+    }
+    .layer-sql-filter-state.active {
+        background: rgba(52, 199, 89, 0.14);
+        color: #248a3d;
+    }
+    .layer-sql-filter-label {
+        color: #6e6e73;
+        font-size: 11px;
+        font-weight: 750;
+        letter-spacing: 0.08em;
+    }
+    .layer-modal .layer-sql-filter-editor {
+        min-height: 76px;
+        resize: vertical;
+        border-radius: 13px;
+        background: rgba(255,255,255,0.96);
+        border-color: rgba(60, 60, 67, 0.18);
+        color: #1d1d1f;
+        font: 13px/1.55 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+    }
+    .layer-modal .layer-sql-filter-editor:focus {
+        outline: none;
+        border-color: #007aff;
+        box-shadow: 0 0 0 3px rgba(0, 122, 255, 0.14);
+    }
+    .layer-sql-filter-toolbar {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 8px;
+    }
+    .layer-sql-filter-toolbar button {
+        min-height: 34px;
+        padding: 0 12px;
+        border-radius: 10px;
+        box-shadow: none !important;
+    }
+    .layer-sql-filter-result {
+        margin-left: auto;
+        color: #6e6e73;
+        font-size: 12px;
+        font-weight: 650;
+    }
+    .layer-sql-filter-result.valid {
+        color: #248a3d;
+    }
+    .layer-sql-filter-result.invalid {
+        flex-basis: 100%;
+        margin-left: 0;
+        padding: 9px 10px;
+        border-radius: 10px;
+        background: rgba(255, 59, 48, 0.1);
+        color: #c9342b;
+    }
+    .layer-sql-filter-help,
+    .layer-sql-filter-fields {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+    .layer-sql-filter-help span {
+        display: inline-flex;
+        gap: 4px;
+        padding: 5px 7px;
+        border-radius: 9px;
+        background: rgba(118, 118, 128, 0.08);
+    }
+    .layer-sql-filter-help code,
+    .layer-sql-filter-example code {
+        color: #3a3a3c;
+        font: 11px/1.3 ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    }
+    .layer-sql-filter-fields button {
+        min-height: 30px;
+        padding: 4px 9px;
+        border: 1px solid rgba(0, 122, 255, 0.18);
+        border-radius: 999px;
+        background: rgba(255,255,255,0.9);
+        color: #0066cc;
+        font-size: 11px;
+        font-weight: 650;
+        cursor: pointer;
+    }
+    .layer-sql-filter-fields button:hover,
+    .layer-sql-filter-fields button:focus-visible {
+        outline: none;
+        background: rgba(0, 122, 255, 0.08);
+        border-color: rgba(0, 122, 255, 0.35);
+    }
+    .layer-sql-filter-example {
+        margin: 0;
+        color: #6e6e73 !important;
+        font-size: 11px;
+        line-height: 1.5;
+    }
+    @media (max-width: 640px) {
+        .layer-sql-filter-card {
+            padding: 14px;
+            border-radius: 16px;
+        }
+        .layer-sql-filter-heading {
+            grid-template-columns: auto minmax(0, 1fr);
+        }
+        .layer-sql-filter-state {
+            grid-column: 2;
+            justify-self: start;
+        }
+        .layer-sql-filter-result {
+            flex-basis: 100%;
+            margin-left: 0;
+        }
     }
     .schema-editor-list {
         display: grid;
@@ -5178,6 +5436,97 @@
         transform-origin: top right;
         animation: toolbarMenuAppear var(--toolbar-motion-menu, 180ms) var(--toolbar-motion-ease, cubic-bezier(0.2, 0.8, 0.2, 1)) both;
     }
+    @media (min-width: 601px) {
+        #toolbar .toolbar-quick-actions {
+            gap: 0;
+            padding: 5px 7px;
+            border-radius: 12px;
+        }
+        #toolbar .toolbar-action-group {
+            position: relative;
+            gap: 2px;
+            margin: 0;
+            padding: 0;
+            background: transparent;
+            border: 0;
+            border-radius: 0;
+            box-shadow: none;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group {
+            margin-left: 10px;
+            padding-left: 11px;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before,
+        #toolbar #toolbarLayersBtn::before {
+            content: "";
+            position: absolute;
+            top: 50%;
+            width: 1px;
+            height: 20px;
+            border-radius: 999px;
+            background: rgba(107, 114, 128, 0.22);
+            transform: translateY(-50%);
+            pointer-events: none;
+        }
+        #toolbar .toolbar-action-group + .toolbar-action-group::before {
+            left: 0;
+        }
+        #toolbar #toolbarLayersBtn {
+            position: relative;
+            margin-left: 10px;
+        }
+        #toolbar #toolbarLayersBtn::before {
+            left: -6px;
+        }
+        #toolbar .menu-bar-btn.quick-action {
+            width: auto;
+            min-width: 28px;
+            height: 28px;
+            gap: 5px;
+            padding: 0 7px;
+            color: #6b7280;
+            background: transparent;
+            border: 0;
+            border-radius: 7px;
+            box-shadow: none;
+        }
+        #toolbar #editPanelToggleBtn .quick-action-label,
+        #toolbar #myLocationBtn .quick-action-label,
+        #toolbar #toolbarLayersBtn .quick-action-label,
+        #toolbar #toolbarBasemapBtn .quick-action-label,
+        #toolbar #measureToolBtn .quick-action-label,
+        #toolbar #advancedGisBtn .quick-action-label {
+            display: inline;
+            font-size: 10px;
+            font-weight: 700;
+            line-height: 1;
+            letter-spacing: 0.01em;
+        }
+        #toolbar .menu-bar-btn.quick-action:hover:not(:disabled) {
+            color: #374151;
+            background: rgba(15, 23, 42, 0.055);
+            border: 0;
+            box-shadow: none;
+        }
+        #toolbar .menu-bar-btn.quick-action.active,
+        #toolbar .menu-bar-btn.quick-action[aria-expanded="true"] {
+            color: #374151;
+            background: rgba(15, 23, 42, 0.075);
+            border: 0;
+            box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.06);
+        }
+        #toolbar #undoBtn,
+        #toolbar #redoBtn {
+            width: 26px;
+            min-width: 26px;
+            gap: 0;
+            padding: 0;
+        }
+        #toolbar #undoBtn .quick-action-label,
+        #toolbar #redoBtn .quick-action-label {
+            display: none !important;
+        }
+    }
     @keyframes toolbarMenuAppear {
         from {
             opacity: 0;
@@ -5252,6 +5601,34 @@
         background: #f9fafb;
         border-color: #d1d5db;
         color: transparent;
+    }
+    #sidebar .sidebar-tabs {
+        background: #f3f4f6;
+        border-color: #e5e7eb;
+    }
+    #sidebar .sidebar-tab {
+        color: #6b7280;
+    }
+    #sidebar .sidebar-tab:hover,
+    #sidebar .sidebar-tab:focus-visible {
+        color: #374151;
+    }
+    #sidebar .sidebar-tab.active {
+        background: #fff;
+        color: #374151;
+        box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+    #sidebar .selection-layer-row {
+        background: #fff;
+        border-color: #e5e7eb;
+        color: #374151;
+    }
+    #sidebar .selection-layer-row:hover {
+        background: #f9fafb;
+        border-color: #d1d5db;
+    }
+    #sidebar .selection-layer-meta {
+        color: #6b7280;
     }
     .workspace-badge,
     .workspace-pill {
@@ -5449,6 +5826,67 @@
     #importPanel .workspace-panel-section {
         border-top-color: #e5e7eb;
     }
+    #importPanel .ios-disclosure > summary {
+        min-height: 48px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 0 14px;
+        color: #374151;
+        font-weight: 700;
+        cursor: pointer;
+        list-style: none;
+    }
+    #importPanel .ios-disclosure > summary::-webkit-details-marker {
+        display: none;
+    }
+    #importPanel .ios-disclosure > summary::after {
+        content: "›";
+        color: #9ca3af;
+        font-size: 24px;
+        font-weight: 400;
+        line-height: 1;
+        transform: rotate(90deg);
+        transition: transform 160ms ease;
+    }
+    #importPanel .ios-disclosure[open] > summary::after {
+        transform: rotate(-90deg);
+    }
+    #importPanel .ios-disclosure-content {
+        padding: 0 14px 14px;
+    }
+    #importPanel .ios-row-action {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+    }
+    #importPanel .dropbox-connected-info {
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: #ecfdf5;
+        color: #047857;
+        font-size: 12px;
+    }
+    .browser-limit-note {
+        display: grid;
+        gap: 3px;
+        margin: 0 0 10px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        background: rgba(0, 122, 255, 0.08);
+        color: #3a3a3c;
+        font-size: 12px;
+        line-height: 1.4;
+    }
+    .browser-limit-note strong {
+        color: #0056b3;
+        font-size: 12px;
+    }
+    .browser-limit-note span {
+        color: #6e6e73;
+    }
     #importPanel input[type="url"],
     #importPanel input[type="file"],
     #importPanel select,
@@ -5481,6 +5919,514 @@
     #importPanel .workspace-pill {
         background: #f3f4f6;
         color: #6b7280;
+    }
+    @media (max-width: 600px) {
+        #importPanel {
+            background: #f2f2f7;
+            backdrop-filter: none;
+            -webkit-backdrop-filter: none;
+        }
+        #importPanel .import-panel-container {
+            width: 100%;
+            max-width: none;
+            height: 100dvh;
+            padding: 0 16px calc(28px + env(safe-area-inset-bottom, 0px));
+            border: 0;
+            border-radius: 0;
+            background: #f2f2f7;
+            box-shadow: none;
+            color: #1c1c1e;
+            overscroll-behavior: contain;
+        }
+        #importPanel .workspace-panel-header {
+            min-height: 92px;
+            margin: 0 -16px 8px;
+            padding: calc(14px + env(safe-area-inset-top, 0px)) 56px 14px 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            position: sticky;
+            top: 0;
+            background: rgba(242, 242, 247, 0.88);
+            border-bottom: 0;
+            backdrop-filter: blur(22px) saturate(180%);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
+        }
+        #importPanel .workspace-panel-header h3 {
+            margin: 0;
+            color: #1c1c1e;
+            font-size: 28px;
+            font-weight: 750;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+        #importPanel .workspace-panel-header p {
+            margin: 4px 0 0;
+            color: #8e8e93;
+            font-size: 13px;
+            line-height: 1.3;
+        }
+        #importPanel #importPanelClose {
+            top: calc(14px + env(safe-area-inset-top, 0px));
+            right: 16px;
+            width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: #e3e3e8;
+            color: #636366;
+            box-shadow: none;
+            font-size: 22px;
+            font-weight: 600;
+            line-height: 30px;
+        }
+        #importPanel #importPanelClose::after {
+            content: none;
+        }
+        #importPanel .workspace-panel-section,
+        #importPanel .import-section {
+            margin: 12px 0 0;
+            padding: 0;
+            border: 0;
+        }
+        #importPanel .import-section-title {
+            margin: 0 0 7px 4px;
+            color: #6d6d72;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        #importPanel .workspace-record-card,
+        #importPanel .workspace-settings-card,
+        #importPanel .ios-disclosure,
+        #importPanel .ios-import-section .import-stack {
+            overflow: hidden;
+            border: 0 !important;
+            border-radius: 14px;
+            background: #fff !important;
+            box-shadow: none;
+        }
+        #importPanel .workspace-record-card {
+            padding: 14px;
+        }
+        #importPanel .workspace-record-title {
+            color: #1c1c1e;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #importPanel .workspace-record-meta {
+            margin-top: 3px;
+            color: #8e8e93;
+            font-size: 13px;
+        }
+        #importPanel .workspace-project-select,
+        #importPanel input[type="url"],
+        #importPanel select {
+            height: 46px;
+            margin-top: 12px;
+            padding: 0 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            background: #fff;
+            color: #1c1c1e;
+            font-size: 16px;
+        }
+        #importPanel .workspace-panel-actions {
+            margin-top: 12px;
+        }
+        #importPanel .workspace-primary-btn,
+        #importPanel .import-primary-btn {
+            min-height: 48px;
+            border: 0;
+            border-radius: 12px;
+            background: #007aff;
+            color: #fff;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #importPanel .workspace-primary-btn:hover,
+        #importPanel .import-primary-btn:hover {
+            background: #006ee6;
+            color: #fff;
+            border: 0;
+        }
+        #importPanel .ios-disclosure > summary {
+            min-height: 52px;
+            padding: 0 16px;
+            color: #1c1c1e;
+            font-size: 17px;
+            font-weight: 500;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #importPanel .ios-disclosure > summary:focus-visible {
+            outline: 3px solid rgba(0, 122, 255, 0.24);
+            outline-offset: 2px;
+        }
+        #importPanel .ios-disclosure > summary::after {
+            color: #c7c7cc;
+            font-size: 25px;
+        }
+        #importPanel .ios-disclosure[open] > summary {
+            border-bottom: 0.5px solid #d1d1d6;
+        }
+        #importPanel .ios-disclosure-content {
+            padding: 14px 16px 16px;
+        }
+        #importPanel .workspace-file-list {
+            margin-top: 0;
+        }
+        #importPanel .ios-import-section > .workspace-panel-muted {
+            margin: -2px 4px 8px;
+            color: #8e8e93;
+            font-size: 12px;
+        }
+        #importPanel .ios-row-action,
+        #importPanel .import-secondary-btn.ios-row-action {
+            min-height: 52px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: 14px;
+            background: #fff;
+            color: #007aff;
+            box-shadow: none;
+            font-size: 17px;
+            font-weight: 500;
+            text-align: left;
+        }
+        #importPanel .ios-row-action span:last-child {
+            color: #c7c7cc;
+            font-size: 25px;
+            font-weight: 400;
+        }
+        #importPanel .ios-subsection + .ios-subsection {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 0.5px solid #d1d1d6;
+        }
+        #importPanel .ios-subsection .import-section-title {
+            margin-left: 0;
+            color: #8e8e93;
+            font-size: 12px;
+            font-weight: 600;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        #importPanel #dropboxControls {
+            padding: 0;
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none;
+        }
+        #importPanel #dropboxControls .workspace-panel-muted {
+            margin-bottom: 10px;
+            font-size: 13px;
+        }
+        #importPanel #dropboxLoadBtn {
+            min-height: 44px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            background: #fff;
+            color: #007aff;
+            box-shadow: none;
+            font-size: 16px;
+        }
+        #importPanel #dropboxConnectStatus {
+            display: block;
+            color: #8e8e93;
+            font-size: 12px;
+        }
+        #importPanel #projectStatus {
+            display: block;
+            margin: 18px 4px 0;
+            padding-bottom: 8px;
+            color: #8e8e93;
+            font-size: 12px;
+            line-height: 1.35;
+        }
+    }
+    @media (min-width: 601px) {
+        #importPanel {
+            position: fixed;
+            inset: 0;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            box-sizing: border-box;
+            background: rgba(28, 28, 30, 0.24);
+            backdrop-filter: blur(14px) saturate(120%);
+            -webkit-backdrop-filter: blur(14px) saturate(120%);
+        }
+        #importPanel .import-panel-container {
+            position: relative;
+            inset: auto;
+            transform: none;
+            width: min(760px, calc(100vw - 48px));
+            max-width: 760px;
+            height: auto;
+            max-height: calc(100dvh - 48px);
+            padding: 0 24px 24px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr);
+            grid-auto-rows: max-content;
+            gap: 14px;
+            overflow-y: auto;
+            border: 1px solid rgba(255, 255, 255, 0.72);
+            border-radius: 22px;
+            background: #f2f2f7;
+            color: #1c1c1e;
+            box-shadow: 0 28px 80px rgba(0, 0, 0, 0.24), 0 2px 8px rgba(0, 0, 0, 0.08);
+            overscroll-behavior: contain;
+        }
+        #importPanel .workspace-panel-header {
+            grid-column: 1 / -1;
+            min-height: 82px;
+            margin: 0 -24px;
+            padding: 20px 72px 16px 24px;
+            position: sticky;
+            top: 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-end;
+            background: rgba(242, 242, 247, 0.9);
+            border-bottom: 0.5px solid rgba(60, 60, 67, 0.18);
+            backdrop-filter: blur(22px) saturate(180%);
+            -webkit-backdrop-filter: blur(22px) saturate(180%);
+            z-index: 4;
+        }
+        #importPanel .workspace-panel-header h3 {
+            margin: 0;
+            color: #1c1c1e;
+            font-size: 26px;
+            font-weight: 750;
+            line-height: 1.1;
+            letter-spacing: -0.02em;
+        }
+        #importPanel .workspace-panel-header p {
+            margin: 5px 0 0;
+            color: #6e6e73;
+            font-size: 13px;
+        }
+        #importPanel #importPanelClose {
+            position: absolute;
+            top: 18px;
+            right: 20px;
+            width: 32px;
+            min-width: 32px;
+            height: 32px;
+            padding: 0;
+            border: 0;
+            border-radius: 999px;
+            background: #dedee3;
+            color: #636366;
+            box-shadow: none;
+            font-size: 22px;
+            line-height: 30px;
+        }
+        #importPanel #importPanelClose::after {
+            content: none;
+        }
+        #importPanel #importPanelClose:hover,
+        #importPanel #importPanelClose:focus-visible {
+            background: #d1d1d6;
+            color: #1c1c1e;
+            border: 0;
+            outline: none;
+            transform: none;
+        }
+        #importPanel .workspace-panel-section,
+        #importPanel .import-section {
+            min-width: 0;
+            margin: 0;
+            padding: 0;
+            border: 0;
+        }
+        #importPanel .ios-project-open,
+        #importPanel #projectStatus {
+            grid-column: 1 / -1;
+        }
+        #importPanel .import-section-title {
+            margin: 0 0 7px 4px;
+            color: #6e6e73;
+            font-size: 13px;
+            font-weight: 600;
+            letter-spacing: 0;
+            text-transform: none;
+        }
+        #importPanel .workspace-record-card,
+        #importPanel .workspace-settings-card,
+        #importPanel .ios-disclosure,
+        #importPanel .ios-import-section .import-stack {
+            overflow: hidden;
+            border: 0 !important;
+            border-radius: 14px;
+            background: #fff !important;
+            box-shadow: none;
+        }
+        #importPanel .workspace-record-card {
+            padding: 16px;
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(220px, 0.8fr) auto;
+            grid-template-areas:
+                "title select action"
+                "meta select action";
+            align-items: center;
+            column-gap: 14px;
+        }
+        #importPanel .workspace-record-title {
+            grid-area: title;
+            color: #1c1c1e;
+            font-size: 17px;
+            font-weight: 650;
+        }
+        #importPanel .workspace-record-meta {
+            grid-area: meta;
+            margin-top: 3px;
+            color: #8e8e93;
+            font-size: 13px;
+        }
+        #importPanel .workspace-project-select {
+            grid-area: select;
+            width: 100%;
+            height: 42px;
+            margin: 0;
+            padding: 0 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            background: #fff;
+            color: #1c1c1e;
+            font-size: 15px;
+        }
+        #importPanel .workspace-panel-actions {
+            grid-area: action;
+            display: block;
+            width: auto;
+            margin: 0;
+        }
+        #importPanel #drawerLoadProjectBtn {
+            width: auto;
+            min-width: 92px;
+            min-height: 42px;
+            padding: 0 20px;
+            border: 0;
+            border-radius: 10px;
+            background: #007aff;
+            color: #fff;
+            box-shadow: none;
+            font-size: 15px;
+            font-weight: 650;
+        }
+        #importPanel .ios-disclosure > summary {
+            min-height: 52px;
+            padding: 0 16px;
+            color: #1c1c1e;
+            font-size: 16px;
+            font-weight: 500;
+            -webkit-tap-highlight-color: transparent;
+        }
+        #importPanel .ios-disclosure > summary:focus-visible {
+            outline: 3px solid rgba(0, 122, 255, 0.22);
+            outline-offset: 2px;
+        }
+        #importPanel .ios-disclosure[open] {
+            grid-column: 1 / -1;
+        }
+        #importPanel .ios-disclosure[open] > summary {
+            border-bottom: 0.5px solid #d1d1d6;
+        }
+        #importPanel .ios-disclosure-content {
+            padding: 16px;
+        }
+        #importPanel .ios-import-section > .workspace-panel-muted {
+            margin: -2px 4px 8px;
+            color: #8e8e93;
+            font-size: 12px;
+        }
+        #importPanel .ios-row-action,
+        #importPanel .import-secondary-btn.ios-row-action {
+            min-height: 52px;
+            padding: 0 16px;
+            border: 0;
+            border-radius: 14px;
+            background: #fff;
+            color: #007aff;
+            box-shadow: none;
+            font-size: 16px;
+            font-weight: 500;
+            text-align: left;
+        }
+        #importPanel .ios-row-action span:last-child {
+            color: #c7c7cc;
+            font-size: 24px;
+            font-weight: 400;
+        }
+        #importPanel .workspace-primary-btn,
+        #importPanel .import-primary-btn {
+            min-height: 42px;
+            border: 0;
+            border-radius: 10px;
+            background: #007aff;
+            color: #fff;
+            box-shadow: none;
+            font-weight: 650;
+        }
+        #importPanel .workspace-inline-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+        #importPanel .workspace-inline-actions .mini-btn {
+            min-height: 38px;
+            display: inline-flex;
+            align-items: center;
+            padding: 0 12px;
+            border: 0;
+            border-radius: 9px;
+            background: #e9e9ee;
+            color: #007aff;
+            box-shadow: none;
+        }
+        #importPanel .ios-subsection + .ios-subsection {
+            margin-top: 18px;
+            padding-top: 16px;
+            border-top: 0.5px solid #d1d1d6;
+        }
+        #importPanel .ios-subsection .import-section-title {
+            margin-left: 0;
+            color: #8e8e93;
+            font-size: 12px;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+        }
+        #importPanel input[type="url"],
+        #importPanel select {
+            min-height: 42px;
+            padding: 0 12px;
+            border: 1px solid #d1d1d6;
+            border-radius: 10px;
+            background: #fff;
+            color: #1c1c1e;
+            font-size: 15px;
+        }
+        #importPanel #dropboxControls {
+            padding: 0;
+            border: 0 !important;
+            background: transparent !important;
+            box-shadow: none;
+        }
+        #importPanel #projectStatus {
+            display: block;
+            margin: 0 4px;
+            color: #8e8e93;
+            font-size: 12px;
+        }
+    }
+    @media (min-width: 900px) {
+        #importPanel .import-panel-container {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
     }
     .workspace-modal-backdrop,
     .layer-modal-backdrop {
@@ -5647,7 +6593,7 @@
                         </span>
                         <span class="quick-action-label">Add</span>
                     </button>
-                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Undo">
+                    <button id="undoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Undo" title="Undo">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M9 7H4v5"></path>
@@ -5656,7 +6602,7 @@
                         </span>
                         <span class="quick-action-label">Undo</span>
                     </button>
-                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled title="Redo">
+                    <button id="redoBtn" type="button" class="menu-bar-btn quick-action" disabled aria-label="Redo" title="Redo">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M15 7h5v5"></path>
@@ -5712,7 +6658,7 @@
                         </span>
                         <span class="quick-action-label">Measure</span>
                     </button>
-                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Advanced GIS">
+                    <button id="advancedGisBtn" type="button" class="menu-bar-btn quick-action" aria-label="Open advanced GIS tools" aria-controls="advancedGisPanel" aria-expanded="false" title="Tools">
                         <span class="quick-action-icon" aria-hidden="true">
                             <svg class="toolbar-icon" viewBox="0 0 24 24">
                                 <path d="M12 3l7 4v8l-7 4-7-4V7l7-4z"></path>
@@ -5721,7 +6667,7 @@
                                 <path d="M12 11L5 7"></path>
                             </svg>
                         </span>
-                        <span class="quick-action-label">GIS</span>
+                        <span class="quick-action-label">Tools</span>
                     </button>
                 </div>
             </div>
@@ -5952,8 +6898,6 @@
                 <select id="editPanelLayerSelect" class="workspace-text-input toolbar-layer-select"></select>
             </div>
             <div class="edit-panel-grid">
-                <button id="editPanelUndoBtn" type="button" class="edit-tool-btn" data-tooltip="Undo" aria-label="Undo"><span class="edit-tool-icon" aria-hidden="true">↶</span></button>
-                <button id="editPanelRedoBtn" type="button" class="edit-tool-btn" data-tooltip="Redo" aria-label="Redo"><span class="edit-tool-icon" aria-hidden="true">↷</span></button>
                 <button id="editPanelAddFeatureBtn" type="button" class="edit-tool-btn green" data-tooltip="Add feature" aria-label="Add feature"><span class="edit-tool-icon" aria-hidden="true">✚</span></button>
                 <button id="editPanelEditExistingBtn" type="button" class="edit-tool-btn blue" data-tooltip="Edit attributes" aria-label="Edit attributes"><span class="edit-tool-icon" aria-hidden="true">✎</span></button>
                 <button id="editPanelGeometryBtn" type="button" class="edit-tool-btn purple" data-tooltip="Edit geometry" aria-label="Edit geometry"><span class="edit-tool-icon" aria-hidden="true">◇</span></button>
@@ -6043,14 +6987,13 @@
     <div id="importPanel" hidden>
         <div class="import-panel-container">
             <div class="workspace-panel-header">
-                <button id="importPanelClose" class="close-btn" type="button" aria-label="Close import panel">×</button>
-                <p class="workspace-section-kicker">Cloud Workspace</p>
-                <h3>Workspace panel</h3>
-                <p>Manage projects, layers, imports, and optional Dropbox sync from one place.</p>
+                <button id="importPanelClose" class="close-btn" type="button" aria-label="Close projects panel"><span aria-hidden="true">×</span></button>
+                <h3>Projects</h3>
+                <p>Open a project or bring one in from Files or Dropbox.</p>
             </div>
 
-            <div class="workspace-panel-section" style="margin-top:8px; padding-top:0; border-top:none;">
-                <div class="import-section-title">Current project</div>
+            <section class="workspace-panel-section ios-project-open">
+                <div class="import-section-title">Open Project</div>
                 <div class="workspace-record-card active">
                     <div class="workspace-record-title" id="workspacePanelProjectName">No project open</div>
                     <div class="workspace-record-meta">
@@ -6061,74 +7004,80 @@
                         <option value="">Select a project</option>
                     </select>
                     <div class="workspace-panel-actions">
-                        <button id="drawerLoadProjectBtn" type="button" class="workspace-primary-btn">Load Project</button>
+                        <button id="drawerLoadProjectBtn" type="button" class="workspace-primary-btn">Open</button>
                     </div>
                 </div>
-            </div>
+            </section>
 
-            <div class="workspace-panel-section">
-                <div class="import-section-title">Attachments / Project files</div>
-                <div id="projectFilesList" class="workspace-file-list"></div>
-            </div>
+            <details class="workspace-panel-section ios-disclosure">
+                <summary>Project Files</summary>
+                <div class="ios-disclosure-content">
+                    <div id="projectFilesList" class="workspace-file-list"></div>
+                </div>
+            </details>
 
-            <div class="workspace-panel-section">
-                <div class="import-section-title">Project settings</div>
-                <div class="workspace-settings-card">
-                    <div id="projectSettingsSummary" class="workspace-panel-muted">Use Dropbox for project storage and cross-device access.</div>
-                    <div class="workspace-inline-actions">
-                        <button id="copyShareLinkBtn" type="button" class="mini-btn">Copy share link</button>
-                        <button id="downloadProjectBtn" type="button" class="mini-btn">Download LalGeo project package</button>
-                        <a id="projectSettingsDataManagerBtn" href="/datamanager" class="mini-btn">Open Data Manager</a>
+            <details class="workspace-panel-section ios-disclosure">
+                <summary>Share &amp; Export</summary>
+                <div class="ios-disclosure-content">
+                    <div class="workspace-settings-card">
+                        <div id="projectSettingsSummary" class="workspace-panel-muted">Open a project to see sharing and export options.</div>
+                        <div class="workspace-inline-actions">
+                            <button id="copyShareLinkBtn" type="button" class="mini-btn">Copy Share Link</button>
+                            <button id="downloadProjectBtn" type="button" class="mini-btn">Export LalGeo Package</button>
+                            <a id="projectSettingsDataManagerBtn" href="/datamanager" class="mini-btn">Open Data Manager</a>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </details>
 
-            <div class="import-section">
-                <div class="import-section-title section-header">Import existing project</div>
-                <p>Import a LalGeo project from file, Dropbox, or existing survey export.</p>
-                <div class="import-section-title section-header">From file</div>
+            <section class="workspace-panel-section ios-import-section">
+                <div class="import-section-title">Import from Files</div>
+                <p class="workspace-panel-muted">LalGeo packages, GIS files, CSV, and images.</p>
+                <div class="browser-limit-note" role="note">
+                    <strong>Browser safety limits</strong>
+                    <span>Files: 25 MB each or 40 MB per batch; photos: 2 MB per batch; ZIP contents: 60 MB uncompressed. Data: 10,000 features per layer or 25,000 per project. Saved browser projects: 3 MB each or 4 MB total. API responses: 10 MB. Very detailed geometry may reach the complexity limit sooner.</span>
+                </div>
                 <div class="import-stack">
-                    <button id="projectPickerBtn" type="button" class="import-secondary-btn">Select files…</button>
+                    <button id="projectPickerBtn" type="button" class="import-secondary-btn ios-row-action"><span>Choose Project File</span><span aria-hidden="true">›</span></button>
                     <input id="projectFileInput" type="file" accept=".zip,.lal,.csv,.json,.geojson,.kml,.kmz,.gpx,.shp,.shx,.dbf,.prj,.cpg,image/*" multiple webkitdirectory style="display:none">
                 </div>
-            </div>
+            </section>
 
-            <div class="divider"></div>
-
-            <div class="import-section">
-                <div class="import-section-title section-header">From Dropbox link</div>
-                <div class="import-stack">
-                    <input type="url" id="dropboxUrlInput" placeholder="https://www.dropbox.com/s/.../Test123.lal?dl=1">
-                    <button id="dropboxLoadBtn" type="button" class="import-primary-btn">Load from Dropbox link</button>
-                </div>
-            </div>
-
-            <div class="divider"></div>
-
-            <div class="import-section">
-                <div class="import-section-title section-header">From Dropbox account</div>
-                <div id="dropboxControls" style="padding:18px; border:1px solid rgba(255,255,255,0.08); border-radius:12px; background:rgba(255,255,255,0.04);">
-                    <div style="font-size:14px; font-weight:600; margin-bottom:10px; margin-top:6px; color:#eef6fb;">Live Dropbox connection</div>
-                    <div class="workspace-panel-muted" style="margin-bottom:10px;">Use Dropbox for project storage and cross-device access.</div>
-                    <div class="import-stack">
-                        <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox Account</button>
-                        <div id="dropboxConnectedInfo" style="display:none; background:rgba(92, 200, 192, 0.12); border-radius:8px; padding:10px 12px; font-size:12px; color:#8ff0dc;">
-                            <strong>Connected to Dropbox</strong>
-                            <div id="dropboxUserDetails" style="margin-top:0; color:#b9f7e7;"></div>
+            <details class="workspace-panel-section ios-disclosure ios-dropbox-disclosure">
+                <summary>Dropbox</summary>
+                <div class="ios-disclosure-content">
+                    <div class="ios-subsection">
+                        <div class="import-section-title">Shared Link</div>
+                        <div class="import-stack">
+                            <input type="url" id="dropboxUrlInput" inputmode="url" autocomplete="url" placeholder="Paste Dropbox link" aria-label="Dropbox shared link">
+                            <button id="dropboxLoadBtn" type="button" class="import-secondary-btn">Open Link</button>
                         </div>
-                        <div class="dropbox-block">
-                            <div class="dropbox-label">Open Dropbox project</div>
-                            <select id="dropboxSurveySelect">
-                                <option value="">— Select project file —</option>
-                            </select>
-                            <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Open selected project</button>
+                    </div>
+                    <div class="ios-subsection">
+                        <div class="import-section-title">Dropbox Account</div>
+                        <div id="dropboxControls">
+                            <div class="workspace-panel-muted">Connect once to open projects stored in your Dropbox.</div>
+                            <div class="import-stack">
+                                <button id="connectDropboxBtn" type="button" class="import-primary-btn">Connect Dropbox</button>
+                                <div id="dropboxConnectedInfo" class="dropbox-connected-info" style="display:none;">
+                                    <strong>Connected to Dropbox</strong>
+                                    <div id="dropboxUserDetails"></div>
+                                </div>
+                                <div class="dropbox-block">
+                                    <div class="dropbox-label">Project</div>
+                                    <select id="dropboxSurveySelect">
+                                        <option value="">Select a project</option>
+                                    </select>
+                                    <button id="loadDropboxSurveyBtn" type="button" class="import-primary-btn">Open Project</button>
+                                </div>
+                                <span id="dropboxConnectStatus">Dropbox not connected.</span>
+                            </div>
                         </div>
-                        <span id="dropboxConnectStatus" style="display:block; font-size:11px; color:#5f6368;">Dropbox not connected.</span>
                     </div>
                 </div>
-            </div>
+            </details>
 
-            <span id="projectStatus">Create a project or open an existing one.</span>
+            <span id="projectStatus" role="status">Create a project or open an existing one.</span>
         </div>
     </div>
     <div id="layerImportModal" class="workspace-modal-backdrop" hidden>
@@ -6142,7 +7091,11 @@
             </div>
             <div class="workspace-settings-card" style="margin-top:12px;">
                 <div class="import-section-title">From API endpoint</div>
-                <p class="workspace-panel-muted" style="margin-bottom:10px;">Paste a public endpoint that returns GeoJSON, JSON rows, or CSV. The endpoint must allow browser access.</p>
+                <p class="workspace-panel-muted" style="margin-bottom:10px;">Paste a public endpoint that returns GeoJSON, JSON rows, or CSV. The endpoint must allow browser access. Responses are limited to 10 MB and the same feature limits shown in the Projects panel.</p>
+                <div class="browser-limit-note" role="note">
+                    <strong>Why limits apply</strong>
+                    <span>Downloads, decompression, JSON parsing, map geometry, annotations, and table rows all use browser memory. Filter or paginate large endpoints before importing.</span>
+                </div>
                 <div class="workspace-field">
                     <label for="layerImportApiUrl">Endpoint URL</label>
                     <input id="layerImportApiUrl" class="workspace-text-input" type="url" placeholder="https://data.example.com/api/views/example/query.json">
@@ -6269,6 +7222,10 @@
                     <p class="sidebar-subheading">Current project layers and quick map controls.</p>
                 </div>
                 <button id="closeSidebar" type="button" class="sidebar-close-btn" aria-label="Close workspace sidebar">×</button>
+            </div>
+            <div id="sidebarTabs" class="sidebar-tabs" role="tablist" aria-label="Layer panel views">
+                <button id="sidebarLayersTab" type="button" class="sidebar-tab active" role="tab" data-sidebar-tab="layers" aria-selected="true" aria-controls="sidebar-content">Layers</button>
+                <button id="sidebarSelectionTab" type="button" class="sidebar-tab" role="tab" data-sidebar-tab="selection" aria-selected="false" aria-controls="sidebar-content">Selection</button>
             </div>
             <div id="sidebar-content"></div>
         </div>
@@ -6503,6 +7460,7 @@
         let lookAroundDropAnnotation = null;
         const workspaceContext = document.getElementById("workspaceContext");
         const toolbar = document.getElementById("toolbar");
+        const quickActionBar = document.getElementById("quickActionBar");
         const toolbarDockStrip = document.getElementById("toolbarDockStrip");
         const toolbarEditGroup = document.getElementById("toolbarEditGroup");
         const workspaceProjectNameEl = document.getElementById("workspaceProjectName");
@@ -6600,6 +7558,7 @@
         const sidebar = document.getElementById("sidebar");
         const closeSidebar = document.getElementById("closeSidebar");
         const sidebarContent = document.getElementById("sidebar-content");
+        const sidebarTabs = document.getElementById("sidebarTabs");
         const layersMapBtn = document.getElementById("layersMapBtn");
         const toolbarLayersBtn = document.getElementById("toolbarLayersBtn");
         const toolbarBasemapBtn = document.getElementById("toolbarBasemapBtn");
@@ -6619,8 +7578,6 @@
         const editPanelStatusText = document.getElementById("editPanelStatusText");
         const editPanelSessionBtn = document.getElementById("editPanelSessionBtn");
         const editPanelLayerSelect = document.getElementById("editPanelLayerSelect");
-        const editPanelUndoBtn = document.getElementById("editPanelUndoBtn");
-        const editPanelRedoBtn = document.getElementById("editPanelRedoBtn");
         const editPanelAddFeatureBtn = document.getElementById("editPanelAddFeatureBtn");
         const editPanelEditExistingBtn = document.getElementById("editPanelEditExistingBtn");
         const editPanelGeometryBtn = document.getElementById("editPanelGeometryBtn");
@@ -6882,8 +7839,6 @@
                 pin: { element: editPanelPinBtn, group: "header", role: "dock" },
                 close: { element: editPanelCloseBtn, group: "header", role: "close" },
                 session: { element: editPanelSessionBtn, group: "body", role: "mode" },
-                undo: { element: editPanelUndoBtn, group: "body", role: "action" },
-                redo: { element: editPanelRedoBtn, group: "body", role: "action" },
                 addFeature: { element: editPanelAddFeatureBtn, group: "body", role: "action" },
                 editAttributes: { element: editPanelEditExistingBtn, group: "body", role: "action" },
                 editGeometry: { element: editPanelGeometryBtn, group: "body", role: "mode" },
@@ -7072,8 +8027,250 @@
         });
         const MAX_RENDERED_MAP_FEATURES = 2000;
         const MAX_RENDERED_TABLE_ROWS = 500;
+        const MAX_BROWSER_LAYER_FEATURES = 10000;
+        const MAX_BROWSER_PROJECT_FEATURES = 25000;
+        const MAX_BROWSER_LAYER_VERTICES = 150000;
+        const MAX_BROWSER_PROJECT_VERTICES = 300000;
+        const MAX_BROWSER_PROJECT_STORAGE_BYTES = 3 * 1024 * 1024;
+        const MAX_BROWSER_WORKSPACE_STORAGE_BYTES = 4 * 1024 * 1024;
+        const MAX_IMPORT_FILE_BYTES = 25 * 1024 * 1024;
+        const MAX_IMPORT_BATCH_BYTES = 40 * 1024 * 1024;
+        const MAX_IMPORT_FILE_COUNT = 250;
+        const MAX_BROWSER_IMAGE_BATCH_BYTES = 2 * 1024 * 1024;
+        const MAX_API_RESPONSE_BYTES = 10 * 1024 * 1024;
+        const MAX_REMOTE_PROJECT_BYTES = 25 * 1024 * 1024;
+        const MAX_ZIP_UNCOMPRESSED_BYTES = 60 * 1024 * 1024;
+        const MAX_ZIP_ENTRY_COUNT = 500;
+        const MAX_BROWSER_LAYER_FIELDS = 200;
         const LAYER_RENDER_PROGRESS_MIN_FEATURES = 750;
         const LAYER_RENDER_CHUNK_SIZE = 200;
+
+        function formatByteSize(bytes) {
+            const value = Number(bytes) || 0;
+            if (value < 1024) return `${value} B`;
+            if (value < 1024 * 1024) return `${(value / 1024).toFixed(1)} KB`;
+            return `${(value / (1024 * 1024)).toFixed(value >= 10 * 1024 * 1024 ? 0 : 1)} MB`;
+        }
+
+        const DROPBOX_LARGE_PROJECT_GUIDANCE = "For a larger LalGeo project package, store it in Dropbox and open it as a linked project. Large GIS layers must still be filtered, split, or simplified before the browser can render them safely.";
+        const LARGE_LAYER_GUIDANCE = "Filter, split, or simplify the layer and try again. Dropbox is recommended for storing larger project packages, but browser layer limits still apply.";
+        const LARGE_API_GUIDANCE = "Filter, paginate, or simplify the API response and try again. Dropbox is intended for project packages, not as a way around browser layer limits.";
+
+        function createBrowserLimitError(details, guidance = LARGE_LAYER_GUIDANCE) {
+            const error = new Error(`Import blocked — ${details} ${guidance}`);
+            error.name = "BrowserLimitError";
+            return error;
+        }
+
+        function getLargeFileGuidance(fileName = "") {
+            return /\.(lal|zip)$/i.test(String(fileName))
+                ? DROPBOX_LARGE_PROJECT_GUIDANCE
+                : LARGE_LAYER_GUIDANCE;
+        }
+
+        function getLargeDownloadGuidance(label = "") {
+            if (/api/i.test(String(label))) return LARGE_API_GUIDANCE;
+            if (/dropbox/i.test(String(label))) {
+                return "Reduce, split, or simplify this Dropbox project before opening it. Dropbox stores the package, but the browser still needs to download and process it safely.";
+            }
+            return DROPBOX_LARGE_PROJECT_GUIDANCE;
+        }
+
+        function getUtf8ByteLength(value = "") {
+            return new TextEncoder().encode(String(value)).byteLength;
+        }
+
+        function getLayerFeatureCount(layer = {}) {
+            const featureCount = Array.isArray(layer.features) ? layer.features.length : 0;
+            const recordCount = Array.isArray(layer.parsed?.records) ? layer.parsed.records.length : 0;
+            const archiveCount = Array.isArray(layer.parsed?.archiveRecords) ? layer.parsed.archiveRecords.length : 0;
+            return Math.max(featureCount, recordCount) + archiveCount;
+        }
+
+        function countInternalGeometryVertices(geometry) {
+            if (!geometry) return 0;
+            if (geometry.type === "Point") return 1;
+            if (geometry.type === "Polygon") {
+                return (geometry.rings || []).reduce((sum, ring) => sum + (Array.isArray(ring) ? ring.length : 0), 0);
+            }
+            return Array.isArray(geometry.coordinates) ? geometry.coordinates.length : 0;
+        }
+
+        function getLayerVertexCount(layer = {}) {
+            if (Array.isArray(layer.features) && layer.features.length) {
+                return layer.features.reduce((sum, feature) => sum + countInternalGeometryVertices(feature?.geometry), 0);
+            }
+            return (layer.parsed?.pointMeta || []).reduce((sum, meta) => sum + countInternalGeometryVertices(meta?.geometry), 0);
+        }
+
+        function countNestedCoordinatePairs(value) {
+            let count = 0;
+            const stack = [value];
+            while (stack.length) {
+                const item = stack.pop();
+                if (!Array.isArray(item)) continue;
+                if (item.length >= 2 && Number.isFinite(Number(item[0])) && Number.isFinite(Number(item[1]))) {
+                    count += 1;
+                    continue;
+                }
+                item.forEach((child) => {
+                    if (Array.isArray(child)) stack.push(child);
+                });
+            }
+            return count;
+        }
+
+        function assertLayerCollectionWithinBrowserLimits(layers = [], label = "Import") {
+            const normalizedLayers = Array.from(layers || []).filter(Boolean);
+            let projectFeatures = 0;
+            let projectVertices = 0;
+            normalizedLayers.forEach((layer) => {
+                const featureCount = getLayerFeatureCount(layer);
+                const vertexCount = getLayerVertexCount(layer);
+                const fieldCount = Math.max(layer.schema?.length || 0, layer.parsed?.headers?.length || 0);
+                if (featureCount > MAX_BROWSER_LAYER_FEATURES) {
+                    throw createBrowserLimitError(`${label} has ${featureCount.toLocaleString()} features in “${layer.name || "a layer"}”; the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} per layer.`);
+                }
+                if (vertexCount > MAX_BROWSER_LAYER_VERTICES) {
+                    throw createBrowserLimitError(`${label} has ${vertexCount.toLocaleString()} geometry vertices in “${layer.name || "a layer"}”; the browser limit is ${MAX_BROWSER_LAYER_VERTICES.toLocaleString()} vertices per layer.`);
+                }
+                if (fieldCount > MAX_BROWSER_LAYER_FIELDS) {
+                    throw createBrowserLimitError(`${label} has ${fieldCount.toLocaleString()} fields in “${layer.name || "a layer"}”; the browser limit is ${MAX_BROWSER_LAYER_FIELDS.toLocaleString()} fields per layer.`);
+                }
+                projectFeatures += featureCount;
+                projectVertices += vertexCount;
+            });
+            if (projectFeatures > MAX_BROWSER_PROJECT_FEATURES) {
+                throw createBrowserLimitError(`${label} contains ${projectFeatures.toLocaleString()} features; the browser project limit is ${MAX_BROWSER_PROJECT_FEATURES.toLocaleString()} features total.`);
+            }
+            if (projectVertices > MAX_BROWSER_PROJECT_VERTICES) {
+                throw createBrowserLimitError(`${label} contains ${projectVertices.toLocaleString()} geometry vertices; the browser project limit is ${MAX_BROWSER_PROJECT_VERTICES.toLocaleString()} vertices total.`);
+            }
+            return { featureCount: projectFeatures, vertexCount: projectVertices };
+        }
+
+        function assertParsedDatasetWithinBrowserLimits(parsed, label = "Import") {
+            if (!parsed) return;
+            const layer = {
+                name: parsed.layerName || label,
+                geometryType: parsed.geometryType || "point",
+                parsed
+            };
+            assertLayerCollectionWithinBrowserLimits([layer], label);
+        }
+
+        function getSerializedProjectByteLength(project) {
+            return getUtf8ByteLength(JSON.stringify(serializeProjectForStorage(project)));
+        }
+
+        function assertProjectWithinBrowserLimits(project, label = "Project") {
+            if (!project) return;
+            assertLayerCollectionWithinBrowserLimits(project.layers || [], label);
+            const storedBytes = getSerializedProjectByteLength(project);
+            if (storedBytes > MAX_BROWSER_PROJECT_STORAGE_BYTES) {
+                throw createBrowserLimitError(`${label} needs ${formatByteSize(storedBytes)} of browser storage; saved browser projects are limited to ${formatByteSize(MAX_BROWSER_PROJECT_STORAGE_BYTES)} each.`, DROPBOX_LARGE_PROJECT_GUIDANCE);
+            }
+        }
+
+        function getSerializedWorkspaceByteLength(projects = workspaceProjects) {
+            return getUtf8ByteLength(JSON.stringify(Array.from(projects || []).map(serializeProjectForStorage)));
+        }
+
+        function assertWorkspaceWithinBrowserStorageLimit(projects = workspaceProjects) {
+            const storedBytes = getSerializedWorkspaceByteLength(projects);
+            if (storedBytes > MAX_BROWSER_WORKSPACE_STORAGE_BYTES) {
+                throw createBrowserLimitError(`Saved browser projects need ${formatByteSize(storedBytes)} in total; this local workspace is limited to ${formatByteSize(MAX_BROWSER_WORKSPACE_STORAGE_BYTES)}. Remove or export a local project first.`, DROPBOX_LARGE_PROJECT_GUIDANCE);
+            }
+        }
+
+        function assertImportFilesWithinLimits(files = []) {
+            const list = Array.from(files || []);
+            if (list.length > MAX_IMPORT_FILE_COUNT) {
+                throw createBrowserLimitError(`${list.length.toLocaleString()} files were selected; the browser limit is ${MAX_IMPORT_FILE_COUNT.toLocaleString()} files per import.`);
+            }
+            const oversized = list.find((file) => Number(file?.size || 0) > MAX_IMPORT_FILE_BYTES);
+            if (oversized) {
+                throw createBrowserLimitError(`“${oversized.name || "Selected file"}” is ${formatByteSize(oversized.size)}; browser file imports are limited to ${formatByteSize(MAX_IMPORT_FILE_BYTES)} per file.`, getLargeFileGuidance(oversized.name));
+            }
+            const totalBytes = list.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+            if (totalBytes > MAX_IMPORT_BATCH_BYTES) {
+                throw createBrowserLimitError(`The selected files total ${formatByteSize(totalBytes)}; browser imports are limited to ${formatByteSize(MAX_IMPORT_BATCH_BYTES)} per batch.`);
+            }
+        }
+
+        function assertPhotoFilesWithinLimits(files = []) {
+            const list = Array.from(files || []);
+            const totalBytes = list.reduce((sum, file) => sum + Number(file?.size || 0), 0);
+            if (totalBytes > MAX_BROWSER_IMAGE_BATCH_BYTES) {
+                throw createBrowserLimitError(`The selected geotagged photos total ${formatByteSize(totalBytes)}; browser projects can embed up to ${formatByteSize(MAX_BROWSER_IMAGE_BATCH_BYTES)} of photos per batch.`, "Resize the photos and try again, or keep the original photos with the project in Dropbox instead of embedding them in browser storage.");
+            }
+        }
+
+        function assertCsvTextWithinBrowserLimits(csvText = "", label = "CSV import") {
+            const nonEmptyLines = String(csvText).split(/\r?\n/).reduce((count, line) => count + (line.trim() ? 1 : 0), 0);
+            if (nonEmptyLines > MAX_BROWSER_LAYER_FEATURES + MAX_BROWSER_LAYER_FIELDS + 20) {
+                throw createBrowserLimitError(`${label} contains more than ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} data rows; the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} rows per layer.`);
+            }
+        }
+
+        async function readResponseArrayBufferWithinLimit(response, maxBytes, label = "Download") {
+            const declaredBytes = Number(response.headers.get("content-length"));
+            if (Number.isFinite(declaredBytes) && declaredBytes > maxBytes) {
+                throw createBrowserLimitError(`${label} is ${formatByteSize(declaredBytes)}; the browser download limit is ${formatByteSize(maxBytes)}.`, getLargeDownloadGuidance(label));
+            }
+            if (!response.body?.getReader) {
+                const buffer = await response.arrayBuffer();
+                if (buffer.byteLength > maxBytes) {
+                    throw createBrowserLimitError(`${label} is ${formatByteSize(buffer.byteLength)}; the browser download limit is ${formatByteSize(maxBytes)}.`, getLargeDownloadGuidance(label));
+                }
+                return buffer;
+            }
+            const reader = response.body.getReader();
+            const chunks = [];
+            let totalBytes = 0;
+            try {
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+                    totalBytes += value.byteLength;
+                    if (totalBytes > maxBytes) {
+                        await reader.cancel();
+                        throw createBrowserLimitError(`${label} reached at least ${formatByteSize(totalBytes)} while downloading; the browser download limit is ${formatByteSize(maxBytes)}.`, getLargeDownloadGuidance(label));
+                    }
+                    chunks.push(value);
+                }
+            } finally {
+                reader.releaseLock?.();
+            }
+            const output = new Uint8Array(totalBytes);
+            let offset = 0;
+            chunks.forEach((chunk) => {
+                output.set(chunk, offset);
+                offset += chunk.byteLength;
+            });
+            return output.buffer;
+        }
+
+        async function readResponseTextWithinLimit(response, maxBytes, label = "Download") {
+            const buffer = await readResponseArrayBufferWithinLimit(response, maxBytes, label);
+            return new TextDecoder("utf-8", { fatal: false }).decode(new Uint8Array(buffer));
+        }
+
+        function canAddFeatureToBrowserProject(layer, additionalVertices = 1) {
+            const layerFeatureCount = getLayerFeatureCount(layer);
+            const projectFeatureCount = (activeProjectRecord?.layers || []).reduce((sum, item) => sum + getLayerFeatureCount(item), 0);
+            if (layerFeatureCount >= MAX_BROWSER_LAYER_FEATURES || projectFeatureCount >= MAX_BROWSER_PROJECT_FEATURES) {
+                setProjectStatus(`Feature not added — the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} features per layer and ${MAX_BROWSER_PROJECT_FEATURES.toLocaleString()} per project. ${LARGE_LAYER_GUIDANCE}`, "error");
+                return false;
+            }
+            const layerVertices = getLayerVertexCount(layer);
+            const projectVertices = (activeProjectRecord?.layers || []).reduce((sum, item) => sum + getLayerVertexCount(item), 0);
+            if (layerVertices + additionalVertices > MAX_BROWSER_LAYER_VERTICES || projectVertices + additionalVertices > MAX_BROWSER_PROJECT_VERTICES) {
+                setProjectStatus(`Feature not added — this project reached the browser geometry-complexity limit. ${LARGE_LAYER_GUIDANCE}`, "error");
+                return false;
+            }
+            return true;
+        }
         let surveyAnnotations = [];
         let surveyOverlays = [];
         let activeLayerRenderTask = null;
@@ -7163,8 +8360,8 @@
             },
             {
                 title: "Layer tools",
-                keywords: "layer tools new layer properties fields zoom style labels color symbol",
-                body: "Open Layer Tools from View > Toolbars. Create layers, edit layer properties, manage fields, zoom to a layer, adjust styles, and configure labels for map features."
+                keywords: "layer tools new layer properties fields zoom style labels color symbol sql filter query where",
+                body: "Open Layer Tools from View > Toolbars. Create layers, edit fields and styles, or open Layer Properties to filter visible features with a SQL WHERE expression. Filters support comparisons, AND, OR, NOT, IN, LIKE, BETWEEN, and IS NULL, and affect both the map and attribute table without deleting data."
             },
             {
                 title: "Map search and location",
@@ -7235,6 +8432,7 @@
         const startupSafeMode = urlParams.get("safe") === "1" || urlParams.get("recovery") === "1";
         let workspaceProjects = [];
         let sidebarVisible = false;
+        let activeSidebarTab = "layers";
         let dataPaneVisible = false;
         let rememberLastSession = true;
         let hideWorkspaceEmptyStateForever = false;
@@ -7577,6 +8775,13 @@
                 && annotation.surveyPoint.rowIndex === rowIndex
             ));
             if (matched) return matched;
+            const overlayAnnotation = surveyOverlays
+                .map((overlay) => overlay?.data?.surveyFeatureAnnotation)
+                .find((annotation) => (
+                    annotation?.surveyPoint?.layerId === layer?.id
+                    && annotation.surveyPoint.rowIndex === rowIndex
+                ));
+            if (overlayAnnotation) return overlayAnnotation;
             const fallback = rowAnnotationMap.get(rowIndex) || null;
             if (!fallback?.surveyPoint?.layerId || fallback.surveyPoint.layerId === layer?.id) return fallback;
             return null;
@@ -7587,7 +8792,7 @@
             const coordinate = map.convertPointOnPageToCoordinate(new DOMPoint(clientX, clientY));
             if (!coordinate) return null;
             const clientPoint = new DOMPoint(clientX, clientY);
-            const visibleLayers = (activeProjectRecord.layers || []).filter((layer) => layer.visible !== false);
+            const visibleLayers = (activeProjectRecord.layers || []).filter((layer) => layer.visible !== false && isLayerSelectable(layer));
             for (let layerIndex = 0; layerIndex < visibleLayers.length; layerIndex += 1) {
                 const layer = ensureLayerStructure(visibleLayers[layerIndex]);
                 const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
@@ -7860,6 +9065,8 @@
         function ensureLayerStructure(layer) {
             if (!layer) return layer;
             layer.geometryType = normalizeLayerGeometryType(layer.geometryType || layer?.parsed?.geometryType || "point");
+            layer.selectable = layer.selectable !== false;
+            layer.filterQuery = String(layer.filterQuery || "").trim();
             if (!Array.isArray(layer.schema) || !layer.schema.length) {
                 layer.schema = createSchemaFromParsed(layer.parsed, layer.geometryType);
             }
@@ -7964,6 +9171,7 @@
                 name,
                 geometryType: normalizedGeometry,
                 visible: true,
+                selectable: true,
                 styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry, styleDefaults || {}),
                 schema,
                 fields: schema.map((field) => field.name),
@@ -8029,6 +9237,7 @@
                 name,
                 geometryType: normalizedGeometry,
                 visible: true,
+                selectable: true,
                 styleDefaults: getDefaultLayerStyleDefaults(normalizedGeometry, styleDefaults),
                 schema: [
                     ...defaultSchema,
@@ -8742,8 +9951,12 @@
         function loadWorkspaceProjects() {
             try {
                 const raw = localStorage.getItem(WORKSPACE_STORAGE_KEY);
+                if (raw && getUtf8ByteLength(raw) > MAX_BROWSER_WORKSPACE_STORAGE_BYTES) {
+                    throw createBrowserLimitError(`Saved browser projects use ${formatByteSize(getUtf8ByteLength(raw))}; this local workspace is limited to ${formatByteSize(MAX_BROWSER_WORKSPACE_STORAGE_BYTES)}, so the oversized data was not loaded.`, DROPBOX_LARGE_PROJECT_GUIDANCE);
+                }
                 const parsed = raw ? JSON.parse(raw) : [];
                 workspaceProjects = Array.isArray(parsed) ? parsed : [];
+                workspaceProjects.forEach((project) => assertProjectWithinBrowserLimits(project, project?.name || "Saved project"));
                 const sample = ensureVisitorSampleProject();
                 if (sample) {
                     saveWorkspaceProjects();
@@ -8751,20 +9964,27 @@
             } catch (error) {
                 console.warn("Unable to load workspace projects", error);
                 workspaceProjects = [];
+                if (projectStatus) setProjectStatus(error.message || "Saved browser projects could not be loaded safely.", "error");
             }
             updatePopoutsMenuState();
         }
 
         function saveWorkspaceProjects() {
             try {
-                localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(serializeWorkspaceProjectsForStorage()));
+                workspaceProjects.forEach((project) => assertProjectWithinBrowserLimits(project, project?.name || "Project"));
+                assertWorkspaceWithinBrowserStorageLimit(workspaceProjects);
+                const serialized = JSON.stringify(serializeWorkspaceProjectsForStorage());
+                localStorage.setItem(WORKSPACE_STORAGE_KEY, serialized);
                 if (rememberLastSession && activeProjectRecord?.id) {
                     localStorage.setItem(WORKSPACE_ACTIVE_KEY, activeProjectRecord.id);
                 } else {
                     localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
                 }
+                return true;
             } catch (error) {
                 console.warn("Unable to persist workspace projects", error);
+                if (projectStatus) setProjectStatus(error.message || "Browser storage limit reached. Export or remove a project before continuing.", "error");
+                return false;
             }
         }
 
@@ -9047,6 +10267,7 @@
                                         <span class="workspace-badge">${escapeHtml(item.geometryType || "point")}</span>
                                         <span>${(item.parsed?.records || []).length} features</span>
                                         <span>${item.visible === false ? "Hidden" : "Visible"}</span>
+                                        ${item.filterQuery ? `<span class="workspace-badge">Filtered · ${getLayerFilteredFeatureEntries(item).length}</span>` : ""}
                                     </div>
                                 </div>
                             </div>
@@ -9071,11 +10292,103 @@
             }
         }
 
+        function isLayerSelectable(layer) {
+            return Boolean(layer) && layer.selectable !== false;
+        }
+
+        function updateRenderedLayerSelectability(layerId) {
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            const enabled = isLayerSelectable(layer);
+            surveyAnnotations.forEach((annotation) => {
+                if (annotation?.surveyPoint?.layerId !== layerId) return;
+                try {
+                    annotation.enabled = enabled;
+                } catch {}
+            });
+            surveyOverlays.forEach((overlay) => {
+                if (overlay?.data?.surveyFeatureAnnotation?.surveyPoint?.layerId !== layerId) return;
+                try {
+                    overlay.enabled = enabled;
+                } catch {}
+            });
+            if (!enabled && activeSurveyAnnotation?.surveyPoint?.layerId === layerId) {
+                hideSurveyCallout();
+            }
+        }
+
+        function setLayerSelectable(layerId, selectable, { render = true } = {}) {
+            const layer = getLayerById(layerId);
+            if (!layer) return;
+            layer.selectable = Boolean(selectable);
+            updateRenderedLayerSelectability(layerId);
+            markActiveProjectUpdated();
+            scheduleLocalAutosave();
+            if (render) renderActiveProjectSidebar();
+        }
+
+        function setAllLayersSelectable(selectable) {
+            const layers = activeProjectRecord?.layers || [];
+            layers.forEach((layer) => setLayerSelectable(layer.id, selectable, { render: false }));
+            renderActiveProjectSidebar();
+            setProjectStatus(
+                selectable ? "All layers can be selected on the map." : "Map feature selection is turned off for all layers.",
+                "success"
+            );
+        }
+
+        function setSidebarTab(tabName) {
+            activeSidebarTab = tabName === "selection" ? "selection" : "layers";
+            sidebarTabs?.querySelectorAll("[data-sidebar-tab]").forEach((button) => {
+                const active = button.dataset.sidebarTab === activeSidebarTab;
+                button.classList.toggle("active", active);
+                button.setAttribute("aria-selected", active ? "true" : "false");
+                button.tabIndex = active ? 0 : -1;
+            });
+            renderActiveProjectSidebar();
+        }
+
         function renderActiveProjectSidebar() {
             if (!sidebarContent) return;
+            sidebarTabs?.querySelectorAll("[data-sidebar-tab]").forEach((button) => {
+                const active = button.dataset.sidebarTab === activeSidebarTab;
+                button.classList.toggle("active", active);
+                button.setAttribute("aria-selected", active ? "true" : "false");
+                button.tabIndex = active ? 0 : -1;
+            });
+            sidebarContent.setAttribute("role", "tabpanel");
+            sidebarContent.setAttribute("aria-labelledby", activeSidebarTab === "selection" ? "sidebarSelectionTab" : "sidebarLayersTab");
             if (!activeProjectRecord) {
                 sidebarContent.innerHTML = `
                     <p class="layer-pane-helper">Create or open a project from File to manage layers here.</p>
+                `;
+                return;
+            }
+            const layers = activeProjectRecord.layers || [];
+            if (activeSidebarTab === "selection") {
+                sidebarContent.innerHTML = `
+                    <div class="workspace-sidebar-section selection-pane">
+                        <p class="layer-pane-helper">Choose which layers respond when you tap or click map features. New layers are selectable by default.</p>
+                        <div class="selection-pane-actions" role="group" aria-label="Selection shortcuts">
+                            <button type="button" class="mini-btn" data-selection-all>All</button>
+                            <button type="button" class="mini-btn" data-selection-none>None</button>
+                        </div>
+                        <div class="selection-layer-list">
+                            ${layers.map((item) => {
+                                const featureCount = item.features?.length ?? item.parsed?.records?.length ?? 0;
+                                const geometryType = normalizeLayerGeometryType(item.geometryType || "point");
+                                return `
+                                    <label class="selection-layer-row">
+                                        <input type="checkbox" data-layer-selectable="${escapeHtml(item.id)}" ${isLayerSelectable(item) ? "checked" : ""}>
+                                        <span class="selection-layer-copy">
+                                            <span class="selection-layer-name" title="${escapeHtml(item.name)}">${escapeHtml(item.name)}</span>
+                                            <span class="selection-layer-meta">${escapeHtml(geometryType)} · ${featureCount.toLocaleString()} ${featureCount === 1 ? "feature" : "features"}</span>
+                                        </span>
+                                    </label>
+                                `;
+                            }).join("") || `<p class="layer-pane-helper">Add a layer to configure map selection.</p>`}
+                        </div>
+                    </div>
                 `;
                 return;
             }
@@ -9083,7 +10396,7 @@
             sidebarContent.innerHTML = `
                 <div class="workspace-sidebar-section">
                     <p class="layer-pane-helper">Drag the handle or use ↑ / ↓ to control which layers draw on top of the map.</p>
-                    ${(activeProjectRecord.layers || []).map((item, index, list) => `
+                    ${layers.map((item, index, list) => `
                         <div class="layer-pane-row ${item.id === layer?.id ? "active" : ""}" data-sidebar-layer="${escapeHtml(item.id)}" draggable="true" aria-grabbed="false">
                             <span class="layer-drag-handle" data-layer-drag-handle aria-label="Drag ${escapeHtml(item.name)} to reorder" title="Drag to reorder">⋮⋮</span>
                             <button type="button" class="layer-visibility-toggle ${item.visible === false ? "is-off" : ""}" data-toggle-layer="${escapeHtml(item.id)}" aria-label="${item.visible === false ? "Show" : "Hide"} ${escapeHtml(item.name)} layer" aria-pressed="${item.visible === false ? "false" : "true"}">✓</button>
@@ -9274,16 +10587,6 @@
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || getActiveLayerGeometryType());
             const hasSelectedFeature = canEdit && Boolean(getSelectedEditableFeatureContext());
             const showGeometryTools = canEdit && (geometryType === "line" || geometryType === "polygon");
-            if (editPanelUndoBtn) {
-                editPanelUndoBtn.disabled = !undoStack.length;
-                editPanelUndoBtn.dataset.tooltip = undoStack.length ? "Undo" : "Nothing to undo";
-                editPanelUndoBtn.setAttribute("aria-label", editPanelUndoBtn.dataset.tooltip);
-            }
-            if (editPanelRedoBtn) {
-                editPanelRedoBtn.disabled = !redoStack.length;
-                editPanelRedoBtn.dataset.tooltip = redoStack.length ? "Redo" : "Nothing to redo";
-                editPanelRedoBtn.setAttribute("aria-label", editPanelRedoBtn.dataset.tooltip);
-            }
             if (editPanelGeometryTools) editPanelGeometryTools.hidden = !showGeometryTools;
             if (editPanelSelectedBadge) {
                 const selectedCount = selectedTableRows?.size || (hasSelectedFeature ? 1 : 0);
@@ -9388,6 +10691,7 @@
             }
             window.clearTimeout(editPanelVisibilityTimer);
             if (show) {
+                positionFloatingToolbarBelowPrimaryActions(editFloatingPanel);
                 editFloatingPanel.hidden = false;
                 editFloatingPanel.classList.remove("toolbar-dismissing");
                 window.requestAnimationFrame(() => {
@@ -9423,6 +10727,7 @@
             }
             layerToolsPanel.hidden = !show;
             if (show) {
+                positionFloatingToolbarBelowPrimaryActions(layerToolsPanel);
                 const targetLayerId = layerId || getEditPanelLayerId();
                 renderEditPanelLayerOptions(targetLayerId);
                 if (targetLayerId && targetLayerId !== activeLayerId) {
@@ -9596,12 +10901,30 @@
             panel.style.transform = "none";
         }
 
+        function getToolbarDockTop() {
+            if (!toolbar) return 0;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            if (!quickActionBar || window.getComputedStyle(quickActionBar).display === "none") {
+                return toolbarRect.bottom;
+            }
+            const quickActionRect = quickActionBar.getBoundingClientRect();
+            const quickActionsAreBelowToolbar = quickActionRect.top >= toolbarRect.bottom - 1;
+            return quickActionsAreBelowToolbar
+                ? quickActionRect.bottom + 8
+                : toolbarRect.bottom;
+        }
+
+        function positionFloatingToolbarBelowPrimaryActions(panel) {
+            if (!panel || panel.classList.contains("docked") || panel.style.top) return;
+            panel.style.top = `${Math.round(getToolbarDockTop())}px`;
+        }
+
         function dockToolbar(panel, pinnedSetter = null) {
             if (!panel || !toolbar) return;
             const toolbarRect = toolbar.getBoundingClientRect();
             pinnedSetter?.(true);
             panel.classList.add("docked");
-            panel.style.top = `${Math.round(toolbarRect.bottom)}px`;
+            panel.style.top = `${Math.round(getToolbarDockTop())}px`;
             const offset = Number.parseFloat(panel.dataset.dockOffset || "0") || getNextToolbarDockOffset(panel);
             panel.dataset.dockOffset = String(offset);
             panel.style.left = `${Math.round(toolbarRect.left + offset)}px`;
@@ -9649,8 +10972,20 @@
             if (!docked.length) return;
             const toolbarRect = toolbar.getBoundingClientRect();
             toolbarDockStrip.style.left = `${Math.round(toolbarRect.left)}px`;
-            toolbarDockStrip.style.top = `${Math.round(toolbarRect.bottom)}px`;
+            toolbarDockStrip.style.top = `${Math.round(getToolbarDockTop())}px`;
             toolbarDockStrip.style.width = `${Math.round(toolbarRect.width)}px`;
+        }
+
+        function repositionDockedToolbars() {
+            if (!toolbar) return;
+            const toolbarRect = toolbar.getBoundingClientRect();
+            const dockTop = Math.round(getToolbarDockTop());
+            getDockedToolbars().forEach((panel) => {
+                const offset = Number.parseFloat(panel.dataset.dockOffset || "0") || 0;
+                panel.style.top = `${dockTop}px`;
+                panel.style.left = `${Math.round(toolbarRect.left + offset)}px`;
+            });
+            updateToolbarDockStrip();
         }
 
         function undockEditPanel({ preservePosition = true } = {}) {
@@ -9693,8 +11028,7 @@
 
         function shouldDockEditPanel(pointerY) {
             if (!toolbar) return false;
-            const toolbarRect = toolbar.getBoundingClientRect();
-            return pointerY <= toolbarRect.bottom + 46;
+            return pointerY <= getToolbarDockTop() + 46;
         }
 
         function installEditPanelDrag() {
@@ -10110,12 +11444,16 @@
         }
 
         function addProjectToWorkspace(project, options = {}) {
-            const existingIndex = workspaceProjects.findIndex((item) => item.id === project.id);
+            assertProjectWithinBrowserLimits(project, project?.name || "Project");
+            const nextProjects = [...workspaceProjects];
+            const existingIndex = nextProjects.findIndex((item) => item.id === project.id);
             if (existingIndex >= 0) {
-                workspaceProjects.splice(existingIndex, 1, project);
+                nextProjects.splice(existingIndex, 1, project);
             } else {
-                workspaceProjects.unshift(project);
+                nextProjects.unshift(project);
             }
+            assertWorkspaceWithinBrowserStorageLimit(nextProjects);
+            workspaceProjects = nextProjects;
             saveWorkspaceProjects();
             setActiveProject(project, options);
         }
@@ -10197,6 +11535,7 @@
             });
             if (payload?.project?.layers?.length) {
                 const importedProject = payload.project;
+                assertProjectWithinBrowserLimits(importedProject, importedProject.name || "Imported project");
                 importedProject.id = generateWorkspaceId("project");
                 importedProject.storageSource = importedProject.storageSource || "Imported";
                 importedProject.metadata = importedProject.metadata || {};
@@ -10207,10 +11546,12 @@
                 setProjectStatus(`Opened ${importedProject.name}.`, "success");
                 return;
             }
+            const projectName = payload.projectName || "Imported Project";
+            if (!payload.survey) assertCsvTextWithinBrowserLimits(payload.csvText || "", projectName);
             const parsed = ensureParsedCoordinates(payload.survey
                 ? convertSurveyDocumentToParsed(cloneSurveyDocument(payload.survey))
                 : parseSurveyCSV(payload.csvText || ""));
-            const projectName = payload.projectName || "Imported Project";
+            assertParsedDatasetWithinBrowserLimits(parsed, projectName);
             const layer = createLayerRecord({
                 name: payload.layerName || "Imported Layer",
                 parsed
@@ -10250,6 +11591,7 @@
             setProjectStatus("Adding imported map layer...");
             await new Promise((resolve) => window.setTimeout(resolve, 0));
             const source = payload.source || { type: "local-import", format: payload.format || "geospatial" };
+            assertLayerCollectionWithinBrowserLimits(payload?.geospatialLayers || [], payload.projectName || "Geospatial import");
             const layers = (payload?.geospatialLayers || []).map((layer, index) => {
                 const nextLayer = ensureLayerStructure(layer);
                 if (!nextLayer) return null;
@@ -10270,6 +11612,10 @@
                 ? ` Map/table rendering is limited for performance; the full ${totalFeatureCount.toLocaleString()}-feature layer remains loaded.`
                 : "";
             if (activeProjectRecord?.layers?.length) {
+                assertProjectWithinBrowserLimits({
+                    ...activeProjectRecord,
+                    layers: [...activeProjectRecord.layers, ...layers]
+                }, `${activeProjectRecord.name} after import`);
                 activeProjectRecord.layers.push(...layers);
                 activeProjectRecord.activeLayerId = layers[0].id;
                 activeLayerId = layers[0].id;
@@ -10407,6 +11753,7 @@
             let bestDistance = Infinity;
             surveyAnnotations.forEach((annotation) => {
                 if (!annotation?.surveyPoint?.coordinate && !annotation?.coordinate) return;
+                if (!isLayerSelectable(getLayerById(annotation?.surveyPoint?.layerId))) return;
                 const point = map.convertCoordinateToPointOnPage(annotation.coordinate || annotation.surveyPoint.coordinate);
                 if (!point) return;
                 const distance = Math.hypot(point.x - clientX, point.y - clientY);
@@ -10628,6 +11975,7 @@
             currentSurveyData = layer.parsed;
             updateAnnotationLabels();
             updateSurveyTable();
+            if (layer.filterQuery) scheduleLayerSqlFilterRefresh();
             renderSelectedFeatureInspector();
             if (options.renderDrawer !== false) renderFeatureDrawer();
             return true;
@@ -11148,6 +12496,287 @@
             });
         }
 
+        const layerSqlFilterCache = new WeakMap();
+        let layerSqlFilterRefreshTimer = null;
+
+        function scheduleLayerSqlFilterRefresh() {
+            window.clearTimeout(layerSqlFilterRefreshTimer);
+            layerSqlFilterRefreshTimer = window.setTimeout(() => {
+                layerSqlFilterRefreshTimer = null;
+                if (!activeProjectRecord || !mapReady || !map) return;
+                void renderSurveyProject({
+                    parsed: currentSurveyData,
+                    projectName: activeProjectName,
+                    preserveRegion: true
+                });
+            }, 0);
+        }
+
+        function tokenizeLayerSqlFilter(query = "") {
+            const source = String(query).replace(/^\s*where\s+/i, "");
+            const tokens = [];
+            let index = 0;
+            while (index < source.length) {
+                const char = source[index];
+                if (/\s/.test(char)) {
+                    index += 1;
+                    continue;
+                }
+                if (char === "(" || char === ")" || char === ",") {
+                    tokens.push({ type: char, value: char });
+                    index += 1;
+                    continue;
+                }
+                if (char === "'") {
+                    let value = "";
+                    index += 1;
+                    let closed = false;
+                    while (index < source.length) {
+                        if (source[index] === "'" && source[index + 1] === "'") {
+                            value += "'";
+                            index += 2;
+                        } else if (source[index] === "'") {
+                            index += 1;
+                            closed = true;
+                            break;
+                        } else {
+                            value += source[index];
+                            index += 1;
+                        }
+                    }
+                    if (!closed) throw new Error("The filter contains an unfinished text value. Close it with a single quote.");
+                    tokens.push({ type: "literal", value });
+                    continue;
+                }
+                if (char === '"' || char === "[") {
+                    const closing = char === "[" ? "]" : '"';
+                    let value = "";
+                    index += 1;
+                    let closed = false;
+                    while (index < source.length) {
+                        if (source[index] === closing && source[index + 1] === closing) {
+                            value += closing;
+                            index += 2;
+                        } else if (source[index] === closing) {
+                            index += 1;
+                            closed = true;
+                            break;
+                        } else {
+                            value += source[index];
+                            index += 1;
+                        }
+                    }
+                    if (!closed) throw new Error("The filter contains an unfinished field name.");
+                    tokens.push({ type: "identifier", value });
+                    continue;
+                }
+                if (/[<>=!]/.test(char)) {
+                    const pair = source.slice(index, index + 2);
+                    const operator = [">=", "<=", "!=", "<>", "=="].includes(pair) ? pair : char;
+                    if (!["=", "==", "!=", "<>", ">", ">=", "<", "<="].includes(operator)) {
+                        throw new Error(`Unsupported operator near “${source.slice(index, index + 2)}”.`);
+                    }
+                    tokens.push({ type: "operator", value: operator });
+                    index += operator.length;
+                    continue;
+                }
+                const numberMatch = source.slice(index).match(/^-?(?:\d+(?:\.\d*)?|\.\d+)/);
+                if (numberMatch) {
+                    tokens.push({ type: "literal", value: Number(numberMatch[0]) });
+                    index += numberMatch[0].length;
+                    continue;
+                }
+                const wordMatch = source.slice(index).match(/^[A-Za-z_$][A-Za-z0-9_.$]*/);
+                if (wordMatch) {
+                    tokens.push({ type: "word", value: wordMatch[0] });
+                    index += wordMatch[0].length;
+                    continue;
+                }
+                throw new Error(`The filter contains an unsupported character “${char}”.`);
+            }
+            return tokens;
+        }
+
+        function compileLayerSqlFilter(query = "", layer = null) {
+            const normalizedQuery = String(query || "").trim().replace(/^where\s+/i, "");
+            if (!normalizedQuery) return { query: "", predicate: () => true };
+            const tokens = tokenizeLayerSqlFilter(normalizedQuery);
+            const fields = (layer?.schema || []).map((field) => field.name).filter(Boolean);
+            const fieldLookup = new Map(fields.map((field) => [String(field).toLowerCase(), field]));
+            let position = 0;
+            const peek = () => tokens[position] || null;
+            const upper = (token = peek()) => token?.type === "word" ? String(token.value).toUpperCase() : "";
+            const consume = () => tokens[position++] || null;
+            const matchWord = (word) => {
+                if (upper() !== word) return false;
+                position += 1;
+                return true;
+            };
+            const expect = (type, value = null) => {
+                const token = consume();
+                if (!token || token.type !== type || (value !== null && token.value !== value)) {
+                    throw new Error(value ? `Expected “${value}” in the filter.` : `Expected ${type} in the filter.`);
+                }
+                return token;
+            };
+            const parseValue = () => {
+                const token = consume();
+                if (!token) throw new Error("The filter ends before a value was provided.");
+                if (token.type === "literal") return { type: "literal", value: token.value };
+                if (token.type === "identifier") {
+                    const field = fieldLookup.get(String(token.value).toLowerCase());
+                    if (!field) throw new Error(`Unknown field “${token.value}”. Choose a field shown below the query editor.`);
+                    return { type: "field", name: field };
+                }
+                if (token.type === "word") {
+                    const keyword = String(token.value).toUpperCase();
+                    if (keyword === "NULL") return { type: "literal", value: null };
+                    if (keyword === "TRUE") return { type: "literal", value: true };
+                    if (keyword === "FALSE") return { type: "literal", value: false };
+                    const field = fieldLookup.get(String(token.value).toLowerCase());
+                    if (!field) throw new Error(`Unknown field “${token.value}”. Put text values in single quotes, for example 'Open'.`);
+                    return { type: "field", name: field };
+                }
+                throw new Error("Expected a field name or value in the filter.");
+            };
+            const parseValueList = () => {
+                expect("(", "(");
+                const values = [];
+                if (peek()?.type === ")") throw new Error("IN requires at least one value.");
+                while (peek()) {
+                    values.push(parseValue());
+                    if (peek()?.type === ",") {
+                        consume();
+                        continue;
+                    }
+                    expect(")", ")");
+                    break;
+                }
+                return values;
+            };
+            let parseOr;
+            const parsePredicate = () => {
+                const left = parseValue();
+                if (matchWord("IS")) {
+                    const negated = matchWord("NOT");
+                    if (!matchWord("NULL")) throw new Error("IS supports NULL or NOT NULL.");
+                    return { type: "is-null", left, negated };
+                }
+                let negated = false;
+                if (matchWord("NOT")) negated = true;
+                if (matchWord("IN")) return { type: "in", left, values: parseValueList(), negated };
+                if (matchWord("LIKE")) return { type: "like", left, right: parseValue(), negated };
+                if (matchWord("BETWEEN")) {
+                    const low = parseValue();
+                    if (!matchWord("AND")) throw new Error("BETWEEN requires AND between its two values.");
+                    return { type: "between", left, low, high: parseValue(), negated };
+                }
+                if (negated) throw new Error("NOT after a field must be followed by IN, LIKE, or BETWEEN.");
+                if (peek()?.type === "operator") return { type: "compare", operator: consume().value, left, right: parseValue() };
+                return { type: "truthy", value: left };
+            };
+            const parsePrimary = () => {
+                if (peek()?.type === "(") {
+                    consume();
+                    const expression = parseOr();
+                    expect(")", ")");
+                    return expression;
+                }
+                return parsePredicate();
+            };
+            const parseNot = () => matchWord("NOT") ? { type: "not", value: parseNot() } : parsePrimary();
+            const parseAnd = () => {
+                let expression = parseNot();
+                while (matchWord("AND")) expression = { type: "and", left: expression, right: parseNot() };
+                return expression;
+            };
+            parseOr = () => {
+                let expression = parseAnd();
+                while (matchWord("OR")) expression = { type: "or", left: expression, right: parseAnd() };
+                return expression;
+            };
+            const ast = parseOr();
+            if (position < tokens.length) throw new Error(`Unexpected “${tokens[position].value}” near the end of the filter.`);
+
+            const readValue = (node, attributes) => node.type === "field" ? attributes?.[node.name] : node.value;
+            const isNullish = (value) => value === null || value === undefined || String(value).trim() === "";
+            const numericValue = (value) => {
+                if (isNullish(value) || typeof value === "boolean") return null;
+                const number = Number(String(value).replace(/,/g, "").trim());
+                return Number.isFinite(number) ? number : null;
+            };
+            const compareValues = (left, right) => {
+                const leftNumber = numericValue(left);
+                const rightNumber = numericValue(right);
+                if (leftNumber !== null && rightNumber !== null) return leftNumber === rightNumber ? 0 : leftNumber < rightNumber ? -1 : 1;
+                const leftText = String(left ?? "").toLocaleLowerCase();
+                const rightText = String(right ?? "").toLocaleLowerCase();
+                return leftText === rightText ? 0 : leftText < rightText ? -1 : 1;
+            };
+            const likeValue = (value, pattern) => {
+                const escaped = String(pattern ?? "").replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+                const regex = new RegExp(`^${escaped.replace(/%/g, ".*").replace(/_/g, ".")}$`, "i");
+                return regex.test(String(value ?? ""));
+            };
+            const evaluate = (node, attributes) => {
+                if (node.type === "and") return evaluate(node.left, attributes) && evaluate(node.right, attributes);
+                if (node.type === "or") return evaluate(node.left, attributes) || evaluate(node.right, attributes);
+                if (node.type === "not") return !evaluate(node.value, attributes);
+                if (node.type === "truthy") return Boolean(readValue(node.value, attributes));
+                if (node.type === "is-null") return node.negated !== isNullish(readValue(node.left, attributes));
+                if (node.type === "compare") {
+                    const result = compareValues(readValue(node.left, attributes), readValue(node.right, attributes));
+                    return node.operator === "=" || node.operator === "==" ? result === 0
+                        : node.operator === "!=" || node.operator === "<>" ? result !== 0
+                            : node.operator === ">" ? result > 0
+                                : node.operator === ">=" ? result >= 0
+                                    : node.operator === "<" ? result < 0
+                                        : result <= 0;
+                }
+                if (node.type === "in") {
+                    const match = node.values.some((value) => compareValues(readValue(node.left, attributes), readValue(value, attributes)) === 0);
+                    return node.negated ? !match : match;
+                }
+                if (node.type === "like") {
+                    const match = likeValue(readValue(node.left, attributes), readValue(node.right, attributes));
+                    return node.negated ? !match : match;
+                }
+                if (node.type === "between") {
+                    const value = readValue(node.left, attributes);
+                    const match = compareValues(value, readValue(node.low, attributes)) >= 0 && compareValues(value, readValue(node.high, attributes)) <= 0;
+                    return node.negated ? !match : match;
+                }
+                return true;
+            };
+            return { query: normalizedQuery, predicate: (attributes = {}) => evaluate(ast, attributes) };
+        }
+
+        function getLayerSqlFilterCompilation(layer) {
+            const query = String(layer?.filterQuery || "").trim();
+            const cached = layer && layerSqlFilterCache.get(layer);
+            if (cached?.query === query) return cached.compilation;
+            let compilation;
+            try {
+                compilation = compileLayerSqlFilter(query, layer);
+            } catch (error) {
+                console.warn("Unable to apply saved layer filter", error);
+                compilation = { query: "", predicate: () => true, error };
+            }
+            if (layer) layerSqlFilterCache.set(layer, { query, compilation });
+            return compilation;
+        }
+
+        function getLayerFilteredFeatureEntries(layer) {
+            const predicate = getLayerSqlFilterCompilation(layer).predicate;
+            return (layer?.features || [])
+                .map((feature, index) => ({ feature, index }))
+                .filter(({ feature }) => predicate(feature?.attributes || {}));
+        }
+
+        function quoteLayerSqlIdentifier(field = "") {
+            return `"${String(field).replace(/"/g, '""')}"`;
+        }
+
         function editLayerProperties(layerId) {
             const layer = getLayerById(layerId);
             if (!layer) return;
@@ -11165,12 +12794,41 @@
             const isPolygonLayer = normalizeLayerGeometryType(layer.geometryType) === "polygon";
             const fillOpacity = Math.max(0, Math.min(1, Number(currentDefaults.fillOpacity ?? 0.6)));
             const transparency = Math.round((1 - fillOpacity) * 100);
+            const filterFields = (layer.schema || []).map((field) => field.name).filter((name) => name && !isLayerStyleFieldName(name));
+            const currentFilterQuery = String(layer.filterQuery || "").trim();
+            const currentFilterMatchCount = getLayerFilteredFeatureEntries(layer).length;
             openLayerActionModal({
                 title: "Layer Properties",
-                description: `Set symbol and label behavior for ${layer.name}.`,
+                description: `Control visibility, symbols, and labels for ${layer.name}.`,
                 bodyHtml: `
                     <div class="layer-modal-grid">
                         ${layerSourceDetailsHtml(layer)}
+                        <section class="layer-sql-filter-card full" aria-labelledby="layerSqlFilterTitle">
+                            <div class="layer-sql-filter-heading">
+                                <span class="layer-sql-filter-icon" aria-hidden="true">⌁</span>
+                                <div>
+                                    <strong id="layerSqlFilterTitle">Feature display filter</strong>
+                                    <span>Use a SQL WHERE expression. Data stays in the layer; only matching features appear on the map and in the table.</span>
+                                </div>
+                                <span class="layer-sql-filter-state ${currentFilterQuery ? "active" : ""}" id="layerSqlFilterState">${currentFilterQuery ? "On" : "Off"}</span>
+                            </div>
+                            <label class="layer-sql-filter-label" for="layerSqlFilterQuery">WHERE</label>
+                            <textarea id="layerSqlFilterQuery" class="workspace-textarea layer-sql-filter-editor" rows="3" spellcheck="false" placeholder="Status = 'Open' AND Priority >= 3">${escapeHtml(currentFilterQuery)}</textarea>
+                            <div class="layer-sql-filter-toolbar">
+                                <button id="layerSqlFilterTest" class="workspace-secondary-btn" type="button">Test filter</button>
+                                <button id="layerSqlFilterClear" class="workspace-secondary-btn" type="button">Clear</button>
+                                <span id="layerSqlFilterResult" class="layer-sql-filter-result" role="status">${currentFilterQuery ? `${currentFilterMatchCount.toLocaleString()} of ${(layer.features || []).length.toLocaleString()} features match` : `All ${(layer.features || []).length.toLocaleString()} features visible`}</span>
+                            </div>
+                            <div class="layer-sql-filter-help">
+                                <span><code>=</code> <code>!=</code> <code>&gt;</code> <code>&gt;=</code> <code>&lt;</code> <code>&lt;=</code></span>
+                                <span><code>AND</code> <code>OR</code> <code>NOT</code></span>
+                                <span><code>IN</code> <code>LIKE</code> <code>BETWEEN</code> <code>IS NULL</code></span>
+                            </div>
+                            <div class="layer-sql-filter-fields" aria-label="Available fields">
+                                ${filterFields.map((field) => `<button type="button" data-sql-filter-field="${escapeHtml(field)}">${escapeHtml(field)}</button>`).join("") || "<span>No attribute fields available.</span>"}
+                            </div>
+                            <p class="layer-sql-filter-example">Examples: <code>Status = 'Open'</code>, <code>Name LIKE '%park%'</code>, <code>Priority IN (1, 2, 3)</code>. Click a field above to insert it safely.</p>
+                        </section>
                         <div class="workspace-field full">
                             <label for="layerStyleColor">Colour</label>
                             <select id="layerStyleColor" class="workspace-text-input">
@@ -11257,10 +12915,26 @@
                             const nextTextColor = document.getElementById("layerLabelTextColor")?.value || "#1f2937";
                             const nextFontFamily = document.getElementById("layerLabelFontFamily")?.value || "Inter";
                             const nextPopoutsVisible = document.getElementById("layerPopoutsVisible")?.checked !== false;
+                            const nextFilterQuery = document.getElementById("layerSqlFilterQuery")?.value?.trim() || "";
                             if (!nextColor || !nextShape) return false;
                             if (nextLabelMode === "expression" && !nextExpression) {
                                 document.getElementById("layerLabelExpression")?.focus();
                                 setProjectStatus("Enter a custom label expression or switch label type to Attribute field.", "error");
+                                return false;
+                            }
+                            let filterMatchCount = (layer.features || []).length;
+                            try {
+                                const filterCompilation = compileLayerSqlFilter(nextFilterQuery, layer);
+                                filterMatchCount = (layer.features || []).filter((feature) => filterCompilation.predicate(feature?.attributes || {})).length;
+                            } catch (error) {
+                                const filterResult = document.getElementById("layerSqlFilterResult");
+                                if (filterResult) {
+                                    filterResult.textContent = error.message || "Check the SQL filter.";
+                                    filterResult.classList.remove("valid");
+                                    filterResult.classList.add("invalid");
+                                    filterResult.setAttribute("role", "alert");
+                                }
+                                document.getElementById("layerSqlFilterQuery")?.focus();
                                 return false;
                             }
                             layer.styleDefaults = {
@@ -11277,6 +12951,8 @@
                                 fontFamily: nextFontFamily
                             };
                             layer.popoutsVisible = nextPopoutsVisible;
+                            layer.filterQuery = nextFilterQuery;
+                            layerSqlFilterCache.delete(layer);
                             (layer.features || []).forEach((feature) => {
                                 feature.attributes = feature.attributes || {};
                                 feature.attributes.symbol_color = nextColor;
@@ -11290,7 +12966,9 @@
                             markActiveProjectUpdated();
                             scheduleLocalAutosave();
                             setActiveProject(activeProjectRecord, { preserveRegion: true });
-                            setProjectStatus(`Updated properties for ${layer.name}.`, "success");
+                            setProjectStatus(nextFilterQuery
+                                ? `Updated ${layer.name}. The filter shows ${filterMatchCount.toLocaleString()} of ${(layer.features || []).length.toLocaleString()} features.`
+                                : `Updated ${layer.name}. All ${(layer.features || []).length.toLocaleString()} features are visible.`, "success");
                             return true;
                         }
                     }
@@ -11323,6 +13001,53 @@
                     const opacityValue = document.getElementById("layerPolygonFillOpacityValue");
                     opacityInput?.addEventListener("input", () => {
                         if (opacityValue) opacityValue.textContent = `${opacityInput.value}%`;
+                    });
+                    const filterInput = document.getElementById("layerSqlFilterQuery");
+                    const filterResult = document.getElementById("layerSqlFilterResult");
+                    const filterState = document.getElementById("layerSqlFilterState");
+                    const updateFilterPreview = () => {
+                        const query = filterInput?.value?.trim() || "";
+                        if (filterState) {
+                            filterState.textContent = query ? "On" : "Off";
+                            filterState.classList.toggle("active", Boolean(query));
+                        }
+                        try {
+                            const compilation = compileLayerSqlFilter(query, layer);
+                            const matches = (layer.features || []).filter((feature) => compilation.predicate(feature?.attributes || {})).length;
+                            if (filterResult) {
+                                filterResult.textContent = query
+                                    ? `${matches.toLocaleString()} of ${(layer.features || []).length.toLocaleString()} features match`
+                                    : `All ${(layer.features || []).length.toLocaleString()} features visible`;
+                                filterResult.classList.remove("invalid");
+                                filterResult.classList.add("valid");
+                                filterResult.setAttribute("role", "status");
+                            }
+                        } catch (error) {
+                            if (filterResult) {
+                                filterResult.textContent = error.message || "Check the SQL filter.";
+                                filterResult.classList.remove("valid");
+                                filterResult.classList.add("invalid");
+                                filterResult.setAttribute("role", "alert");
+                            }
+                        }
+                    };
+                    document.getElementById("layerSqlFilterTest")?.addEventListener("click", updateFilterPreview);
+                    document.getElementById("layerSqlFilterClear")?.addEventListener("click", () => {
+                        if (filterInput) filterInput.value = "";
+                        updateFilterPreview();
+                        filterInput?.focus();
+                    });
+                    document.querySelectorAll("[data-sql-filter-field]").forEach((button) => {
+                        button.addEventListener("click", () => {
+                            if (!filterInput) return;
+                            const insertion = quoteLayerSqlIdentifier(button.getAttribute("data-sql-filter-field") || "");
+                            const start = filterInput.selectionStart ?? filterInput.value.length;
+                            const end = filterInput.selectionEnd ?? start;
+                            const prefix = start > 0 && !/\s|\(/.test(filterInput.value[start - 1]) ? " " : "";
+                            filterInput.setRangeText(`${prefix}${insertion}`, start, end, "end");
+                            filterInput.focus();
+                            updateFilterPreview();
+                        });
                     });
                 }
             });
@@ -12324,6 +14049,12 @@
             input.addEventListener("change", async () => {
                 const files = Array.from(input.files || []);
                 if (!files.length) return;
+                try {
+                    assertPhotoFilesWithinLimits(files);
+                } catch (error) {
+                    setProjectStatus(error.message, "error");
+                    return;
+                }
                 const photoLayer = ensureLayerStructure({
                     id: generateWorkspaceId("layer"),
                     name: "Geotagged photos",
@@ -12735,12 +14466,14 @@
         function setProjectStatus(message, state = "") {
             projectStatus.textContent = message;
             projectStatus.classList.remove("success", "error");
+            projectStatus.setAttribute("role", state === "error" ? "alert" : "status");
             if (state) {
                 projectStatus.classList.add(state);
             }
             if (layerImportStatus) {
                 layerImportStatus.textContent = message;
                 layerImportStatus.classList.remove("success", "error");
+                layerImportStatus.setAttribute("role", state === "error" ? "alert" : "status");
                 if (state) layerImportStatus.classList.add(state);
             }
             if (workspaceLiveRegion) {
@@ -12973,6 +14706,7 @@
         });
         window.addEventListener("resize", () => {
             setSidebarVisibility(sidebarVisible);
+            repositionDockedToolbars();
             if (settingsPanel && !settingsPanel.hidden) {
                 positionSettingsPanel();
             }
@@ -13309,8 +15043,6 @@
             syncEditPanelState();
         });
         editPanelSessionBtn?.addEventListener("click", () => setEditSessionActive(!editSessionActive));
-        editPanelUndoBtn?.addEventListener("click", () => performUndo());
-        editPanelRedoBtn?.addEventListener("click", () => performRedo());
         editPanelAddFeatureBtn?.addEventListener("click", startEditPanelAddFeature);
         editPanelEditExistingBtn?.addEventListener("click", openActiveLayerTableForEditing);
         editPanelGeometryBtn?.addEventListener("click", startEditPanelGeometryEdit);
@@ -13646,7 +15378,36 @@
         });
         bindLayerReorderList(layerList);
         bindLayerReorderList(sidebarContent);
+        sidebarTabs?.addEventListener("click", (event) => {
+            const tab = event.target.closest("[data-sidebar-tab]");
+            if (!tab) return;
+            setSidebarTab(tab.dataset.sidebarTab);
+        });
+        sidebarTabs?.addEventListener("keydown", (event) => {
+            if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
+            event.preventDefault();
+            const nextTab = activeSidebarTab === "layers" ? "selection" : "layers";
+            setSidebarTab(nextTab);
+            sidebarTabs.querySelector(`[data-sidebar-tab="${nextTab}"]`)?.focus();
+        });
+        sidebarContent?.addEventListener("change", (event) => {
+            const checkbox = event.target.closest("[data-layer-selectable]");
+            if (!checkbox) return;
+            setLayerSelectable(checkbox.dataset.layerSelectable, checkbox.checked);
+            setProjectStatus(
+                checkbox.checked ? "Layer can now be selected on the map." : "Layer selection is turned off.",
+                "success"
+            );
+        });
         sidebarContent?.addEventListener("click", (event) => {
+            if (event.target.closest("[data-selection-all]")) {
+                setAllLayersSelectable(true);
+                return;
+            }
+            if (event.target.closest("[data-selection-none]")) {
+                setAllLayersSelectable(false);
+                return;
+            }
             const moveLayerButton = event.target.closest("[data-layer-move]");
             if (moveLayerButton) {
                 event.preventDefault();
@@ -14794,6 +16555,10 @@
                 return;
             }
             if (!layer || geometryType === "point" || !hasEnoughVerticesForGeometry(geometryType, drawingVertices)) return;
+            if (!canAddFeatureToBrowserProject(layer, drawingVertices.length)) {
+                exitAddSurveyPointMode();
+                return;
+            }
             const geometry = buildGeometryFromVertices(geometryType, drawingVertices);
             if (!geometry) return;
             const { newRecord, feature } = buildNewFeaturePayload(layer, geometry);
@@ -15110,6 +16875,7 @@
             if (!canEditLayer(layer)) return setProjectStatus("Cannot add polygons to a live API reference layer.", "error");
             if (!layer || normalizeLayerGeometryType(layer.geometryType || "point") !== "polygon" || !map?.region) return;
             if (!ensureEditSessionStarted()) return;
+            if (!canAddFeatureToBrowserProject(layer, 4)) return;
             const center = map.region.center;
             const span = map.region.span;
             const height = Math.max((span.latitudeDelta || 0.01) * 0.22, 0.0002);
@@ -15327,6 +17093,10 @@
                 return;
             }
             const geometryType = getActiveLayerGeometryType();
+            if (geometryType === "point" && !canAddFeatureToBrowserProject(activeLayer, 1)) {
+                exitAddSurveyPointMode();
+                return;
+            }
             const placementCoordinate = geometryType === "point" ? coordinate : getSnappedCoordinate(coordinate);
             if (geometryType !== "point") {
                 drawingVertices.push({ lat: placementCoordinate.latitude, lng: placementCoordinate.longitude });
@@ -15792,6 +17562,7 @@
 
         async function handleSurveyFiles(files) {
             try {
+                assertImportFilesWithinLimits(files);
                 setProjectStatus(getImportStartMessage(files));
                 const payload = await buildSurveyPayload(files);
                 payload.source = payload.source || { type: "local-import" };
@@ -16007,7 +17778,7 @@
             const isJsonLike = contentType.includes("json") || lowerPath.endsWith(".lal") || lowerPath.endsWith(".json");
             const isCsvLike = contentType.includes("csv") || lowerPath.endsWith(".csv");
 
-            const buffer = await response.arrayBuffer();
+            const buffer = await readResponseArrayBufferWithinLimit(response, MAX_REMOTE_PROJECT_BYTES, "Dropbox project download");
             const textDecoder = new TextDecoder("utf-8", { fatal: false });
             const asText = textDecoder.decode(new Uint8Array(buffer));
 
@@ -16225,7 +17996,7 @@
                 dropboxConnectStatus.textContent = error.message || "Unable to sign out of Dropbox.";
             } finally {
                 connectDropboxBtn.disabled = false;
-                connectDropboxBtn.textContent = dropboxConnected ? "Disconnect Dropbox Account" : "Connect Dropbox Account";
+                connectDropboxBtn.textContent = dropboxConnected ? "Disconnect Dropbox" : "Connect Dropbox";
             }
         }
 
@@ -16307,7 +18078,7 @@
             refreshCreateProjectStorageOptions();
             if (connectDropboxBtn) {
                 connectDropboxBtn.style.display = "block";
-                connectDropboxBtn.textContent = "Connect Dropbox Account";
+                connectDropboxBtn.textContent = "Connect Dropbox";
                 connectDropboxBtn.style.background = "#4285f4";
                 connectDropboxBtn.style.border = "none";
             }
@@ -16321,9 +18092,15 @@
                 credentials: "include"
             });
             const contentType = response.headers.get("content-type") || "";
+            const responseText = await readResponseTextWithinLimit(response, MAX_REMOTE_PROJECT_BYTES, "Dropbox project response");
+            let data = null;
+            if (contentType.includes("application/json")) {
+                try {
+                    data = JSON.parse(responseText);
+                } catch {}
+            }
             if (!response.ok) {
-                if (contentType.includes("application/json")) {
-                    const data = await response.json().catch(() => null);
+                if (data) {
                     const message = data?.error === "NOT_LINKED"
                         ? "Connect your Dropbox account before loading surveys."
                         : data?.error || "Worker could not load the selected survey.";
@@ -16334,7 +18111,7 @@
             if (!contentType.includes("application/json")) {
                 throw new Error("Worker returned unexpected data format.");
             }
-            const data = await response.json();
+            if (!data) throw new Error("Worker returned invalid project data.");
             if (!data?.survey) {
                 throw new Error("Worker response missing survey payload.");
             }
@@ -16349,9 +18126,8 @@
                         credentials: "include"
                     });
                     const ct = csvResp.headers.get("content-type") || "";
-                    const bodyPreview = await csvResp.clone().text().catch(() => "");
                     if (csvResp.ok && ct.includes("text/csv")) {
-                        csvText = bodyPreview;
+                        csvText = await readResponseTextWithinLimit(csvResp, MAX_API_RESPONSE_BYTES, "Dropbox CSV response");
                     }
                 } catch (err) {
                     console.warn("CSV fetch fallback failed", err);
@@ -16363,7 +18139,7 @@
                         credentials: "include"
                     });
                     if (zipResp.ok) {
-                        const buffer = await zipResp.arrayBuffer();
+                        const buffer = await readResponseArrayBufferWithinLimit(zipResp, MAX_REMOTE_PROJECT_BYTES, "Dropbox ZIP response");
                         const extracted = await extractZipPackage(buffer, { projectName });
                         if (extracted?.csvText) {
                             csvText = extracted.csvText;
@@ -16512,8 +18288,20 @@
             }
         }
 
+        function assertZipArchiveWithinLimits(zip, label = "ZIP archive") {
+            const entries = Object.values(zip?.files || {}).filter((entry) => !entry.dir);
+            if (entries.length > MAX_ZIP_ENTRY_COUNT) {
+                throw createBrowserLimitError(`${label} contains ${entries.length.toLocaleString()} files; browser archives are limited to ${MAX_ZIP_ENTRY_COUNT.toLocaleString()} entries.`, DROPBOX_LARGE_PROJECT_GUIDANCE);
+            }
+            const declaredBytes = entries.reduce((sum, entry) => sum + Number(entry?._data?.uncompressedSize || 0), 0);
+            if (declaredBytes > MAX_ZIP_UNCOMPRESSED_BYTES) {
+                throw createBrowserLimitError(`${label} expands to ${formatByteSize(declaredBytes)}; browser archives are limited to ${formatByteSize(MAX_ZIP_UNCOMPRESSED_BYTES)} after decompression.`, DROPBOX_LARGE_PROJECT_GUIDANCE);
+            }
+        }
+
         async function extractZipPackage(source, { projectName } = {}) {
             const zip = await JSZip.loadAsync(source);
+            assertZipArchiveWithinLimits(zip, projectName ? `${projectName} archive` : "ZIP archive");
             const images = {};
             const csvTexts = [];
             let surveyDoc = null;
@@ -16633,6 +18421,7 @@
             }
             if (kmzFile) {
                 const zip = await JSZip.loadAsync(kmzFile);
+                assertZipArchiveWithinLimits(zip, `${kmzFile.name} archive`);
                 const kmlEntryName = Object.keys(zip.files).find((path) => /\.kml$/i.test(path) && !zip.files[path].dir);
                 if (!kmlEntryName) throw new Error("KMZ file does not contain a KML document.");
                 return buildGeoJsonPayload(parseKmlText(await zip.files[kmlEntryName].async("string")), {
@@ -16713,6 +18502,7 @@
         async function zipContainsShapefile(file) {
             try {
                 const zip = await JSZip.loadAsync(file);
+                assertZipArchiveWithinLimits(zip, `${file.name || "Shapefile"} archive`);
                 return Object.keys(zip.files).some((path) => !isIgnoredZipEntry(path) && /\.shp$/i.test(path));
             } catch {
                 return false;
@@ -16742,6 +18532,7 @@
 
         async function normalizeShapefileZip(zipSource) {
             const zip = await JSZip.loadAsync(zipSource);
+            assertZipArchiveWithinLimits(zip, "Shapefile archive");
             const groups = new Map();
             Object.keys(zip.files).forEach((path) => {
                 const entry = zip.files[path];
@@ -16929,6 +18720,14 @@
 
         function buildGeoJsonPayload(input, { projectName = "Imported GIS Project", fileName = "", format = "GeoJSON" } = {}) {
             const collection = normalizeFeatureCollection(input);
+            const limitGuidance = /api/i.test(format) ? LARGE_API_GUIDANCE : LARGE_LAYER_GUIDANCE;
+            if (collection.features.length > MAX_BROWSER_LAYER_FEATURES) {
+                throw createBrowserLimitError(`${format} contains ${collection.features.length.toLocaleString()} source features; the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} features per layer.`, limitGuidance);
+            }
+            const sourceVertexCount = collection.features.reduce((sum, feature) => sum + countNestedCoordinatePairs(feature?.geometry?.coordinates), 0);
+            if (sourceVertexCount > MAX_BROWSER_PROJECT_VERTICES) {
+                throw createBrowserLimitError(`${format} contains ${sourceVertexCount.toLocaleString()} coordinate positions; the browser project limit is ${MAX_BROWSER_PROJECT_VERTICES.toLocaleString()} geometry vertices.`, limitGuidance);
+            }
             const grouped = { point: [], line: [], polygon: [] };
             collection.features.forEach((feature) => {
                 const properties = { ...(feature.properties || {}) };
@@ -16945,6 +18744,7 @@
                 .filter(([, features]) => features.length)
                 .map(([geometryType, features]) => createGeospatialLayer(`${baseName} ${geometryType === "point" ? "Points" : geometryType === "line" ? "Lines" : "Polygons"}`, geometryType, features));
             if (!layers.length) throw new Error(`${format} file does not contain supported point, line, or polygon features.`);
+            assertLayerCollectionWithinBrowserLimits(layers, projectName || format);
             return {
                 geospatialLayers: layers,
                 projectName,
@@ -17004,10 +18804,16 @@
         function buildCsvPayloadFromRows(rows, { projectName = "API Endpoint", url = "" } = {}) {
             const records = normalizeApiJsonRows(rows).filter((row) => row && typeof row === "object");
             if (!records.length) throw new Error("API endpoint returned JSON, but no rows were found.");
+            if (records.length > MAX_BROWSER_LAYER_FEATURES) {
+                throw createBrowserLimitError(`The API endpoint returned ${records.length.toLocaleString()} rows; the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} rows per layer.`, LARGE_API_GUIDANCE);
+            }
             const headers = Array.from(records.reduce((set, record) => {
                 Object.keys(record || {}).forEach((key) => set.add(key));
                 return set;
             }, new Set()));
+            if (headers.length > MAX_BROWSER_LAYER_FIELDS) {
+                throw createBrowserLimitError(`The API endpoint returned ${headers.length.toLocaleString()} fields; the browser limit is ${MAX_BROWSER_LAYER_FIELDS.toLocaleString()} fields per layer.`, LARGE_API_GUIDANCE);
+            }
             const { latKey, lonKey } = findLatLonKeys(records);
             if (!latKey || !lonKey) {
                 throw new Error("JSON endpoint imported rows, but no latitude/longitude fields were found.");
@@ -17027,6 +18833,9 @@
 
         function buildGeoJsonFromJsonRows(input) {
             const records = normalizeApiJsonRows(input).filter((row) => row && typeof row === "object");
+            if (records.length > MAX_BROWSER_LAYER_FEATURES) {
+                throw createBrowserLimitError(`The API endpoint returned ${records.length.toLocaleString()} rows; the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} rows per layer.`, LARGE_API_GUIDANCE);
+            }
             const features = records.flatMap((record) => {
                 const geometryEntry = findEmbeddedGeoJsonGeometry(record);
                 if (!geometryEntry) return [];
@@ -17041,6 +18850,9 @@
         function buildGeoJsonPayloadFromJsonRows(input, { projectName = "API Endpoint", url = "" } = {}) {
             const records = normalizeApiJsonRows(input).filter((row) => row && typeof row === "object");
             if (!records.length) throw new Error("API endpoint returned JSON, but no rows were found.");
+            if (records.length > MAX_BROWSER_LAYER_FEATURES) {
+                throw createBrowserLimitError(`The API endpoint returned ${records.length.toLocaleString()} rows; the browser limit is ${MAX_BROWSER_LAYER_FEATURES.toLocaleString()} rows per layer.`, LARGE_API_GUIDANCE);
+            }
             const { latKey, lonKey } = findLatLonKeys(records);
             if (!latKey || !lonKey) {
                 throw new Error("JSON endpoint imported rows, but no latitude/longitude fields were found.");
@@ -17080,7 +18892,7 @@
             const contentType = response.headers.get("content-type") || "";
             const format = detectApiEndpointFormat(url, contentType, preferredFormat);
             const projectName = guessApiEndpointName(url);
-            const text = await response.text();
+            const text = await readResponseTextWithinLimit(response, MAX_API_RESPONSE_BYTES, "API response");
             if (!text.trim()) throw new Error("API endpoint returned no data.");
             if (format === "csv") {
                 return {
@@ -17768,6 +19580,7 @@
                 }
                 const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
                 const marker = new mapkit.MarkerAnnotation(coord, {
+                    enabled: isLayerSelectable(layer),
                     color: getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color),
                     glyphText: getSymbolGlyphValue(attributes.symbol_shape || layer?.styleDefaults?.symbol_shape),
                     title: markerTitle
@@ -17806,32 +19619,12 @@
             if (!coords.length) return [];
             let overlay = null;
             const overlayColor = getSymbolColorValue(attributes.symbol_color || layer?.styleDefaults?.symbol_color);
-            if (geometryType === "line") {
-                overlay = new mapkit.PolylineOverlay(coords, {
-                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
-                });
-            } else if (geometryType === "polygon") {
-                const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
-                const rings = getGeometryRingsCoordinates(feature).map((ring) => getClosedPolygonCoordinates(ring));
-                overlay = new mapkit.PolygonOverlay(rings.length ? rings : [getClosedPolygonCoordinates(coords)], {
-                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
-                });
-            }
-            if (overlay) {
-                surveyOverlays.push(overlay);
-                map.addOverlay(overlay);
-            }
-            const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
-            const repCoord = shouldShowMarker ? getFeatureRepresentativeCoordinate(feature) : null;
-            if (repCoord) {
-                const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
-                const marker = new mapkit.MarkerAnnotation(repCoord, {
-                    color: overlayColor,
-                    glyphText: geometryType === "line" ? "━" : "▣",
-                    title: markerTitle
-                });
-                marker.surveyPoint = {
-                    coordinate: repCoord,
+            const representativeCoordinate = getFeatureRepresentativeCoordinate(feature) || coords[0];
+            const markerTitle = computeLabelFromAttributes(attributes, projectName, layer);
+            const surveyFeatureAnnotation = {
+                coordinate: representativeCoordinate,
+                surveyPoint: {
+                    coordinate: representativeCoordinate,
                     attributes,
                     imageSrc,
                     title: markerTitle,
@@ -17840,7 +19633,38 @@
                     pointId: feature.id || null,
                     pointVersion: feature.version ?? 1,
                     geometryType
-                };
+                }
+            };
+            if (geometryType === "line") {
+                overlay = new mapkit.PolylineOverlay(coords, {
+                    enabled: isLayerSelectable(layer),
+                    data: { surveyFeatureAnnotation },
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, lineCap: "round", lineJoin: "round" })
+                });
+            } else if (geometryType === "polygon") {
+                const fillOpacity = Math.max(0, Math.min(1, Number(layer?.styleDefaults?.fillOpacity ?? 0.6)));
+                const rings = getGeometryRingsCoordinates(feature).map((ring) => getClosedPolygonCoordinates(ring));
+                overlay = new mapkit.PolygonOverlay(rings.length ? rings : [getClosedPolygonCoordinates(coords)], {
+                    enabled: isLayerSelectable(layer),
+                    data: { surveyFeatureAnnotation },
+                    style: new mapkit.Style({ lineWidth: 4, strokeColor: overlayColor, fillColor: overlayColor, fillOpacity })
+                });
+            }
+            if (overlay) {
+                surveyOverlays.push(overlay);
+                map.addOverlay(overlay);
+            }
+            const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
+            const repCoord = shouldShowMarker ? representativeCoordinate : null;
+            if (repCoord) {
+                const marker = new mapkit.MarkerAnnotation(repCoord, {
+                    enabled: isLayerSelectable(layer),
+                    color: overlayColor,
+                    glyphText: geometryType === "line" ? "━" : "▣",
+                    title: markerTitle
+                });
+                marker.surveyPoint = surveyFeatureAnnotation.surveyPoint;
+                if (overlay?.data) overlay.data.surveyFeatureAnnotation = marker;
                 surveyAnnotations.push(marker);
                 map.addAnnotation(marker);
                 if (interactive && Number.isInteger(rowIndex)) {
@@ -17902,9 +19726,9 @@
             return selected;
         }
 
-        function getRenderableMarkerFeatures(layer, projectName = activeProjectName) {
+        function getRenderableMarkerFeatures(layer, projectName = activeProjectName, featureSubset = null) {
             const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
-            const features = layer?.features || [];
+            const features = Array.isArray(featureSubset) ? featureSubset : getLayerFilteredFeatureEntries(layer).map(({ feature }) => feature);
             if (!popoutsVisible || layer?.popoutsVisible === false) {
                 return new Set();
             }
@@ -17943,7 +19767,7 @@
         }
 
         function getLayerRenderFeatureTotal(layers = []) {
-            return layers.reduce((sum, layer) => sum + (layer.features?.length || 0), 0);
+            return layers.reduce((sum, layer) => sum + getLayerFilteredFeatureEntries(layer).length, 0);
         }
 
         function updateLayerRenderProgress(done, total) {
@@ -18010,14 +19834,14 @@
             for (const layer of layersToRender) {
                 if (renderTask.cancelled) break;
                 const interactive = layer.id === activeLayerId;
-                const markerFeatureSet = getRenderableMarkerFeatures(layer, projectName);
-                const features = layer.features || [];
-                for (let index = 0; index < features.length; index += 1) {
+                const filteredEntries = getLayerFilteredFeatureEntries(layer);
+                const markerFeatureSet = getRenderableMarkerFeatures(layer, projectName, filteredEntries.map(({ feature }) => feature));
+                for (let filteredIndex = 0; filteredIndex < filteredEntries.length; filteredIndex += 1) {
                     if (renderTask.cancelled) break;
-                    const feature = features[index];
+                    const { feature, index } = filteredEntries[filteredIndex];
                     coords.push(...renderFeatureGeometryOnMap(feature, layer, {
                         interactive,
-                        rowIndex: interactive ? index : null,
+                        rowIndex: index,
                         projectName,
                         markerFeatureSet
                     }));
@@ -18902,9 +20726,13 @@
                 ? activeSurveyAnnotation.surveyPoint.rowIndex
                 : null;
             selectedTableRows = new Set(Array.from(selectedTableRows).filter((index) => index >= 0 && index < (dataset.records || []).length));
+            const layerFilterQuery = !isArchiveView ? String(activeLayer?.filterQuery || "").trim() : "";
+            const layerFilterPredicate = layerFilterQuery ? getLayerSqlFilterCompilation(activeLayer).predicate : () => true;
             const filteredRecords = (dataset.records || [])
                 .map((record, index) => ({ record, index }))
-                .filter(({ index }) => {
+                .filter(({ record, index }) => {
+                    const featureAttributes = activeLayer?.features?.[index]?.attributes || record;
+                    if (!layerFilterPredicate(featureAttributes)) return false;
                     if (tableRowFilterMode === "selected") return selectedTableRows.has(index);
                     if (tableRowFilterMode === "unselected") return !selectedTableRows.has(index);
                     return true;
@@ -18928,14 +20756,18 @@
                 const rowClass = rowClasses ? ` class="${rowClasses}"` : "";
                 return `<tr data-row-index="${index}"${rowClass}>${cells}${actionCell}</tr>`;
             }).join("");
+            const filterNotice = layerFilterQuery
+                ? `<div style="padding:8px 12px; color:#0066cc; background:#f2f7ff; font-size:12px; font-weight:650; border-bottom:1px solid #dbeafe;">Filter active · ${filteredRecords.length.toLocaleString()} of ${(dataset.records || []).length.toLocaleString()} features match <code style="font-size:11px;">${escapeHtml(layerFilterQuery)}</code></div>`
+                : "";
             const limitNotice = hiddenRowCount
-                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows. The full layer remains loaded.</div>`
+                ? `<div style="padding:8px 12px; color:#475569; font-size:12px; border-bottom:1px solid #e5e7eb;">Showing the first ${renderedRecords.length.toLocaleString()} of ${filteredRecords.length.toLocaleString()} matching rows. The full matching set remains loaded.</div>`
                 : "";
             surveyTable.innerHTML = `
+                ${filterNotice}
                 ${limitNotice}
                 <table>
                     <thead><tr>${headerRow}</tr></thead>
-                    <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">No features yet in this layer.</td></tr>`}</tbody>
+                    <tbody>${bodyRows || `<tr><td colspan="${visibleHeaders.length + 1}" style="text-align:center; color:#97aabd;">${layerFilterQuery ? "No features match the active layer filter." : "No features yet in this layer."}</td></tr>`}</tbody>
                 </table>
             `;
             updateSurveySelectionControls();
@@ -19733,8 +21565,6 @@ function setImportPanelVisibility(show) {
         function updateHistoryButtons() {
             if (undoBtn) undoBtn.disabled = !undoStack.length;
             if (redoBtn) redoBtn.disabled = !redoStack.length;
-            if (editPanelUndoBtn) editPanelUndoBtn.disabled = !undoStack.length;
-            if (editPanelRedoBtn) editPanelRedoBtn.disabled = !redoStack.length;
             if (undoBtn) undoBtn.title = undoStack.length ? "Undo the most recent local change." : "Undo becomes available after you add, move, delete, or edit a feature.";
             if (redoBtn) redoBtn.title = redoStack.length ? "Redo the last undone local change." : "Redo becomes available after you undo a local change.";
             if (saveChangesBtn) saveChangesBtn.disabled = !(pendingChanges || surveyNeedsSave || workspaceDirty);
@@ -20004,6 +21834,12 @@ function setImportPanelVisibility(show) {
 
         map.addEventListener("select", (event) => {
             if (event?.annotation?.surveyPoint) {
+                if (!isLayerSelectable(getLayerById(event.annotation.surveyPoint.layerId))) {
+                    try {
+                        event.annotation.selected = false;
+                    } catch {}
+                    return;
+                }
                 if (suppressAnnotationDetailOpen) {
                     activeSurveyAnnotation = event.annotation;
                     activeFeatureId = event.annotation.surveyPoint.pointId || event.annotation.surveyPoint.rowIndex;
@@ -20030,6 +21866,17 @@ function setImportPanelVisibility(show) {
                 return;
             } else {
                 hideSurveyCallout();
+            }
+            const surveyFeatureAnnotation = event?.overlay?.data?.surveyFeatureAnnotation;
+            if (surveyFeatureAnnotation?.surveyPoint) {
+                if (!isLayerSelectable(getLayerById(surveyFeatureAnnotation.surveyPoint.layerId))) {
+                    try {
+                        event.overlay.selected = false;
+                    } catch {}
+                    return;
+                }
+                showSurveyCallout(surveyFeatureAnnotation);
+                return;
             }
             if (!event || !event.overlay || event.overlay.routeIndex === undefined) return;
 

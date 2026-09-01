@@ -1,5 +1,7 @@
 import crypto from "node:crypto";
 
+export const GMAIL_SEND_SCOPE = "https://www.googleapis.com/auth/gmail.send";
+
 export function randomState() {
   return crypto.randomBytes(24).toString("hex");
 }

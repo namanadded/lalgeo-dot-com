@@ -50,6 +50,18 @@ jobs:
         working-directory: maps
         run: npm run test:button-type-safety
 
+      - name: Check browser project resource limits
+        working-directory: maps
+        run: npm run test:browser-resource-limits
+
+      - name: Check layer SQL filters
+        working-directory: maps
+        run: npm run test:layer-sql-filter
+
+      - name: Check layer selection controls
+        working-directory: maps
+        run: npm run test:layer-selection-controls
+
       - name: Check empty state Dropbox flow
         working-directory: maps
         run: npm run test:empty-dropbox-flow

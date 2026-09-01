@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookieNameForProvider, oauthCallbackUrl, randomState } from "@/lib/oauth";
+import { GMAIL_SEND_SCOPE, cookieNameForProvider, oauthCallbackUrl, randomState } from "@/lib/oauth";
 
 export async function GET(req: Request) {
   const clientId = (process.env.GOOGLE_CLIENT_ID || "").trim();
@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   auth.searchParams.set("response_type", "code");
   auth.searchParams.set("access_type", "offline");
   auth.searchParams.set("prompt", "consent");
-  auth.searchParams.set("scope", "openid email profile https://www.googleapis.com/auth/gmail.send");
+  auth.searchParams.set("scope", `openid email profile ${GMAIL_SEND_SCOPE}`);
   auth.searchParams.set("state", state);
 
   const res = NextResponse.redirect(auth);

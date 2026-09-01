@@ -7,6 +7,7 @@ import { buildInvoicePdf } from "@/lib/pdf";
 import { sendOrganizationEmail } from "@/lib/email-delivery";
 import { renderDocumentEmailHtml } from "@/lib/email-template";
 import { appBasePath, appUrl } from "@/lib/url";
+import { EmailSubmitButton } from "@/components/EmailSubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -222,10 +223,13 @@ Thanks,`;
           <textarea id="message" name="message" className="input" rows={10} required defaultValue={defaultMessage} />
         </div>
         <div className="saas-form-actions">
-          <button type="submit" className="button">
-            Send Email With PDF
-          </button>
+          <EmailSubmitButton />
         </div>
+        {sendFailed ? (
+          <div className="banner" role="alert">
+            Email was not sent. {sendReason ? `Reason: ${sendReason}` : "Check Settings integrations/provider and try again."}
+          </div>
+        ) : null}
       </form>
     </div>
   );

@@ -2,10 +2,8 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
-  const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -55,7 +53,10 @@ export default function LoginPage() {
     }
     const next = typeof window !== "undefined" ? new URLSearchParams(window.location.search).get("next") || "/dashboard" : "/dashboard";
     const safeNext = next.startsWith("/") && !next.startsWith("//") ? next : "/dashboard";
-    router.replace(safeNext);
+    // Crossing from the public login layout into the rewritten authenticated
+    // app routes must be a document navigation. A client-side RSC transition
+    // can be terminated by the hosting rewrite before its payload completes.
+    window.location.replace(safeNext);
   };
 
   return (

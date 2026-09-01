@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { cookieNameForProvider, oauthCallbackUrl } from "@/lib/oauth";
+import { GMAIL_SEND_SCOPE, cookieNameForProvider, oauthCallbackUrl } from "@/lib/oauth";
 import { DEV_ORG_ID, ensureDevOrganization } from "@/lib/saas";
 import { upsertEmailConnection, updateOrganization } from "@/lib/saas-store";
 
@@ -46,6 +46,10 @@ export async function GET(req: Request) {
   };
   if (!token.access_token) {
     return NextResponse.redirect(new URL("/settings?oauth=google_token_failed", req.url));
+  }
+  const grantedScopes = new Set((token.scope || "").split(/\s+/).filter(Boolean));
+  if (!grantedScopes.has(GMAIL_SEND_SCOPE)) {
+    return NextResponse.redirect(new URL("/settings?oauth=google_scope_missing", req.url));
   }
 
   const profileRes = await fetch("https://www.googleapis.com/oauth2/v2/userinfo", {
