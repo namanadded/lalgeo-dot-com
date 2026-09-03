@@ -61,14 +61,16 @@
     <p class="eyebrow">Developer API · v1</p>
     <h1>Maps that agents<br>can actually make.</h1>
     <p class="lede">Create a map, organize it into geometry-safe layers, add standard GeoJSON, and export a portable project that opens in LalGeo Maps.</p>
-    <div class="status"><span class="dot"></span>Agent-ready REST + OpenAPI</div>
+    <div class="status"><span class="dot"></span>Versioned REST + OpenAPI contract</div>
 
     <div class="grid">
       <div>
         <section>
           <h2>One predictable workflow</h2>
           <ol><li>Create a map.</li><li>Add a <code>Point</code>, <code>LineString</code>, or <code>Polygon</code> layer.</li><li>Post GeoJSON features to that layer.</li><li>Export the finished map as a LalGeo project.</li></ol>
-          <pre><code>curl https://api.lalgeo.com/v1/maps \
+          <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/health
+
+curl --fail-with-body https://api.lalgeo.com/v1/maps \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{
@@ -82,7 +84,16 @@
         <section>
           <h2>Add real geography</h2>
           <p>Features use ordinary GeoJSON: longitude first, latitude second. A layer enforces one geometry type so agent mistakes fail early and clearly.</p>
-          <pre><code>curl https://api.lalgeo.com/v1/maps/calgary_field_map/\
+          <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/layers \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "places",
+    "name": "Places",
+    "geometry_type": "Point"
+  }'
+
+curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/\
 layers/places/features \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
   -H "Content-Type: application/geo+json" \
@@ -95,7 +106,16 @@ layers/places/features \
     },
     "properties": {"name": "Central Library"}
   }'</code></pre>
-          <p class="note">Client-supplied IDs make agent retries safe and understandable. Duplicate IDs return <code>409 ID_CONFLICT</code> instead of silently duplicating data.</p>
+          <p class="note">Always send stable IDs. If a request times out, read that ID before retrying. A duplicate returns <code>409 ID_CONFLICT</code> instead of silently duplicating data; automatic <code>Idempotency-Key</code> replay is not available yet.</p>
+        </section>
+
+        <section>
+          <h2>Open the result in Maps</h2>
+          <p>Export creates a portable LalGeo project. Download it, then open Maps and choose <strong>Projects → Choose files</strong>. The imported copy can be edited and exported like any other project.</p>
+          <pre><code>curl --fail-with-body \
+  https://api.lalgeo.com/v1/maps/calgary_field_map/export \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  --output calgary_field_map.lal</code></pre>
         </section>
 
         <section>
@@ -110,7 +130,7 @@ layers/places/features \
 
         <section>
           <h2>Designed for safe automation</h2>
-          <p>Every data route uses a bearer API key. Keys are stored only as SHA-256 hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Errors return stable codes and a request ID.</p>
+          <p>Every data route uses an operator-provisioned bearer API key. The service stores only SHA-256 key hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Authentication failures include a bearer challenge; errors return stable codes and a request ID.</p>
         </section>
       </div>
 
@@ -120,6 +140,7 @@ layers/places/features \
           <h2>Give your agent the contract.</h2>
           <p>The OpenAPI document contains named operations, authentication, inputs, limits, and error responses for every v1 route.</p>
           <a class="button" href="https://api.lalgeo.com/v1/openapi.json">Open API specification&nbsp; →</a>
+          <p class="note">Availability is proven only when this URL returns JSON over valid TLS and the health check reports <code>lalgeo-maps-api</code>. A website or fallback page does not count.</p>
           <h3>Base URL</h3><code>https://api.lalgeo.com</code>
           <h3>Authentication</h3><code>Authorization: Bearer &lt;key&gt;</code>
         </div>

@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "check": "tsc --noEmit && node --test test/*.test.mjs",
+    "verify:local": "node scripts/verify-local.mjs",
+    "verify:production": "node scripts/verify-production.mjs",
     "dev": "wrangler dev --local",
     "deploy": "wrangler deploy",
     "db:migrate:local": "wrangler d1 migrations apply lalgeo-maps --local",

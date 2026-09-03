@@ -307,7 +307,12 @@ export default {
       const outgoing = new Headers(result.headers); Object.entries(headers).forEach(([key, value]) => outgoing.set(key, value));
       return new Response(result.body, { status: result.status, headers: outgoing });
     } catch (error) {
-      if (error instanceof ApiError) return response({ error: { code: error.code, message: error.message, details: error.details }, request_id: requestId }, error.status, headers);
+      if (error instanceof ApiError) {
+        const errorHeaders = error.status === 401
+          ? { ...headers, "WWW-Authenticate": 'Bearer realm="lalgeo-maps-api"' }
+          : headers;
+        return response({ error: { code: error.code, message: error.message, details: error.details }, request_id: requestId }, error.status, errorHeaders);
+      }
       if (error instanceof Error && /UNIQUE constraint failed/.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, headers);
       console.error(error);
       return response({ error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." }, request_id: requestId }, 500, headers);

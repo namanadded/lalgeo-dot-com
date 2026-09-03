@@ -63,7 +63,7 @@
     "requestBodies": { "JsonObject": { "required": true, "content": { "application/json": { "schema": { "type": "object" } } } } },
     "responses": {
       "BadRequest": { "description": "Invalid input", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "Unauthorized": { "description": "Missing or invalid bearer key", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
+      "Unauthorized": { "description": "Missing or invalid bearer key", "headers": { "WWW-Authenticate": { "description": "Bearer authentication challenge", "schema": { "type": "string", "const": "Bearer realm=\"lalgeo-maps-api\"" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
       "NotFound": { "description": "Resource not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
     },
     "schemas": {

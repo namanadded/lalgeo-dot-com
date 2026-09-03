@@ -1,12 +1,14 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
+import { validateOpenApi } from "../scripts/verify-production.mjs";
 
 const spec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
 const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../migrations/0001_maps.sql", import.meta.url), "utf8");
 
-test("OpenAPI operations have unique operation IDs", () => {
+test("OpenAPI exposes the complete canonical operation set", () => {
+  assert.deepEqual(validateOpenApi(spec), { operationCount: 18 });
   const ids = Object.values(spec.paths).flatMap((path) => Object.values(path).map((operation) => operation?.operationId).filter(Boolean));
   assert.equal(new Set(ids).size, ids.length);
   assert.ok(ids.includes("createMap"));
@@ -30,6 +32,13 @@ test("tenant ownership is present on every stored resource", () => {
   assert.match(migration, /PRIMARY KEY \(owner_id, id\)/);
   assert.match(migration, /PRIMARY KEY \(owner_id, map_id, id\)/);
   assert.match(migration, /PRIMARY KEY \(owner_id, map_id, layer_id, id\)/);
+});
+
+test("authentication failures advertise the bearer challenge", () => {
+  assert.match(worker, /WWW-Authenticate/);
+  assert.match(worker, /Bearer realm=["']lalgeo-maps-api/);
+  const unauthorized = spec.components.responses.Unauthorized;
+  assert.equal(unauthorized.headers["WWW-Authenticate"].schema.const, 'Bearer realm="lalgeo-maps-api"');
 });
 
 test("agent safety limits and portable export remain part of the contract", () => {
