@@ -27,6 +27,7 @@ jobs:
           cache: npm
           cache-dependency-path: |
             maps/package-lock.json
+            lalgeo-maps-api/package-lock.json
 
       - name: Validate static entry points
         run: |
@@ -37,6 +38,18 @@ jobs:
 
       - name: Check local static links
         run: node .github/scripts/check-static-links.mjs
+
+      - name: Install Maps API dependencies
+        working-directory: lalgeo-maps-api
+        run: npm ci
+
+      - name: Check Maps API types and contract
+        working-directory: lalgeo-maps-api
+        run: npm run check
+
+      - name: Verify Maps API local release gate
+        working-directory: lalgeo-maps-api
+        run: npm run verify:local
 
       - name: Guard complete Maps regression coverage
         working-directory: maps
