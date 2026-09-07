@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import { loadLalGeoProjectContract } from "../../maps/scripts/lib/lalgeo-project-contract.mjs";
 import { verifyProduction } from "./verify-production.mjs";
 
 const apiDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -86,28 +87,6 @@ async function waitForWorker(baseUrl, child, logs) {
   throw new Error(`Wrangler did not become ready within 20 seconds.\n${logs().trim()}`);
 }
 
-function assertImportableByMaps(payload) {
-  const project = payload?.project;
-  assert.equal(typeof project?.id, "string");
-  assert.equal(typeof project?.name, "string");
-  assert.ok(Array.isArray(project?.layers) && project.layers.length > 0);
-  assert.ok(project.layers.some((layer) => layer.id === project.activeLayerId));
-  for (const layer of project.layers) {
-    assert.match(layer.geometryType, /^(point|line|polygon)$/);
-    assert.ok(Array.isArray(layer.schema));
-    assert.ok(Array.isArray(layer.features));
-    for (const feature of layer.features) {
-      assert.equal(typeof feature.id, "string");
-      assert.equal(typeof feature.attributes, "object");
-      if (layer.geometryType === "point") {
-        assert.equal(feature.geometry?.type, "Point");
-        assert.ok(Number.isFinite(feature.geometry?.lat));
-        assert.ok(Number.isFinite(feature.geometry?.lng));
-      }
-    }
-  }
-}
-
 async function stop(child) {
   if (!child || child.exitCode !== null) return;
   child.kill("SIGTERM");
@@ -119,6 +98,7 @@ async function stop(child) {
 }
 
 async function main() {
+  const mapsProjectContract = loadLalGeoProjectContract();
   const stateDirectory = await mkdtemp(path.join(os.tmpdir(), "lalgeo-maps-api-gate-"));
   const bundleDirectory = path.join(stateDirectory, "bundle");
   const logPath = path.join(stateDirectory, "wrangler.log");
@@ -184,6 +164,30 @@ async function main() {
     assert.equal((await json(mapResponse)).map?.id, "synthetic_runtime_map");
     record("authenticated client creates a synthetic map");
 
+    const emptyExportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
+    assert.equal(emptyExportResponse.status, 200);
+    const emptyExport = await json(emptyExportResponse);
+    const repeatedEmptyExportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
+    assert.equal(repeatedEmptyExportResponse.status, 200);
+    assert.deepEqual(await json(repeatedEmptyExportResponse), emptyExport);
+    const importedEmptyMap = mapsProjectContract.validateLalGeoProject(emptyExport.project, { fileName: "synthetic-empty-map.lal" });
+    assert.equal(importedEmptyMap.layers.length, 1);
+    assert.equal(importedEmptyMap.layers[0].id, "empty_points");
+    assert.equal(importedEmptyMap.layers[0].name, "Points");
+    assert.equal(importedEmptyMap.layers[0].geometryType, "point");
+    assert.equal(importedEmptyMap.layers[0].selectable, true);
+    assert.equal(importedEmptyMap.layers[0].features.length, 0);
+    assert.equal(emptyExport.project.activeLayerId, "empty_points");
+    assert.equal(emptyExport.activeLayerId, "empty_points");
+    assert.equal(importedEmptyMap.activeLayerId, "empty_points");
+    assert.ok(importedEmptyMap.layers[0].schema.some((field) => field.name === "ID"));
+    assert.equal(importedEmptyMap.layers[0].styleDefaults.symbol_color, "Red");
+    assert.equal(importedEmptyMap.layers[0].styleDefaults.pointAggregation, 60);
+    const untouchedLayersResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", { headers: authorization });
+    assert.equal(untouchedLayersResponse.status, 200);
+    assert.deepEqual((await json(untouchedLayersResponse)).layers, []);
+    record("empty maps export as stable editable Maps projects without mutating API layers");
+
     const mapListResponse = await request(baseUrl, "/v1/maps?limit=10&offset=0", { headers: authorization });
     assert.equal(mapListResponse.status, 200);
     assert.deepEqual((await json(mapListResponse)).maps?.map((map) => map.id), ["synthetic_runtime_map"]);
@@ -206,11 +210,36 @@ async function main() {
     });
     assert.equal(layerResponse.status, 201);
     assert.equal((await json(layerResponse)).layer?.id, "places");
-    record("authenticated client creates a typed layer");
+
+    const routeLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "routes", name: "Routes", geometry_type: "LineString", position: 1 }),
+    });
+    assert.equal(routeLayerResponse.status, 201);
+    assert.equal((await json(routeLayerResponse)).layer?.geometry_type, "LineString");
+
+    const areaLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "areas", name: "Areas", geometry_type: "Polygon", position: 2 }),
+    });
+    assert.equal(areaLayerResponse.status, 201);
+    assert.equal((await json(areaLayerResponse)).layer?.geometry_type, "Polygon");
+    record("authenticated client creates every supported layer type");
+
+    const emptyLayersExportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
+    assert.equal(emptyLayersExportResponse.status, 200);
+    const emptyLayersExport = await json(emptyLayersExportResponse);
+    const importedEmptyLayers = mapsProjectContract.validateLalGeoProject(emptyLayersExport.project, { fileName: "synthetic-empty-layers.lal" });
+    assert.equal(importedEmptyLayers.layers.length, 3);
+    assert.deepEqual([...importedEmptyLayers.layers].map((layer) => layer.id), ["places", "routes", "areas"]);
+    assert.ok(importedEmptyLayers.layers.every((layer) => layer.features.length === 0));
+    record("maps with empty layers still open through the Maps validator");
 
     const layerListResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", { headers: authorization });
     assert.equal(layerListResponse.status, 200);
-    assert.deepEqual((await json(layerListResponse)).layers?.map((layer) => layer.id), ["places"]);
+    assert.deepEqual((await json(layerListResponse)).layers?.map((layer) => layer.id), ["places", "routes", "areas"]);
     const layerGetResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
     assert.equal(layerGetResponse.status, 200);
     assert.equal((await json(layerGetResponse)).layer?.geometry_type, "Point");
@@ -223,30 +252,102 @@ async function main() {
     assert.equal((await json(layerPatchResponse)).layer?.style?.symbol_color, "Blue");
     record("layer list, read, and update routes preserve type and style");
 
+    const invalidAltitudeResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json" },
+      body: JSON.stringify({
+        type: "Feature",
+        id: "invalid_altitude",
+        geometry: { type: "Point", coordinates: [-114.051, 51.0453, "high"] },
+        properties: {},
+      }),
+    });
+    assert.equal(invalidAltitudeResponse.status, 400);
+    assert.equal((await json(invalidAltitudeResponse)).error?.code, "INVALID_GEOMETRY");
+
+    const extraDimensionResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json" },
+      body: JSON.stringify({
+        type: "Feature",
+        id: "unsupported_4d_position",
+        geometry: { type: "Point", coordinates: [-114.051, 51.0453, 1048.5, 7] },
+        properties: {},
+      }),
+    });
+    assert.equal(extraDimensionResponse.status, 400);
+    assert.equal((await json(extraDimensionResponse)).error?.code, "INVALID_GEOMETRY");
+
     const featureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/geo+json" },
       body: JSON.stringify({
         type: "Feature",
         id: "central_library",
-        geometry: { type: "Point", coordinates: [-114.051, 51.0453] },
-        properties: { name: "Central Library", source: "synthetic" },
+        geometry: { type: "Point", coordinates: [-114.051, 51.0453, 1048.5] },
+        properties: {
+          name: "Central Library · Bibliothèque 🌐",
+          source: "synthetic",
+          nullable_note: null,
+          field_01: "A01", field_02: "A02", field_03: "A03", field_04: "A04",
+          field_05: "A05", field_06: "A06", field_07: "A07", field_08: "A08",
+          field_09: "A09", field_10: "A10", field_11: "A11", field_12: "A12",
+        },
       }),
     });
     assert.equal(featureResponse.status, 201);
     assert.equal((await json(featureResponse)).features?.[0]?.id, "central_library");
-    record("authenticated client creates valid GeoJSON");
+
+    const routeFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/routes/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json" },
+      body: JSON.stringify({
+        type: "Feature",
+        id: "river_path",
+        geometry: { type: "LineString", coordinates: [[-114.0719, 51.0447, 1045.25], [-114.06, 51.045, 0], [-114.051, 51.0453]] },
+        properties: { name: "Réseau rivière α", nullable_note: null },
+      }),
+    });
+    assert.equal(routeFeatureResponse.status, 201);
+
+    const areaFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/areas/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json" },
+      body: JSON.stringify({
+        type: "Feature",
+        id: "park_with_pond",
+        geometry: {
+          type: "Polygon",
+          coordinates: [
+            [[-114.08, 51.04, -12], [-114.04, 51.04, -10], [-114.04, 51.07, -8], [-114.08, 51.04, -12]],
+            [[-114.065, 51.047, 4], [-114.055, 51.047], [-114.055, 51.055, 0], [-114.065, 51.047, 4]],
+          ],
+        },
+        properties: { name: "Parcelle Été", status: "draft" },
+      }),
+    });
+    assert.equal(areaFeatureResponse.status, 201);
+    record("authenticated client creates valid GeoJSON for every layer type");
 
     const featureListResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", { headers: authorization });
     assert.equal(featureListResponse.status, 200);
     assert.deepEqual((await json(featureListResponse)).features?.map((feature) => feature.id), ["central_library"]);
     const featureGetResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", { headers: authorization });
     assert.equal(featureGetResponse.status, 200);
-    assert.equal((await json(featureGetResponse)).properties?.name, "Central Library");
+    assert.equal((await json(featureGetResponse)).properties?.name, "Central Library · Bibliothèque 🌐");
     const featurePatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", {
       method: "PATCH",
       headers: { ...authorization, "Content-Type": "application/json" },
-      body: JSON.stringify({ properties: { name: "Central Library", source: "synthetic updated" } }),
+      body: JSON.stringify({
+        properties: {
+          name: "Central Library · Bibliothèque 🌐",
+          source: "synthetic updated",
+          nullable_note: null,
+          field_01: "A01", field_02: "A02", field_03: "A03", field_04: "A04",
+          field_05: "A05", field_06: "A06", field_07: "A07", field_08: "A08",
+          field_09: "A09", field_10: "A10", field_11: "A11", field_12: "A12",
+        },
+      }),
     });
     assert.equal(featurePatchResponse.status, 200);
     assert.equal((await json(featurePatchResponse)).properties?.source, "synthetic updated");
@@ -264,9 +365,46 @@ async function main() {
     const exportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(exportResponse.status, 200);
     const exported = await json(exportResponse);
-    assertImportableByMaps(exported);
-    assert.equal(exported.project.layers[0].features[0].attributes.name, "Central Library");
-    record("API export satisfies the LalGeo Maps project shape");
+    const imported = mapsProjectContract.validateLalGeoProject(exported.project, { fileName: "synthetic-api-export.lal" });
+    assert.equal(imported.layers.length, 3);
+    assert.ok(imported.layers.some((layer) => layer.id === imported.activeLayerId));
+    assert.equal(imported.source?.type, "lalgeo-maps-api");
+    const importedPoint = imported.layers.find((layer) => layer.id === "places").features[0];
+    const importedLine = imported.layers.find((layer) => layer.id === "routes").features[0];
+    const importedPolygon = imported.layers.find((layer) => layer.id === "areas").features[0];
+    assert.equal(importedPoint.id, "central_library");
+    assert.equal(importedPoint.attributes.name, "Central Library · Bibliothèque 🌐");
+    assert.equal(importedPoint.attributes.nullable_note, null);
+    assert.equal(importedPoint.attributes.field_12, "A12");
+    assert.equal(importedPoint.geometry.altitude, 1048.5);
+    assert.equal(importedLine.geometry.coordinates.length, 3);
+    assert.equal(importedLine.geometry.coordinates[0].altitude, 1045.25);
+    assert.equal(importedLine.geometry.coordinates[1].altitude, 0);
+    assert.equal(Object.hasOwn(importedLine.geometry.coordinates[2], "altitude"), false);
+    assert.equal(importedLine.attributes.name, "Réseau rivière α");
+    assert.equal(importedPolygon.geometry.rings.length, 2);
+    assert.equal(importedPolygon.geometry.rings[0][0].altitude, -12);
+    assert.equal(Object.hasOwn(importedPolygon.geometry.rings[1][1], "altitude"), false);
+    assert.equal(importedPolygon.geometry.rings[1][2].altitude, 0);
+    assert.equal(importedPolygon.attributes.name, "Parcelle Été");
+    record("API export passes the Maps project validator");
+
+    importedPoint.attributes.review_status = "Reviewed in Maps";
+    importedPoint.version += 1;
+    const mapsReExport = JSON.parse(JSON.stringify({
+      project: mapsProjectContract.serializeProjectForStorage(imported),
+      activeLayerId: imported.activeLayerId,
+      survey: null,
+    }));
+    const reopened = mapsProjectContract.validateLalGeoProject(mapsReExport.project, { fileName: "synthetic-maps-re-export.lal" });
+    const reopenedPoint = reopened.layers.find((layer) => layer.id === "places").features[0];
+    assert.equal(reopenedPoint.attributes.review_status, "Reviewed in Maps");
+    assert.equal(reopenedPoint.version, 2);
+    assert.equal(reopenedPoint.geometry.altitude, 1048.5);
+    assert.equal(reopened.layers.find((layer) => layer.id === "areas").features[0].geometry.rings.length, 2);
+    assert.equal(reopened.layers.find((layer) => layer.id === "areas").features[0].geometry.rings[0][0].altitude, -12);
+    assert.equal(reopened.source?.mapId, "synthetic_runtime_map");
+    record("Maps validator and serializer preserve covered geometry and attributes");
 
     const featureDeleteResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", {
       method: "DELETE",
