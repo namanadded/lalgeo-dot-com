@@ -1,11 +1,13 @@
+import mapsApi from "../../lalgeo-maps-api/src/index";
+
 interface Env {
   DB: D1Database;
   D1_API_KEY?: string;
+  LALGEO_MAPS_API_KEYS?: string;
+  CORS_ALLOWED_ORIGINS?: string;
 }
 
-type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
-
-function json(data: Json, status = 200) {
+function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -84,10 +86,19 @@ async function getInvoiceRow(db: D1Database, id: string, orgId: string) {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     try {
+      const requestUrl = new URL(req.url);
+      const isMapsHostname = requestUrl.hostname === "api.lalgeo.com";
+      const isMapsPath = requestUrl.pathname === "/v1/openapi.json" ||
+        requestUrl.pathname === "/v1/maps" ||
+        requestUrl.pathname.startsWith("/v1/maps/");
+      if (isMapsPath || (isMapsHostname && requestUrl.pathname === "/v1/health")) {
+        return mapsApi.fetch(req, env);
+      }
+
       const unauthorized = requireApiKey(req, env);
       if (unauthorized) return unauthorized;
 
-      const url = new URL(req.url);
+      const url = requestUrl;
       const path = url.pathname;
 
       if (path === "/v1/health") return json({ ok: true, ts: nowIso() });
