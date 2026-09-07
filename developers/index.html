@@ -111,7 +111,7 @@ layers/places/features \
 
         <section>
           <h2>Open the result in Maps</h2>
-          <p>Export creates a portable LalGeo project. Download it, then open Maps and choose <strong>Projects → Choose files</strong>. The imported copy can be edited and exported like any other project.</p>
+          <p>Export creates a portable LalGeo project. If the API map has no layers, the downloaded copy starts with an editable <strong>Points</strong> layer without changing the API map. Download it, then open Maps and choose <strong>Projects → Choose files</strong>. The imported copy can be edited and exported like any other project.</p>
           <pre><code>curl --fail-with-body \
   https://api.lalgeo.com/v1/maps/calgary_field_map/export \
   -H "Authorization: Bearer $LALGEO_API_KEY" \

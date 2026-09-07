@@ -45,5 +45,9 @@ test("agent safety limits and portable export remain part of the contract", () =
   assert.match(worker, /MAX_BODY_BYTES = 2_000_000/);
   assert.match(worker, /MAX_FEATURE_BATCH = 1_000/);
   assert.match(worker, /function lalGeometry/);
-  assert.ok(spec.paths["/v1/maps/{mapId}/export"]);
+  const exportOperation = spec.paths["/v1/maps/{mapId}/export"].get;
+  assert.match(exportOperation.description, /deterministic empty point layer/);
+  assert.match(spec.components.schemas.Feature.properties.geometry.properties.coordinates.description, /altitude in metres/);
+  assert.match(worker, /id: "empty_points", name: "Points"/);
+  assert.match(worker, /Number\.isFinite\(altitude\)/);
 });
