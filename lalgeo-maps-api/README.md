@@ -14,7 +14,7 @@ npm run verify:production
 ```
 
 - `check` type-checks the Worker and runs static contract tests.
-- `verify:local` creates disposable local D1 state, applies every migration, builds a Wrangler deployment bundle, starts the Worker with a synthetic key, and exercises health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and Maps-compatible export. It never contacts production.
+- `verify:local` creates disposable local D1 state, applies every migration, builds a Wrangler deployment bundle, starts the Worker with a synthetic key, and exercises health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer used by the web app. It simulates an edit and reopens only synthetic local data; it never contacts production.
 - `verify:production` sends only unauthenticated `GET` and `OPTIONS` requests. It rejects invalid TLS, redirects, HTML/fallback responses, incomplete discovery, missing bearer challenges, and incorrect CORS. It never sends a key or mutates data.
 
 To verify a Worker preview or another candidate hostname without weakening the checks:
@@ -54,4 +54,4 @@ npm run verify:local
 
 ## Contract
 
-See [`openapi.json`](openapi.json) and the public guide at [`../developers/index.html`](../developers/index.html). Client-supplied resource IDs make duplicate retries detectable: a reused ID returns `409 ID_CONFLICT` rather than silently creating another record. Durable `Idempotency-Key` replay semantics are not implemented yet, so an agent should always supply stable IDs and reconcile a timeout with `GET` before retrying.
+See [`openapi.json`](openapi.json) and the public guide at [`../developers/index.html`](../developers/index.html). Every export is accepted by the Maps project importer. An API map with no layers gets a deterministic `empty_points` layer only in the portable copy; the API map remains unchanged. WGS84 positions support longitude, latitude, and an optional finite altitude in metres. Client-supplied resource IDs make duplicate retries detectable: a reused ID returns `409 ID_CONFLICT` rather than silently creating another record. Durable `Idempotency-Key` replay semantics are not implemented yet, so an agent should always supply stable IDs and reconcile a timeout with `GET` before retrying.

@@ -27,7 +27,7 @@ npm run verify:local
 Expected final line:
 
 ```text
-Maps API local release gate passed 12/12. No production resources were contacted.
+Maps API local release gate passed 15/15. No production resources were contacted.
 ```
 
 ## 2. Prepare Cloudflare (owner only)
@@ -145,7 +145,7 @@ The initial migration only creates API-owned tables and is not destructive; do n
 Attach these items to the release review:
 
 - commit and Worker version;
-- local `check` and 12/12 release-gate output;
+- local `check` and 15/15 release-gate output, including Maps validation, serialization, and altitude coverage;
 - candidate and canonical read-only verifier output;
 - Cloudflare custom-domain certificate status;
 - synthetic `.lal` open/edit/export result and cleanup response;

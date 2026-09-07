@@ -111,6 +111,12 @@ function coordinate(value: unknown, label: string) {
       !Number.isFinite(value[0]) || !Number.isFinite(value[1]) || value[0] < -180 || value[0] > 180 || value[1] < -90 || value[1] > 90) {
     throw new ApiError(400, "INVALID_GEOMETRY", `${label} must be a valid [longitude, latitude] coordinate.`);
   }
+  if (value.length > 3) {
+    throw new ApiError(400, "INVALID_GEOMETRY", `${label} must use [longitude, latitude] or [longitude, latitude, altitude].`);
+  }
+  if (value.length === 3 && (typeof value[2] !== "number" || !Number.isFinite(value[2]))) {
+    throw new ApiError(400, "INVALID_GEOMETRY", `${label} altitude must be a finite number in metres.`);
+  }
 }
 
 function validateGeometry(value: unknown, expected: GeometryType): JsonObject {
@@ -186,7 +192,10 @@ function paging(url: URL) {
 
 function lalGeometry(geometry: JsonObject) {
   const coords = geometry.coordinates as unknown[];
-  const point = (pair: unknown) => ({ lat: (pair as number[])[1], lng: (pair as number[])[0] });
+  const point = (pair: unknown) => {
+    const [lng, lat, altitude] = pair as number[];
+    return { lat, lng, ...(Number.isFinite(altitude) ? { altitude } : {}) };
+  };
   if (geometry.type === "Point") return { type: "Point", ...point(coords) };
   if (geometry.type === "LineString") return { type: "LineString", coordinates: coords.map(point) };
   return { type: "Polygon", rings: (coords as unknown[][]).map((ring) => ring.slice(0, -1).map(point)) };
@@ -195,7 +204,10 @@ function lalGeometry(geometry: JsonObject) {
 async function exportProject(db: D1Database, ownerId: string, mapId: string) {
   const map = await requireMap(db, ownerId, mapId);
   const layers = (await db.prepare("SELECT * FROM layers WHERE map_id=?1 AND owner_id=?2 ORDER BY position,id").bind(mapId, ownerId).all<Record<string, unknown>>()).results || [];
-  const outputLayers: JsonObject[] = [];
+  const outputLayers: JsonObject[] = layers.length ? [] : [{
+    id: "empty_points", name: "Points", geometryType: "point",
+    selectable: true, styleDefaults: {}, schema: [], features: [],
+  }];
   for (const layer of layers) {
     const rows = (await db.prepare("SELECT * FROM features WHERE layer_id=?1 AND map_id=?2 AND owner_id=?3 ORDER BY created_at,id").bind(layer.id, mapId, ownerId).all<Record<string, unknown>>()).results || [];
     const properties = rows.map((row) => parseJson(row.properties_json) as JsonObject);
