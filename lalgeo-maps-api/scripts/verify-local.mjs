@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, rm } from "node:fs/promises";
+import { access, mkdtemp, realpath, rm, stat } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -9,12 +9,86 @@ import { fileURLToPath } from "node:url";
 import { loadLalGeoProjectContract } from "../../maps/scripts/lib/lalgeo-project-contract.mjs";
 import { verifyProduction } from "./verify-production.mjs";
 
-const apiDirectory = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const wrangler = path.join(apiDirectory, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
+export const DEFAULT_WORKER_DIRECTORY = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+export const DEFAULT_DATABASE = "lalgeo-maps";
+export const DEFAULT_REQUEST_HOSTNAME = null;
 const localApiKey = "lalgeo_synthetic_runtime_key";
 const localOwner = "owner_synthetic_runtime";
 const allowedOrigin = "https://maps.lalgeo.com";
 const checks = [];
+
+function readOption(argv, index, option) {
+  const value = argv[index + 1];
+  if (!value || value.startsWith("--")) throw new Error(`${option} requires a value.`);
+  return value;
+}
+
+export function normalizeDatabaseName(value) {
+  const database = String(value || "").trim();
+  if (!/^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/.test(database)) {
+    throw new Error("Database names may contain only letters, numbers, underscores, and hyphens (maximum 128 characters).");
+  }
+  return database;
+}
+
+export function normalizeRequestHostname(value) {
+  const hostname = String(value || "").trim().toLowerCase();
+  const validLabels = hostname.split(".").every((label) => (
+    label.length <= 63 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?$/.test(label)
+  ));
+  if (!hostname || hostname.length > 253 || !validLabels) {
+    throw new Error("Request hostname must be a plain DNS hostname without a protocol, port, path, or credentials.");
+  }
+  return hostname;
+}
+
+export function parseArguments(argv, cwd = process.cwd()) {
+  let workerDirectory = DEFAULT_WORKER_DIRECTORY;
+  let database = DEFAULT_DATABASE;
+  let requestHostname = DEFAULT_REQUEST_HOSTNAME;
+  let help = false;
+
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--help" || argument === "-h") {
+      help = true;
+    } else if (argument === "--worker-directory") {
+      workerDirectory = path.resolve(cwd, readOption(argv, index, "--worker-directory"));
+      index += 1;
+    } else if (argument.startsWith("--worker-directory=")) {
+      const value = argument.slice("--worker-directory=".length);
+      if (!value) throw new Error("--worker-directory requires a value.");
+      workerDirectory = path.resolve(cwd, value);
+    } else if (argument === "--database") {
+      database = normalizeDatabaseName(readOption(argv, index, "--database"));
+      index += 1;
+    } else if (argument.startsWith("--database=")) {
+      database = normalizeDatabaseName(argument.slice("--database=".length));
+    } else if (argument === "--request-hostname") {
+      requestHostname = normalizeRequestHostname(readOption(argv, index, "--request-hostname"));
+      index += 1;
+    } else if (argument.startsWith("--request-hostname=")) {
+      requestHostname = normalizeRequestHostname(argument.slice("--request-hostname=".length));
+    } else {
+      throw new Error(`Unknown option: ${argument}`);
+    }
+  }
+
+  return { workerDirectory, database, requestHostname, help };
+}
+
+export function usage() {
+  return [
+    "Usage: node scripts/verify-local.mjs [options]",
+    "",
+    `  --worker-directory <path>  Worker package to exercise (default: ${DEFAULT_WORKER_DIRECTORY})`,
+    `  --database <name>          Local D1 database name (default: ${DEFAULT_DATABASE})`,
+    "  --request-hostname <host>  Hostname presented to the local Worker",
+    "  --help                     Show this help",
+    "",
+    "Migrations and the development Worker always run locally; deployment is always a dry run.",
+  ].join("\n");
+}
 
 function record(name) {
   checks.push(name);
@@ -29,7 +103,7 @@ function commandFailure(command, args, code, output) {
 function run(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      cwd: apiDirectory,
+      cwd: options.cwd,
       env: options.env || process.env,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -42,6 +116,19 @@ function run(command, args, options = {}) {
       else reject(commandFailure(command, args, code, output));
     });
   });
+}
+
+async function requireWorkerTarget(workerDirectory, wrangler) {
+  const workerStats = await stat(workerDirectory).catch(() => null);
+  assert.ok(workerStats?.isDirectory(), `Worker directory does not exist: ${workerDirectory}`);
+  await access(path.join(workerDirectory, "package.json"));
+  const configPresent = await Promise.any([
+    access(path.join(workerDirectory, "wrangler.jsonc")),
+    access(path.join(workerDirectory, "wrangler.json")),
+    access(path.join(workerDirectory, "wrangler.toml")),
+  ]).then(() => true, () => false);
+  assert.ok(configPresent, `Worker directory has no Wrangler configuration: ${workerDirectory}`);
+  await access(wrangler);
 }
 
 async function availablePort() {
@@ -97,7 +184,9 @@ async function stop(child) {
   if (child.exitCode === null) child.kill("SIGKILL");
 }
 
-async function main() {
+async function main({ workerDirectory, database, requestHostname }) {
+  const wrangler = path.join(workerDirectory, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
+  await requireWorkerTarget(workerDirectory, wrangler);
   const mapsProjectContract = loadLalGeoProjectContract();
   const stateDirectory = await mkdtemp(path.join(os.tmpdir(), "lalgeo-maps-api-gate-"));
   const bundleDirectory = path.join(stateDirectory, "bundle");
@@ -116,15 +205,17 @@ async function main() {
   let serverLogs = "";
 
   try {
-    await run(wrangler, ["d1", "migrations", "apply", "lalgeo-maps", "--local", "--persist-to", stateDirectory], { env: childEnvironment });
+    await run(wrangler, ["d1", "migrations", "apply", database, "--local", "--persist-to", stateDirectory], { cwd: workerDirectory, env: childEnvironment });
     record("fresh D1 migrations apply locally");
 
-    await run(wrangler, ["deploy", "--dry-run", "--outdir", bundleDirectory], { env: childEnvironment });
+    await run(wrangler, ["deploy", "--dry-run", "--outdir", bundleDirectory], { cwd: workerDirectory, env: childEnvironment });
     record("Worker deployment bundle builds without publishing");
 
+    const hostnameArguments = requestHostname ? ["--host", requestHostname] : [];
     devServer = spawn(wrangler, [
       "dev",
       "--local",
+      ...hostnameArguments,
       "--ip", "127.0.0.1",
       "--port", String(port),
       "--persist-to", stateDirectory,
@@ -132,7 +223,7 @@ async function main() {
       "--var", `LALGEO_MAPS_API_KEYS:${bindings}`,
       "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
     ], {
-      cwd: apiDirectory,
+      cwd: workerDirectory,
       env: childEnvironment,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -147,7 +238,7 @@ async function main() {
       logger: { log() {} },
     });
     assert.equal(publicVerification.operationCount, 18);
-    record("strict health, OpenAPI, auth, and bounded CORS checks pass locally");
+    record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
     const mapResponse = await request(baseUrl, "/v1/maps", {
@@ -433,7 +524,27 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  process.stderr.write(`Maps API local release gate failed after ${checks.length} checks.\n${error.stack || error}\n`);
-  process.exitCode = 1;
-});
+async function cli() {
+  try {
+    const arguments_ = parseArguments(process.argv.slice(2));
+    if (arguments_.help) {
+      process.stdout.write(`${usage()}\n`);
+      return;
+    }
+    await main(arguments_);
+  } catch (error) {
+    process.stderr.write(`Maps API local release gate failed after ${checks.length} checks.\n${error.stack || error}\n`);
+    process.exitCode = 1;
+  }
+}
+
+export async function isEntryPoint(candidate = process.argv[1]) {
+  if (!candidate) return false;
+  const [modulePath, candidatePath] = await Promise.all([
+    realpath(fileURLToPath(import.meta.url)),
+    realpath(path.resolve(candidate)).catch(() => null),
+  ]);
+  return candidatePath === modulePath;
+}
+
+if (await isEntryPoint()) await cli();

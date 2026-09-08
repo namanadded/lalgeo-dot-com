@@ -3,8 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "check": "tsc --noEmit",
     "dev": "wrangler dev",
     "deploy": "wrangler deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run",
+    "verify:maps-local": "node ../lalgeo-maps-api/scripts/verify-local.mjs --worker-directory . --database lalgeo-business --request-hostname api.lalgeo.com",
     "migrate": "wrangler d1 migrations apply lalgeo-business",
     "cf-typegen": "wrangler types"
   },

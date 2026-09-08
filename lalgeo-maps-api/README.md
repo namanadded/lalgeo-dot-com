@@ -2,26 +2,39 @@
 
 The agent-facing API behind the “Maps for humans and agents” promise. An authenticated client can create maps, add typed layers and GeoJSON features, then export a portable `.lal` project that opens in LalGeo Maps.
 
-The Worker is not production-ready merely because the website or CI responds. Treat `https://api.lalgeo.com` as released only when the strict read-only production verifier passes.
+## Production architecture
+
+`https://api.lalgeo.com` is served by the existing `lalgeo-saas-api` Cloudflare Worker and its `lalgeo-business` D1 database. That Worker imports this implementation and routes Maps discovery and `/v1/maps` requests to it. The standalone `wrangler.jsonc` in this directory exists for isolated local development only; do not deploy it or create a separate production database.
+
+A website response, successful standalone build, or generic Worker preview does not prove the production composition. Release work must pass both the isolated contract gate and the combined-Worker gate.
 
 ## Release checks
+
+First prove this implementation with disposable standalone state:
 
 ```sh
 npm ci
 npm run check
 npm run verify:local
-npm run verify:production
 ```
 
-- `check` type-checks the Worker and runs static contract tests.
-- `verify:local` creates disposable local D1 state, applies every migration, builds a Wrangler deployment bundle, starts the Worker with a synthetic key, and exercises health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer used by the web app. It simulates an edit and reopens only synthetic local data; it never contacts production.
-- `verify:production` sends only unauthenticated `GET` and `OPTIONS` requests. It rejects invalid TLS, redirects, HTML/fallback responses, incomplete discovery, missing bearer challenges, and incorrect CORS. It never sends a key or mutates data.
-
-To verify a Worker preview or another candidate hostname without weakening the checks:
+Then prove the artifact and migration chain that production actually uses:
 
 ```sh
-npm run verify:production -- --base-url https://candidate.example.workers.dev
+cd ../lalgeo-saas-api
+npm ci
+npm run check
+npm run deploy:dry-run
+npm run verify:maps-local
 ```
+
+- `check` type-checks the selected Worker and runs the Maps API contract tests where applicable.
+- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, and exercises health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer.
+- `verify:maps-local` runs the same synthetic journey through `lalgeo-saas-api`, including the real `lalgeo-business` migration chain and hostname routing used by production.
+- `deploy:dry-run` bundles the combined Worker without publishing it.
+- `verify:production` sends only unauthenticated `GET` and `OPTIONS` requests to the canonical API. It rejects invalid TLS, redirects, HTML/fallback responses, incomplete discovery, missing bearer challenges, and incorrect CORS. It never sends a key or mutates data.
+
+All local gates use only disposable synthetic data and never contact production.
 
 ## Local development
 
@@ -42,15 +55,9 @@ Replace the placeholder in `.dev.vars` with the SHA-256 hash of a development-on
 
 Send the raw key as `Authorization: Bearer <key>`. Data routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing or invalid. Health and OpenAPI discovery are public. Every map, layer, and feature query is owner-scoped.
 
-The local release gate is the quickest safe way to test authentication end to end:
-
-```sh
-npm run verify:local
-```
-
 ## Deployment
 
-[`DEPLOYMENT.md`](DEPLOYMENT.md) is the owner-only first-deploy, acceptance, and rollback runbook. It covers the placeholder D1 binding and the existing `api.lalgeo.com` DNS conflict. Do not apply remote migrations, publish the Worker, change DNS, or set secrets from automated runs.
+[`DEPLOYMENT.md`](DEPLOYMENT.md) is the owner-only migration, deployment, acceptance, and rollback runbook for the combined Worker. Do not apply remote migrations, publish the Worker, change credentials, or alter production infrastructure from automated runs.
 
 ## Contract
 
