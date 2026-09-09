@@ -16,7 +16,7 @@ The combined Worker imports `lalgeo-maps-api/src/index.ts`. Requests for Maps di
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-08 07:04 UTC.
+Last read-only canonical check: 2026-09-09 07:08 UTC.
 
 - `GET https://api.lalgeo.com/v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}` over valid TLS.
 - `/v1/openapi.json` returned the canonical OpenAPI 3.1 document with 18 unique operations.
