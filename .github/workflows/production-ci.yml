@@ -28,6 +28,7 @@ jobs:
           cache-dependency-path: |
             maps/package-lock.json
             lalgeo-maps-api/package-lock.json
+            lalgeo-saas-api/package-lock.json
 
       - name: Validate static entry points
         run: |
@@ -50,6 +51,22 @@ jobs:
       - name: Verify Maps API local release gate
         working-directory: lalgeo-maps-api
         run: npm run verify:local
+
+      - name: Install production Worker dependencies
+        working-directory: lalgeo-saas-api
+        run: npm ci
+
+      - name: Check production Worker types
+        working-directory: lalgeo-saas-api
+        run: npm run check
+
+      - name: Build production Worker deployment bundle
+        working-directory: lalgeo-saas-api
+        run: npm run deploy:dry-run
+
+      - name: Verify Maps API through production Worker
+        working-directory: lalgeo-saas-api
+        run: npm run verify:maps-local
 
       - name: Guard complete Maps regression coverage
         working-directory: maps
