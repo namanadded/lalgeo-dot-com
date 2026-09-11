@@ -8,12 +8,83 @@ const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8
 const migration = await readFile(new URL("../migrations/0001_maps.sql", import.meta.url), "utf8");
 
 test("OpenAPI exposes the complete canonical operation set", () => {
-  assert.deepEqual(validateOpenApi(spec), { operationCount: 18 });
+  assert.deepEqual(validateOpenApi(spec), {
+    operationCount: 18,
+    successSchemaCount: 15,
+    bodylessSuccessCount: 3,
+  });
   const ids = Object.values(spec.paths).flatMap((path) => Object.values(path).map((operation) => operation?.operationId).filter(Boolean));
   assert.equal(new Set(ids).size, ids.length);
   assert.ok(ids.includes("createMap"));
   assert.ok(ids.includes("createFeatures"));
   assert.ok(ids.includes("exportMap"));
+});
+
+test("every JSON success has its runtime schema and DELETE remains bodyless", () => {
+  const expected = new Map([
+    ["getHealth:200", "HealthResponse"],
+    ["getOpenApi:200", "OpenApiDocument"],
+    ["listMaps:200", "MapListResponse"],
+    ["createMap:201", "MapResponse"],
+    ["getMap:200", "MapResponse"],
+    ["updateMap:200", "MapResponse"],
+    ["exportMap:200", "LalGeoExportResponse"],
+    ["listLayers:200", "LayerListResponse"],
+    ["createLayer:201", "LayerResponse"],
+    ["getLayer:200", "LayerResponse"],
+    ["updateLayer:200", "LayerResponse"],
+    ["listFeatures:200", "FeatureListResponse"],
+    ["createFeatures:201", "CreatedFeatureCollection"],
+    ["getFeature:200", "StoredFeature"],
+    ["updateFeature:200", "StoredFeature"],
+  ]);
+  const bodyless = new Set(["deleteMap:204", "deleteLayer:204", "deleteFeature:204"]);
+
+  for (const pathItem of Object.values(spec.paths)) {
+    for (const operation of Object.values(pathItem)) {
+      if (!operation?.operationId) continue;
+      for (const [status, response] of Object.entries(operation.responses)) {
+        if (!/^2\d\d$/.test(status)) continue;
+        const key = `${operation.operationId}:${status}`;
+        if (status === "204") {
+          assert.ok(bodyless.delete(key), `unexpected bodyless success ${key}`);
+          assert.equal(Object.hasOwn(response, "content"), false);
+          continue;
+        }
+        assert.equal(
+          response.content?.["application/json"]?.schema?.$ref,
+          `#/components/schemas/${expected.get(key)}`,
+          `unexpected success schema for ${key}`,
+        );
+        expected.delete(key);
+      }
+    }
+  }
+
+  assert.deepEqual([...expected.keys()], []);
+  assert.deepEqual([...bodyless], []);
+});
+
+test("response models preserve nullable maps, feature lifecycle shapes, and portable exports", () => {
+  const schemas = spec.components.schemas;
+  assert.deepEqual(schemas.Map.properties.zoom.type, ["number", "null"]);
+  assert.deepEqual(schemas.Map.properties.center.oneOf[1], { type: "null" });
+  assert.equal(schemas.Pagination.description.includes("not the total"), true);
+
+  assert.ok(schemas.CreatedFeature.required.includes("id"));
+  assert.equal(schemas.CreatedFeature.required.includes("created_at"), false);
+  assert.ok(schemas.StoredFeature.required.includes("created_at"));
+  assert.ok(schemas.StoredFeature.required.includes("updated_at"));
+  assert.equal(schemas.CreatedFeatureCollection.properties.features.minItems, 1);
+  assert.equal(Object.hasOwn(schemas.FeatureListResponse.properties.features, "minItems"), false);
+
+  assert.equal(schemas.LalGeoExportResponse.properties.survey.type, "null");
+  assert.equal(schemas.LalGeoProject.properties.layers.minItems, 1);
+  assert.equal(schemas.LalGeoPolygonGeometry.properties.rings.items.minItems, 3);
+  assert.deepEqual(
+    schemas.LalGeoMapOptions.required,
+    ["showBasemapPOIs", "mapType"],
+  );
 });
 
 test("every documented data path is implemented by the worker", () => {
@@ -47,7 +118,7 @@ test("agent safety limits and portable export remain part of the contract", () =
   assert.match(worker, /function lalGeometry/);
   const exportOperation = spec.paths["/v1/maps/{mapId}/export"].get;
   assert.match(exportOperation.description, /deterministic empty point layer/);
-  assert.match(spec.components.schemas.Feature.properties.geometry.properties.coordinates.description, /altitude in metres/);
+  assert.match(spec.components.schemas.Position.description, /altitude in metres/);
   assert.match(worker, /id: "empty_points", name: "Points"/);
   assert.match(worker, /Number\.isFinite\(altitude\)/);
 });

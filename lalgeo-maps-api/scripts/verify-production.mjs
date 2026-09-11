@@ -1,7 +1,12 @@
 #!/usr/bin/env node
 
+import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
+
+const repositorySpec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
 
 export const DEFAULT_BASE_URL = "https://api.lalgeo.com";
 export const DEFAULT_ORIGIN = "https://maps.lalgeo.com";
@@ -18,6 +23,30 @@ export const REQUIRED_OPERATIONS = Object.freeze({
   "/v1/maps/{mapId}/layers/{layerId}/features": Object.freeze({ get: "listFeatures", post: "createFeatures" }),
   "/v1/maps/{mapId}/layers/{layerId}/features/{featureId}": Object.freeze({ get: "getFeature", patch: "updateFeature", delete: "deleteFeature" }),
 });
+
+export const REQUIRED_SUCCESS_SCHEMAS = Object.freeze({
+  "getHealth:200": "#/components/schemas/HealthResponse",
+  "getOpenApi:200": "#/components/schemas/OpenApiDocument",
+  "listMaps:200": "#/components/schemas/MapListResponse",
+  "createMap:201": "#/components/schemas/MapResponse",
+  "getMap:200": "#/components/schemas/MapResponse",
+  "updateMap:200": "#/components/schemas/MapResponse",
+  "exportMap:200": "#/components/schemas/LalGeoExportResponse",
+  "listLayers:200": "#/components/schemas/LayerListResponse",
+  "createLayer:201": "#/components/schemas/LayerResponse",
+  "getLayer:200": "#/components/schemas/LayerResponse",
+  "updateLayer:200": "#/components/schemas/LayerResponse",
+  "listFeatures:200": "#/components/schemas/FeatureListResponse",
+  "createFeatures:201": "#/components/schemas/CreatedFeatureCollection",
+  "getFeature:200": "#/components/schemas/StoredFeature",
+  "updateFeature:200": "#/components/schemas/StoredFeature",
+});
+
+export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
+  "deleteMap:204",
+  "deleteLayer:204",
+  "deleteFeature:204",
+]);
 
 const CANONICAL_SERVER = DEFAULT_BASE_URL;
 const DISALLOWED_ORIGIN = "https://cors-probe.invalid";
@@ -39,6 +68,115 @@ function check(condition, message) {
 
 function isObject(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (isObject(value)) {
+    return `{${Object.keys(value).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function resolveLocalReference(document, reference, label) {
+  check(typeof reference === "string" && reference.startsWith("#/"), `${label} must use a local OpenAPI reference.`);
+  let value = document;
+  for (const rawToken of reference.slice(2).split("/")) {
+    const token = rawToken.replaceAll("~1", "/").replaceAll("~0", "~");
+    check((isObject(value) || Array.isArray(value)) && Object.hasOwn(value, token), `${label} does not resolve: ${reference}.`);
+    value = value[token];
+  }
+  return value;
+}
+
+function resolveReference(document, value, label) {
+  const visited = new Set();
+  let resolved = value;
+  while (isObject(resolved) && Object.hasOwn(resolved, "$ref")) {
+    const reference = resolved.$ref;
+    check(!visited.has(reference), `${label} contains a circular reference: ${reference}.`);
+    visited.add(reference);
+    resolved = resolveLocalReference(document, reference, label);
+  }
+  return resolved;
+}
+
+function validateLocalReferences(document, value, label, visited = new Set()) {
+  if (Array.isArray(value)) {
+    value.forEach((item) => validateLocalReferences(document, item, label, visited));
+    return;
+  }
+  if (!isObject(value)) return;
+
+  if (Object.hasOwn(value, "$ref")) {
+    const reference = value.$ref;
+    const resolved = resolveLocalReference(document, reference, label);
+    if (!visited.has(reference)) {
+      visited.add(reference);
+      validateLocalReferences(document, resolved, label, visited);
+    }
+  }
+
+  for (const [key, item] of Object.entries(value)) {
+    if (key !== "$ref") validateLocalReferences(document, item, label, visited);
+  }
+}
+
+function rewriteSchemaReferences(value) {
+  if (Array.isArray(value)) return value.map(rewriteSchemaReferences);
+  if (!isObject(value)) return value;
+  return Object.fromEntries(Object.entries(value).map(([key, item]) => {
+    if (key === "$ref" && typeof item === "string" && item.startsWith("#/components/schemas/")) {
+      return [key, `#/$defs/${item.slice("#/components/schemas/".length)}`];
+    }
+    return [key, rewriteSchemaReferences(item)];
+  }));
+}
+
+function collectInlineSchemas(value, output = []) {
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectInlineSchemas(item, output));
+    return output;
+  }
+  if (!isObject(value)) return output;
+
+  for (const [key, item] of Object.entries(value)) {
+    if (key === "schemas") continue;
+    if (key === "schema" && (isObject(item) || typeof item === "boolean")) {
+      output.push(item);
+      continue;
+    }
+    collectInlineSchemas(item, output);
+  }
+  return output;
+}
+
+function validateJsonSchemas(spec) {
+  const componentSchemas = spec.components?.schemas;
+  check(isObject(componentSchemas), "OpenAPI must define components.schemas.");
+  const definitions = Object.fromEntries(
+    Object.entries(componentSchemas).map(([name, schema]) => [name, rewriteSchemaReferences(schema)]),
+  );
+  const inlineSchemas = collectInlineSchemas(spec).map(rewriteSchemaReferences);
+  const references = Object.keys(definitions).map((name) => ({
+    $ref: `#/$defs/${name.replaceAll("~", "~0").replaceAll("/", "~1")}`,
+  }));
+  const ajv = new Ajv2020({
+    allErrors: true,
+    allowUnionTypes: true,
+    strict: true,
+    strictTuples: false,
+  });
+  addFormats(ajv);
+  try {
+    ajv.compile({
+      $schema: "https://json-schema.org/draft/2020-12/schema",
+      $defs: definitions,
+      anyOf: [...references, ...inlineSchemas],
+    });
+  } catch (error) {
+    throw new VerificationError(`OpenAPI JSON Schemas must compile as Draft 2020-12: ${error instanceof Error ? error.message : String(error)}`);
+  }
 }
 
 function isLoopbackHostname(hostname) {
@@ -235,16 +373,56 @@ export function validateOpenApi(spec) {
   }
 
   const operationIds = [];
+  const documentedSuccesses = new Set();
+  let successSchemaCount = 0;
+  let bodylessSuccessCount = 0;
   for (const [path, pathItem] of Object.entries(spec.paths || {})) {
     if (!isObject(pathItem)) continue;
     for (const [method, operation] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.has(method.toLowerCase())) continue;
       check(isObject(operation) && typeof operation.operationId === "string" && operation.operationId, `OpenAPI ${method.toUpperCase()} ${path} must have an operationId.`);
       operationIds.push(operation.operationId);
+
+      const responses = operation.responses;
+      check(isObject(responses), `OpenAPI ${operation.operationId} must define responses.`);
+      const successes = Object.entries(responses).filter(([status]) => /^2\d\d$/.test(status));
+      check(successes.length > 0, `OpenAPI ${operation.operationId} must define a successful response.`);
+
+      for (const [status, documentedResponse] of successes) {
+        const label = `OpenAPI ${operation.operationId} ${status} response`;
+        const successKey = `${operation.operationId}:${status}`;
+        const resolvedResponse = resolveReference(spec, documentedResponse, label);
+        check(isObject(resolvedResponse), `${label} must be an object.`);
+        if (status === "204") {
+          check(REQUIRED_BODYLESS_SUCCESSES.includes(successKey), `${label} is not a canonical bodyless success.`);
+          check(!Object.hasOwn(resolvedResponse, "content"), `${label} must remain bodyless and omit content.`);
+          documentedSuccesses.add(successKey);
+          bodylessSuccessCount += 1;
+          continue;
+        }
+
+        const json = resolvedResponse.content?.["application/json"];
+        check(isObject(json) && isObject(json.schema), `${label} must define content.application/json.schema.`);
+        validateLocalReferences(spec, json.schema, `${label} schema`);
+        const expectedReference = REQUIRED_SUCCESS_SCHEMAS[successKey];
+        check(expectedReference, `${label} is not a canonical JSON success.`);
+        check(json.schema.$ref === expectedReference, `${label} schema must reference ${expectedReference}.`);
+        documentedSuccesses.add(successKey);
+        successSchemaCount += 1;
+      }
     }
   }
   check(new Set(operationIds).size === operationIds.length, "OpenAPI operationIds must be unique.");
-  return { operationCount: operationIds.length };
+  for (const successKey of [...Object.keys(REQUIRED_SUCCESS_SCHEMAS), ...REQUIRED_BODYLESS_SUCCESSES]) {
+    check(documentedSuccesses.has(successKey), `OpenAPI is missing canonical success ${successKey}.`);
+  }
+  validateLocalReferences(spec, spec, "OpenAPI document");
+  validateJsonSchemas(spec);
+  check(
+    canonicalJson(spec.components.schemas) === canonicalJson(repositorySpec.components.schemas),
+    "OpenAPI components.schemas must match the repository contract.",
+  );
+  return { operationCount: operationIds.length, successSchemaCount, bodylessSuccessCount };
 }
 
 async function verifyHealth(options) {
@@ -369,14 +547,20 @@ export async function verifyProduction({
   await verifyHealth(normalized);
   logger.log("PASS health: exact service identity, JSON, cache policy, and request ID");
   const openApi = await verifyOpenApi(normalized);
-  logger.log(`PASS OpenAPI: 3.1 contract with ${openApi.operationCount} unique operations`);
+  logger.log(`PASS OpenAPI: 3.1 contract with ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes`);
   await verifyUnauthorized(normalized);
   logger.log("PASS auth: unauthenticated read rejected with JSON Bearer challenge");
   await verifyCors(normalized);
   logger.log(`PASS CORS: ${normalized.origin} allowed and an untrusted origin rejected`);
   logger.log(`PASS production verifier: ${normalized.baseUrl}`);
 
-  return { baseUrl: normalized.baseUrl, origin: normalized.origin, operationCount: openApi.operationCount };
+  return {
+    baseUrl: normalized.baseUrl,
+    origin: normalized.origin,
+    operationCount: openApi.operationCount,
+    successSchemaCount: openApi.successSchemaCount,
+    bodylessSuccessCount: openApi.bodylessSuccessCount,
+  };
 }
 
 async function main() {
