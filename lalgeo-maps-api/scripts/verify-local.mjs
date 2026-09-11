@@ -1,11 +1,13 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { access, mkdtemp, realpath, rm, stat } from "node:fs/promises";
+import { access, mkdtemp, readFile, realpath, rm, stat } from "node:fs/promises";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
+import Ajv2020 from "ajv/dist/2020.js";
+import addFormats from "ajv-formats";
 import { loadLalGeoProjectContract } from "../../maps/scripts/lib/lalgeo-project-contract.mjs";
 import { verifyProduction } from "./verify-production.mjs";
 
@@ -16,6 +18,48 @@ const localApiKey = "lalgeo_synthetic_runtime_key";
 const localOwner = "owner_synthetic_runtime";
 const allowedOrigin = "https://maps.lalgeo.com";
 const checks = [];
+const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
+
+export function createSuccessResponseValidator(spec) {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  const validators = new Map();
+
+  for (const pathItem of Object.values(spec.paths || {})) {
+    if (!pathItem || typeof pathItem !== "object" || Array.isArray(pathItem)) continue;
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (!HTTP_METHODS.has(method.toLowerCase()) || !operation?.operationId) continue;
+      for (const [status, response] of Object.entries(operation.responses || {})) {
+        if (!/^2\d\d$/.test(status) || status === "204") continue;
+        const schema = response?.content?.["application/json"]?.schema;
+        assert.ok(schema, `${operation.operationId} ${status} has no application/json success schema`);
+        const key = `${operation.operationId}:${status}`;
+        validators.set(key, ajv.compile({
+          $schema: "https://json-schema.org/draft/2020-12/schema",
+          components: spec.components,
+          ...structuredClone(schema),
+        }));
+      }
+    }
+  }
+
+  const covered = new Set();
+  return {
+    covered,
+    expected: new Set(validators.keys()),
+    validate(operationId, status, payload) {
+      const key = `${operationId}:${status}`;
+      const validator = validators.get(key);
+      assert.ok(validator, `No documented success schema for ${key}`);
+      assert.ok(
+        validator(payload),
+        `${key} payload does not match OpenAPI: ${ajv.errorsText(validator.errors, { separator: "; " })}`,
+      );
+      covered.add(key);
+      return payload;
+    },
+  };
+}
 
 function readOption(argv, index, option) {
   const value = argv[index + 1];
@@ -159,6 +203,10 @@ async function json(response) {
   return response.json();
 }
 
+async function successJson(response, responseContract, operationId) {
+  return responseContract.validate(operationId, response.status, await json(response));
+}
+
 async function waitForWorker(baseUrl, child, logs) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
@@ -188,6 +236,8 @@ async function main({ workerDirectory, database, requestHostname }) {
   const wrangler = path.join(workerDirectory, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
   await requireWorkerTarget(workerDirectory, wrangler);
   const mapsProjectContract = loadLalGeoProjectContract();
+  const openApiSpec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
+  const responseContract = createSuccessResponseValidator(openApiSpec);
   const stateDirectory = await mkdtemp(path.join(os.tmpdir(), "lalgeo-maps-api-gate-"));
   const bundleDirectory = path.join(stateDirectory, "bundle");
   const logPath = path.join(stateDirectory, "wrangler.log");
@@ -238,9 +288,29 @@ async function main({ workerDirectory, database, requestHostname }) {
       logger: { log() {} },
     });
     assert.equal(publicVerification.operationCount, 18);
+    assert.equal(publicVerification.successSchemaCount, 15);
+    assert.equal(publicVerification.bodylessSuccessCount, 3);
+    const healthSchemaResponse = await request(baseUrl, "/v1/health");
+    assert.equal(healthSchemaResponse.status, 200);
+    await successJson(healthSchemaResponse, responseContract, "getHealth");
+    const openApiSchemaResponse = await request(baseUrl, "/v1/openapi.json");
+    assert.equal(openApiSchemaResponse.status, 200);
+    await successJson(openApiSchemaResponse, responseContract, "getOpenApi");
     record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
+    const invalidMetadataMapResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        id: "invalid_metadata_map",
+        name: "Invalid metadata fixture",
+        metadata: [],
+      }),
+    });
+    assert.equal(invalidMetadataMapResponse.status, 400);
+    assert.equal((await json(invalidMetadataMapResponse)).error?.code, "VALIDATION_ERROR");
+
     const mapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -252,15 +322,27 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(mapResponse.status, 201);
-    assert.equal((await json(mapResponse)).map?.id, "synthetic_runtime_map");
+    assert.equal((await successJson(mapResponse, responseContract, "createMap")).map?.id, "synthetic_runtime_map");
     record("authenticated client creates a synthetic map");
+
+    const invalidMetadataPatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
+      method: "PATCH",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ metadata: "not-an-object" }),
+    });
+    assert.equal(invalidMetadataPatchResponse.status, 400);
+    assert.equal((await json(invalidMetadataPatchResponse)).error?.code, "VALIDATION_ERROR");
+    const unchangedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
+    assert.equal(unchangedMapResponse.status, 200);
+    assert.deepEqual((await successJson(unchangedMapResponse, responseContract, "getMap")).map?.metadata, {});
+    record("schema-breaking map metadata is rejected without mutation");
 
     const emptyExportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(emptyExportResponse.status, 200);
-    const emptyExport = await json(emptyExportResponse);
+    const emptyExport = await successJson(emptyExportResponse, responseContract, "exportMap");
     const repeatedEmptyExportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(repeatedEmptyExportResponse.status, 200);
-    assert.deepEqual(await json(repeatedEmptyExportResponse), emptyExport);
+    assert.deepEqual(await successJson(repeatedEmptyExportResponse, responseContract, "exportMap"), emptyExport);
     const importedEmptyMap = mapsProjectContract.validateLalGeoProject(emptyExport.project, { fileName: "synthetic-empty-map.lal" });
     assert.equal(importedEmptyMap.layers.length, 1);
     assert.equal(importedEmptyMap.layers[0].id, "empty_points");
@@ -276,23 +358,31 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(importedEmptyMap.layers[0].styleDefaults.pointAggregation, 60);
     const untouchedLayersResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", { headers: authorization });
     assert.equal(untouchedLayersResponse.status, 200);
-    assert.deepEqual((await json(untouchedLayersResponse)).layers, []);
+    assert.deepEqual((await successJson(untouchedLayersResponse, responseContract, "listLayers")).layers, []);
     record("empty maps export as stable editable Maps projects without mutating API layers");
 
     const mapListResponse = await request(baseUrl, "/v1/maps?limit=10&offset=0", { headers: authorization });
     assert.equal(mapListResponse.status, 200);
-    assert.deepEqual((await json(mapListResponse)).maps?.map((map) => map.id), ["synthetic_runtime_map"]);
+    assert.deepEqual((await successJson(mapListResponse, responseContract, "listMaps")).maps?.map((map) => map.id), ["synthetic_runtime_map"]);
     const mapGetResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
     assert.equal(mapGetResponse.status, 200);
-    assert.equal((await json(mapGetResponse)).map?.name, "Synthetic runtime map");
+    assert.equal((await successJson(mapGetResponse, responseContract, "getMap")).map?.name, "Synthetic runtime map");
     const mapPatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
       method: "PATCH",
       headers: { ...authorization, "Content-Type": "application/json" },
       body: JSON.stringify({ description: "Disposable local contract fixture" }),
     });
     assert.equal(mapPatchResponse.status, 200);
-    assert.equal((await json(mapPatchResponse)).map?.description, "Disposable local contract fixture");
+    assert.equal((await successJson(mapPatchResponse, responseContract, "updateMap")).map?.description, "Disposable local contract fixture");
     record("map list, read, and update routes share one owner scope");
+
+    const invalidStyleLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "invalid_style_layer", name: "Invalid style fixture", geometry_type: "Point", style: [] }),
+    });
+    assert.equal(invalidStyleLayerResponse.status, 400);
+    assert.equal((await json(invalidStyleLayerResponse)).error?.code, "VALIDATION_ERROR");
 
     const layerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
@@ -300,7 +390,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       body: JSON.stringify({ id: "places", name: "Places", geometry_type: "Point" }),
     });
     assert.equal(layerResponse.status, 201);
-    assert.equal((await json(layerResponse)).layer?.id, "places");
+    assert.equal((await successJson(layerResponse, responseContract, "createLayer")).layer?.id, "places");
 
     const routeLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
@@ -308,7 +398,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       body: JSON.stringify({ id: "routes", name: "Routes", geometry_type: "LineString", position: 1 }),
     });
     assert.equal(routeLayerResponse.status, 201);
-    assert.equal((await json(routeLayerResponse)).layer?.geometry_type, "LineString");
+    assert.equal((await successJson(routeLayerResponse, responseContract, "createLayer")).layer?.geometry_type, "LineString");
 
     const areaLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
@@ -316,12 +406,12 @@ async function main({ workerDirectory, database, requestHostname }) {
       body: JSON.stringify({ id: "areas", name: "Areas", geometry_type: "Polygon", position: 2 }),
     });
     assert.equal(areaLayerResponse.status, 201);
-    assert.equal((await json(areaLayerResponse)).layer?.geometry_type, "Polygon");
+    assert.equal((await successJson(areaLayerResponse, responseContract, "createLayer")).layer?.geometry_type, "Polygon");
     record("authenticated client creates every supported layer type");
 
     const emptyLayersExportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(emptyLayersExportResponse.status, 200);
-    const emptyLayersExport = await json(emptyLayersExportResponse);
+    const emptyLayersExport = await successJson(emptyLayersExportResponse, responseContract, "exportMap");
     const importedEmptyLayers = mapsProjectContract.validateLalGeoProject(emptyLayersExport.project, { fileName: "synthetic-empty-layers.lal" });
     assert.equal(importedEmptyLayers.layers.length, 3);
     assert.deepEqual([...importedEmptyLayers.layers].map((layer) => layer.id), ["places", "routes", "areas"]);
@@ -330,17 +420,30 @@ async function main({ workerDirectory, database, requestHostname }) {
 
     const layerListResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", { headers: authorization });
     assert.equal(layerListResponse.status, 200);
-    assert.deepEqual((await json(layerListResponse)).layers?.map((layer) => layer.id), ["places", "routes", "areas"]);
+    assert.deepEqual((await successJson(layerListResponse, responseContract, "listLayers")).layers?.map((layer) => layer.id), ["places", "routes", "areas"]);
     const layerGetResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
     assert.equal(layerGetResponse.status, 200);
-    assert.equal((await json(layerGetResponse)).layer?.geometry_type, "Point");
+    const unstyledLayer = await successJson(layerGetResponse, responseContract, "getLayer");
+    assert.equal(unstyledLayer.layer?.geometry_type, "Point");
+    assert.deepEqual(unstyledLayer.layer?.style, {});
+    const invalidStylePatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", {
+      method: "PATCH",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ style: "not-an-object" }),
+    });
+    assert.equal(invalidStylePatchResponse.status, 400);
+    assert.equal((await json(invalidStylePatchResponse)).error?.code, "VALIDATION_ERROR");
+    const unchangedLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
+    assert.equal(unchangedLayerResponse.status, 200);
+    assert.deepEqual((await successJson(unchangedLayerResponse, responseContract, "getLayer")).layer?.style, {});
+    record("schema-breaking layer styles are rejected without mutation");
     const layerPatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", {
       method: "PATCH",
       headers: { ...authorization, "Content-Type": "application/json" },
       body: JSON.stringify({ style: { symbol_color: "Blue" }, position: 2 }),
     });
     assert.equal(layerPatchResponse.status, 200);
-    assert.equal((await json(layerPatchResponse)).layer?.style?.symbol_color, "Blue");
+    assert.equal((await successJson(layerPatchResponse, responseContract, "updateLayer")).layer?.style?.symbol_color, "Blue");
     record("layer list, read, and update routes preserve type and style");
 
     const invalidAltitudeResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
@@ -387,7 +490,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(featureResponse.status, 201);
-    assert.equal((await json(featureResponse)).features?.[0]?.id, "central_library");
+    assert.equal((await successJson(featureResponse, responseContract, "createFeatures")).features?.[0]?.id, "central_library");
 
     const routeFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/routes/features", {
       method: "POST",
@@ -400,6 +503,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(routeFeatureResponse.status, 201);
+    await successJson(routeFeatureResponse, responseContract, "createFeatures");
 
     const areaFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/areas/features", {
       method: "POST",
@@ -418,14 +522,15 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(areaFeatureResponse.status, 201);
+    await successJson(areaFeatureResponse, responseContract, "createFeatures");
     record("authenticated client creates valid GeoJSON for every layer type");
 
     const featureListResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", { headers: authorization });
     assert.equal(featureListResponse.status, 200);
-    assert.deepEqual((await json(featureListResponse)).features?.map((feature) => feature.id), ["central_library"]);
+    assert.deepEqual((await successJson(featureListResponse, responseContract, "listFeatures")).features?.map((feature) => feature.id), ["central_library"]);
     const featureGetResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", { headers: authorization });
     assert.equal(featureGetResponse.status, 200);
-    assert.equal((await json(featureGetResponse)).properties?.name, "Central Library · Bibliothèque 🌐");
+    assert.equal((await successJson(featureGetResponse, responseContract, "getFeature")).properties?.name, "Central Library · Bibliothèque 🌐");
     const featurePatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", {
       method: "PATCH",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -441,7 +546,9 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(featurePatchResponse.status, 200);
-    assert.equal((await json(featurePatchResponse)).properties?.source, "synthetic updated");
+    assert.equal((await successJson(featurePatchResponse, responseContract, "updateFeature")).properties?.source, "synthetic updated");
+    assert.deepEqual([...responseContract.covered].sort(), [...responseContract.expected].sort());
+    record("all 15 body-bearing operation payloads match their OpenAPI success schemas");
     record("feature list, read, and update routes preserve GeoJSON");
 
     const conflictResponse = await request(baseUrl, "/v1/maps", {
@@ -455,7 +562,7 @@ async function main({ workerDirectory, database, requestHostname }) {
 
     const exportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(exportResponse.status, 200);
-    const exported = await json(exportResponse);
+    const exported = await successJson(exportResponse, responseContract, "exportMap");
     const imported = mapsProjectContract.validateLalGeoProject(exported.project, { fileName: "synthetic-api-export.lal" });
     assert.equal(imported.layers.length, 3);
     assert.ok(imported.layers.some((layer) => layer.id === imported.activeLayerId));

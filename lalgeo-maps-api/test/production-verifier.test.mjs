@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import { createServer } from "node:http";
 import { once } from "node:events";
+import { readFile } from "node:fs/promises";
 import test from "node:test";
 
 import {
@@ -15,50 +16,10 @@ import {
   verifyProduction,
 } from "../scripts/verify-production.mjs";
 
+const repositorySpec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
+
 function openApiFixture() {
-  return {
-    openapi: "3.1.0",
-    info: { title: "LalGeo Maps API", version: "1.0.0" },
-    servers: [{ url: "https://api.lalgeo.com" }],
-    security: [{ bearerAuth: [] }],
-    paths: {
-      "/v1/health": { get: { operationId: "getHealth", security: [] } },
-      "/v1/openapi.json": { get: { operationId: "getOpenApi", security: [] } },
-      "/v1/maps": {
-        get: { operationId: "listMaps" },
-        post: { operationId: "createMap" },
-      },
-      "/v1/maps/{mapId}": {
-        get: { operationId: "getMap" },
-        patch: { operationId: "updateMap" },
-        delete: { operationId: "deleteMap" },
-      },
-      "/v1/maps/{mapId}/export": { get: { operationId: "exportMap" } },
-      "/v1/maps/{mapId}/layers": {
-        get: { operationId: "listLayers" },
-        post: { operationId: "createLayer" },
-      },
-      "/v1/maps/{mapId}/layers/{layerId}": {
-        get: { operationId: "getLayer" },
-        patch: { operationId: "updateLayer" },
-        delete: { operationId: "deleteLayer" },
-      },
-      "/v1/maps/{mapId}/layers/{layerId}/features": {
-        get: { operationId: "listFeatures" },
-        post: { operationId: "createFeatures" },
-      },
-      "/v1/maps/{mapId}/layers/{layerId}/features/{featureId}": {
-        get: { operationId: "getFeature" },
-        patch: { operationId: "updateFeature" },
-        delete: { operationId: "deleteFeature" },
-      },
-    },
-    components: {
-      securitySchemes: {
-        bearerAuth: { type: "http", scheme: "bearer" },
-      },
-    },
-  };
+  return structuredClone(repositorySpec);
 }
 
 function jsonHeaders(requestId, extra = {}) {
@@ -124,7 +85,11 @@ test("URL and CLI policy defaults to production and permits HTTP only on loopbac
 });
 
 test("OpenAPI validation enforces the canonical 3.1 bearer contract and operation IDs", () => {
-  assert.deepEqual(validateOpenApi(openApiFixture()), { operationCount: 18 });
+  assert.deepEqual(validateOpenApi(openApiFixture()), {
+    operationCount: 18,
+    successSchemaCount: 15,
+    bodylessSuccessCount: 3,
+  });
 
   const wrongVersion = structuredClone(openApiFixture());
   wrongVersion.openapi = "3.0.3";
@@ -147,8 +112,89 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   assert.throws(() => validateOpenApi(wrongOperation), /must use operationId listMaps/);
 
   const duplicateOperation = structuredClone(openApiFixture());
-  duplicateOperation.paths["/v1/extra"] = { get: { operationId: "listMaps" } };
+  duplicateOperation.paths["/v1/extra"] = {
+    get: structuredClone(duplicateOperation.paths["/v1/maps"].get),
+  };
   assert.throws(() => validateOpenApi(duplicateOperation), /operationIds must be unique/);
+});
+
+test("OpenAPI validation requires resolvable JSON schemas and bodyless 204 responses", () => {
+  const missingSchema = openApiFixture();
+  delete missingSchema.paths["/v1/maps"].get.responses["200"].content;
+  assert.throws(
+    () => validateOpenApi(missingSchema),
+    /listMaps 200 response must define content\.application\/json\.schema/,
+  );
+
+  const danglingReference = openApiFixture();
+  danglingReference.paths["/v1/maps"].get.responses["200"].content["application/json"].schema.$ref =
+    "#/components/schemas/MissingMapList";
+  assert.throws(
+    () => validateOpenApi(danglingReference),
+    /listMaps 200 response schema does not resolve/,
+  );
+
+  const responseWithExternalReference = openApiFixture();
+  responseWithExternalReference.paths["/v1/maps"].get.responses["200"].content["application/json"].schema.$ref =
+    "https://example.invalid/map-list.schema.json";
+  assert.throws(
+    () => validateOpenApi(responseWithExternalReference),
+    /listMaps 200 response schema must use a local OpenAPI reference/,
+  );
+
+  const vacuousSchema = openApiFixture();
+  vacuousSchema.paths["/v1/maps"].get.responses["200"].content["application/json"].schema = {};
+  assert.throws(
+    () => validateOpenApi(vacuousSchema),
+    /listMaps 200 response schema must reference #\/components\/schemas\/MapListResponse/,
+  );
+
+  const wrongReusableSchema = openApiFixture();
+  wrongReusableSchema.paths["/v1/maps"].get.responses["200"].content["application/json"].schema.$ref =
+    "#/components/schemas/LayerListResponse";
+  assert.throws(
+    () => validateOpenApi(wrongReusableSchema),
+    /listMaps 200 response schema must reference #\/components\/schemas\/MapListResponse/,
+  );
+
+  const vacuousReferencedSchema = openApiFixture();
+  vacuousReferencedSchema.components.schemas.MapListResponse = {};
+  assert.throws(
+    () => validateOpenApi(vacuousReferencedSchema),
+    /components\.schemas must match the repository contract/,
+  );
+
+  const invalidJsonSchema = openApiFixture();
+  invalidJsonSchema.components.schemas.Map.properties.name.type = "definitely-invalid";
+  assert.throws(
+    () => validateOpenApi(invalidJsonSchema),
+    /JSON Schemas must compile as Draft 2020-12/,
+  );
+
+  const danglingRequestReference = openApiFixture();
+  danglingRequestReference.paths["/v1/maps"].post.requestBody.content["application/json"].schema.$ref =
+    "#/components/schemas/MissingMapInput";
+  assert.throws(
+    () => validateOpenApi(danglingRequestReference),
+    /OpenAPI document does not resolve.*MissingMapInput/,
+  );
+
+  const danglingErrorReference = openApiFixture();
+  danglingErrorReference.components.responses.BadRequest.content["application/json"].schema.$ref =
+    "#/components/schemas/MissingError";
+  assert.throws(
+    () => validateOpenApi(danglingErrorReference),
+    /OpenAPI document does not resolve.*MissingError/,
+  );
+
+  const deleteWithContent = openApiFixture();
+  deleteWithContent.paths["/v1/maps/{mapId}"].delete.responses["204"].content = {
+    "application/json": { schema: { type: "object" } },
+  };
+  assert.throws(
+    () => validateOpenApi(deleteWithContent),
+    /deleteMap 204 response must remain bodyless/,
+  );
 });
 
 test("production verification sends only credential-free GET and OPTIONS requests", async (t) => {
@@ -211,7 +257,13 @@ test("production verification sends only credential-free GET and OPTIONS request
     logger: { log: (message) => logs.push(message) },
   });
 
-  assert.deepEqual(result, { baseUrl: service.baseUrl, origin, operationCount: 18 });
+  assert.deepEqual(result, {
+    baseUrl: service.baseUrl,
+    origin,
+    operationCount: 18,
+    successSchemaCount: 15,
+    bodylessSuccessCount: 3,
+  });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],
     ["GET", "/v1/openapi.json"],

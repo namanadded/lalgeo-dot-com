@@ -34,6 +34,14 @@ function parseJson(value: unknown, fallback: unknown = {}) {
   try { return JSON.parse(value); } catch { return fallback; }
 }
 
+function jsonObject(value: unknown, label: string): JsonObject {
+  if (value === undefined || value === null) return {};
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ApiError(400, "VALIDATION_ERROR", `${label} must be a JSON object.`);
+  }
+  return value as JsonObject;
+}
+
 function safeId(value: unknown, prefix: string) {
   if (value === undefined || value === null || value === "") return id(prefix);
   const candidate = String(value);
@@ -248,7 +256,7 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
     const lng = center ? numberInRange(center.longitude, -180, 180, "center.longitude") : null;
     if ((lat === null) !== (lng === null)) throw new ApiError(400, "VALIDATION_ERROR", "center requires both latitude and longitude.");
     await env.DB.prepare("INSERT INTO maps (id,owner_id,name,description,center_lat,center_lng,zoom,map_type,show_basemap_pois,metadata_json,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)")
-      .bind(mapId, auth.ownerId, requiredName(input.name), String(input.description || ""), lat, lng, numberInRange(input.zoom, 0, 24, "zoom"), input.map_type === "satellite" || input.map_type === "hybrid" ? input.map_type : "standard", input.show_basemap_pois === false ? 0 : 1, JSON.stringify(input.metadata || {}), created).run();
+      .bind(mapId, auth.ownerId, requiredName(input.name), String(input.description || ""), lat, lng, numberInRange(input.zoom, 0, 24, "zoom"), input.map_type === "satellite" || input.map_type === "hybrid" ? input.map_type : "standard", input.show_basemap_pois === false ? 0 : 1, JSON.stringify(jsonObject(input.metadata, "metadata")), created).run();
     return response({ map: mapView(await requireMap(env.DB, auth.ownerId, mapId)) }, 201);
   }
   if (path === "/v1/maps" && req.method === "GET") {
@@ -267,7 +275,7 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
       if ("name" in input) set("name", requiredName(input.name));
       if ("description" in input) set("description", String(input.description || ""));
       if ("zoom" in input) set("zoom", numberInRange(input.zoom, 0, 24, "zoom"));
-      if ("metadata" in input) set("metadata_json", JSON.stringify(input.metadata || {}));
+      if ("metadata" in input) set("metadata_json", JSON.stringify(jsonObject(input.metadata, "metadata")));
       if ("show_basemap_pois" in input) set("show_basemap_pois", input.show_basemap_pois === false ? 0 : 1);
       if ("map_type" in input) { if (!["standard", "satellite", "hybrid"].includes(String(input.map_type))) throw new ApiError(400, "VALIDATION_ERROR", "map_type must be standard, satellite, or hybrid."); set("map_type", input.map_type); }
       if ("center" in input) { const center = input.center as JsonObject; set("center_lat", numberInRange(center?.latitude, -90, 90, "center.latitude")); set("center_lng", numberInRange(center?.longitude, -180, 180, "center.longitude")); }
@@ -279,14 +287,14 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
     const mapId = decodeURIComponent(layersMatch[1]); await requireMap(env.DB, auth.ownerId, mapId);
     if (req.method === "GET") { const rows = (await env.DB.prepare("SELECT * FROM layers WHERE map_id=?1 AND owner_id=?2 ORDER BY position,id").bind(mapId, auth.ownerId).all<Record<string, unknown>>()).results || []; return response({ layers: rows.map(layerView) }); }
     if (req.method === "POST") { const input = await body(req); const layerId = safeId(input.id, "layer"); const created = now(); const type = geometryType(input.geometry_type); const position = Number.isInteger(input.position) ? Number(input.position) : 0;
-      await env.DB.prepare("INSERT INTO layers (id,map_id,owner_id,name,geometry_type,style_json,position,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?8)").bind(layerId, mapId, auth.ownerId, requiredName(input.name), type, JSON.stringify(input.style || {}), position, created).run();
+      await env.DB.prepare("INSERT INTO layers (id,map_id,owner_id,name,geometry_type,style_json,position,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?8)").bind(layerId, mapId, auth.ownerId, requiredName(input.name), type, JSON.stringify(jsonObject(input.style, "style")), position, created).run();
       await env.DB.prepare("UPDATE maps SET updated_at=?1 WHERE id=?2 AND owner_id=?3").bind(created, mapId, auth.ownerId).run(); return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) }, 201); }
   }
   if (layerMatch) {
     const mapId = decodeURIComponent(layerMatch[1]); const layerId = decodeURIComponent(layerMatch[2]);
     if (req.method === "GET") return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) });
     if (req.method === "DELETE") { await requireLayer(env.DB, auth.ownerId, mapId, layerId); await env.DB.prepare("DELETE FROM layers WHERE id=?1 AND map_id=?2 AND owner_id=?3").bind(layerId, mapId, auth.ownerId).run(); return new Response(null, { status: 204 }); }
-    if (req.method === "PATCH") { const existing = await requireLayer(env.DB, auth.ownerId, mapId, layerId); const input = await body(req); const name = "name" in input ? requiredName(input.name) : existing.name; const style = "style" in input ? input.style : parseJson(existing.style_json); const position = "position" in input && Number.isInteger(input.position) ? input.position : existing.position; const updated = now();
+    if (req.method === "PATCH") { const existing = await requireLayer(env.DB, auth.ownerId, mapId, layerId); const input = await body(req); const name = "name" in input ? requiredName(input.name) : existing.name; const style = "style" in input ? jsonObject(input.style, "style") : parseJson(existing.style_json); const position = "position" in input && Number.isInteger(input.position) ? input.position : existing.position; const updated = now();
       await env.DB.prepare("UPDATE layers SET name=?1,style_json=?2,position=?3,updated_at=?4 WHERE id=?5 AND map_id=?6 AND owner_id=?7").bind(name, JSON.stringify(style || {}), position, updated, layerId, mapId, auth.ownerId).run(); return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) }); }
   }
   if (featuresMatch) {
