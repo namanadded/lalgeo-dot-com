@@ -1,0 +1,15 @@
+# LalGeo Maps
+
+Create maps from public data and return shareable snapshot links.
+
+- API guide: https://maps.lalgeo.com/api-docs
+- OpenAPI schema: https://maps.lalgeo.com/openapi.json
+- Dataset search: GET https://maps.lalgeo.com/api/v1/datasets?q=community%20boundaries
+- Create: POST https://maps.lalgeo.com/api/v1/maps with application/json
+
+Example body: {"title":"Calgary communities","sourceUrl":"https://data.calgary.ca/d/ab7m-fwn6","labelField":"name"}
+
+Give the user the returned shareUrl. Never include deleteToken in a public link.
+Creation needs no API key. The map is a saved snapshot available to anyone with the link.
+Search Open Calgary first when given only its homepage; select an appropriate dataset sourceUrl.
+Other sources must be direct public HTTPS GeoJSON URLs. See the guide for geometry and size limits.

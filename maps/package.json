@@ -19,9 +19,12 @@
     "test:view-menu-a11y": "node scripts/test-view-menu-a11y.mjs",
     "test:mapkit-route": "node scripts/test-mapkit-route-config.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:sharing": "node --import tsx --test tests/map-sharing.test.ts"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.13",
+    "ipaddr.js": "^2.5.0",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -30,6 +33,8 @@
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "netlify-cli": "^26.2.0",
+    "tsx": "^4.23.13",
     "typescript": "^5.5.4"
   }
 }

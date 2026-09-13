@@ -1,5 +1,5 @@
-export default function MapsFrame() {
-  const legacyMapUrl = process.env.NEXT_PUBLIC_LEGACY_MAP_URL || "/render/lalgeosurvey";
+export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}) {
+  const legacyMapUrl = sharedMapId ? `/render/lalgeosurvey?sharedMap=${encodeURIComponent(sharedMapId)}` : process.env.NEXT_PUBLIC_LEGACY_MAP_URL || "/render/lalgeosurvey";
 
   return (
     <main
