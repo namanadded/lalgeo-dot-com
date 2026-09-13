@@ -7,6 +7,9 @@ interface Env {
   CORS_ALLOWED_ORIGINS?: string;
 }
 
+const CANONICAL_MAPS_HOSTNAME = "api.lalgeo.com";
+const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
+
 function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
@@ -83,11 +86,35 @@ async function getInvoiceRow(db: D1Database, id: string, orgId: string) {
   `).bind(id, orgId).first<Record<string, unknown>>();
 }
 
-export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+function canonicalHttpsRedirect(req: Request, url: URL) {
+  if (url.hostname !== CANONICAL_MAPS_HOSTNAME || url.protocol !== "http:") return null;
+  const destination = new URL(url);
+  destination.protocol = "https:";
+  destination.port = "";
+  return new Response(null, {
+    status: 308,
+    headers: {
+      "Cache-Control": "no-store",
+      Location: destination.toString(),
+      "X-Request-Id": req.headers.get("cf-ray") || crypto.randomUUID(),
+    },
+  });
+}
+
+function withCanonicalTransport(response: Response, url: URL) {
+  if (url.hostname !== CANONICAL_MAPS_HOSTNAME || url.protocol !== "https:") return response;
+  const headers = new Headers(response.headers);
+  headers.set("Strict-Transport-Security", STRICT_TRANSPORT_SECURITY);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function handleRequest(req: Request, env: Env, requestUrl: URL): Promise<Response> {
     try {
-      const requestUrl = new URL(req.url);
-      const isMapsHostname = requestUrl.hostname === "api.lalgeo.com";
+      const isMapsHostname = requestUrl.hostname === CANONICAL_MAPS_HOSTNAME;
       const isMapsPath = requestUrl.pathname === "/v1/openapi.json" ||
         requestUrl.pathname === "/v1/maps" ||
         requestUrl.pathname.startsWith("/v1/maps/");
@@ -870,5 +897,13 @@ export default {
       const message = error instanceof Error ? error.message : "SERVER_ERROR";
       return json({ error: message }, 500);
     }
+}
+
+export default {
+  async fetch(req: Request, env: Env): Promise<Response> {
+    const requestUrl = new URL(req.url);
+    const redirect = canonicalHttpsRedirect(req, requestUrl);
+    if (redirect) return redirect;
+    return withCanonicalTransport(await handleRequest(req, env, requestUrl), requestUrl);
   },
 } satisfies ExportedHandler<Env>;

@@ -19,6 +19,15 @@
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } }
           }
         }
+      },
+      "head": {
+        "operationId": "headHealth",
+        "summary": "Check API health headers",
+        "description": "Returns the same status and headers as GET without a response body.",
+        "security": [],
+        "responses": {
+          "200": { "description": "Healthy response headers" }
+        }
       }
     },
     "/v1/openapi.json": {
@@ -31,6 +40,15 @@
             "description": "OpenAPI document",
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OpenApiDocument" } } }
           }
+        }
+      },
+      "head": {
+        "operationId": "headOpenApi",
+        "summary": "Check OpenAPI document headers",
+        "description": "Returns the same status and headers as GET without a response body.",
+        "security": [],
+        "responses": {
+          "200": { "description": "OpenAPI response headers" }
         }
       }
     },

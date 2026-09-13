@@ -29,10 +29,10 @@ npm run verify:maps-local
 ```
 
 - `check` type-checks the selected Worker and runs the Maps API contract tests where applicable.
-- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, exercises health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer, and validates all 15 JSON success payloads against their documented response schemas.
-- `verify:maps-local` runs the same synthetic journey through `lalgeo-saas-api`, including the real `lalgeo-business` migration chain and hostname routing used by production.
+- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, exercises public `HEAD`, health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer, and validates all 15 JSON success payloads against their documented response schemas.
+- `verify:maps-local` runs the same synthetic journey through `lalgeo-saas-api`, including the real `lalgeo-business` migration chain, hostname routing, host-wide HTTP-to-HTTPS redirect, and HSTS policy used by production.
 - `deploy:dry-run` bundles the combined Worker without publishing it.
-- `verify:production` sends only unauthenticated `GET` and `OPTIONS` requests to the canonical API. It rejects invalid TLS, redirects, HTML/fallback responses, incomplete discovery, missing or unresolvable JSON success schemas, schema drift from the repository contract, response bodies documented for `204` deletes, missing bearer challenges, and incorrect CORS. It never sends a key or mutates data.
+- `verify:production` sends only unauthenticated `GET`, `HEAD`, and `OPTIONS` requests to the canonical API. It requires a host-wide permanent HTTP-to-HTTPS redirect, one year of HSTS, public bodyless `HEAD` probes, browser-readable request IDs, and the existing strict JSON, OpenAPI, auth, and CORS contracts. It never sends a key or mutates data.
 
 All local gates use only disposable synthetic data and never contact production.
 
@@ -53,7 +53,7 @@ Replace the placeholder in `.dev.vars` with the SHA-256 hash of a development-on
 {"<sha256-of-raw-api-key>": "owner_demo"}
 ```
 
-Send the raw key as `Authorization: Bearer <key>`. Data routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing or invalid. Health and OpenAPI discovery are public. Every map, layer, and feature query is owner-scoped.
+Send the raw key as `Authorization: Bearer <key>`. Data routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing or invalid. Health and OpenAPI discovery support public `GET` and bodyless `HEAD` checks. Canonical HTTP requests redirect permanently to HTTPS, and browser clients from an allowed origin can read `X-Request-Id`. Every map, layer, and feature query is owner-scoped.
 
 ## Deployment
 

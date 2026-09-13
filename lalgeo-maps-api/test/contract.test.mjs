@@ -9,9 +9,9 @@ const migration = await readFile(new URL("../migrations/0001_maps.sql", import.m
 
 test("OpenAPI exposes the complete canonical operation set", () => {
   assert.deepEqual(validateOpenApi(spec), {
-    operationCount: 18,
+    operationCount: 20,
     successSchemaCount: 15,
-    bodylessSuccessCount: 3,
+    bodylessSuccessCount: 5,
   });
   const ids = Object.values(spec.paths).flatMap((path) => Object.values(path).map((operation) => operation?.operationId).filter(Boolean));
   assert.equal(new Set(ids).size, ids.length);
@@ -20,7 +20,7 @@ test("OpenAPI exposes the complete canonical operation set", () => {
   assert.ok(ids.includes("exportMap"));
 });
 
-test("every JSON success has its runtime schema and DELETE remains bodyless", () => {
+test("every JSON success has its runtime schema and HEAD/DELETE remain bodyless", () => {
   const expected = new Map([
     ["getHealth:200", "HealthResponse"],
     ["getOpenApi:200", "OpenApiDocument"],
@@ -38,7 +38,13 @@ test("every JSON success has its runtime schema and DELETE remains bodyless", ()
     ["getFeature:200", "StoredFeature"],
     ["updateFeature:200", "StoredFeature"],
   ]);
-  const bodyless = new Set(["deleteMap:204", "deleteLayer:204", "deleteFeature:204"]);
+  const bodyless = new Set([
+    "headHealth:200",
+    "headOpenApi:200",
+    "deleteMap:204",
+    "deleteLayer:204",
+    "deleteFeature:204",
+  ]);
 
   for (const pathItem of Object.values(spec.paths)) {
     for (const operation of Object.values(pathItem)) {
@@ -46,7 +52,7 @@ test("every JSON success has its runtime schema and DELETE remains bodyless", ()
       for (const [status, response] of Object.entries(operation.responses)) {
         if (!/^2\d\d$/.test(status)) continue;
         const key = `${operation.operationId}:${status}`;
-        if (status === "204") {
+        if (bodyless.has(key)) {
           assert.ok(bodyless.delete(key), `unexpected bodyless success ${key}`);
           assert.equal(Object.hasOwn(response, "content"), false);
           continue;
@@ -110,6 +116,19 @@ test("authentication failures advertise the bearer challenge", () => {
   assert.match(worker, /Bearer realm=["']lalgeo-maps-api/);
   const unauthorized = spec.components.responses.Unauthorized;
   assert.equal(unauthorized.headers["WWW-Authenticate"].schema.const, 'Bearer realm="lalgeo-maps-api"');
+});
+
+test("canonical transport and public diagnostics stay hardened", () => {
+  assert.match(worker, /CANONICAL_HOSTNAME = ["']api\.lalgeo\.com["']/);
+  assert.match(worker, /url\.hostname !== CANONICAL_HOSTNAME \|\| url\.protocol !== ["']http:["']/);
+  assert.match(worker, /destination\.protocol = ["']https:["']/);
+  assert.match(worker, /status: 308/);
+  assert.match(worker, /Strict-Transport-Security/);
+  assert.match(worker, /max-age=31536000/);
+  assert.match(worker, /Access-Control-Expose-Headers["']?: ["']X-Request-Id/);
+  assert.match(worker, /if \(!origin\) return \{ Vary: ["']Origin["'] \}/);
+  assert.match(worker, /req\.method === ["']GET["'] \|\| req\.method === ["']HEAD["']/);
+  assert.match(worker, /return req\.method === ["']HEAD["'] \? withoutBody\(result\) : result/);
 });
 
 test("agent safety limits and portable export remain part of the contract", () => {

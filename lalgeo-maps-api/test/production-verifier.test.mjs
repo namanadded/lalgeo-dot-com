@@ -25,6 +25,7 @@ function openApiFixture() {
 function jsonHeaders(requestId, extra = {}) {
   return {
     "Content-Type": "application/json; charset=utf-8",
+    Vary: "Origin",
     "X-Request-Id": requestId,
     ...extra,
   };
@@ -35,6 +36,10 @@ function jsonResponse(payload, { status = 200, requestId = "request_test", heade
     status,
     headers: jsonHeaders(requestId, headers),
   });
+}
+
+function headResponse({ requestId = "request_head", headers = {} } = {}) {
+  return new Response(null, { status: 200, headers: jsonHeaders(requestId, headers) });
 }
 
 async function listen(handler) {
@@ -86,9 +91,9 @@ test("URL and CLI policy defaults to production and permits HTTP only on loopbac
 
 test("OpenAPI validation enforces the canonical 3.1 bearer contract and operation IDs", () => {
   assert.deepEqual(validateOpenApi(openApiFixture()), {
-    operationCount: 18,
+    operationCount: 20,
     successSchemaCount: 15,
-    bodylessSuccessCount: 3,
+    bodylessSuccessCount: 5,
   });
 
   const wrongVersion = structuredClone(openApiFixture());
@@ -118,7 +123,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   assert.throws(() => validateOpenApi(duplicateOperation), /operationIds must be unique/);
 });
 
-test("OpenAPI validation requires resolvable JSON schemas and bodyless 204 responses", () => {
+test("OpenAPI validation requires resolvable JSON schemas and bodyless HEAD/DELETE responses", () => {
   const missingSchema = openApiFixture();
   delete missingSchema.paths["/v1/maps"].get.responses["200"].content;
   assert.throws(
@@ -195,9 +200,18 @@ test("OpenAPI validation requires resolvable JSON schemas and bodyless 204 respo
     () => validateOpenApi(deleteWithContent),
     /deleteMap 204 response must remain bodyless/,
   );
+
+  const headWithContent = openApiFixture();
+  headWithContent.paths["/v1/health"].head.responses["200"].content = {
+    "application/json": { schema: { "$ref": "#/components/schemas/HealthResponse" } },
+  };
+  assert.throws(
+    () => validateOpenApi(headWithContent),
+    /headHealth 200 response must remain bodyless/,
+  );
 });
 
-test("production verification sends only credential-free GET and OPTIONS requests", async (t) => {
+test("production verification sends only credential-free GET, HEAD, and OPTIONS requests", async (t) => {
   const requests = [];
   const origin = "https://maps.lalgeo.com";
   const service = await listen((request, response) => {
@@ -217,11 +231,18 @@ test("production verification sends only credential-free GET and OPTIONS request
       } else if (request.method === "GET" && request.url === "/v1/openapi.json") {
         response.writeHead(200, jsonHeaders("request_openapi", { "Cache-Control": "public, max-age=300" }));
         response.end(JSON.stringify(openApiFixture()));
+      } else if (request.method === "HEAD" && request.url === "/v1/health") {
+        response.writeHead(200, jsonHeaders("request_health_head", { "Cache-Control": "no-store" }));
+        response.end();
+      } else if (request.method === "HEAD" && request.url === "/v1/openapi.json") {
+        response.writeHead(200, jsonHeaders("request_openapi_head", { "Cache-Control": "public, max-age=300" }));
+        response.end();
       } else if (request.method === "GET" && request.url === "/v1/maps") {
         response.writeHead(401, jsonHeaders("request_auth", {
           "Cache-Control": "no-store",
           "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
           "Access-Control-Allow-Origin": origin,
+          "Access-Control-Expose-Headers": "X-Request-Id",
           Vary: "Origin",
         }));
         response.end(JSON.stringify({
@@ -233,13 +254,14 @@ test("production verification sends only credential-free GET and OPTIONS request
           "X-Request-Id": "request_cors",
           "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Headers": "Authorization, Content-Type",
-          "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+          "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
+          "Access-Control-Expose-Headers": "X-Request-Id",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         });
         response.end();
       } else if (request.method === "OPTIONS" && request.url === "/v1/maps") {
-        response.writeHead(204, { "X-Request-Id": "request_cors_rejected" });
+        response.writeHead(204, { "X-Request-Id": "request_cors_rejected", Vary: "Origin" });
         response.end();
       } else {
         response.writeHead(500);
@@ -260,13 +282,15 @@ test("production verification sends only credential-free GET and OPTIONS request
   assert.deepEqual(result, {
     baseUrl: service.baseUrl,
     origin,
-    operationCount: 18,
+    operationCount: 20,
     successSchemaCount: 15,
-    bodylessSuccessCount: 3,
+    bodylessSuccessCount: 5,
   });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],
     ["GET", "/v1/openapi.json"],
+    ["HEAD", "/v1/health"],
+    ["HEAD", "/v1/openapi.json"],
     ["GET", "/v1/maps"],
     ["OPTIONS", "/v1/maps"],
     ["OPTIONS", "/v1/maps"],
@@ -279,12 +303,152 @@ test("production verification sends only credential-free GET and OPTIONS request
     assert.equal(request.headers["x-api-key"], undefined);
     assert.equal(request.headers["x-lalgeo-api-key"], undefined);
   }
-  assert.equal(requests[2].headers.origin, origin);
-  assert.equal(requests[3].headers.origin, origin);
-  assert.equal(requests[3].headers["access-control-request-method"], "GET");
-  assert.equal(requests[3].headers["access-control-request-headers"], "Authorization, Content-Type");
-  assert.equal(requests[4].headers.origin, "https://cors-probe.invalid");
+  assert.equal(requests[4].headers.origin, origin);
+  assert.equal(requests[5].headers.origin, origin);
+  assert.equal(requests[5].headers["access-control-request-method"], "GET");
+  assert.equal(requests[5].headers["access-control-request-headers"], "Authorization, Content-Type");
+  assert.equal(requests[6].headers.origin, "https://cors-probe.invalid");
   assert.match(logs.at(-1), /PASS production verifier/);
+});
+
+test("canonical verification requires exact HTTPS redirect, HSTS, and public HEAD", async () => {
+  const calls = [];
+  const origin = DEFAULT_ORIGIN;
+  const secureHeaders = { "Strict-Transport-Security": "max-age=31536000" };
+  const fetchImpl = async (target, init) => {
+    const url = new URL(target);
+    calls.push({ url: url.toString(), method: init.method, headers: Object.fromEntries(init.headers) });
+    if (url.protocol === "http:") {
+      const destination = new URL(url);
+      destination.protocol = "https:";
+      return new Response(null, {
+        status: 308,
+        headers: {
+          "Cache-Control": "no-store",
+          Location: destination.toString(),
+          "X-Request-Id": "request_redirect",
+        },
+      });
+    }
+    if (init.method === "GET" && url.pathname === "/v1/health") {
+      return jsonResponse(
+        { ok: true, service: "lalgeo-maps-api", version: "v1" },
+        { requestId: "request_health", headers: { ...secureHeaders, "Cache-Control": "no-store" } },
+      );
+    }
+    if (init.method === "GET" && url.pathname === "/v1/transport-probe") {
+      return jsonResponse(
+        { error: "UNAUTHORIZED" },
+        { status: 401, requestId: "request_shared_transport", headers: secureHeaders },
+      );
+    }
+    if (init.method === "GET" && url.pathname === "/v1/openapi.json") {
+      return jsonResponse(openApiFixture(), {
+        requestId: "request_openapi",
+        headers: { ...secureHeaders, "Cache-Control": "public, max-age=300" },
+      });
+    }
+    if (init.method === "HEAD" && url.pathname === "/v1/health") {
+      return headResponse({ requestId: "request_health_head", headers: { ...secureHeaders, "Cache-Control": "no-store" } });
+    }
+    if (init.method === "HEAD" && url.pathname === "/v1/openapi.json") {
+      return headResponse({ requestId: "request_openapi_head", headers: { ...secureHeaders, "Cache-Control": "public, max-age=300" } });
+    }
+    if (init.method === "GET" && url.pathname === "/v1/maps") {
+      return jsonResponse(
+        { error: { code: "UNAUTHORIZED", message: "Missing key" }, request_id: "request_auth" },
+        {
+          status: 401,
+          requestId: "request_auth",
+          headers: {
+            ...secureHeaders,
+            "Cache-Control": "no-store",
+            "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Expose-Headers": "X-Request-Id",
+          },
+        },
+      );
+    }
+    if (init.method === "OPTIONS" && init.headers.get("origin") === origin) {
+      return new Response(null, {
+        status: 204,
+        headers: {
+          ...secureHeaders,
+          "X-Request-Id": "request_cors",
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Allow-Headers": "Authorization, Content-Type",
+          "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
+          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Max-Age": "86400",
+          Vary: "Origin",
+        },
+      });
+    }
+    if (init.method === "OPTIONS") {
+      return new Response(null, {
+        status: 204,
+        headers: { ...secureHeaders, "X-Request-Id": "request_cors_rejected", Vary: "Origin" },
+      });
+    }
+    throw new Error(`Unexpected request: ${init.method} ${url}`);
+  };
+
+  const result = await verifyProduction({ fetchImpl, timeoutMs: 100, logger: { log() {} } });
+  assert.equal(result.baseUrl, DEFAULT_BASE_URL);
+  assert.deepEqual(calls.map(({ method, url }) => [method, url]), [
+    ["GET", "http://api.lalgeo.com/v1/health"],
+    ["GET", "https://api.lalgeo.com/v1/health"],
+    ["GET", "http://api.lalgeo.com/v1/transport-probe?surface=shared"],
+    ["GET", "https://api.lalgeo.com/v1/transport-probe?surface=shared"],
+    ["GET", "https://api.lalgeo.com/v1/openapi.json"],
+    ["HEAD", "https://api.lalgeo.com/v1/health"],
+    ["HEAD", "https://api.lalgeo.com/v1/openapi.json"],
+    ["GET", "https://api.lalgeo.com/v1/maps"],
+    ["OPTIONS", "https://api.lalgeo.com/v1/maps"],
+    ["OPTIONS", "https://api.lalgeo.com/v1/maps"],
+  ]);
+  for (const call of calls) {
+    assert.equal(call.headers.authorization, undefined);
+    assert.equal(call.headers.cookie, undefined);
+  }
+});
+
+test("canonical verification rejects an unprotected transport", async () => {
+  await assert.rejects(
+    verifyProduction({
+      fetchImpl: async () => new Response(null, {
+        status: 200,
+        headers: { "Cache-Control": "no-store", "X-Request-Id": "request_http" },
+      }),
+      timeoutMs: 100,
+      logger: { log() {} },
+    }),
+    /Plain-HTTP health endpoint returned HTTP 200; expected 308/,
+  );
+
+  const responses = [
+    new Response(null, {
+      status: 308,
+      headers: {
+        "Cache-Control": "no-store",
+        Location: "https://api.lalgeo.com/v1/health",
+        "X-Request-Id": "request_redirect",
+      },
+    }),
+    jsonResponse(
+      { ok: true, service: "lalgeo-maps-api", version: "v1" },
+      { requestId: "request_health", headers: { "Cache-Control": "no-store" } },
+    ),
+  ];
+  await assert.rejects(
+    verifyProduction({
+      fetchImpl: async () => responses.shift(),
+      timeoutMs: 100,
+      logger: { log() {} },
+    }),
+    /Strict-Transport-Security/,
+  );
 });
 
 test("verification rejects an inexact health payload and a missing Bearer challenge", async () => {
@@ -311,6 +475,8 @@ test("verification rejects an inexact health payload and a missing Bearer challe
       requestId: "request_openapi",
       headers: { "Cache-Control": "public, max-age=300" },
     }),
+    headResponse({ requestId: "request_health_head", headers: { "Cache-Control": "no-store" } }),
+    headResponse({ requestId: "request_openapi_head", headers: { "Cache-Control": "public, max-age=300" } }),
     jsonResponse(
       { error: { code: "UNAUTHORIZED", message: "Missing key" }, request_id: "request_auth" },
       {
@@ -319,6 +485,7 @@ test("verification rejects an inexact health payload and a missing Bearer challe
         headers: {
           "Cache-Control": "no-store",
           "Access-Control-Allow-Origin": DEFAULT_ORIGIN,
+          "Access-Control-Expose-Headers": "X-Request-Id",
           Vary: "Origin",
         },
       },

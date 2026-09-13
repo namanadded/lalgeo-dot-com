@@ -29,6 +29,7 @@ export function createSuccessResponseValidator(spec) {
     if (!pathItem || typeof pathItem !== "object" || Array.isArray(pathItem)) continue;
     for (const [method, operation] of Object.entries(pathItem)) {
       if (!HTTP_METHODS.has(method.toLowerCase()) || !operation?.operationId) continue;
+      if (method.toLowerCase() === "head") continue;
       for (const [status, response] of Object.entries(operation.responses || {})) {
         if (!/^2\d\d$/.test(status) || status === "204") continue;
         const schema = response?.content?.["application/json"]?.schema;
@@ -207,15 +208,15 @@ async function successJson(response, responseContract, operationId) {
   return responseContract.validate(operationId, response.status, await json(response));
 }
 
-async function waitForWorker(baseUrl, child, logs) {
+async function waitForWorker(baseUrl, child, logs, expectedStatus = 200) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
     if (child.exitCode !== null) {
       throw new Error(`Wrangler stopped before becoming ready.\n${logs().trim()}`);
     }
     try {
-      const response = await request(baseUrl, "/v1/health");
-      if (response.ok) return;
+      const response = await request(baseUrl, "/v1/health", { redirect: "manual" });
+      if (response.status === expectedStatus) return;
     } catch {}
     await new Promise((resolve) => setTimeout(resolve, 150));
   }
@@ -262,10 +263,64 @@ async function main({ workerDirectory, database, requestHostname }) {
     record("Worker deployment bundle builds without publishing");
 
     const hostnameArguments = requestHostname ? ["--host", requestHostname] : [];
+    const secureHostnameArguments = requestHostname
+      ? ["--host", requestHostname, "--upstream-protocol", "https"]
+      : [];
+    if (requestHostname) {
+      const redirectPort = await availablePort();
+      assert.ok(redirectPort, "could not reserve a transport-probe port");
+      const redirectBaseUrl = `http://127.0.0.1:${redirectPort}`;
+      let redirectServer;
+      let redirectLogs = "";
+      try {
+        redirectServer = spawn(wrangler, [
+          "dev",
+          "--local",
+          ...hostnameArguments,
+          "--upstream-protocol", "http",
+          "--ip", "127.0.0.1",
+          "--port", String(redirectPort),
+          "--persist-to", stateDirectory,
+          "--log-level", "error",
+          "--var", `LALGEO_MAPS_API_KEYS:${bindings}`,
+          "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
+        ], {
+          cwd: workerDirectory,
+          env: childEnvironment,
+          stdio: ["ignore", "pipe", "pipe"],
+        });
+        redirectServer.stdout.on("data", (chunk) => { redirectLogs += chunk; });
+        redirectServer.stderr.on("data", (chunk) => { redirectLogs += chunk; });
+        await waitForWorker(redirectBaseUrl, redirectServer, () => redirectLogs, 308);
+        const redirectResponse = await request(redirectBaseUrl, "/v1/health?probe=transport", { redirect: "manual" });
+        assert.equal(redirectResponse.status, 308);
+        const redirectLocation = new URL(redirectResponse.headers.get("location"));
+        assert.equal(redirectLocation.protocol, "https:");
+        assert.equal(redirectLocation.pathname, "/v1/health");
+        assert.equal(redirectLocation.search, "?probe=transport");
+        assert.equal(redirectResponse.headers.get("cache-control"), "no-store");
+        assert.ok(redirectResponse.headers.get("x-request-id"));
+        assert.equal(await redirectResponse.text(), "");
+
+        const sharedPathResponse = await request(redirectBaseUrl, "/v1/transport-probe?surface=shared", { redirect: "manual" });
+        assert.equal(sharedPathResponse.status, 308);
+        const sharedLocation = new URL(sharedPathResponse.headers.get("location"));
+        assert.equal(sharedLocation.protocol, "https:");
+        assert.equal(sharedLocation.pathname, "/v1/transport-probe");
+        assert.equal(sharedLocation.search, "?surface=shared");
+        assert.equal(sharedPathResponse.headers.get("cache-control"), "no-store");
+        assert.ok(sharedPathResponse.headers.get("x-request-id"));
+        assert.equal(await sharedPathResponse.text(), "");
+        record(`canonical HTTP requests redirect permanently across the shared ${requestHostname} Worker`);
+      } finally {
+        await stop(redirectServer);
+      }
+    }
+
     devServer = spawn(wrangler, [
       "dev",
       "--local",
-      ...hostnameArguments,
+      ...secureHostnameArguments,
       "--ip", "127.0.0.1",
       "--port", String(port),
       "--persist-to", stateDirectory,
@@ -287,15 +342,20 @@ async function main({ workerDirectory, database, requestHostname }) {
       timeoutMs: 5_000,
       logger: { log() {} },
     });
-    assert.equal(publicVerification.operationCount, 18);
+    assert.equal(publicVerification.operationCount, 20);
     assert.equal(publicVerification.successSchemaCount, 15);
-    assert.equal(publicVerification.bodylessSuccessCount, 3);
+    assert.equal(publicVerification.bodylessSuccessCount, 5);
     const healthSchemaResponse = await request(baseUrl, "/v1/health");
     assert.equal(healthSchemaResponse.status, 200);
+    if (requestHostname) assert.equal(healthSchemaResponse.headers.get("strict-transport-security"), "max-age=31536000");
     await successJson(healthSchemaResponse, responseContract, "getHealth");
     const openApiSchemaResponse = await request(baseUrl, "/v1/openapi.json");
     assert.equal(openApiSchemaResponse.status, 200);
     await successJson(openApiSchemaResponse, responseContract, "getOpenApi");
+    if (requestHostname) {
+      const sharedPathResponse = await request(baseUrl, "/v1/transport-probe?surface=shared", { redirect: "manual" });
+      assert.equal(sharedPathResponse.headers.get("strict-transport-security"), "max-age=31536000");
+    }
     record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
