@@ -19,6 +19,8 @@ class ApiError extends Error {
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_FEATURE_BATCH = 1_000;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const CANONICAL_HOSTNAME = "api.lalgeo.com";
+const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
 
 function response(data: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(data), {
@@ -97,16 +99,32 @@ async function authenticate(req: Request, env: Env): Promise<Auth> {
 
 function cors(req: Request, env: Env): Record<string, string> {
   const origin = req.headers.get("origin");
-  if (!origin) return {};
+  if (!origin) return { Vary: "Origin" };
   const allowed = (env.CORS_ALLOWED_ORIGINS || "").split(",").map((item) => item.trim()).filter(Boolean);
-  if (!allowed.includes(origin)) return {};
+  if (!allowed.includes(origin)) return { Vary: "Origin" };
   return {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
-    "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
+    "Access-Control-Expose-Headers": "X-Request-Id",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
+}
+
+function httpsRedirect(url: URL, headers: HeadersInit) {
+  if (url.hostname !== CANONICAL_HOSTNAME || url.protocol !== "http:") return null;
+  const destination = new URL(url);
+  destination.protocol = "https:";
+  destination.port = "";
+  return new Response(null, {
+    status: 308,
+    headers: { ...headers, "Cache-Control": "no-store", Location: destination.toString() },
+  });
+}
+
+function withoutBody(result: Response) {
+  return new Response(null, { status: result.status, headers: result.headers });
 }
 
 function geometryType(value: unknown): GeometryType {
@@ -317,12 +335,26 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
 export default {
   async fetch(req: Request, env: Env): Promise<Response> {
     const requestId = req.headers.get("cf-ray") || crypto.randomUUID();
-    const headers = { ...cors(req, env), "X-Request-Id": requestId };
+    const url = new URL(req.url);
+    const headers = {
+      ...cors(req, env),
+      ...(url.hostname === CANONICAL_HOSTNAME && url.protocol === "https:"
+        ? { "Strict-Transport-Security": STRICT_TRANSPORT_SECURITY }
+        : {}),
+      "X-Request-Id": requestId,
+    };
     try {
-      const url = new URL(req.url);
+      const redirect = httpsRedirect(url, headers);
+      if (redirect) return redirect;
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
-      if (url.pathname === "/v1/health" && req.method === "GET") return response({ ok: true, service: "lalgeo-maps-api", version: "v1" }, 200, headers);
-      if (url.pathname === "/v1/openapi.json" && req.method === "GET") return response(openapi, 200, { ...headers, "Cache-Control": "public, max-age=300" });
+      if (url.pathname === "/v1/health" && (req.method === "GET" || req.method === "HEAD")) {
+        const result = response({ ok: true, service: "lalgeo-maps-api", version: "v1" }, 200, headers);
+        return req.method === "HEAD" ? withoutBody(result) : result;
+      }
+      if (url.pathname === "/v1/openapi.json" && (req.method === "GET" || req.method === "HEAD")) {
+        const result = response(openapi, 200, { ...headers, "Cache-Control": "public, max-age=300" });
+        return req.method === "HEAD" ? withoutBody(result) : result;
+      }
       const result = await route(req, env, await authenticate(req, env), url);
       const outgoing = new Headers(result.headers); Object.entries(headers).forEach(([key, value]) => outgoing.set(key, value));
       return new Response(result.body, { status: result.status, headers: outgoing });

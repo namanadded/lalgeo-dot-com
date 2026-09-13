@@ -12,16 +12,17 @@ Maps is part of the existing production API stack:
 - canonical Maps hostname: `https://api.lalgeo.com`
 - existing Survey/SaaS hostname: `lalgeo-saas-api.namanadded.workers.dev`
 
-The combined Worker imports `lalgeo-maps-api/src/index.ts`. Requests for Maps discovery and `/v1/maps` are routed to that implementation; all other routes retain the existing SaaS behavior. The custom domain and database already exist. Do not deploy the standalone `lalgeo-maps-api/wrangler.jsonc`, create a `lalgeo-maps` production database, or move DNS during a routine release.
+The combined Worker enforces the canonical hostname's HTTPS and HSTS policy before routing, then imports `lalgeo-maps-api/src/index.ts`. Requests for Maps discovery and `/v1/maps` are routed to that implementation; all other routes retain the existing SaaS behavior. The custom domain and database already exist. Do not deploy the standalone `lalgeo-maps-api/wrangler.jsonc`, create a `lalgeo-maps` production database, or move DNS during a routine release.
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-09 07:08 UTC.
+Last read-only canonical check: 2026-09-13 07:08 UTC.
 
 - `GET https://api.lalgeo.com/v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}` over valid TLS.
-- `/v1/openapi.json` returned the canonical OpenAPI 3.1 document with 18 unique operations.
-- an unauthenticated Maps request returned the documented JSON `401 UNAUTHORIZED` response and Bearer challenge;
-- CORS allowed `https://maps.lalgeo.com` and did not allow an untrusted origin;
+- `/v1/openapi.json` returned a valid OpenAPI 3.1 document with 18 unique operations, but it still matched the pre-schema `ec41fd2` deployment: 0 of 15 body-bearing successes referenced their merged response schemas, compared with the repository's 20-operation contract. The current verifier stops first at the plaintext transport failure; after that is fixed it will also reject this contract drift until the combined Worker is deployed.
+- missing and synthetic invalid bearer credentials over HTTPS returned the documented JSON `401 UNAUTHORIZED` response and Bearer challenge without disclosing a secret;
+- CORS allowed `https://maps.lalgeo.com` and did not allow an untrusted origin, but did not expose `X-Request-Id` to browser code;
+- plain HTTP served the health response directly and processed a synthetic invalid bearer request instead of redirecting, HTTPS omitted HSTS, and public `HEAD` requests returned 401. The repository now fixes and verifies these transport and monitoring contracts at the shared Worker boundary;
 - `https://maps.lalgeo.com/maps` and the public developer guide both returned HTTP 200.
 
 The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). A read-only verifier cannot repeat that proof because it intentionally has no production key. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
@@ -122,7 +123,7 @@ cd ../lalgeo-maps-api
 npm run verify:production
 ```
 
-The verifier sends only credential-free `GET` and `OPTIONS` requests. It must pass without `--insecure`, redirects, a custom host header, response overrides, or fallback HTML.
+The verifier sends only credential-free `GET`, `HEAD`, and `OPTIONS` requests. It requires exact bodyless `308` redirects for both Maps and non-Maps paths on the shared hostname, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, and the complete JSON/OpenAPI/auth/CORS contract. It must pass without `--insecure`, following redirects, a custom host header, response overrides, or fallback HTML.
 
 ## 7. Accept with one synthetic map
 
@@ -177,7 +178,7 @@ cd ../lalgeo-maps-api
 npm run verify:production
 ```
 
-The Maps tables are additive and can remain unused after a Worker rollback. Do not improvise a down migration, delete shared D1 data, restore the former Netlify DNS target, or detach the custom domain.
+The Maps tables are additive and can remain unused after a Worker rollback. Clients that have observed HSTS will continue upgrading this hostname to HTTPS for up to one year, so every rollback target must remain HTTPS-compatible. Do not improvise a down migration, delete shared D1 data, restore the former Netlify DNS target, or detach the custom domain.
 
 ## Acceptance record
 

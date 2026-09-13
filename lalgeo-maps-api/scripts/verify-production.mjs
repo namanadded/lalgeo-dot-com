@@ -13,8 +13,8 @@ export const DEFAULT_ORIGIN = "https://maps.lalgeo.com";
 export const DEFAULT_TIMEOUT_MS = 10_000;
 
 export const REQUIRED_OPERATIONS = Object.freeze({
-  "/v1/health": Object.freeze({ get: "getHealth" }),
-  "/v1/openapi.json": Object.freeze({ get: "getOpenApi" }),
+  "/v1/health": Object.freeze({ get: "getHealth", head: "headHealth" }),
+  "/v1/openapi.json": Object.freeze({ get: "getOpenApi", head: "headOpenApi" }),
   "/v1/maps": Object.freeze({ get: "listMaps", post: "createMap" }),
   "/v1/maps/{mapId}": Object.freeze({ get: "getMap", patch: "updateMap", delete: "deleteMap" }),
   "/v1/maps/{mapId}/export": Object.freeze({ get: "exportMap" }),
@@ -43,6 +43,8 @@ export const REQUIRED_SUCCESS_SCHEMAS = Object.freeze({
 });
 
 export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
+  "headHealth:200",
+  "headOpenApi:200",
   "deleteMap:204",
   "deleteLayer:204",
   "deleteFeature:204",
@@ -51,8 +53,9 @@ export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
 const CANONICAL_SERVER = DEFAULT_BASE_URL;
 const DISALLOWED_ORIGIN = "https://cors-probe.invalid";
 const MAX_RESPONSE_BYTES = 5_000_000;
+const MIN_HSTS_MAX_AGE_SECONDS = 31_536_000;
 const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
-const SAFE_REQUEST_METHODS = new Set(["GET", "OPTIONS"]);
+const SAFE_REQUEST_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const FORBIDDEN_CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization", "x-api-key", "x-lalgeo-api-key"];
 
 export class VerificationError extends Error {
@@ -262,7 +265,7 @@ export function usage() {
     `  --origin <url>    Allowed browser origin to verify (default: ${DEFAULT_ORIGIN})`,
     "  --help            Show this help",
     "",
-    "The verifier sends only unauthenticated GET and OPTIONS requests.",
+    "The verifier sends only unauthenticated GET, HEAD, and OPTIONS requests.",
   ].join("\n");
 }
 
@@ -272,7 +275,13 @@ function errorReason(error) {
   return error instanceof Error ? error.message : String(error);
 }
 
-async function request(baseUrl, pathname, { method = "GET", headers = {}, fetchImpl, timeoutMs }) {
+async function request(baseUrl, pathname, {
+  method = "GET",
+  headers = {},
+  fetchImpl,
+  timeoutMs,
+  allowRedirect = false,
+}) {
   check(SAFE_REQUEST_METHODS.has(method), `Internal safety check rejected mutating method ${method}.`);
   const target = new URL(pathname, `${baseUrl}/`);
   check(target.origin === baseUrl, "Internal safety check rejected a cross-origin request.");
@@ -298,7 +307,10 @@ async function request(baseUrl, pathname, { method = "GET", headers = {}, fetchI
       redirect: "manual",
       signal: controller.signal,
     });
-    check(response.status < 300 || response.status >= 400, `${method} ${pathname} redirected; refusing to follow a fallback target.`);
+    check(
+      allowRedirect || response.status < 300 || response.status >= 400,
+      `${method} ${pathname} redirected; refusing to follow a fallback target.`,
+    );
 
     const declaredLength = Number(response.headers.get("content-length"));
     if (Number.isFinite(declaredLength) && declaredLength > MAX_RESPONSE_BYTES) {
@@ -350,6 +362,80 @@ function expectNoStore(response, label) {
   check(headerTokens(response, "cache-control").includes("no-store"), `${label} must return Cache-Control: no-store.`);
 }
 
+function expectVaryOrigin(response, label) {
+  check(headerTokens(response, "vary").includes("origin"), `${label} must include Vary: Origin.`);
+}
+
+function expectHsts(response, label) {
+  const value = response.headers.get("strict-transport-security") || "";
+  const maxAgeDirective = value.split(";").map((part) => part.trim()).find((part) => /^max-age=/i.test(part));
+  const maxAge = Number(maxAgeDirective?.slice(maxAgeDirective.indexOf("=") + 1));
+  check(
+    Number.isInteger(maxAge) && maxAge >= MIN_HSTS_MAX_AGE_SECONDS,
+    `${label} must return Strict-Transport-Security with max-age of at least ${MIN_HSTS_MAX_AGE_SECONDS} seconds.`,
+  );
+}
+
+function expectRequestIdExposed(response, label) {
+  check(
+    headerTokens(response, "access-control-expose-headers").includes("x-request-id"),
+    `${label} must expose X-Request-Id to browser clients.`,
+  );
+}
+
+function verifiesCanonicalTransport(baseUrl) {
+  const url = new URL(baseUrl);
+  return url.protocol === "https:" && !isLoopbackHostname(url.hostname);
+}
+
+async function verifyHttpsRedirect(options) {
+  const insecure = new URL(options.baseUrl);
+  insecure.protocol = "http:";
+  insecure.port = "";
+  const expected = new URL("/v1/health", `${options.baseUrl}/`).toString();
+  const result = await request(insecure.origin, "/v1/health", {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+    allowRedirect: true,
+  });
+  expectStatus(result, 308, "Plain-HTTP health endpoint");
+  expectRequestId(result, "Plain-HTTP health endpoint");
+  expectNoStore(result, "Plain-HTTP health endpoint");
+  check(result.headers.get("location") === expected, `Plain-HTTP health endpoint must redirect exactly to ${expected}.`);
+  check(result.text === "", "Plain-HTTP health endpoint redirect must return an empty body.");
+}
+
+async function verifySharedHostTransport(options) {
+  const pathname = "/v1/transport-probe?surface=shared";
+  const insecure = new URL(options.baseUrl);
+  insecure.protocol = "http:";
+  insecure.port = "";
+  const expected = new URL(pathname, `${options.baseUrl}/`).toString();
+  const redirect = await request(insecure.origin, pathname, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+    allowRedirect: true,
+  });
+  expectStatus(redirect, 308, "Plain-HTTP shared-host probe");
+  expectRequestId(redirect, "Plain-HTTP shared-host probe");
+  expectNoStore(redirect, "Plain-HTTP shared-host probe");
+  check(redirect.headers.get("location") === expected, `Plain-HTTP shared-host probe must redirect exactly to ${expected}.`);
+  check(redirect.text === "", "Plain-HTTP shared-host probe redirect must return an empty body.");
+
+  const secure = await request(options.baseUrl, pathname, {
+    method: "GET",
+    headers: { Accept: "application/json" },
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+  });
+  check([401, 404].includes(secure.status), `HTTPS shared-host probe returned HTTP ${secure.status}; expected 401 or 404.`);
+  expectHsts(secure, "HTTPS shared-host probe");
+}
+
 export function validateOpenApi(spec) {
   check(isObject(spec), "OpenAPI document must be a JSON object.");
   check(typeof spec.openapi === "string" && /^3\.1(?:\.\d+)?$/.test(spec.openapi), `OpenAPI version must be 3.1.x; received ${String(spec.openapi)}.`);
@@ -360,8 +446,10 @@ export function validateOpenApi(spec) {
   check(Array.isArray(spec.security) && spec.security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)), "OpenAPI must apply bearerAuth security by default.");
 
   for (const publicPath of ["/v1/health", "/v1/openapi.json"]) {
-    const security = spec.paths?.[publicPath]?.get?.security;
-    check(Array.isArray(security) && security.length === 0, `${publicPath} must explicitly allow unauthenticated GET requests.`);
+    for (const method of ["get", "head"]) {
+      const security = spec.paths?.[publicPath]?.[method]?.security;
+      check(Array.isArray(security) && security.length === 0, `${publicPath} must explicitly allow unauthenticated ${method.toUpperCase()} requests.`);
+    }
   }
 
   for (const [path, methods] of Object.entries(REQUIRED_OPERATIONS)) {
@@ -393,13 +481,14 @@ export function validateOpenApi(spec) {
         const successKey = `${operation.operationId}:${status}`;
         const resolvedResponse = resolveReference(spec, documentedResponse, label);
         check(isObject(resolvedResponse), `${label} must be an object.`);
-        if (status === "204") {
-          check(REQUIRED_BODYLESS_SUCCESSES.includes(successKey), `${label} is not a canonical bodyless success.`);
+        if (REQUIRED_BODYLESS_SUCCESSES.includes(successKey)) {
           check(!Object.hasOwn(resolvedResponse, "content"), `${label} must remain bodyless and omit content.`);
           documentedSuccesses.add(successKey);
           bodylessSuccessCount += 1;
           continue;
         }
+
+        check(status !== "204", `${label} is not a canonical bodyless success.`);
 
         const json = resolvedResponse.content?.["application/json"];
         check(isObject(json) && isObject(json.schema), `${label} must define content.application/json.schema.`);
@@ -435,6 +524,8 @@ async function verifyHealth(options) {
   expectStatus(result, 200, "Health endpoint");
   expectRequestId(result, "Health endpoint");
   expectNoStore(result, "Health endpoint");
+  expectVaryOrigin(result, "Health endpoint");
+  if (options.verifyTransport) expectHsts(result, "Health endpoint");
   const payload = parseJsonResponse(result, "Health endpoint");
   check(isObject(payload), "Health endpoint JSON must be an object.");
   check(JSON.stringify(Object.keys(payload).sort()) === JSON.stringify(["ok", "service", "version"]), "Health endpoint must return exactly ok, service, and version fields.");
@@ -450,6 +541,8 @@ async function verifyOpenApi(options) {
   });
   expectStatus(result, 200, "OpenAPI endpoint");
   expectRequestId(result, "OpenAPI endpoint");
+  expectVaryOrigin(result, "OpenAPI endpoint");
+  if (options.verifyTransport) expectHsts(result, "OpenAPI endpoint");
   const cacheControl = headerTokens(result, "cache-control");
   check(cacheControl.includes("public") && cacheControl.includes("max-age=300"), "OpenAPI endpoint must return Cache-Control: public, max-age=300.");
   const spec = parseJsonResponse(result, "OpenAPI endpoint");
@@ -466,10 +559,12 @@ async function verifyUnauthorized(options) {
   expectStatus(result, 401, "Unauthenticated maps request");
   const requestId = expectRequestId(result, "Unauthenticated maps request");
   expectNoStore(result, "Unauthenticated maps request");
+  if (options.verifyTransport) expectHsts(result, "Unauthenticated maps request");
   const challenge = result.headers.get("www-authenticate")?.trim() || "";
   check(/^Bearer(?:\s|$)/i.test(challenge), "Unauthenticated maps request must return a WWW-Authenticate Bearer challenge.");
   check(result.headers.get("access-control-allow-origin") === options.origin, `Unauthenticated maps request must allow origin ${options.origin}.`);
-  check(headerTokens(result, "vary").includes("origin"), "Unauthenticated maps request must include Vary: Origin.");
+  expectVaryOrigin(result, "Unauthenticated maps request");
+  expectRequestIdExposed(result, "Unauthenticated maps request");
 
   const payload = parseJsonResponse(result, "Unauthenticated maps request");
   check(isObject(payload) && isObject(payload.error), "Unauthenticated maps request must return a JSON error object.");
@@ -477,6 +572,31 @@ async function verifyUnauthorized(options) {
   check(typeof payload.error.message === "string" && payload.error.message, "Unauthenticated maps request must return a non-empty error message.");
   check(typeof payload.request_id === "string" && payload.request_id, "Unauthenticated maps request must return request_id in its JSON body.");
   check(payload.request_id === requestId, "Unauthenticated maps request body request_id must match X-Request-Id.");
+}
+
+async function verifyPublicHead(options) {
+  for (const endpoint of [
+    { pathname: "/v1/health", label: "Health HEAD", cache: "no-store" },
+    { pathname: "/v1/openapi.json", label: "OpenAPI HEAD", cache: "public" },
+  ]) {
+    const result = await request(options.baseUrl, endpoint.pathname, {
+      method: "HEAD",
+      headers: { Accept: "application/json" },
+      fetchImpl: options.fetchImpl,
+      timeoutMs: options.timeoutMs,
+    });
+    expectStatus(result, 200, endpoint.label);
+    expectRequestId(result, endpoint.label);
+    expectJsonContentType(result, endpoint.label);
+    expectVaryOrigin(result, endpoint.label);
+    if (options.verifyTransport) expectHsts(result, endpoint.label);
+    if (endpoint.cache === "no-store") expectNoStore(result, endpoint.label);
+    else {
+      const cacheControl = headerTokens(result, "cache-control");
+      check(cacheControl.includes("public") && cacheControl.includes("max-age=300"), `${endpoint.label} must return Cache-Control: public, max-age=300.`);
+    }
+    check(result.text === "", `${endpoint.label} must return an empty response body.`);
+  }
 }
 
 async function verifyCors(options) {
@@ -493,12 +613,13 @@ async function verifyCors(options) {
   });
   expectStatus(result, 204, "CORS preflight");
   expectRequestId(result, "CORS preflight");
+  if (options.verifyTransport) expectHsts(result, "CORS preflight");
   check(result.text === "", "CORS preflight must return an empty response body.");
   check(result.headers.get("access-control-allow-origin") === options.origin, `CORS preflight must echo allowed origin ${options.origin}.`);
   check(result.headers.get("access-control-allow-origin") !== "*", "CORS preflight must not use a wildcard origin.");
 
   const methods = headerTokens(result, "access-control-allow-methods");
-  for (const method of ["get", "post", "patch", "delete", "options"]) {
+  for (const method of ["get", "head", "post", "patch", "delete", "options"]) {
     check(methods.includes(method), `CORS preflight must allow ${method.toUpperCase()}.`);
   }
   const headers = headerTokens(result, "access-control-allow-headers");
@@ -506,7 +627,8 @@ async function verifyCors(options) {
     check(headers.includes(header), `CORS preflight must allow the ${header} header.`);
   }
   check(result.headers.get("access-control-max-age") === "86400", "CORS preflight must return Access-Control-Max-Age: 86400.");
-  check(headerTokens(result, "vary").includes("origin"), "CORS preflight must include Vary: Origin.");
+  expectVaryOrigin(result, "CORS preflight");
+  expectRequestIdExposed(result, "CORS preflight");
 
   const rejected = await request(options.baseUrl, "/v1/maps", {
     method: "OPTIONS",
@@ -521,6 +643,8 @@ async function verifyCors(options) {
   });
   expectStatus(rejected, 204, "Disallowed CORS preflight");
   expectRequestId(rejected, "Disallowed CORS preflight");
+  expectVaryOrigin(rejected, "Disallowed CORS preflight");
+  if (options.verifyTransport) expectHsts(rejected, "Disallowed CORS preflight");
   check(!rejected.headers.has("access-control-allow-origin"), "Disallowed CORS preflight must not return Access-Control-Allow-Origin.");
   check(!rejected.headers.has("access-control-allow-credentials"), "Disallowed CORS preflight must not return Access-Control-Allow-Credentials.");
 }
@@ -537,17 +661,30 @@ export async function verifyProduction({
   check(typeof fetchImpl === "function", "This Node runtime does not provide fetch.");
   check(Number.isFinite(timeoutMs) && timeoutMs > 0, "Timeout must be a positive number of milliseconds.");
 
+  const normalizedBaseUrl = normalizeBaseUrl(baseUrl);
   const normalized = {
-    baseUrl: normalizeBaseUrl(baseUrl),
+    baseUrl: normalizedBaseUrl,
     origin: normalizeOrigin(origin),
     timeoutMs,
     fetchImpl,
+    verifyTransport: verifiesCanonicalTransport(normalizedBaseUrl),
   };
 
+  if (normalized.verifyTransport) {
+    await verifyHttpsRedirect(normalized);
+    logger.log("PASS transport redirect: HTTP upgrades permanently to the exact HTTPS URL");
+  }
+
   await verifyHealth(normalized);
-  logger.log("PASS health: exact service identity, JSON, cache policy, and request ID");
+  logger.log(`PASS health: exact service identity, JSON, cache policy, request ID${normalized.verifyTransport ? ", and HSTS" : ""}`);
+  if (normalized.verifyTransport) {
+    await verifySharedHostTransport(normalized);
+    logger.log("PASS shared transport: redirect and HSTS cover non-Maps routes on the canonical host");
+  }
   const openApi = await verifyOpenApi(normalized);
   logger.log(`PASS OpenAPI: 3.1 contract with ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes`);
+  await verifyPublicHead(normalized);
+  logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);
   logger.log("PASS auth: unauthenticated read rejected with JSON Bearer challenge");
   await verifyCors(normalized);
