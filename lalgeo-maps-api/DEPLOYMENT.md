@@ -16,16 +16,18 @@ The combined Worker enforces the canonical hostname's HTTPS and HSTS policy befo
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-13 07:08 UTC.
+Last read-only canonical check: 2026-09-15 07:09 UTC.
 
-- `GET https://api.lalgeo.com/v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}` over valid TLS.
-- `/v1/openapi.json` returned a valid OpenAPI 3.1 document with 18 unique operations, but it still matched the pre-schema `ec41fd2` deployment: 0 of 15 body-bearing successes referenced their merged response schemas, compared with the repository's 20-operation contract. The current verifier stops first at the plaintext transport failure; after that is fixed it will also reject this contract drift until the combined Worker is deployed.
-- missing and synthetic invalid bearer credentials over HTTPS returned the documented JSON `401 UNAUTHORIZED` response and Bearer challenge without disclosing a secret;
-- CORS allowed `https://maps.lalgeo.com` and did not allow an untrusted origin, but did not expose `X-Request-Id` to browser code;
-- plain HTTP served the health response directly and processed a synthetic invalid bearer request instead of redirecting, HTTPS omitted HSTS, and public `HEAD` requests returned 401. The repository now fixes and verifies these transport and monitoring contracts at the shared Worker boundary;
-- `https://maps.lalgeo.com/maps` and the public developer guide both returned HTTP 200.
+- The verifier merged at commit `f84e548` passed every credential-free check against `https://api.lalgeo.com`; GitHub's production Worker build for that commit reports version `17f7f879-797d-40cf-8440-6d0f222096d4`.
+- `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, valid TLS, one-year HSTS, `no-store`, and a request ID. Plain HTTP returned an exact bodyless 308 to HTTPS.
+- `/v1/openapi.json` returned a valid OpenAPI 3.1 document with 20 unique operations, 15 JSON success schemas, and five bodyless HEAD/DELETE successes. Public `HEAD` returned 200 without a body.
+- Missing and synthetic invalid bearer credentials returned the documented JSON `401 UNAUTHORIZED` response and bearer challenge without disclosing a secret.
+- CORS allowed `https://maps.lalgeo.com`, exposed `X-Request-Id` to that origin, and did not allow an untrusted origin.
+- The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
+- Snapshot API source currently exists only on the old, conflicting [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151), not on `main`; reconcile that production drift separately rather than importing the divergent branch here. That repair should identify its contract as `LalGeo Maps Snapshot API` and link back to the Authoring API so discovery works from either entry point.
+- This repository change identifies the bearer service as the private Authoring API and adds its access path. Its stricter verifier passes transport and health, then correctly stops at production's former generic OpenAPI title until this document is deployed.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). A read-only verifier cannot repeat that proof because it intentionally has no production key. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-15 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
 
 ## 1. Prove the repository state
 
