@@ -11,6 +11,10 @@ const repositorySpec = JSON.parse(await readFile(new URL("../openapi.json", impo
 export const DEFAULT_BASE_URL = "https://api.lalgeo.com";
 export const DEFAULT_ORIGIN = "https://maps.lalgeo.com";
 export const DEFAULT_TIMEOUT_MS = 10_000;
+export const AUTHORING_API_TITLE = "LalGeo Maps Authoring API";
+export const AUTHORING_GUIDE_URL = "https://lalgeo.com/developers/";
+export const SNAPSHOT_API_DOCS_URL = "https://maps.lalgeo.com/api-docs";
+export const API_ACCESS_EMAIL = "lalgeospatial@outlook.com";
 
 export const REQUIRED_OPERATIONS = Object.freeze({
   "/v1/health": Object.freeze({ get: "getHealth", head: "headHealth" }),
@@ -441,8 +445,40 @@ export function validateOpenApi(spec) {
   check(typeof spec.openapi === "string" && /^3\.1(?:\.\d+)?$/.test(spec.openapi), `OpenAPI version must be 3.1.x; received ${String(spec.openapi)}.`);
   check(Array.isArray(spec.servers) && spec.servers[0]?.url === CANONICAL_SERVER, `OpenAPI's primary server must be ${CANONICAL_SERVER}.`);
 
+  const info = spec.info;
+  check(isObject(info) && info.title === AUTHORING_API_TITLE, `OpenAPI must identify itself as ${AUTHORING_API_TITLE}.`);
+  check(
+    typeof info.description === "string" &&
+      info.description.includes("owner-scoped") &&
+      info.description.includes("bearer-authenticated") &&
+      info.description.includes(SNAPSHOT_API_DOCS_URL),
+    `OpenAPI description must distinguish private owner-scoped authoring from the anonymous-create Snapshot API at ${SNAPSHOT_API_DOCS_URL}.`,
+  );
+  check(
+    isObject(info.contact) &&
+      info.contact.name === "LalGeo Maps API access" &&
+      info.contact.url === AUTHORING_GUIDE_URL &&
+      info.contact.email === API_ACCESS_EMAIL,
+    "OpenAPI contact must provide the canonical Authoring API access path.",
+  );
+  check(
+    isObject(spec.externalDocs) && spec.externalDocs.url === AUTHORING_GUIDE_URL,
+    `OpenAPI externalDocs must link to ${AUTHORING_GUIDE_URL}.`,
+  );
+  check(
+    canonicalJson(info) === canonicalJson(repositorySpec.info) &&
+      canonicalJson(spec.externalDocs) === canonicalJson(repositorySpec.externalDocs),
+    "OpenAPI authoring identity and access metadata must match the repository contract.",
+  );
+
   const bearer = spec.components?.securitySchemes?.bearerAuth;
   check(isObject(bearer) && bearer.type === "http" && String(bearer.scheme).toLowerCase() === "bearer", "OpenAPI must define components.securitySchemes.bearerAuth as HTTP bearer authentication.");
+  check(
+    typeof bearer.description === "string" &&
+      bearer.description.includes("owner-scoped") &&
+      bearer.description.includes(AUTHORING_GUIDE_URL),
+    "OpenAPI bearerAuth must explain its owner scope and where to request access.",
+  );
   check(Array.isArray(spec.security) && spec.security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)), "OpenAPI must apply bearerAuth security by default.");
 
   for (const publicPath of ["/v1/health", "/v1/openapi.json"]) {
@@ -682,7 +718,7 @@ export async function verifyProduction({
     logger.log("PASS shared transport: redirect and HSTS cover non-Maps routes on the canonical host");
   }
   const openApi = await verifyOpenApi(normalized);
-  logger.log(`PASS OpenAPI: 3.1 contract with ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes`);
+  logger.log(`PASS OpenAPI: private authoring identity, access metadata, ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes`);
   await verifyPublicHead(normalized);
   logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);
