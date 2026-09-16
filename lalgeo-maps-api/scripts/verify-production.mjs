@@ -50,6 +50,27 @@ export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
   "deleteFeature:204",
 ]);
 
+const PROTECTED_OPERATIONS = Object.freeze([
+  "listMaps", "createMap", "getMap", "updateMap", "deleteMap", "exportMap",
+  "listLayers", "createLayer", "getLayer", "updateLayer", "deleteLayer",
+  "listFeatures", "createFeatures", "getFeature", "updateFeature", "deleteFeature",
+]);
+const RESOURCE_OPERATIONS = new Set(PROTECTED_OPERATIONS.filter((id) => !["listMaps", "createMap"].includes(id)));
+const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
+const CREATE_OPERATIONS = new Set(["createMap", "createLayer", "createFeatures"]);
+
+// Only advertise errors the Worker emits today. In particular, there is no 429 rate limiter
+// or Idempotency-Key replay yet; agents should reconcile uncertain writes with GET.
+export const REQUIRED_ERROR_RESPONSES = Object.freeze(Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
+  ["400", BODY_OPERATIONS.has(id) ? "BadRequest" : undefined],
+  ["401", "Unauthorized"],
+  ["404", RESOURCE_OPERATIONS.has(id) ? "NotFound" : undefined],
+  ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
+  ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
+  ["500", "InternalServerError"],
+  ["503", "ServiceUnavailable"],
+].filter(([, component]) => component)))])));
+
 const CANONICAL_SERVER = DEFAULT_BASE_URL;
 const DISALLOWED_ORIGIN = "https://cors-probe.invalid";
 const MAX_RESPONSE_BYTES = 5_000_000;
@@ -464,6 +485,7 @@ export function validateOpenApi(spec) {
   const documentedSuccesses = new Set();
   let successSchemaCount = 0;
   let bodylessSuccessCount = 0;
+  let errorResponseCount = 0;
   for (const [path, pathItem] of Object.entries(spec.paths || {})) {
     if (!isObject(pathItem)) continue;
     for (const [method, operation] of Object.entries(pathItem)) {
@@ -476,11 +498,28 @@ export function validateOpenApi(spec) {
       const successes = Object.entries(responses).filter(([status]) => /^2\d\d$/.test(status));
       check(successes.length > 0, `OpenAPI ${operation.operationId} must define a successful response.`);
 
+      const expectedErrors = Object.entries(REQUIRED_ERROR_RESPONSES[operation.operationId] || {});
+      const actualErrors = Object.keys(responses).filter((status) => /^[45]\d\d$/.test(status)).sort();
+      check(
+        JSON.stringify(actualErrors) === JSON.stringify(expectedErrors.map(([status]) => status).sort()),
+        `OpenAPI ${operation.operationId} must define exactly these error responses: ${expectedErrors.map(([status]) => status).join(", ") || "none"}.`,
+      );
+      for (const [status, component] of expectedErrors) {
+        const label = `OpenAPI ${operation.operationId} ${status} response`;
+        check(responses[status]?.$ref === `#/components/responses/${component}`, `${label} must reference #/components/responses/${component}.`);
+        const resolved = resolveReference(spec, responses[status], label);
+        check(resolved.content?.["application/json"]?.schema?.$ref === "#/components/schemas/Error", `${label} must use the JSON Error schema.`);
+        check(resolved.headers?.["X-Request-Id"]?.$ref === "#/components/headers/RequestId", `${label} must document the X-Request-Id header.`);
+        if (status === "401") check(resolved.headers?.["WWW-Authenticate"]?.schema?.const === 'Bearer realm="lalgeo-maps-api"', `${label} must document the bearer challenge.`);
+        errorResponseCount += 1;
+      }
+
       for (const [status, documentedResponse] of successes) {
         const label = `OpenAPI ${operation.operationId} ${status} response`;
         const successKey = `${operation.operationId}:${status}`;
         const resolvedResponse = resolveReference(spec, documentedResponse, label);
         check(isObject(resolvedResponse), `${label} must be an object.`);
+        check(resolvedResponse.headers?.["X-Request-Id"]?.$ref === "#/components/headers/RequestId", `${label} must document the X-Request-Id header.`);
         if (REQUIRED_BODYLESS_SUCCESSES.includes(successKey)) {
           check(!Object.hasOwn(resolvedResponse, "content"), `${label} must remain bodyless and omit content.`);
           documentedSuccesses.add(successKey);
@@ -508,10 +547,14 @@ export function validateOpenApi(spec) {
   validateLocalReferences(spec, spec, "OpenAPI document");
   validateJsonSchemas(spec);
   check(
+    canonicalJson(spec.components.headers?.RequestId) === canonicalJson(repositorySpec.components.headers.RequestId),
+    "OpenAPI RequestId header must match the repository contract.",
+  );
+  check(
     canonicalJson(spec.components.schemas) === canonicalJson(repositorySpec.components.schemas),
     "OpenAPI components.schemas must match the repository contract.",
   );
-  return { operationCount: operationIds.length, successSchemaCount, bodylessSuccessCount };
+  return { operationCount: operationIds.length, successSchemaCount, bodylessSuccessCount, errorResponseCount };
 }
 
 async function verifyHealth(options) {
@@ -687,6 +730,7 @@ export async function verifyProduction({
   logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);
   logger.log("PASS auth: unauthenticated read rejected with JSON Bearer challenge");
+  logger.log(`PASS error contract: ${openApi.errorResponseCount} documented protected-route failures`);
   await verifyCors(normalized);
   logger.log(`PASS CORS: ${normalized.origin} allowed and an untrusted origin rejected`);
   logger.log(`PASS production verifier: ${normalized.baseUrl}`);
@@ -697,6 +741,7 @@ export async function verifyProduction({
     operationCount: openApi.operationCount,
     successSchemaCount: openApi.successSchemaCount,
     bodylessSuccessCount: openApi.bodylessSuccessCount,
+    errorResponseCount: openApi.errorResponseCount,
   };
 }
 

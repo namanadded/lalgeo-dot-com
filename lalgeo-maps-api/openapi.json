@@ -16,6 +16,7 @@
         "responses": {
           "200": {
             "description": "Healthy",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } }
           }
         }
@@ -26,7 +27,10 @@
         "description": "Returns the same status and headers as GET without a response body.",
         "security": [],
         "responses": {
-          "200": { "description": "Healthy response headers" }
+          "200": {
+            "description": "Healthy response headers",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          }
         }
       }
     },
@@ -38,6 +42,7 @@
         "responses": {
           "200": {
             "description": "OpenAPI document",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OpenApiDocument" } } }
           }
         }
@@ -48,7 +53,10 @@
         "description": "Returns the same status and headers as GET without a response body.",
         "security": [],
         "responses": {
-          "200": { "description": "OpenAPI response headers" }
+          "200": {
+            "description": "OpenAPI response headers",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          }
         }
       }
     },
@@ -60,9 +68,12 @@
         "responses": {
           "200": {
             "description": "Maps",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapListResponse" } } }
           },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "post": {
@@ -75,10 +86,15 @@
         "responses": {
           "201": {
             "description": "Map created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
-          "401": { "$ref": "#/components/responses/Unauthorized" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       }
     },
@@ -90,9 +106,13 @@
         "responses": {
           "200": {
             "description": "Map",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
           },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "patch": {
@@ -105,14 +125,30 @@
         "responses": {
           "200": {
             "description": "Updated map",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "delete": {
         "operationId": "deleteMap",
         "summary": "Delete a map and its contents",
-        "responses": { "204": { "description": "Deleted" } }
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
       }
     },
     "/v1/maps/{mapId}/export": {
@@ -124,9 +160,13 @@
         "responses": {
           "200": {
             "description": "Portable LalGeo project",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LalGeoExportResponse" } } }
           },
-          "404": { "$ref": "#/components/responses/NotFound" }
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       }
     },
@@ -138,8 +178,13 @@
         "responses": {
           "200": {
             "description": "Layers",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerListResponse" } } }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "post": {
@@ -152,9 +197,16 @@
         "responses": {
           "201": {
             "description": "Layer created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       }
     },
@@ -166,8 +218,13 @@
         "responses": {
           "200": {
             "description": "Layer",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "patch": {
@@ -180,14 +237,30 @@
         "responses": {
           "200": {
             "description": "Updated layer",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "delete": {
         "operationId": "deleteLayer",
         "summary": "Delete a layer and its features",
-        "responses": { "204": { "description": "Deleted" } }
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
       }
     },
     "/v1/maps/{mapId}/layers/{layerId}/features": {
@@ -199,8 +272,13 @@
         "responses": {
           "200": {
             "description": "GeoJSON FeatureCollection",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeatureListResponse" } } }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "post": {
@@ -216,9 +294,16 @@
         "responses": {
           "201": {
             "description": "Features created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatedFeatureCollection" } } }
           },
-          "400": { "$ref": "#/components/responses/BadRequest" }
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       }
     },
@@ -230,8 +315,13 @@
         "responses": {
           "200": {
             "description": "Feature",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoredFeature" } } }
-          }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "patch": {
@@ -244,14 +334,30 @@
         "responses": {
           "200": {
             "description": "Updated feature",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoredFeature" } } }
-          }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "delete": {
         "operationId": "deleteFeature",
         "summary": "Delete a feature",
-        "responses": { "204": { "description": "Deleted" } }
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
       }
     }
   },
@@ -266,10 +372,51 @@
       "limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
       "offset": { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } }
     },
+    "headers": {
+      "RequestId": {
+        "description": "Request identifier to include when reporting an API error. Also returned in JSON error responses as request_id.",
+        "schema": { "type": "string", "minLength": 1 }
+      }
+    },
     "responses": {
-      "BadRequest": { "description": "Invalid input", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "Unauthorized": { "description": "Missing or invalid bearer key", "headers": { "WWW-Authenticate": { "description": "Bearer authentication challenge", "schema": { "type": "string", "const": "Bearer realm=\"lalgeo-maps-api\"" } } }, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } },
-      "NotFound": { "description": "Resource not found", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } } }
+      "BadRequest": {
+        "description": "Invalid JSON, ID, input, or geometry (INVALID_JSON, INVALID_ID, VALIDATION_ERROR, INVALID_GEOMETRY, or GEOMETRY_TYPE_MISMATCH).",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer key (UNAUTHORIZED).",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+          "WWW-Authenticate": { "description": "Bearer authentication challenge", "schema": { "type": "string", "const": "Bearer realm=\"lalgeo-maps-api\"" } }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "Map, layer, or feature not found for this owner (MAP_NOT_FOUND, LAYER_NOT_FOUND, or FEATURE_NOT_FOUND).",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Conflict": {
+        "description": "A client-supplied map, layer, or feature ID already exists in its owner-scoped collection (ID_CONFLICT). Reconcile with GET before retrying a timed-out create; Idempotency-Key replay is not supported.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "PayloadTooLarge": {
+        "description": "The request body exceeds 2 MB (BODY_TOO_LARGE), or a feature batch exceeds 1,000 items (BATCH_TOO_LARGE).",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "InternalServerError": {
+        "description": "Unexpected server or database error (INTERNAL_ERROR). Provide request_id when reporting it; do not blindly replay writes.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "ServiceUnavailable": {
+        "description": "API authentication configuration is invalid (AUTH_NOT_CONFIGURED). Retry only after an operator resolves the configuration.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
     },
     "schemas": {
       "ResourceId": {
@@ -669,18 +816,26 @@
       },
       "Error": {
         "type": "object",
+        "description": "Every API error is JSON. Match on error.code, retain request_id for support, and do not infer that a timed-out write was rolled back.",
         "required": ["error", "request_id"],
         "properties": {
           "error": {
             "type": "object",
             "required": ["code", "message"],
             "properties": {
-              "code": { "type": "string" },
-              "message": { "type": "string" },
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_JSON", "INVALID_ID", "VALIDATION_ERROR", "INVALID_GEOMETRY", "GEOMETRY_TYPE_MISMATCH",
+                  "UNAUTHORIZED", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
+                  "ID_CONFLICT", "BODY_TOO_LARGE", "BATCH_TOO_LARGE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED"
+                ]
+              },
+              "message": { "type": "string", "minLength": 1 },
               "details": {}
             }
           },
-          "request_id": { "type": "string" }
+          "request_id": { "type": "string", "minLength": 1 }
         }
       }
     }
