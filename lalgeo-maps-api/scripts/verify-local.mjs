@@ -62,6 +62,21 @@ export function createSuccessResponseValidator(spec) {
   };
 }
 
+function createRequestValidators(spec) {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  return Object.fromEntries(
+    ["MapInput", "MapPatchInput", "LayerInput", "LayerPatchInput", "Feature"].map((name) => [
+      name,
+      ajv.compile({
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        components: spec.components,
+        $ref: `#/components/schemas/${name}`,
+      }),
+    ]),
+  );
+}
+
 function readOption(argv, index, option) {
   const value = argv[index + 1];
   if (!value || value.startsWith("--")) throw new Error(`${option} requires a value.`);
@@ -239,6 +254,7 @@ async function main({ workerDirectory, database, requestHostname }) {
   const mapsProjectContract = loadLalGeoProjectContract();
   const openApiSpec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
   const responseContract = createSuccessResponseValidator(openApiSpec);
+  const requestValidators = createRequestValidators(openApiSpec);
   const stateDirectory = await mkdtemp(path.join(os.tmpdir(), "lalgeo-maps-api-gate-"));
   const bundleDirectory = path.join(stateDirectory, "bundle");
   const logPath = path.join(stateDirectory, "wrangler.log");
@@ -359,6 +375,46 @@ async function main({ workerDirectory, database, requestHostname }) {
     record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
+    const rejectInvalidInput = async (pathname, method, schema, payload, code = "VALIDATION_ERROR") => {
+      assert.equal(requestValidators[schema](payload), false, `${schema} should reject ${JSON.stringify(payload)}`);
+      const result = await request(baseUrl, pathname, {
+        method,
+        headers: { ...authorization, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      assert.equal(result.status, 400, `${method} ${pathname}: ${JSON.stringify(payload)}`);
+      assert.equal((await json(result)).error?.code, code);
+    };
+    for (const [payload, code] of [
+      [{ id: null, name: "Invalid ID" }, "INVALID_ID"],
+      [{ id: "", name: "Invalid ID" }, "INVALID_ID"],
+      [{ id: 123, name: "Invalid ID" }, "INVALID_ID"],
+      [{ id: "bad_center", name: "Invalid center", center: null }, "VALIDATION_ERROR"],
+      [{ id: "bad_center", name: "Invalid center", center: { latitude: 51 } }, "VALIDATION_ERROR"],
+      [{ id: "bad_center", name: "Invalid center", center: { latitude: null, longitude: null } }, "VALIDATION_ERROR"],
+      [{ id: "bad_zoom", name: "Invalid zoom", zoom: null }, "VALIDATION_ERROR"],
+      [{ id: "bad_type", name: "Invalid type", map_type: "terrain" }, "VALIDATION_ERROR"],
+      [{ id: "bad_pois", name: "Invalid POIs", show_basemap_pois: "false" }, "VALIDATION_ERROR"],
+      [{ id: "bad_description", name: "Invalid description", description: { text: "wrong" } }, "VALIDATION_ERROR"],
+      [{ id: "bad_metadata", name: "Invalid metadata", metadata: null }, "VALIDATION_ERROR"],
+    ]) {
+      await rejectInvalidInput("/v1/maps", "POST", "MapInput", payload, code);
+    }
+    const noMalformedMaps = await request(baseUrl, "/v1/maps", { headers: authorization });
+    assert.deepEqual((await successJson(noMalformedMaps, responseContract, "listMaps")).maps, []);
+    const generatedMapResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST", headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Generated ID fixture" }),
+    });
+    assert.equal(generatedMapResponse.status, 201);
+    const generatedMap = (await successJson(generatedMapResponse, responseContract, "createMap")).map;
+    assert.match(generatedMap.id, /^map_[a-f0-9]{32}$/);
+    assert.equal(generatedMap.center, null);
+    assert.equal(generatedMap.zoom, null);
+    const generatedMapDelete = await request(baseUrl, `/v1/maps/${generatedMap.id}`, { method: "DELETE", headers: authorization });
+    assert.equal(generatedMapDelete.status, 204);
+    record("invalid map fields and explicit IDs fail without creating a map");
+
     const invalidMetadataMapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -384,6 +440,42 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(mapResponse.status, 201);
     assert.equal((await successJson(mapResponse, responseContract, "createMap")).map?.id, "synthetic_runtime_map");
     record("authenticated client creates a synthetic map");
+
+    const initialMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
+    const initialMap = (await successJson(initialMapResponse, responseContract, "getMap")).map;
+    for (const payload of [
+      { center: { latitude: 51 } },
+      { center: { longitude: -114 } },
+      { center: { latitude: null, longitude: -114 } },
+      { center: {} },
+      { show_basemap_pois: "false" },
+      { description: 42 },
+      { map_type: null },
+      { zoom: "12" },
+      { metadata: null },
+    ]) {
+      await rejectInvalidInput("/v1/maps/synthetic_runtime_map", "PATCH", "MapPatchInput", payload);
+      const current = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
+      assert.deepEqual((await successJson(current, responseContract, "getMap")).map, initialMap);
+    }
+    const unchangedExport = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
+    assert.deepEqual((await successJson(unchangedExport, responseContract, "exportMap")).project.mapOptions.center, { lat: 51.0447, lng: -114.0719 });
+    const clearedCenterPayload = { center: null, zoom: null };
+    assert.equal(requestValidators.MapPatchInput(clearedCenterPayload), true);
+    const clearedCenterResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
+      method: "PATCH", headers: { ...authorization, "Content-Type": "application/json" }, body: JSON.stringify(clearedCenterPayload),
+    });
+    assert.equal(clearedCenterResponse.status, 200);
+    const clearedMap = (await successJson(clearedCenterResponse, responseContract, "updateMap")).map;
+    assert.equal(clearedMap.center, null);
+    assert.equal(clearedMap.zoom, null);
+    const restoredCenterResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
+      method: "PATCH", headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ center: initialMap.center, zoom: initialMap.zoom }),
+    });
+    assert.equal(restoredCenterResponse.status, 200);
+    assert.deepEqual((await successJson(restoredCenterResponse, responseContract, "updateMap")).map.center, initialMap.center);
+    record("partial centers cannot corrupt maps; explicit null clears center and zoom");
 
     const invalidMetadataPatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
       method: "PATCH",
@@ -444,6 +536,15 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(invalidStyleLayerResponse.status, 400);
     assert.equal((await json(invalidStyleLayerResponse)).error?.code, "VALIDATION_ERROR");
 
+    for (const position of [null, "2", 1.5, 9007199254740992]) {
+      await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers", "POST", "LayerInput", {
+        id: "invalid_position_layer", name: "Invalid position fixture", geometry_type: "Point", position,
+      });
+    }
+    const layersAfterInvalidCreate = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", { headers: authorization });
+    assert.deepEqual((await successJson(layersAfterInvalidCreate, responseContract, "listLayers")).layers, []);
+    record("invalid layer positions fail without creating a layer");
+
     const layerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -451,6 +552,15 @@ async function main({ workerDirectory, database, requestHostname }) {
     });
     assert.equal(layerResponse.status, 201);
     assert.equal((await successJson(layerResponse, responseContract, "createLayer")).layer?.id, "places");
+
+    const initialLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
+    const initialLayer = (await successJson(initialLayerResponse, responseContract, "getLayer")).layer;
+    for (const position of [null, "2", 1.5, 9007199254740992]) {
+      await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers/places", "PATCH", "LayerPatchInput", { position });
+      const current = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
+      assert.deepEqual((await successJson(current, responseContract, "getLayer")).layer, initialLayer);
+    }
+    record("invalid layer updates fail without changing position or timestamps");
 
     const routeLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
@@ -505,6 +615,10 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(layerPatchResponse.status, 200);
     assert.equal((await successJson(layerPatchResponse, responseContract, "updateLayer")).layer?.style?.symbol_color, "Blue");
     record("layer list, read, and update routes preserve type and style");
+
+    await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers/places/features", "POST", "Feature", {
+      type: "Feature", id: null, geometry: { type: "Point", coordinates: [-114.051, 51.0453] }, properties: {},
+    }, "INVALID_ID");
 
     const invalidAltitudeResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
       method: "POST",

@@ -55,6 +55,8 @@ Replace the placeholder in `.dev.vars` with the SHA-256 hash of a development-on
 
 Send the raw key as `Authorization: Bearer <key>`. Data routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing or invalid. Health and OpenAPI discovery support public `GET` and bodyless `HEAD` checks. Canonical HTTP requests redirect permanently to HTTPS, and browser clients from an allowed origin can read `X-Request-Id`. Every map, layer, and feature query is owner-scoped.
 
+Omit an `id` to generate one; an explicitly supplied `id` must be a valid string. Optional map and layer fields use defaults only when omitted—invalid values return `400` without changing stored data. A map center requires both numeric coordinates; use `{"center":null}` in a map `PATCH` to clear it, and `{"zoom":null}` to clear zoom. A layer position must be a safe integer.
+
 ## Deployment
 
 [`DEPLOYMENT.md`](DEPLOYMENT.md) is the owner-only migration, deployment, acceptance, and rollback runbook for the combined Worker. Do not apply remote migrations, publish the Worker, change credentials, or alter production infrastructure from automated runs.

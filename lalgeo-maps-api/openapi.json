@@ -384,7 +384,7 @@
           "name": { "type": "string", "minLength": 1, "maxLength": 200 },
           "geometry_type": { "type": "string", "enum": ["Point", "LineString", "Polygon"] },
           "style": { "$ref": "#/components/schemas/JsonObject" },
-          "position": { "type": "integer" }
+          "position": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 }
         }
       },
       "LayerPatchInput": {
@@ -392,7 +392,7 @@
         "properties": {
           "name": { "type": "string", "minLength": 1, "maxLength": 200 },
           "style": { "$ref": "#/components/schemas/JsonObject" },
-          "position": { "type": "integer" }
+          "position": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 }
         }
       },
       "Layer": {
