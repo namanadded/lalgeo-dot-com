@@ -153,6 +153,38 @@ final class AppStore: ObservableObject {
         }
     }
 
+    func addPoint(to map: LalGeoMap, layer choice: PointLayerChoice, draft: PointFeatureDraft) async throws -> GeoJSONFeature {
+        guard let apiKey else { throw MapsAPIError.unauthorized(message: "Connect to LalGeo again.", requestID: nil) }
+        guard let coordinate = draft.geometry.point,
+              case let .string(name)? = draft.properties["name"],
+              !name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              name.utf16.count <= 200 else {
+            throw PointEntryError.invalidPoint
+        }
+        guard (-90 ... 90).contains(coordinate.latitude),
+              (-180 ... 180).contains(coordinate.longitude) else { throw PointEntryError.invalidPoint }
+
+        do {
+            let layer: MapLayer
+            switch choice {
+            case let .existing(selected):
+                guard selected.mapID == map.id, selected.geometryType == .point else {
+                    throw PointEntryError.invalidLayer
+                }
+                layer = selected
+            case let .new(draft):
+                guard draft.geometryType == .point,
+                      !draft.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                      draft.name.utf16.count <= 200 else { throw PointEntryError.invalidLayer }
+                layer = try await api.createLayer(draft, mapID: map.id, apiKey: apiKey)
+            }
+            return try await api.createPoint(draft, mapID: map.id, layerID: layer.id, apiKey: apiKey)
+        } catch {
+            if isUnauthorized(error) { await expireSession(error: error) }
+            throw error
+        }
+    }
+
     func exportPortableCopy(of map: LalGeoMap) async throws -> URL {
         guard let apiKey else { throw MapsAPIError.unauthorized(message: "Connect to LalGeo again.", requestID: nil) }
         do {
@@ -195,3 +227,14 @@ final class AppStore: ObservableObject {
     }
 }
 
+enum PointEntryError: LocalizedError {
+    case invalidPoint
+    case invalidLayer
+
+    var errorDescription: String? {
+        switch self {
+        case .invalidPoint: "Enter a name and valid WGS84 latitude and longitude."
+        case .invalidLayer: "Choose a Point layer or name a new one."
+        }
+    }
+}

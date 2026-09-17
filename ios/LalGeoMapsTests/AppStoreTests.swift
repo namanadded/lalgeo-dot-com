@@ -81,6 +81,41 @@ final class AppStoreTests: XCTestCase {
         XCTAssertEqual(cachedMaps, store.maps)
     }
 
+    func testAddPointCreatesTypedLayerAndStoresGeoJSONCoordinates() async throws {
+        let api = TestMapsAPI(maps: [Self.sampleMap])
+        let store = AppStore(api: api, credentials: RecordingCredentialStore(value: "key"), cache: InMemoryMapCache())
+        await store.start()
+        let layerDraft = LayerDraft(id: "layer_ios_stable", name: "Site notes", geometryType: .point)
+        let pointDraft = PointFeatureDraft(id: "feature_ios_stable", name: "Gate", latitude: 51.05, longitude: -114.07)
+
+        let saved = try await store.addPoint(to: Self.sampleMap, layer: .new(layerDraft), draft: pointDraft)
+        let contents = try await store.loadContents(for: Self.sampleMap)
+
+        XCTAssertEqual(saved.id, pointDraft.id)
+        XCTAssertEqual(saved.geometry.coordinates, .array([.number(-114.07), .number(51.05)]))
+        XCTAssertEqual(contents.first?.layer.geometryType, .point)
+        XCTAssertEqual(contents.first?.features.map(\.id), [pointDraft.id])
+    }
+
+    func testAddPointRejectsNonPointLayerBeforeWriting() async {
+        let api = TestMapsAPI(maps: [Self.sampleMap])
+        let store = AppStore(api: api, credentials: RecordingCredentialStore(value: "key"), cache: InMemoryMapCache())
+        await store.start()
+        let lineLayer = MapLayer(id: "line_1", mapID: Self.sampleMap.id, name: "Paths", geometryType: .lineString,
+                                 style: [:], position: 0, createdAt: Self.sampleMap.createdAt, updatedAt: Self.sampleMap.updatedAt)
+        let draft = PointFeatureDraft(id: "feature_ios_stable", name: "Gate", latitude: 51.05, longitude: -114.07)
+
+        do {
+            _ = try await store.addPoint(to: Self.sampleMap, layer: .existing(lineLayer), draft: draft)
+            XCTFail("Expected a typed-layer validation error")
+        } catch is PointEntryError {
+            let contents = try? await store.loadContents(for: Self.sampleMap)
+            XCTAssertEqual(contents, [])
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
     private static let sampleMap = LalGeoMap(
         id: "map_1",
         name: "Sample",
@@ -113,6 +148,8 @@ private actor RecordingCredentialStore: CredentialStoring {
 
 private actor TestMapsAPI: MapsAPI {
     private var maps: [LalGeoMap]
+    private var layersByMap: [String: [MapLayer]] = [:]
+    private var featuresByLayer: [String: [GeoJSONFeature]] = [:]
     private let validateError: MapsAPIError?
     private let listError: MapsAPIError?
     private var validationHistory: [String] = []
@@ -157,7 +194,21 @@ private actor TestMapsAPI: MapsAPI {
         return map
     }
 
-    func loadMapContents(mapID: String, apiKey: String) -> [LayerFeatures] { [] }
+    func loadMapContents(mapID: String, apiKey: String) -> [LayerFeatures] {
+        (layersByMap[mapID] ?? []).map { LayerFeatures(layer: $0, features: featuresByLayer[$0.id] ?? []) }
+    }
+    func createLayer(_ draft: LayerDraft, mapID: String, apiKey: String) -> MapLayer {
+        let layer = MapLayer(id: draft.id, mapID: mapID, name: draft.name, geometryType: draft.geometryType,
+                             style: [:], position: 0, createdAt: "2026-09-09T00:00:00Z", updatedAt: "2026-09-09T00:00:00Z")
+        layersByMap[mapID, default: []].append(layer)
+        return layer
+    }
+    func createPoint(_ draft: PointFeatureDraft, mapID: String, layerID: String, apiKey: String) -> GeoJSONFeature {
+        let feature = GeoJSONFeature(type: draft.type, id: draft.id, geometry: draft.geometry, properties: draft.properties,
+                                     createdAt: nil, updatedAt: nil)
+        featuresByLayer[layerID, default: []].append(feature)
+        return feature
+    }
     func exportMap(id: String, apiKey: String) -> Data { Data("{}".utf8) }
     func validatedKeys() -> [String] { validationHistory }
 }

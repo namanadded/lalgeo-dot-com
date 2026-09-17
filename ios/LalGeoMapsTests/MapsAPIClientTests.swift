@@ -44,7 +44,7 @@ final class MapsAPIClientTests: XCTestCase {
         URLProtocolStub.handler = { request in
             if request.httpMethod == "POST" {
                 didFailPost = true
-                let body = try XCTUnwrap(request.httpBody)
+                let body = try XCTUnwrap(Self.body(for: request))
                 let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: body) as? [String: Any])
                 XCTAssertEqual(object["id"] as? String, "map_ios_stable")
                 throw URLError(.networkConnectionLost)
@@ -93,6 +93,82 @@ final class MapsAPIClientTests: XCTestCase {
         XCTAssertEqual(received, export)
     }
 
+    func testCreatePointSendsLongitudeLatitudeAndStableID() async throws {
+        let client = makeClient()
+        let draft = PointFeatureDraft(id: "feature_ios_stable", name: "Synthetic hydrant", latitude: 51.05, longitude: -114.07)
+        URLProtocolStub.handler = { request in
+            XCTAssertEqual(request.httpMethod, "POST")
+            XCTAssertEqual(request.url?.path, "/v1/maps/map_1/layers/layer_1/features")
+            XCTAssertEqual(request.value(forHTTPHeaderField: "Authorization"), "Bearer key")
+            let object = try XCTUnwrap(try JSONSerialization.jsonObject(with: XCTUnwrap(Self.body(for: request))) as? [String: Any])
+            XCTAssertEqual(object["id"] as? String, draft.id)
+            XCTAssertEqual((object["geometry"] as? [String: Any])?["coordinates"] as? [Double], [-114.07, 51.05])
+            return Self.response(for: request, status: 201, body: Data(#"{"type":"FeatureCollection","features":[{"type":"Feature","id":"feature_ios_stable","geometry":{"type":"Point","coordinates":[-114.07,51.05]},"properties":{"name":"Synthetic hydrant"}}]}"#.utf8))
+        }
+
+        let created = try await client.createPoint(draft, mapID: "map_1", layerID: "layer_1", apiKey: "key")
+        XCTAssertEqual(created.id, draft.id)
+        XCTAssertEqual(created.geometry.point?.latitude, 51.05)
+    }
+
+    func testCreateLayerReconcilesLostResponseOnlyWhenMetadataMatches() async throws {
+        let client = makeClient()
+        let draft = LayerDraft(id: "layer_ios_stable", name: "Observations", geometryType: .point)
+        URLProtocolStub.handler = { request in
+            if request.httpMethod == "POST" { throw URLError(.networkConnectionLost) }
+            XCTAssertEqual(request.url?.path, "/v1/maps/map_1/layers/layer_ios_stable")
+            return Self.response(for: request, body: Self.layerResponse(id: draft.id, name: draft.name))
+        }
+
+        let layer = try await client.createLayer(draft, mapID: "map_1", apiKey: "key")
+        XCTAssertEqual(layer.id, draft.id)
+
+        URLProtocolStub.handler = { request in
+            if request.httpMethod == "POST" { throw URLError(.networkConnectionLost) }
+            return Self.response(for: request, body: Self.layerResponse(id: draft.id, name: "Different layer"))
+        }
+        do {
+            _ = try await client.createLayer(draft, mapID: "map_1", apiKey: "key")
+            XCTFail("Expected ID conflict for a different layer")
+        } catch let error as MapsAPIError {
+            if case let .server(status, code, _, _) = error {
+                XCTAssertEqual(status, 409)
+                XCTAssertEqual(code, "ID_CONFLICT")
+            } else { XCTFail("Unexpected error: \(error)") }
+        }
+    }
+
+    func testCreatePointReconcilesConflictAndRejectsDifferentFeature() async throws {
+        let client = makeClient()
+        let draft = PointFeatureDraft(id: "feature_ios_stable", name: "Synthetic hydrant", latitude: 51.05, longitude: -114.07)
+        URLProtocolStub.handler = { request in
+            if request.httpMethod == "POST" {
+                return Self.response(for: request, status: 409, body: Data(#"{"error":{"code":"ID_CONFLICT","message":"That ID already exists."},"request_id":"ray-1"}"#.utf8))
+            }
+            XCTAssertEqual(request.url?.path, "/v1/maps/map_1/layers/layer_1/features/feature_ios_stable")
+            return Self.response(for: request, body: Self.pointResponse(name: "Synthetic hydrant"))
+        }
+
+        let feature = try await client.createPoint(draft, mapID: "map_1", layerID: "layer_1", apiKey: "key")
+        XCTAssertEqual(feature.id, draft.id)
+
+        URLProtocolStub.handler = { request in
+            if request.httpMethod == "POST" {
+                return Self.response(for: request, status: 409, body: Data(#"{"error":{"code":"ID_CONFLICT","message":"That ID already exists."},"request_id":"ray-2"}"#.utf8))
+            }
+            return Self.response(for: request, body: Self.pointResponse(name: "Different point"))
+        }
+        do {
+            _ = try await client.createPoint(draft, mapID: "map_1", layerID: "layer_1", apiKey: "key")
+            XCTFail("Expected conflict for a different feature")
+        } catch let error as MapsAPIError {
+            if case let .server(status, code, _, _) = error {
+                XCTAssertEqual(status, 409)
+                XCTAssertEqual(code, "ID_CONFLICT")
+            } else { XCTFail("Unexpected error: \(error)") }
+        }
+    }
+
     private func makeClient() -> MapsAPIClient {
         let configuration = URLSessionConfiguration.ephemeral
         configuration.protocolClasses = [URLProtocolStub.self]
@@ -121,6 +197,36 @@ final class MapsAPIClientTests: XCTestCase {
             "maps": maps,
             "pagination": ["limit": limit, "offset": offset, "count": maps.count]
         ])
+    }
+
+    private static func layerResponse(id: String, name: String) -> Data {
+        try! JSONSerialization.data(withJSONObject: ["layer": [
+            "id": id, "map_id": "map_1", "name": name, "geometry_type": "Point", "style": [:],
+            "position": 0, "created_at": "2026-09-09T00:00:00Z", "updated_at": "2026-09-09T00:00:00Z"
+        ]])
+    }
+
+    private static func pointResponse(name: String) -> Data {
+        try! JSONSerialization.data(withJSONObject: [
+            "type": "Feature", "id": "feature_ios_stable",
+            "geometry": ["type": "Point", "coordinates": [-114.07, 51.05]],
+            "properties": ["name": name], "created_at": "2026-09-09T00:00:00Z", "updated_at": "2026-09-09T00:00:00Z"
+        ] as [String: Any])
+    }
+
+    private static func body(for request: URLRequest) -> Data? {
+        if let body = request.httpBody { return body }
+        guard let stream = request.httpBodyStream else { return nil }
+        stream.open()
+        defer { stream.close() }
+        var result = Data()
+        var buffer = [UInt8](repeating: 0, count: 4096)
+        while stream.hasBytesAvailable {
+            let count = stream.read(&buffer, maxLength: buffer.count)
+            if count <= 0 { break }
+            result.append(contentsOf: buffer[..<count])
+        }
+        return result
     }
 }
 

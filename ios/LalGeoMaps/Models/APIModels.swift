@@ -220,6 +220,44 @@ struct MapDraft: Encodable, Sendable {
     }
 }
 
+struct LayerDraft: Encodable, Sendable {
+    let id: String
+    let name: String
+    let geometryType: GeometryType
+
+    enum CodingKeys: String, CodingKey {
+        case id, name
+        case geometryType = "geometry_type"
+    }
+}
+
+struct PointFeatureDraft: Encodable, Sendable {
+    let type = "Feature"
+    let id: String
+    let geometry: GeoJSONGeometry
+    let properties: [String: JSONValue]
+
+    init(id: String, name: String, latitude: Double, longitude: Double) {
+        self.id = id
+        geometry = GeoJSONGeometry(type: .point, coordinates: .array([.number(longitude), .number(latitude)]))
+        properties = ["name": .string(name)]
+    }
+}
+
+enum PointLayerChoice: Sendable {
+    case existing(MapLayer)
+    case new(LayerDraft)
+}
+
+struct CreatedFeaturesEnvelope: Decodable, Sendable {
+    let type: String
+    let features: [GeoJSONFeature]
+}
+
+struct LayerEnvelope: Decodable, Sendable {
+    let layer: MapLayer
+}
+
 struct LayerFeatures: Identifiable, Hashable, Sendable {
     let layer: MapLayer
     let features: [GeoJSONFeature]

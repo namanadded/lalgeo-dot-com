@@ -26,6 +26,14 @@ struct AppEnvironment {
 actor UITestMapsAPI: MapsAPI {
     static let validKey = "synthetic-ui-key"
 
+    private var layersByMap: [String: [MapLayer]] = [:]
+    private var featuresByLayer: [String: [GeoJSONFeature]] = [:]
+
+    init() {
+        layersByMap["calgary_field_map"] = [Self.sampleLayer]
+        featuresByLayer[Self.sampleLayer.id] = Self.sampleFeatures
+    }
+
     private var maps: [LalGeoMap] = [
         LalGeoMap(
             id: "calgary_field_map",
@@ -92,11 +100,43 @@ actor UITestMapsAPI: MapsAPI {
 
     func loadMapContents(mapID: String, apiKey: String) throws -> [LayerFeatures] {
         try validate(apiKey: apiKey)
-        guard mapID == "calgary_field_map" else { return [] }
+        return (layersByMap[mapID] ?? []).map { layer in
+            LayerFeatures(layer: layer, features: featuresByLayer[layer.id] ?? [])
+        }
+    }
 
+    func createLayer(_ draft: LayerDraft, mapID: String, apiKey: String) throws -> MapLayer {
+        try validate(apiKey: apiKey)
+        guard maps.contains(where: { $0.id == mapID }) else {
+            throw MapsAPIError.server(status: 404, code: "MAP_NOT_FOUND", message: "Map not found.", requestID: nil)
+        }
+        if let existing = layersByMap[mapID]?.first(where: { $0.id == draft.id }) { return existing }
         let layer = MapLayer(
+            id: draft.id, mapID: mapID, name: draft.name, geometryType: draft.geometryType,
+            style: [:], position: layersByMap[mapID]?.count ?? 0,
+            createdAt: "2026-09-09T03:00:00.000Z", updatedAt: "2026-09-09T03:00:00.000Z"
+        )
+        layersByMap[mapID, default: []].append(layer)
+        return layer
+    }
+
+    func createPoint(_ draft: PointFeatureDraft, mapID: String, layerID: String, apiKey: String) throws -> GeoJSONFeature {
+        try validate(apiKey: apiKey)
+        guard layersByMap[mapID]?.contains(where: { $0.id == layerID && $0.geometryType == .point }) == true else {
+            throw MapsAPIError.server(status: 404, code: "LAYER_NOT_FOUND", message: "Point layer not found.", requestID: nil)
+        }
+        if let existing = featuresByLayer[layerID]?.first(where: { $0.id == draft.id }) { return existing }
+        let feature = GeoJSONFeature(
+            type: draft.type, id: draft.id, geometry: draft.geometry, properties: draft.properties,
+            createdAt: nil, updatedAt: nil
+        )
+        featuresByLayer[layerID, default: []].append(feature)
+        return feature
+    }
+
+    private static let sampleLayer = MapLayer(
             id: "field_observations",
-            mapID: mapID,
+            mapID: "calgary_field_map",
             name: "Field observations",
             geometryType: .point,
             style: [:],
@@ -104,7 +144,7 @@ actor UITestMapsAPI: MapsAPI {
             createdAt: "2026-09-08T16:00:00.000Z",
             updatedAt: "2026-09-09T02:10:00.000Z"
         )
-        let features = [
+    private static let sampleFeatures = [
             GeoJSONFeature(
                 type: "Feature",
                 id: "central_library",
@@ -122,8 +162,6 @@ actor UITestMapsAPI: MapsAPI {
                 updatedAt: nil
             )
         ]
-        return [LayerFeatures(layer: layer, features: features)]
-    }
 
     func exportMap(id: String, apiKey: String) throws -> Data {
         try validate(apiKey: apiKey)
@@ -134,4 +172,3 @@ actor UITestMapsAPI: MapsAPI {
         return Data("{\"project\":{\"id\":\"\(map.id)\",\"name\":\"\(escapedName)\",\"layers\":[{\"id\":\"empty_points\",\"name\":\"Points\",\"geometryType\":\"point\",\"selectable\":true,\"styleDefaults\":{},\"schema\":[],\"features\":[]}]},\"activeLayerId\":\"empty_points\",\"survey\":null}".utf8)
     }
 }
-

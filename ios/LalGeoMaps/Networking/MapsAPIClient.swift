@@ -6,6 +6,8 @@ protocol MapsAPI: Sendable {
     func createMap(_ draft: MapDraft, apiKey: String) async throws -> LalGeoMap
     func getMap(id: String, apiKey: String) async throws -> LalGeoMap
     func loadMapContents(mapID: String, apiKey: String) async throws -> [LayerFeatures]
+    func createLayer(_ draft: LayerDraft, mapID: String, apiKey: String) async throws -> MapLayer
+    func createPoint(_ draft: PointFeatureDraft, mapID: String, layerID: String, apiKey: String) async throws -> GeoJSONFeature
     func exportMap(id: String, apiKey: String) async throws -> Data
 }
 
@@ -117,6 +119,80 @@ struct MapsAPIClient: MapsAPI, @unchecked Sendable {
         }
     }
 
+    func createLayer(_ draft: LayerDraft, mapID: String, apiKey: String) async throws -> MapLayer {
+        var request = authorizedRequest(url: layersURL(mapID: mapID), apiKey: apiKey, method: "POST")
+        request.httpBody = try encoder.encode(draft)
+        do {
+            let envelope: LayerEnvelope = try await decode(request, expectedStatus: 201)
+            return envelope.layer
+        } catch let original as MapsAPIError where Self.shouldReconcile(original) {
+            do {
+                let existing = try await getLayer(id: draft.id, mapID: mapID, apiKey: apiKey)
+                guard existing.mapID == mapID, existing.name == draft.name,
+                      existing.geometryType == draft.geometryType else {
+                    throw Self.idCollision("A different layer already uses this ID.", original: original)
+                }
+                return existing
+            } catch let reconciliation as MapsAPIError where Self.isNotFound(reconciliation) {
+                throw original
+            }
+        }
+    }
+
+    func createPoint(_ draft: PointFeatureDraft, mapID: String, layerID: String, apiKey: String) async throws -> GeoJSONFeature {
+        var request = authorizedRequest(url: featuresURL(mapID: mapID, layerID: layerID), apiKey: apiKey, method: "POST")
+        request.httpBody = try encoder.encode(draft)
+        do {
+            let envelope: CreatedFeaturesEnvelope = try await decode(request, expectedStatus: 201)
+            guard envelope.features.count == 1, let feature = envelope.features.first,
+                  Self.samePoint(feature, as: draft) else { throw MapsAPIError.invalidResponse }
+            return feature
+        } catch let original as MapsAPIError where Self.shouldReconcile(original) {
+            do {
+                let existing = try await getFeature(id: draft.id, mapID: mapID, layerID: layerID, apiKey: apiKey)
+                guard Self.samePoint(existing, as: draft) else {
+                    throw Self.idCollision("A different feature already uses this ID.", original: original)
+                }
+                return existing
+            } catch let reconciliation as MapsAPIError where Self.isNotFound(reconciliation) {
+                throw original
+            }
+        }
+    }
+
+    private func getLayer(id: String, mapID: String, apiKey: String) async throws -> MapLayer {
+        let request = authorizedRequest(url: layersURL(mapID: mapID).appendingPathComponent(id), apiKey: apiKey)
+        let envelope: LayerEnvelope = try await decode(request, expectedStatus: 200)
+        return envelope.layer
+    }
+
+    private func getFeature(id: String, mapID: String, layerID: String, apiKey: String) async throws -> GeoJSONFeature {
+        let request = authorizedRequest(url: featuresURL(mapID: mapID, layerID: layerID).appendingPathComponent(id), apiKey: apiKey)
+        return try await decode(request, expectedStatus: 200)
+    }
+
+    private static func samePoint(_ feature: GeoJSONFeature, as draft: PointFeatureDraft) -> Bool {
+        feature.type == draft.type && feature.id == draft.id &&
+            feature.geometry == draft.geometry && feature.properties == draft.properties
+    }
+
+    private static func shouldReconcile(_ error: MapsAPIError) -> Bool {
+        switch error {
+        case .offline, .transport, .invalidResponse: true
+        case let .server(status, _, _, _): status == 409
+        case .unauthorized: false
+        }
+    }
+
+    private static func isNotFound(_ error: MapsAPIError) -> Bool {
+        if case let .server(status, _, _, _) = error { return status == 404 }
+        return false
+    }
+
+    private static func idCollision(_ message: String, original: MapsAPIError) -> MapsAPIError {
+        .server(status: 409, code: "ID_CONFLICT", message: message, requestID: original.requestID)
+    }
+
     func exportMap(id: String, apiKey: String) async throws -> Data {
         let request = authorizedRequest(
             url: mapURL(id: id).appendingPathComponent("export"),
@@ -154,6 +230,14 @@ struct MapsAPIClient: MapsAPI, @unchecked Sendable {
 
     private var mapsURL: URL {
         baseURL.appendingPathComponent("v1").appendingPathComponent("maps")
+    }
+
+    private func layersURL(mapID: String) -> URL {
+        mapURL(id: mapID).appendingPathComponent("layers")
+    }
+
+    private func featuresURL(mapID: String, layerID: String) -> URL {
+        layersURL(mapID: mapID).appendingPathComponent(layerID).appendingPathComponent("features")
     }
 
     private func mapURL(id: String) -> URL {

@@ -25,7 +25,27 @@ final class LalGeoMapsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Synthetic Site Walk"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["nativeMapPreview"].exists)
         XCTAssertTrue(app.descendants(matching: .any)["emptyLayersState"].waitForExistence(timeout: 3))
+        app.swipeUp()
         XCTAssertTrue(app.buttons["sharePortableCopyButton"].exists)
+
+        app.buttons["addPointButton"].tap()
+        XCTAssertTrue(app.navigationBars["Add point"].waitForExistence(timeout: 3))
+        let pointName = app.textFields["pointNameField"]
+        pointName.tap()
+        pointName.typeText("Synthetic gate")
+        let latitude = app.textFields["pointLatitudeField"]
+        latitude.tap()
+        latitude.typeText("51.05")
+        let longitude = app.textFields["pointLongitudeField"]
+        longitude.tap()
+        longitude.typeText("-114.07")
+        app.buttons["savePointButton"].tap()
+
+        XCTAssertTrue(app.staticTexts["1 feature · Point"].waitForExistence(timeout: 5))
+        let attachment = XCTAttachment(screenshot: app.screenshot())
+        attachment.name = "authored-point-map-detail"
+        attachment.lifetime = .keepAlways
+        add(attachment)
     }
 
     func testInvalidKeyExplainsRecoveryWithoutLeavingSetup() {

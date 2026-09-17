@@ -16,7 +16,7 @@ struct MapLibraryView: View {
                     ContentUnavailableView {
                         Label("No API Maps yet", systemImage: "map")
                     } description: {
-                        Text("Create a map here, then add layers and features through LalGeo’s API or web workspace.")
+                        Text("Create a map here, then add a Point layer and named locations on your iPhone.")
                     } actions: {
                         Button("Create Map") { isPresentingCreateMap = true }
                             .buttonStyle(.borderedProminent)
@@ -80,6 +80,7 @@ struct MapLibraryView: View {
                 }
             } footer: {
                 Text("API Maps are owner-scoped server maps. Portable copies open separately in LalGeo Maps on the web.")
+                    .font(.footnote)
             }
         }
         .listStyle(.insetGrouped)
@@ -136,4 +137,3 @@ private struct MapRow: View {
         }
     }
 }
-
