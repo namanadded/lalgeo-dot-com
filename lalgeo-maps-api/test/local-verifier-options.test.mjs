@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { mkdtemp, rm, symlink } from "node:fs/promises";
+import { mkdtemp, readFile, rm, symlink } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -9,12 +9,34 @@ import {
   DEFAULT_DATABASE,
   DEFAULT_REQUEST_HOSTNAME,
   DEFAULT_WORKER_DIRECTORY,
+  createErrorResponseValidator,
   isEntryPoint,
   normalizeDatabaseName,
   normalizeRequestHostname,
   parseArguments,
   usage,
 } from "../scripts/verify-local.mjs";
+
+const spec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
+
+test("local gate validates documented error bodies and matching request IDs", async () => {
+  const errors = createErrorResponseValidator(spec);
+  const reply = (status, code, requestId = "synthetic_error") => new Response(JSON.stringify({
+    error: { code, message: "Synthetic error" }, request_id: requestId,
+  }), {
+    status,
+    headers: {
+      "Content-Type": "application/json",
+      "Cache-Control": "no-store",
+      "X-Request-Id": "synthetic_error",
+      ...(status === 401 ? { "WWW-Authenticate": 'Bearer realm="lalgeo-maps-api"' } : {}),
+    },
+  });
+  assert.equal((await errors.validate("createMap", reply(409, "ID_CONFLICT"))).error.code, "ID_CONFLICT");
+  await assert.rejects(errors.validate("createMap", reply(409, "UNKNOWN_ERROR")), /does not match OpenAPI/);
+  await assert.rejects(errors.validate("createMap", reply(409, "ID_CONFLICT", "different_id")), /request_id/);
+  await assert.rejects(errors.validate("listMaps", reply(409, "ID_CONFLICT")), /No documented error response/);
+});
 
 test("local gate recognizes a symlinked CLI entry point", async (t) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "lalgeo-local-gate-entry-"));
