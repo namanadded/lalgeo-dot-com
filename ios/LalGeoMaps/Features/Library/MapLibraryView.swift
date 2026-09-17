@@ -120,12 +120,12 @@ private struct MapRow: View {
             VStack(alignment: .leading, spacing: 4) {
                 Text(map.name)
                     .font(.headline)
-                    .lineLimit(2)
+                    .fixedSize(horizontal: false, vertical: true)
                 if !map.description.isEmpty {
                     Text(map.description)
                         .font(.subheadline)
                         .foregroundStyle(.secondary)
-                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 if let date = map.updatedDate {
                     Text("Updated \(date.formatted(.relative(presentation: .named)))")

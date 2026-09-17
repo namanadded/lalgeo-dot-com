@@ -24,12 +24,13 @@ final class LalGeoMapsUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Synthetic Site Walk"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.descendants(matching: .any)["nativeMapPreview"].exists)
-        XCTAssertTrue(app.descendants(matching: .any)["emptyLayersState"].waitForExistence(timeout: 3))
         app.swipeUp()
+        XCTAssertTrue(app.descendants(matching: .any)["emptyLayersState"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.buttons["sharePortableCopyButton"].exists)
 
         app.buttons["addPointButton"].tap()
         XCTAssertTrue(app.navigationBars["Add point"].waitForExistence(timeout: 3))
+        attachScreenshot(of: app, named: "add-point-form")
         let pointName = app.textFields["pointNameField"]
         pointName.tap()
         pointName.typeText("Synthetic gate")
@@ -42,10 +43,7 @@ final class LalGeoMapsUITests: XCTestCase {
         app.buttons["savePointButton"].tap()
 
         XCTAssertTrue(app.staticTexts["1 feature · Point"].waitForExistence(timeout: 5))
-        let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "authored-point-map-detail"
-        attachment.lifetime = .keepAlways
-        add(attachment)
+        attachScreenshot(of: app, named: "authored-point-map-detail")
     }
 
     func testInvalidKeyExplainsRecoveryWithoutLeavingSetup() {
@@ -67,6 +65,7 @@ final class LalGeoMapsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["API Maps"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["Calgary Field Map"].exists)
         XCTAssertTrue(app.staticTexts["Foothills Inspection"].exists)
+        attachScreenshot(of: app, named: "seeded-map-library")
 
         try app.performAccessibilityAudit()
 
@@ -74,8 +73,12 @@ final class LalGeoMapsUITests: XCTestCase {
         XCTAssertTrue(app.navigationBars["Calgary Field Map"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.staticTexts["2 features · Point"].waitForExistence(timeout: 5))
 
+        attachScreenshot(of: app, named: "calgary-map-detail")
+    }
+
+    private func attachScreenshot(of app: XCUIApplication, named name: String) {
         let attachment = XCTAttachment(screenshot: app.screenshot())
-        attachment.name = "calgary-map-detail"
+        attachment.name = name
         attachment.lifetime = .keepAlways
         add(attachment)
     }
