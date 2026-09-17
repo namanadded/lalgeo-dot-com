@@ -37,7 +37,7 @@ function parseJson(value: unknown, fallback: unknown = {}) {
 }
 
 function jsonObject(value: unknown, label: string): JsonObject {
-  if (value === undefined || value === null) return {};
+  if (value === undefined) return {};
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     throw new ApiError(400, "VALIDATION_ERROR", `${label} must be a JSON object.`);
   }
@@ -45,9 +45,9 @@ function jsonObject(value: unknown, label: string): JsonObject {
 }
 
 function safeId(value: unknown, prefix: string) {
-  if (value === undefined || value === null || value === "") return id(prefix);
-  const candidate = String(value);
-  if (!ID_PATTERN.test(candidate)) throw new ApiError(400, "INVALID_ID", "IDs may contain letters, numbers, underscores, and hyphens (maximum 128 characters).");
+  if (value === undefined) return id(prefix);
+  const candidate = value;
+  if (typeof candidate !== "string" || !ID_PATTERN.test(candidate)) throw new ApiError(400, "INVALID_ID", "IDs may contain letters, numbers, underscores, and hyphens (maximum 128 characters).");
   return candidate;
 }
 
@@ -58,12 +58,47 @@ function requiredName(value: unknown, label = "name") {
   return name;
 }
 
-function numberInRange(value: unknown, min: number, max: number, label: string) {
-  if (value === undefined || value === null) return null;
+function numberInRange(value: unknown, min: number, max: number, label: string, nullable = false) {
+  if (value === undefined || (nullable && value === null)) return null;
   if (typeof value !== "number" || !Number.isFinite(value) || value < min || value > max) {
     throw new ApiError(400, "VALIDATION_ERROR", `${label} must be a number from ${min} to ${max}.`);
   }
   return value;
+}
+
+function mapCenter(value: unknown, nullable = false): { latitude: number | null; longitude: number | null } {
+  if (nullable && value === null) return { latitude: null, longitude: null };
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new ApiError(400, "VALIDATION_ERROR", "center requires both latitude and longitude.");
+  }
+  const center = value as JsonObject;
+  const latitude = numberInRange(center.latitude, -90, 90, "center.latitude");
+  const longitude = numberInRange(center.longitude, -180, 180, "center.longitude");
+  if (latitude === null || longitude === null) {
+    throw new ApiError(400, "VALIDATION_ERROR", "center requires both latitude and longitude.");
+  }
+  return { latitude, longitude };
+}
+
+function description(value: unknown) {
+  if (value === undefined) return "";
+  if (typeof value !== "string") throw new ApiError(400, "VALIDATION_ERROR", "description must be a string.");
+  return value;
+}
+
+function mapType(value: unknown) {
+  if (value === "standard" || value === "satellite" || value === "hybrid") return value;
+  throw new ApiError(400, "VALIDATION_ERROR", "map_type must be standard, satellite, or hybrid.");
+}
+
+function showBasemapPois(value: unknown) {
+  if (typeof value !== "boolean") throw new ApiError(400, "VALIDATION_ERROR", "show_basemap_pois must be a boolean.");
+  return value ? 1 : 0;
+}
+
+function layerPosition(value: unknown) {
+  if (!Number.isSafeInteger(value)) throw new ApiError(400, "VALIDATION_ERROR", "position must be a safe integer.");
+  return value as number;
 }
 
 async function body(req: Request): Promise<JsonObject> {
@@ -269,12 +304,9 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
 
   if (path === "/v1/maps" && req.method === "POST") {
     const input = await body(req); const created = now(); const mapId = safeId(input.id, "map");
-    const center = input.center as JsonObject | undefined;
-    const lat = center ? numberInRange(center.latitude, -90, 90, "center.latitude") : null;
-    const lng = center ? numberInRange(center.longitude, -180, 180, "center.longitude") : null;
-    if ((lat === null) !== (lng === null)) throw new ApiError(400, "VALIDATION_ERROR", "center requires both latitude and longitude.");
+    const center = input.center === undefined ? { latitude: null, longitude: null } : mapCenter(input.center);
     await env.DB.prepare("INSERT INTO maps (id,owner_id,name,description,center_lat,center_lng,zoom,map_type,show_basemap_pois,metadata_json,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)")
-      .bind(mapId, auth.ownerId, requiredName(input.name), String(input.description || ""), lat, lng, numberInRange(input.zoom, 0, 24, "zoom"), input.map_type === "satellite" || input.map_type === "hybrid" ? input.map_type : "standard", input.show_basemap_pois === false ? 0 : 1, JSON.stringify(jsonObject(input.metadata, "metadata")), created).run();
+      .bind(mapId, auth.ownerId, requiredName(input.name), description(input.description), center.latitude, center.longitude, numberInRange(input.zoom, 0, 24, "zoom"), input.map_type === undefined ? "standard" : mapType(input.map_type), input.show_basemap_pois === undefined ? 1 : showBasemapPois(input.show_basemap_pois), JSON.stringify(jsonObject(input.metadata, "metadata")), created).run();
     return response({ map: mapView(await requireMap(env.DB, auth.ownerId, mapId)) }, 201);
   }
   if (path === "/v1/maps" && req.method === "GET") {
@@ -291,12 +323,12 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
       await requireMap(env.DB, auth.ownerId, mapId); const input = await body(req); const updates: string[] = []; const values: unknown[] = [];
       const set = (column: string, value: unknown) => { updates.push(`${column}=?${values.length + 1}`); values.push(value); };
       if ("name" in input) set("name", requiredName(input.name));
-      if ("description" in input) set("description", String(input.description || ""));
-      if ("zoom" in input) set("zoom", numberInRange(input.zoom, 0, 24, "zoom"));
+      if ("description" in input) set("description", description(input.description));
+      if ("zoom" in input) set("zoom", numberInRange(input.zoom, 0, 24, "zoom", true));
       if ("metadata" in input) set("metadata_json", JSON.stringify(jsonObject(input.metadata, "metadata")));
-      if ("show_basemap_pois" in input) set("show_basemap_pois", input.show_basemap_pois === false ? 0 : 1);
-      if ("map_type" in input) { if (!["standard", "satellite", "hybrid"].includes(String(input.map_type))) throw new ApiError(400, "VALIDATION_ERROR", "map_type must be standard, satellite, or hybrid."); set("map_type", input.map_type); }
-      if ("center" in input) { const center = input.center as JsonObject; set("center_lat", numberInRange(center?.latitude, -90, 90, "center.latitude")); set("center_lng", numberInRange(center?.longitude, -180, 180, "center.longitude")); }
+      if ("show_basemap_pois" in input) set("show_basemap_pois", showBasemapPois(input.show_basemap_pois));
+      if ("map_type" in input) set("map_type", mapType(input.map_type));
+      if ("center" in input) { const center = mapCenter(input.center, true); set("center_lat", center.latitude); set("center_lng", center.longitude); }
       if (updates.length) { set("updated_at", now()); values.push(mapId, auth.ownerId); await env.DB.prepare(`UPDATE maps SET ${updates.join(",")} WHERE id=?${values.length - 1} AND owner_id=?${values.length}`).bind(...values).run(); }
       return response({ map: mapView(await requireMap(env.DB, auth.ownerId, mapId)) });
     }
@@ -304,7 +336,7 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
   if (layersMatch) {
     const mapId = decodeURIComponent(layersMatch[1]); await requireMap(env.DB, auth.ownerId, mapId);
     if (req.method === "GET") { const rows = (await env.DB.prepare("SELECT * FROM layers WHERE map_id=?1 AND owner_id=?2 ORDER BY position,id").bind(mapId, auth.ownerId).all<Record<string, unknown>>()).results || []; return response({ layers: rows.map(layerView) }); }
-    if (req.method === "POST") { const input = await body(req); const layerId = safeId(input.id, "layer"); const created = now(); const type = geometryType(input.geometry_type); const position = Number.isInteger(input.position) ? Number(input.position) : 0;
+    if (req.method === "POST") { const input = await body(req); const layerId = safeId(input.id, "layer"); const created = now(); const type = geometryType(input.geometry_type); const position = input.position === undefined ? 0 : layerPosition(input.position);
       await env.DB.prepare("INSERT INTO layers (id,map_id,owner_id,name,geometry_type,style_json,position,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?8)").bind(layerId, mapId, auth.ownerId, requiredName(input.name), type, JSON.stringify(jsonObject(input.style, "style")), position, created).run();
       await env.DB.prepare("UPDATE maps SET updated_at=?1 WHERE id=?2 AND owner_id=?3").bind(created, mapId, auth.ownerId).run(); return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) }, 201); }
   }
@@ -312,7 +344,7 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
     const mapId = decodeURIComponent(layerMatch[1]); const layerId = decodeURIComponent(layerMatch[2]);
     if (req.method === "GET") return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) });
     if (req.method === "DELETE") { await requireLayer(env.DB, auth.ownerId, mapId, layerId); await env.DB.prepare("DELETE FROM layers WHERE id=?1 AND map_id=?2 AND owner_id=?3").bind(layerId, mapId, auth.ownerId).run(); return new Response(null, { status: 204 }); }
-    if (req.method === "PATCH") { const existing = await requireLayer(env.DB, auth.ownerId, mapId, layerId); const input = await body(req); const name = "name" in input ? requiredName(input.name) : existing.name; const style = "style" in input ? jsonObject(input.style, "style") : parseJson(existing.style_json); const position = "position" in input && Number.isInteger(input.position) ? input.position : existing.position; const updated = now();
+    if (req.method === "PATCH") { const existing = await requireLayer(env.DB, auth.ownerId, mapId, layerId); const input = await body(req); const name = "name" in input ? requiredName(input.name) : existing.name; const style = "style" in input ? jsonObject(input.style, "style") : parseJson(existing.style_json); const position = "position" in input ? layerPosition(input.position) : existing.position; const updated = now();
       await env.DB.prepare("UPDATE layers SET name=?1,style_json=?2,position=?3,updated_at=?4 WHERE id=?5 AND map_id=?6 AND owner_id=?7").bind(name, JSON.stringify(style || {}), position, updated, layerId, mapId, auth.ownerId).run(); return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) }); }
   }
   if (featuresMatch) {
