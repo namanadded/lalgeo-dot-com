@@ -104,9 +104,33 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   wrongServer.servers[0].url = "https://example.invalid";
   assert.throws(() => validateOpenApi(wrongServer), /primary server/);
 
+  const ambiguousTitle = structuredClone(openApiFixture());
+  ambiguousTitle.info.title = "LalGeo Maps API";
+  assert.throws(() => validateOpenApi(ambiguousTitle), /must identify itself as LalGeo Maps Authoring API/);
+
+  const missingSnapshotDistinction = structuredClone(openApiFixture());
+  missingSnapshotDistinction.info.description = "Create maps with bearer authentication.";
+  assert.throws(() => validateOpenApi(missingSnapshotDistinction), /must distinguish private owner-scoped authoring/);
+
+  const missingAccessContact = structuredClone(openApiFixture());
+  delete missingAccessContact.info.contact;
+  assert.throws(() => validateOpenApi(missingAccessContact), /must provide the canonical Authoring API access path/);
+
+  const wrongExternalDocs = structuredClone(openApiFixture());
+  wrongExternalDocs.externalDocs.url = "https://example.invalid/docs";
+  assert.throws(() => validateOpenApi(wrongExternalDocs), /externalDocs must link to/);
+
+  const staleIdentityVersion = structuredClone(openApiFixture());
+  staleIdentityVersion.info.version = "1.0.0";
+  assert.throws(() => validateOpenApi(staleIdentityVersion), /identity and access metadata must match the repository contract/);
+
   const missingBearer = structuredClone(openApiFixture());
   delete missingBearer.components.securitySchemes.bearerAuth;
   assert.throws(() => validateOpenApi(missingBearer), /HTTP bearer authentication/);
+
+  const unactionableBearer = structuredClone(openApiFixture());
+  unactionableBearer.components.securitySchemes.bearerAuth.description = "LalGeo API key";
+  assert.throws(() => validateOpenApi(unactionableBearer), /must explain its owner scope and where to request access/);
 
   const protectedHealth = structuredClone(openApiFixture());
   delete protectedHealth.paths["/v1/health"].get.security;
