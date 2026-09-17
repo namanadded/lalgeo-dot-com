@@ -36,7 +36,7 @@ npm run verify:maps-local
 ```
 
 - `check` type-checks the selected Worker and runs the Maps API contract tests where applicable.
-- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, exercises public `HEAD`, health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer, and validates all 15 JSON success payloads against their documented response schemas.
+- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, exercises public `HEAD`, health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer. It validates all 15 JSON success payloads and representative 400/401/404/409/413/500/503 errors against the documented schemas, using isolated misconfiguration and unmigrated-D1 probes for 503 and 500.
 - `verify:maps-local` runs the same synthetic journey through `lalgeo-saas-api`, including the real `lalgeo-business` migration chain, hostname routing, host-wide HTTP-to-HTTPS redirect, and HSTS policy used by production.
 - `deploy:dry-run` bundles the combined Worker without publishing it.
 - `verify:production` sends only unauthenticated `GET`, `HEAD`, and `OPTIONS` requests to the canonical API. It requires a host-wide permanent HTTP-to-HTTPS redirect, one year of HSTS, public bodyless `HEAD` probes, browser-readable request IDs, an unambiguous private Authoring API identity and access path, and the existing strict JSON, OpenAPI, auth, and CORS contracts. It never sends a key or mutates data.
@@ -62,10 +62,12 @@ Replace the placeholder in `.dev.vars` with the SHA-256 hash of a development-on
 
 Send the raw key as `Authorization: Bearer <key>`. Data routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing or invalid. Health and OpenAPI discovery support public `GET` and bodyless `HEAD` checks. Canonical HTTP requests redirect permanently to HTTPS, and browser clients from an allowed origin can read `X-Request-Id`. Every map, layer, and feature query is owner-scoped.
 
+Omit an `id` to generate one; an explicitly supplied `id` must be a valid string. Optional map and layer fields use defaults only when omitted—invalid values return `400` without changing stored data. A map center requires both numeric coordinates; use `{"center":null}` in a map `PATCH` to clear it, and `{"zoom":null}` to clear zoom. A layer position must be a safe integer.
+
 ## Deployment
 
 [`DEPLOYMENT.md`](DEPLOYMENT.md) is the owner-only migration, deployment, acceptance, and rollback runbook for the combined Worker. Do not apply remote migrations, publish the Worker, change credentials, or alter production infrastructure from automated runs.
 
 ## Contract
 
-See [`openapi.json`](openapi.json) and the public guide at [`../developers/index.html`](../developers/index.html). Every export is accepted by the Maps project importer. An API map with no layers gets a deterministic `empty_points` layer only in the portable copy; the API map remains unchanged. WGS84 positions support longitude, latitude, and an optional finite altitude in metres. Client-supplied resource IDs make duplicate retries detectable: a reused ID returns `409 ID_CONFLICT` rather than silently creating another record. Durable `Idempotency-Key` replay semantics are not implemented yet, so an agent should always supply stable IDs and reconcile a timeout with `GET` before retrying.
+See [`openapi.json`](openapi.json), the [error and retry guide](ERRORS.md), and the public guide at [`../developers/index.html`](../developers/index.html). Every export is accepted by the Maps project importer. An API map with no layers gets a deterministic `empty_points` layer only in the portable copy; the API map remains unchanged. WGS84 positions support longitude, latitude, and an optional finite altitude in metres. Client-supplied resource IDs make duplicate retries detectable: a reused ID returns `409 ID_CONFLICT` rather than silently creating another record. Durable `Idempotency-Key` replay semantics are not implemented yet, so an agent should always supply stable IDs and reconcile a timeout with `GET` before retrying.

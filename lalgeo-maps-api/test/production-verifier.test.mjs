@@ -94,6 +94,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
     operationCount: 20,
     successSchemaCount: 15,
     bodylessSuccessCount: 5,
+    errorResponseCount: 77,
   });
 
   const wrongVersion = structuredClone(openApiFixture());
@@ -213,7 +214,7 @@ test("OpenAPI validation requires resolvable JSON schemas and bodyless HEAD/DELE
     "#/components/schemas/MissingError";
   assert.throws(
     () => validateOpenApi(danglingErrorReference),
-    /OpenAPI document does not resolve.*MissingError/,
+    /createMap 400 response must use the JSON Error schema/,
   );
 
   const deleteWithContent = openApiFixture();
@@ -233,6 +234,36 @@ test("OpenAPI validation requires resolvable JSON schemas and bodyless HEAD/DELE
     () => validateOpenApi(headWithContent),
     /headHealth 200 response must remain bodyless/,
   );
+});
+
+test("OpenAPI validation rejects missing or misleading failure contracts", () => {
+  const missingAuth = openApiFixture();
+  delete missingAuth.paths["/v1/maps/{mapId}/layers"].get.responses["401"];
+  assert.throws(() => validateOpenApi(missingAuth), /listLayers must define exactly these error responses/);
+
+  const fictionalRateLimit = openApiFixture();
+  fictionalRateLimit.paths["/v1/maps"].get.responses["429"] = { $ref: "#/components/responses/TooManyRequests" };
+  assert.throws(() => validateOpenApi(fictionalRateLimit), /listMaps must define exactly these error responses/);
+
+  const missingConflict = openApiFixture();
+  delete missingConflict.paths["/v1/maps/{mapId}/layers/{layerId}/features"].post.responses["409"];
+  assert.throws(() => validateOpenApi(missingConflict), /createFeatures must define exactly these error responses/);
+
+  const wrongErrorSchema = openApiFixture();
+  wrongErrorSchema.components.responses.Conflict.content["application/json"].schema.$ref = "#/components/schemas/MapResponse";
+  assert.throws(() => validateOpenApi(wrongErrorSchema), /createMap 409 response must use the JSON Error schema/);
+
+  const missingRequestId = openApiFixture();
+  delete missingRequestId.components.responses.NotFound.headers["X-Request-Id"];
+  assert.throws(() => validateOpenApi(missingRequestId), /getMap 404 response must document the X-Request-Id header/);
+
+  const successWithoutRequestId = openApiFixture();
+  delete successWithoutRequestId.paths["/v1/health"].head.responses["200"].headers;
+  assert.throws(() => validateOpenApi(successWithoutRequestId), /headHealth 200 response must document the X-Request-Id header/);
+
+  const missingBearerChallenge = openApiFixture();
+  delete missingBearerChallenge.components.responses.Unauthorized.headers["WWW-Authenticate"];
+  assert.throws(() => validateOpenApi(missingBearerChallenge), /listMaps 401 response must document the bearer challenge/);
 });
 
 test("production verification sends only credential-free GET, HEAD, and OPTIONS requests", async (t) => {
@@ -309,6 +340,7 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
     operationCount: 20,
     successSchemaCount: 15,
     bodylessSuccessCount: 5,
+    errorResponseCount: 77,
   });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],

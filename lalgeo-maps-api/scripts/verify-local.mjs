@@ -62,6 +62,42 @@ export function createSuccessResponseValidator(spec) {
   };
 }
 
+export function createErrorResponseValidator(spec) {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  const validator = ajv.compile({
+    $schema: "https://json-schema.org/draft/2020-12/schema",
+    components: spec.components,
+    $ref: "#/components/schemas/Error",
+  });
+  const operations = new Map();
+  for (const pathItem of Object.values(spec.paths || {})) {
+    if (!pathItem || typeof pathItem !== "object" || Array.isArray(pathItem)) continue;
+    for (const [method, operation] of Object.entries(pathItem)) {
+      if (HTTP_METHODS.has(method.toLowerCase()) && operation?.operationId) {
+        operations.set(operation.operationId, operation);
+      }
+    }
+  }
+
+  return {
+    async validate(operationId, response) {
+      const documented = operations.get(operationId)?.responses?.[response.status];
+      assert.equal(
+        documented?.$ref?.startsWith("#/components/responses/"), true,
+        `No documented error response for ${operationId}:${response.status}`,
+      );
+      const payload = await json(response);
+      assert.ok(validator(payload), `${operationId}:${response.status} error does not match OpenAPI: ${ajv.errorsText(validator.errors)}`);
+      assert.ok(response.headers.get("x-request-id"), `${operationId}:${response.status} is missing X-Request-Id`);
+      assert.equal(payload.request_id, response.headers.get("x-request-id"), `${operationId}:${response.status} request_id must match X-Request-Id`);
+      assert.equal(response.headers.get("cache-control"), "no-store");
+      if (response.status === 401) assert.equal(response.headers.get("www-authenticate"), 'Bearer realm="lalgeo-maps-api"');
+      return payload;
+    },
+  };
+}
+
 function readOption(argv, index, option) {
   const value = argv[index + 1];
   if (!value || value.startsWith("--")) throw new Error(`${option} requires a value.`);
@@ -208,6 +244,10 @@ async function successJson(response, responseContract, operationId) {
   return responseContract.validate(operationId, response.status, await json(response));
 }
 
+async function errorJson(response, errorContract, operationId) {
+  return errorContract.validate(operationId, response);
+}
+
 async function waitForWorker(baseUrl, child, logs, expectedStatus = 200) {
   const deadline = Date.now() + 20_000;
   while (Date.now() < deadline) {
@@ -233,12 +273,28 @@ async function stop(child) {
   if (child.exitCode === null) child.kill("SIGKILL");
 }
 
+function createRequestValidators(spec) {
+  const ajv = new Ajv2020({ allErrors: true, strict: false });
+  addFormats(ajv);
+  return Object.fromEntries(
+    ["MapInput", "MapPatchInput", "LayerInput", "LayerPatchInput", "Feature"].map((name) => [
+      name,
+      ajv.compile({
+        $schema: "https://json-schema.org/draft/2020-12/schema",
+        components: spec.components,
+        $ref: `#/components/schemas/${name}`,
+      }),
+    ]),
+  );
+}
+
 async function main({ workerDirectory, database, requestHostname }) {
   const wrangler = path.join(workerDirectory, "node_modules", ".bin", process.platform === "win32" ? "wrangler.cmd" : "wrangler");
   await requireWorkerTarget(workerDirectory, wrangler);
   const mapsProjectContract = loadLalGeoProjectContract();
   const openApiSpec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
   const responseContract = createSuccessResponseValidator(openApiSpec);
+  const errorContract = createErrorResponseValidator(openApiSpec);
   const stateDirectory = await mkdtemp(path.join(os.tmpdir(), "lalgeo-maps-api-gate-"));
   const bundleDirectory = path.join(stateDirectory, "bundle");
   const logPath = path.join(stateDirectory, "wrangler.log");
@@ -345,6 +401,7 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(publicVerification.operationCount, 20);
     assert.equal(publicVerification.successSchemaCount, 15);
     assert.equal(publicVerification.bodylessSuccessCount, 5);
+    assert.equal(publicVerification.errorResponseCount, 77);
     const healthSchemaResponse = await request(baseUrl, "/v1/health");
     assert.equal(healthSchemaResponse.status, 200);
     if (requestHostname) assert.equal(healthSchemaResponse.headers.get("strict-transport-security"), "max-age=31536000");
@@ -359,6 +416,9 @@ async function main({ workerDirectory, database, requestHostname }) {
     record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
+    const unauthenticatedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map");
+    assert.equal(unauthenticatedMapResponse.status, 401);
+    assert.equal((await errorJson(unauthenticatedMapResponse, errorContract, "getMap")).error.code, "UNAUTHORIZED");
     const invalidMetadataMapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -369,7 +429,8 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(invalidMetadataMapResponse.status, 400);
-    assert.equal((await json(invalidMetadataMapResponse)).error?.code, "VALIDATION_ERROR");
+    assert.equal((await errorJson(invalidMetadataMapResponse, errorContract, "createMap")).error?.code, "VALIDATION_ERROR");
+    record("protected routes challenge missing keys with the documented error envelope");
 
     const mapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
@@ -385,13 +446,90 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal((await successJson(mapResponse, responseContract, "createMap")).map?.id, "synthetic_runtime_map");
     record("authenticated client creates a synthetic map");
 
+    const requestValidators = createRequestValidators(openApiSpec);
+    const rejectInvalidInput = async (pathname, method, schema, payload, code = "VALIDATION_ERROR") => {
+      assert.equal(requestValidators[schema](payload), false, `${schema} should reject ${JSON.stringify(payload)}`);
+      const result = await request(baseUrl, pathname, {
+        method,
+        headers: { ...authorization, "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      assert.equal(result.status, 400, `${method} ${pathname}: ${JSON.stringify(payload)}`);
+      assert.equal((await json(result)).error?.code, code);
+    };
+    for (const [payload, code] of [
+      [{ id: null, name: "Invalid ID" }, "INVALID_ID"],
+      [{ id: "", name: "Invalid ID" }, "INVALID_ID"],
+      [{ id: 123, name: "Invalid ID" }, "INVALID_ID"],
+      [{ id: "bad_center", name: "Invalid center", center: null }, "VALIDATION_ERROR"],
+      [{ id: "bad_center", name: "Invalid center", center: { latitude: 51 } }, "VALIDATION_ERROR"],
+      [{ id: "bad_center", name: "Invalid center", center: { latitude: null, longitude: null } }, "VALIDATION_ERROR"],
+      [{ id: "bad_zoom", name: "Invalid zoom", zoom: null }, "VALIDATION_ERROR"],
+      [{ id: "bad_type", name: "Invalid type", map_type: "terrain" }, "VALIDATION_ERROR"],
+      [{ id: "bad_pois", name: "Invalid POIs", show_basemap_pois: "false" }, "VALIDATION_ERROR"],
+      [{ id: "bad_description", name: "Invalid description", description: { text: "wrong" } }, "VALIDATION_ERROR"],
+      [{ id: "bad_metadata", name: "Invalid metadata", metadata: null }, "VALIDATION_ERROR"],
+    ]) {
+      await rejectInvalidInput("/v1/maps", "POST", "MapInput", payload, code);
+    }
+    const mapsAfterInvalidCreates = await request(baseUrl, "/v1/maps", { headers: authorization });
+    assert.deepEqual((await successJson(mapsAfterInvalidCreates, responseContract, "listMaps")).maps.map((map) => map.id), ["synthetic_runtime_map"]);
+    const generatedMapResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST", headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ name: "Generated ID fixture" }),
+    });
+    assert.equal(generatedMapResponse.status, 201);
+    const generatedMap = (await successJson(generatedMapResponse, responseContract, "createMap")).map;
+    assert.match(generatedMap.id, /^map_[a-f0-9]{32}$/);
+    assert.equal(generatedMap.center, null);
+    assert.equal(generatedMap.zoom, null);
+    const generatedMapDelete = await request(baseUrl, `/v1/maps/${generatedMap.id}`, { method: "DELETE", headers: authorization });
+    assert.equal(generatedMapDelete.status, 204);
+    record("invalid map fields and explicit IDs fail without creating a map");
+
+    const initialMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
+    const initialMap = (await successJson(initialMapResponse, responseContract, "getMap")).map;
+    for (const payload of [
+      { center: { latitude: 51 } },
+      { center: { longitude: -114 } },
+      { center: { latitude: null, longitude: -114 } },
+      { center: {} },
+      { show_basemap_pois: "false" },
+      { description: 42 },
+      { map_type: null },
+      { zoom: "12" },
+      { metadata: null },
+    ]) {
+      await rejectInvalidInput("/v1/maps/synthetic_runtime_map", "PATCH", "MapPatchInput", payload);
+      const current = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
+      assert.deepEqual((await successJson(current, responseContract, "getMap")).map, initialMap);
+    }
+    const unchangedExport = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
+    assert.deepEqual((await successJson(unchangedExport, responseContract, "exportMap")).project.mapOptions.center, { lat: 51.0447, lng: -114.0719 });
+    const clearedCenterPayload = { center: null, zoom: null };
+    assert.equal(requestValidators.MapPatchInput(clearedCenterPayload), true);
+    const clearedCenterResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
+      method: "PATCH", headers: { ...authorization, "Content-Type": "application/json" }, body: JSON.stringify(clearedCenterPayload),
+    });
+    assert.equal(clearedCenterResponse.status, 200);
+    const clearedMap = (await successJson(clearedCenterResponse, responseContract, "updateMap")).map;
+    assert.equal(clearedMap.center, null);
+    assert.equal(clearedMap.zoom, null);
+    const restoredCenterResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
+      method: "PATCH", headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ center: initialMap.center, zoom: initialMap.zoom }),
+    });
+    assert.equal(restoredCenterResponse.status, 200);
+    assert.deepEqual((await successJson(restoredCenterResponse, responseContract, "updateMap")).map.center, initialMap.center);
+    record("partial centers cannot corrupt maps; explicit null clears center and zoom");
+
     const invalidMetadataPatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
       method: "PATCH",
       headers: { ...authorization, "Content-Type": "application/json" },
       body: JSON.stringify({ metadata: "not-an-object" }),
     });
     assert.equal(invalidMetadataPatchResponse.status, 400);
-    assert.equal((await json(invalidMetadataPatchResponse)).error?.code, "VALIDATION_ERROR");
+    assert.equal((await errorJson(invalidMetadataPatchResponse, errorContract, "updateMap")).error?.code, "VALIDATION_ERROR");
     const unchangedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
     assert.equal(unchangedMapResponse.status, 200);
     assert.deepEqual((await successJson(unchangedMapResponse, responseContract, "getMap")).map?.metadata, {});
@@ -442,7 +580,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       body: JSON.stringify({ id: "invalid_style_layer", name: "Invalid style fixture", geometry_type: "Point", style: [] }),
     });
     assert.equal(invalidStyleLayerResponse.status, 400);
-    assert.equal((await json(invalidStyleLayerResponse)).error?.code, "VALIDATION_ERROR");
+    assert.equal((await errorJson(invalidStyleLayerResponse, errorContract, "createLayer")).error?.code, "VALIDATION_ERROR");
 
     const layerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
@@ -451,6 +589,24 @@ async function main({ workerDirectory, database, requestHostname }) {
     });
     assert.equal(layerResponse.status, 201);
     assert.equal((await successJson(layerResponse, responseContract, "createLayer")).layer?.id, "places");
+
+    for (const position of [null, "2", 1.5, 9007199254740992]) {
+      await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers", "POST", "LayerInput", {
+        id: "invalid_position_layer", name: "Invalid position fixture", geometry_type: "Point", position,
+      });
+    }
+    const layersAfterInvalidCreate = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", { headers: authorization });
+    assert.deepEqual((await successJson(layersAfterInvalidCreate, responseContract, "listLayers")).layers.map((layer) => layer.id), ["places"]);
+    record("invalid layer positions fail without creating a layer");
+
+    const initialLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
+    const initialLayer = (await successJson(initialLayerResponse, responseContract, "getLayer")).layer;
+    for (const position of [null, "2", 1.5, 9007199254740992]) {
+      await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers/places", "PATCH", "LayerPatchInput", { position });
+      const current = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
+      assert.deepEqual((await successJson(current, responseContract, "getLayer")).layer, initialLayer);
+    }
+    record("invalid layer updates fail without changing position or timestamps");
 
     const routeLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
@@ -492,7 +648,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       body: JSON.stringify({ style: "not-an-object" }),
     });
     assert.equal(invalidStylePatchResponse.status, 400);
-    assert.equal((await json(invalidStylePatchResponse)).error?.code, "VALIDATION_ERROR");
+    assert.equal((await errorJson(invalidStylePatchResponse, errorContract, "updateLayer")).error?.code, "VALIDATION_ERROR");
     const unchangedLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places", { headers: authorization });
     assert.equal(unchangedLayerResponse.status, 200);
     assert.deepEqual((await successJson(unchangedLayerResponse, responseContract, "getLayer")).layer?.style, {});
@@ -506,6 +662,10 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal((await successJson(layerPatchResponse, responseContract, "updateLayer")).layer?.style?.symbol_color, "Blue");
     record("layer list, read, and update routes preserve type and style");
 
+    await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers/places/features", "POST", "Feature", {
+      type: "Feature", id: null, geometry: { type: "Point", coordinates: [-114.051, 51.0453] }, properties: {},
+    }, "INVALID_ID");
+
     const invalidAltitudeResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/geo+json" },
@@ -517,7 +677,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(invalidAltitudeResponse.status, 400);
-    assert.equal((await json(invalidAltitudeResponse)).error?.code, "INVALID_GEOMETRY");
+    assert.equal((await errorJson(invalidAltitudeResponse, errorContract, "createFeatures")).error?.code, "INVALID_GEOMETRY");
 
     const extraDimensionResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
       method: "POST",
@@ -530,7 +690,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       }),
     });
     assert.equal(extraDimensionResponse.status, 400);
-    assert.equal((await json(extraDimensionResponse)).error?.code, "INVALID_GEOMETRY");
+    assert.equal((await errorJson(extraDimensionResponse, errorContract, "createFeatures")).error?.code, "INVALID_GEOMETRY");
 
     const featureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
       method: "POST",
@@ -617,8 +777,26 @@ async function main({ workerDirectory, database, requestHostname }) {
       body: JSON.stringify({ id: "synthetic_runtime_map", name: "Synthetic retry" }),
     });
     assert.equal(conflictResponse.status, 409);
-    assert.equal((await json(conflictResponse)).error?.code, "ID_CONFLICT");
+    assert.equal((await errorJson(conflictResponse, errorContract, "createMap")).error?.code, "ID_CONFLICT");
     record("duplicate client IDs fail without duplicating data");
+
+    const oversizedBatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json" },
+      body: JSON.stringify({
+        type: "FeatureCollection",
+        features: Array.from({ length: 1_001 }, (_, index) => ({
+          type: "Feature", id: `batch_${index}`,
+          geometry: { type: "Point", coordinates: [-114.05, 51.04] }, properties: {},
+        })),
+      }),
+    });
+    assert.equal(oversizedBatchResponse.status, 413);
+    assert.equal((await errorJson(oversizedBatchResponse, errorContract, "createFeatures")).error?.code, "BATCH_TOO_LARGE");
+    const afterOversizedBatchResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", { headers: authorization });
+    assert.equal(afterOversizedBatchResponse.status, 200);
+    assert.deepEqual((await successJson(afterOversizedBatchResponse, responseContract, "listFeatures")).features.map((feature) => feature.id), ["central_library"]);
+    record("oversized feature batches return the documented 413 without partial inserts");
 
     const exportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(exportResponse.status, 200);
@@ -681,8 +859,65 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(mapDeleteResponse.status, 204);
     const deletedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
     assert.equal(deletedMapResponse.status, 404);
-    assert.equal((await json(deletedMapResponse)).error?.code, "MAP_NOT_FOUND");
+    assert.equal((await errorJson(deletedMapResponse, errorContract, "getMap")).error?.code, "MAP_NOT_FOUND");
     record("feature, layer, and map deletes leave no local fixture behind");
+
+    // A second disposable Worker proves the auth-configuration failure without
+    // changing any credential or production binding. Stop the first process so
+    // Wrangler's default inspector port is not shared by two local servers.
+    await stop(devServer);
+    const misconfiguredPort = await availablePort();
+    assert.ok(misconfiguredPort, "could not reserve a misconfiguration-probe port");
+    const misconfiguredBaseUrl = `http://127.0.0.1:${misconfiguredPort}`;
+    serverLogs = "";
+    devServer = spawn(wrangler, [
+      "dev", "--local", ...secureHostnameArguments,
+      "--ip", "127.0.0.1", "--port", String(misconfiguredPort),
+      "--persist-to", stateDirectory, "--log-level", "error",
+      "--var", "LALGEO_MAPS_API_KEYS:{invalid-json",
+      "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
+    ], {
+      cwd: workerDirectory,
+      env: childEnvironment,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    devServer.stdout.on("data", (chunk) => { serverLogs += chunk; });
+    devServer.stderr.on("data", (chunk) => { serverLogs += chunk; });
+    await waitForWorker(misconfiguredBaseUrl, devServer, () => serverLogs);
+    const badConfigResponse = await request(misconfiguredBaseUrl, "/v1/maps", { headers: authorization });
+    assert.equal(badConfigResponse.status, 503);
+    assert.equal((await errorJson(badConfigResponse, errorContract, "listMaps")).error?.code, "AUTH_NOT_CONFIGURED");
+    record("invalid local authentication configuration returns the documented 503");
+
+    // A valid synthetic key against an intentionally unmigrated *local* D1
+    // database checks the unexpected-error envelope without fault hooks in the
+    // production Worker or any access to the real database.
+    await stop(devServer);
+    const unmigratedPort = await availablePort();
+    assert.ok(unmigratedPort, "could not reserve an unmigrated-database probe port");
+    const unmigratedBaseUrl = `http://127.0.0.1:${unmigratedPort}`;
+    serverLogs = "";
+    devServer = spawn(wrangler, [
+      "dev", "--local", ...secureHostnameArguments,
+      "--ip", "127.0.0.1", "--port", String(unmigratedPort),
+      "--persist-to", path.join(stateDirectory, "unmigrated"), "--log-level", "error",
+      "--var", `LALGEO_MAPS_API_KEYS:${bindings}`,
+      "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
+    ], {
+      cwd: workerDirectory,
+      env: childEnvironment,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    devServer.stdout.on("data", (chunk) => { serverLogs += chunk; });
+    devServer.stderr.on("data", (chunk) => { serverLogs += chunk; });
+    await waitForWorker(unmigratedBaseUrl, devServer, () => serverLogs);
+    const missingTableResponse = await request(unmigratedBaseUrl, "/v1/maps", { headers: authorization });
+    assert.equal(missingTableResponse.status, 500);
+    const missingTableError = await errorJson(missingTableResponse, errorContract, "listMaps");
+    assert.equal(missingTableError.error?.code, "INTERNAL_ERROR");
+    assert.equal(missingTableError.error?.message, "An unexpected error occurred.");
+    assert.equal(Object.hasOwn(missingTableError.error, "details"), false);
+    record("unmigrated disposable D1 returns the documented 500 without leaking details");
 
     process.stdout.write(`\nMaps API local release gate passed ${checks.length}/${checks.length}. No production resources were contacted.\n`);
   } finally {
