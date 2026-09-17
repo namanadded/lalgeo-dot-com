@@ -1,6 +1,13 @@
 # LalGeo Maps API
 
-The agent-facing API behind the “Maps for humans and agents” promise. An authenticated client can create maps, add typed layers and GeoJSON features, then export a portable `.lal` project that opens in LalGeo Maps.
+The private, owner-scoped authoring API behind the “Maps for humans and agents” promise. An authenticated client can create and revise maps, add typed layers and GeoJSON features, then export a portable `.lal` project that opens in LalGeo Maps.
+
+## Choose the right API
+
+- Use the [LalGeo Maps Snapshot API](https://maps.lalgeo.com/api-docs) without an account or Authoring API key when the goal is an immutable map that anyone with its link may read. Creation returns a private revocation token.
+- Use this Authoring API when maps must stay behind a bearer key, remain isolated to one owner, and support ongoing CRUD and portable export.
+
+Production authoring keys are provisioned by LalGeo. See the [developer guide](https://lalgeo.com/developers/) to request access. The two APIs have intentionally different privacy and lifecycle semantics; do not send private data to the Snapshot API.
 
 ## Production architecture
 
@@ -32,7 +39,7 @@ npm run verify:maps-local
 - `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, exercises public `HEAD`, health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, and export through the Maps project validator and serializer. It validates all 15 JSON success payloads and representative 400/401/404/409/413/500/503 errors against the documented schemas, using isolated misconfiguration and unmigrated-D1 probes for 503 and 500.
 - `verify:maps-local` runs the same synthetic journey through `lalgeo-saas-api`, including the real `lalgeo-business` migration chain, hostname routing, host-wide HTTP-to-HTTPS redirect, and HSTS policy used by production.
 - `deploy:dry-run` bundles the combined Worker without publishing it.
-- `verify:production` sends only unauthenticated `GET`, `HEAD`, and `OPTIONS` requests to the canonical API. It requires a host-wide permanent HTTP-to-HTTPS redirect, one year of HSTS, public bodyless `HEAD` probes, browser-readable request IDs, and the existing strict JSON, OpenAPI, auth, and CORS contracts. It never sends a key or mutates data.
+- `verify:production` sends only unauthenticated `GET`, `HEAD`, and `OPTIONS` requests to the canonical API. It requires a host-wide permanent HTTP-to-HTTPS redirect, one year of HSTS, public bodyless `HEAD` probes, browser-readable request IDs, an unambiguous private Authoring API identity and access path, and the existing strict JSON, OpenAPI, auth, and CORS contracts. It never sends a key or mutates data.
 
 All local gates use only disposable synthetic data and never contact production.
 

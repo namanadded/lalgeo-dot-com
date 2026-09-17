@@ -6,6 +6,8 @@ import { REQUIRED_ERROR_RESPONSES, validateOpenApi } from "../scripts/verify-pro
 const spec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
 const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../migrations/0001_maps.sql", import.meta.url), "utf8");
+const developerGuide = await readFile(new URL("../../developers/index.html", import.meta.url), "utf8");
+const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 
 test("OpenAPI exposes the complete canonical operation set", () => {
   assert.deepEqual(validateOpenApi(spec), {
@@ -19,6 +21,33 @@ test("OpenAPI exposes the complete canonical operation set", () => {
   assert.ok(ids.includes("createMap"));
   assert.ok(ids.includes("createFeatures"));
   assert.ok(ids.includes("exportMap"));
+});
+
+test("authoring discovery distinguishes API privacy and provides a key access path", () => {
+  assert.equal(spec.info.title, "LalGeo Maps Authoring API");
+  assert.equal(spec.info.version, "1.0.1");
+  assert.match(spec.info.description, /owner-scoped/);
+  assert.match(spec.info.description, /bearer-authenticated authoring API/);
+  assert.match(spec.info.description, /https:\/\/maps\.lalgeo\.com\/api-docs/);
+  assert.deepEqual(spec.info.contact, {
+    name: "LalGeo Maps API access",
+    url: "https://lalgeo.com/developers/",
+    email: "lalgeospatial@outlook.com",
+  });
+  assert.deepEqual(spec.externalDocs, {
+    description: "Authoring API guide, API choice, and key access",
+    url: "https://lalgeo.com/developers/",
+  });
+  assert.match(spec.components.securitySchemes.bearerAuth.description, /private, owner-scoped Authoring API/);
+  assert.match(spec.components.securitySchemes.bearerAuth.description, /https:\/\/lalgeo\.com\/developers\//);
+
+  assert.match(developerGuide, /Choose how the map should live/);
+  assert.match(developerGuide, /href="https:\/\/maps\.lalgeo\.com\/api-docs"/);
+  assert.match(developerGuide, /private revocation token/);
+  assert.match(developerGuide, /Request an authoring key/);
+  assert.match(developerGuide, /mailto:lalgeospatial@outlook\.com\?subject=LalGeo%20Maps%20Authoring%20API%20access/);
+  assert.match(readme, /Choose the right API/);
+  assert.match(readme, /do not send private data to the Snapshot API/);
 });
 
 test("every JSON success has its runtime schema and HEAD/DELETE remain bodyless", () => {

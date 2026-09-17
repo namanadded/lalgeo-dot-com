@@ -1,9 +1,18 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "LalGeo Maps API",
-    "version": "1.0.0",
-    "description": "Create maps, typed layers, and GeoJSON features for humans and agents. Export any map as a portable LalGeo project."
+    "title": "LalGeo Maps Authoring API",
+    "version": "1.0.1",
+    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export any map as a portable LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
+    "contact": {
+      "name": "LalGeo Maps API access",
+      "url": "https://lalgeo.com/developers/",
+      "email": "lalgeospatial@outlook.com"
+    }
+  },
+  "externalDocs": {
+    "description": "Authoring API guide, API choice, and key access",
+    "url": "https://lalgeo.com/developers/"
   },
   "servers": [{ "url": "https://api.lalgeo.com" }],
   "security": [{ "bearerAuth": [] }],
@@ -363,7 +372,11 @@
   },
   "components": {
     "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer", "description": "LalGeo API key" }
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Operator-provisioned key for the private, owner-scoped Authoring API. Request access at https://lalgeo.com/developers/."
+      }
     },
     "parameters": {
       "mapId": { "name": "mapId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
