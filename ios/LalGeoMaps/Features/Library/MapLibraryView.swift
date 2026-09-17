@@ -81,6 +81,7 @@ struct MapLibraryView: View {
             } footer: {
                 Text("API Maps are owner-scoped server maps. Portable copies open separately in LalGeo Maps on the web.")
                     .font(.footnote)
+                    .foregroundStyle(.primary)
             }
         }
         .listStyle(.insetGrouped)
