@@ -1,0 +1,45 @@
+name: iOS CI
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "lalgeo-maps-api/openapi.json"
+      - ".github/workflows/ios-ci.yml"
+  push:
+    branches: [main]
+    paths:
+      - "ios/**"
+      - "lalgeo-maps-api/openapi.json"
+      - ".github/workflows/ios-ci.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ios-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: SwiftUI build and tests
+    runs-on: macos-15
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select Xcode
+        run: sudo xcode-select -s /Applications/Xcode_16.4.app
+
+      - name: Verify generated project is current
+        run: |
+          brew install xcodegen
+          cd ios
+          xcodegen generate
+          git diff --exit-code -- LalGeoMaps.xcodeproj
+
+      - name: Build and test on iPhone simulator
+        run: ios/scripts/test.sh
+

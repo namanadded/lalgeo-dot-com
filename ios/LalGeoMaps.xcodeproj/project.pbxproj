@@ -1,0 +1,650 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		09A4E11A6D663FA37B9538AC /* APIModelsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 40487F6313570BE125C627CA /* APIModelsTests.swift */; };
+		0A04DA1A200581347AA145D7 /* CreateMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 538D785C432E5E09D91DCA61 /* CreateMapView.swift */; };
+		0D2D5161AEEBB5F3B353024B /* MapsAPIClientTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CE9FF001729D01B3C1CC9E21 /* MapsAPIClientTests.swift */; };
+		0D78ACF3E7E50076549941E4 /* MapLibraryView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D750CE7480EEBFA61FFCE574 /* MapLibraryView.swift */; };
+		185170181B255CEBB4A42489 /* MapsAPIClient.swift in Sources */ = {isa = PBXBuildFile; fileRef = 306FA916C4213018FA51AB36 /* MapsAPIClient.swift */; };
+		1FDDB76D847EC41EFB687FFA /* MapDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4572314A131A7A9BDAA2E440 /* MapDetailView.swift */; };
+		3BCD93F61481548EE093ECB2 /* CredentialStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6D01DCF426142A56FD81B5 /* CredentialStore.swift */; };
+		493E309AA24AF46DFE699259 /* ActivityView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9445271FFAB8A9A81F13916C /* ActivityView.swift */; };
+		78684469E906338D9DCC7987 /* AppStoreTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D2618C32CF9A5DD3896844E /* AppStoreTests.swift */; };
+		7F5E309F581A97291AB339A3 /* AppStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 698E67B1B0B07A57B938FF19 /* AppStore.swift */; };
+		B8E8512F6A95C2E40023C9E4 /* ExportFileWriter.swift in Sources */ = {isa = PBXBuildFile; fileRef = 90DE162F8CABE540435EAF1A /* ExportFileWriter.swift */; };
+		C7C901F025319DA050B822A0 /* APIModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 096C09340FB6758684E54B0F /* APIModels.swift */; };
+		CD475DC5BFCF9FFC57A0A04F /* MapCache.swift in Sources */ = {isa = PBXBuildFile; fileRef = B9B91FEBF3C6CE2B49AA35E9 /* MapCache.swift */; };
+		D11569D8FF8B7B2D3EB5574E /* AppEnvironment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F5F508F1D21DFB22B14D66B8 /* AppEnvironment.swift */; };
+		DA0F84A2E86C56FBBD34190E /* MapCanvas.swift in Sources */ = {isa = PBXBuildFile; fileRef = 80CD4054758DDE6EEA660F3D /* MapCanvas.swift */; };
+		DED48EEBC27F929B2725F690 /* ConnectView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F266E74432A076AAD47757A6 /* ConnectView.swift */; };
+		F090ED755356DF713A8FD0F6 /* LalGeoMapsUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = B78C408D08B7661517A3AE33 /* LalGeoMapsUITests.swift */; };
+		FCC744CA99BD3A9459078596 /* RootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 26DE7F836F34AE44331AC769 /* RootView.swift */; };
+		FF9B1937F406C6498D0DDA3B /* LalGeoMapsApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D57592181D6FD4796F2BDDF /* LalGeoMapsApp.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		7278B18D62664746266FA4C2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED8402E1A377676D420E4B2C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1017B4B1A90618A94F4801D7;
+			remoteInfo = LalGeoMaps;
+		};
+		ED58B5DFBE695E74A090CA57 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = ED8402E1A377676D420E4B2C /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = 1017B4B1A90618A94F4801D7;
+			remoteInfo = LalGeoMaps;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		096C09340FB6758684E54B0F /* APIModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModels.swift; sourceTree = "<group>"; };
+		0D2618C32CF9A5DD3896844E /* AppStoreTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStoreTests.swift; sourceTree = "<group>"; };
+		1F6D01DCF426142A56FD81B5 /* CredentialStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CredentialStore.swift; sourceTree = "<group>"; };
+		26DE7F836F34AE44331AC769 /* RootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RootView.swift; sourceTree = "<group>"; };
+		306FA916C4213018FA51AB36 /* MapsAPIClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapsAPIClient.swift; sourceTree = "<group>"; };
+		395179BC20204782D047CCE4 /* LalGeoMaps.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = LalGeoMaps.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		40487F6313570BE125C627CA /* APIModelsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APIModelsTests.swift; sourceTree = "<group>"; };
+		4572314A131A7A9BDAA2E440 /* MapDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapDetailView.swift; sourceTree = "<group>"; };
+		4D57592181D6FD4796F2BDDF /* LalGeoMapsApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LalGeoMapsApp.swift; sourceTree = "<group>"; };
+		538D785C432E5E09D91DCA61 /* CreateMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CreateMapView.swift; sourceTree = "<group>"; };
+		698E67B1B0B07A57B938FF19 /* AppStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppStore.swift; sourceTree = "<group>"; };
+		80CD4054758DDE6EEA660F3D /* MapCanvas.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCanvas.swift; sourceTree = "<group>"; };
+		90DE162F8CABE540435EAF1A /* ExportFileWriter.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportFileWriter.swift; sourceTree = "<group>"; };
+		9445271FFAB8A9A81F13916C /* ActivityView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityView.swift; sourceTree = "<group>"; };
+		968FFA44C5DA44DC8B58EEC2 /* LalGeoMapsUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LalGeoMapsUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		B78C408D08B7661517A3AE33 /* LalGeoMapsUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LalGeoMapsUITests.swift; sourceTree = "<group>"; };
+		B9B91FEBF3C6CE2B49AA35E9 /* MapCache.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapCache.swift; sourceTree = "<group>"; };
+		CE9FF001729D01B3C1CC9E21 /* MapsAPIClientTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapsAPIClientTests.swift; sourceTree = "<group>"; };
+		D750CE7480EEBFA61FFCE574 /* MapLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MapLibraryView.swift; sourceTree = "<group>"; };
+		D95EB68662F46B0B05A9554C /* LalGeoMapsTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = LalGeoMapsTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		F266E74432A076AAD47757A6 /* ConnectView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectView.swift; sourceTree = "<group>"; };
+		F5F508F1D21DFB22B14D66B8 /* AppEnvironment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppEnvironment.swift; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		3B6D6E1E193D9BE2DA91C58B = {
+			isa = PBXGroup;
+			children = (
+				6E7CE2F678ACE0145F846F65 /* LalGeoMaps */,
+				AB1B6AC8FF287FCF71EC3FE7 /* LalGeoMapsTests */,
+				67F8FC380F53F0FE697E7DA8 /* LalGeoMapsUITests */,
+				4E8784846B57A765D2354932 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		3F26BE28B18425C70825F852 /* Security */ = {
+			isa = PBXGroup;
+			children = (
+				1F6D01DCF426142A56FD81B5 /* CredentialStore.swift */,
+			);
+			path = Security;
+			sourceTree = "<group>";
+		};
+		4002377245ABFB1AC290C8B4 /* App */ = {
+			isa = PBXGroup;
+			children = (
+				F5F508F1D21DFB22B14D66B8 /* AppEnvironment.swift */,
+				698E67B1B0B07A57B938FF19 /* AppStore.swift */,
+				4D57592181D6FD4796F2BDDF /* LalGeoMapsApp.swift */,
+				26DE7F836F34AE44331AC769 /* RootView.swift */,
+			);
+			path = App;
+			sourceTree = "<group>";
+		};
+		4E8784846B57A765D2354932 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				395179BC20204782D047CCE4 /* LalGeoMaps.app */,
+				D95EB68662F46B0B05A9554C /* LalGeoMapsTests.xctest */,
+				968FFA44C5DA44DC8B58EEC2 /* LalGeoMapsUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		67F8FC380F53F0FE697E7DA8 /* LalGeoMapsUITests */ = {
+			isa = PBXGroup;
+			children = (
+				B78C408D08B7661517A3AE33 /* LalGeoMapsUITests.swift */,
+			);
+			path = LalGeoMapsUITests;
+			sourceTree = "<group>";
+		};
+		6E7CE2F678ACE0145F846F65 /* LalGeoMaps */ = {
+			isa = PBXGroup;
+			children = (
+				4002377245ABFB1AC290C8B4 /* App */,
+				AA26B3032DFA877F1E593C99 /* Features */,
+				BA36CAA4515F2C6116D15D48 /* Models */,
+				F71D213B05992841E97C6B66 /* Networking */,
+				EEB193C93C91D8C77BD90DD3 /* Persistence */,
+				3F26BE28B18425C70825F852 /* Security */,
+				DD72E391ABA13AF5F40D90E7 /* Sharing */,
+			);
+			path = LalGeoMaps;
+			sourceTree = "<group>";
+		};
+		73738CDBCAB530064D38EB45 /* MapDetail */ = {
+			isa = PBXGroup;
+			children = (
+				80CD4054758DDE6EEA660F3D /* MapCanvas.swift */,
+				4572314A131A7A9BDAA2E440 /* MapDetailView.swift */,
+			);
+			path = MapDetail;
+			sourceTree = "<group>";
+		};
+		9EFDCDB57EFA5C485898E663 /* Library */ = {
+			isa = PBXGroup;
+			children = (
+				538D785C432E5E09D91DCA61 /* CreateMapView.swift */,
+				D750CE7480EEBFA61FFCE574 /* MapLibraryView.swift */,
+			);
+			path = Library;
+			sourceTree = "<group>";
+		};
+		A364B3CAB89D2ADE3420DC07 /* Connect */ = {
+			isa = PBXGroup;
+			children = (
+				F266E74432A076AAD47757A6 /* ConnectView.swift */,
+			);
+			path = Connect;
+			sourceTree = "<group>";
+		};
+		AA26B3032DFA877F1E593C99 /* Features */ = {
+			isa = PBXGroup;
+			children = (
+				A364B3CAB89D2ADE3420DC07 /* Connect */,
+				9EFDCDB57EFA5C485898E663 /* Library */,
+				73738CDBCAB530064D38EB45 /* MapDetail */,
+			);
+			path = Features;
+			sourceTree = "<group>";
+		};
+		AB1B6AC8FF287FCF71EC3FE7 /* LalGeoMapsTests */ = {
+			isa = PBXGroup;
+			children = (
+				40487F6313570BE125C627CA /* APIModelsTests.swift */,
+				0D2618C32CF9A5DD3896844E /* AppStoreTests.swift */,
+				CE9FF001729D01B3C1CC9E21 /* MapsAPIClientTests.swift */,
+			);
+			path = LalGeoMapsTests;
+			sourceTree = "<group>";
+		};
+		BA36CAA4515F2C6116D15D48 /* Models */ = {
+			isa = PBXGroup;
+			children = (
+				096C09340FB6758684E54B0F /* APIModels.swift */,
+			);
+			path = Models;
+			sourceTree = "<group>";
+		};
+		DD72E391ABA13AF5F40D90E7 /* Sharing */ = {
+			isa = PBXGroup;
+			children = (
+				9445271FFAB8A9A81F13916C /* ActivityView.swift */,
+				90DE162F8CABE540435EAF1A /* ExportFileWriter.swift */,
+			);
+			path = Sharing;
+			sourceTree = "<group>";
+		};
+		EEB193C93C91D8C77BD90DD3 /* Persistence */ = {
+			isa = PBXGroup;
+			children = (
+				B9B91FEBF3C6CE2B49AA35E9 /* MapCache.swift */,
+			);
+			path = Persistence;
+			sourceTree = "<group>";
+		};
+		F71D213B05992841E97C6B66 /* Networking */ = {
+			isa = PBXGroup;
+			children = (
+				306FA916C4213018FA51AB36 /* MapsAPIClient.swift */,
+			);
+			path = Networking;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		1017B4B1A90618A94F4801D7 /* LalGeoMaps */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DF73A8C242B1F41DBF7F6E16 /* Build configuration list for PBXNativeTarget "LalGeoMaps" */;
+			buildPhases = (
+				990099F3CC466A4C23763437 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = LalGeoMaps;
+			packageProductDependencies = (
+			);
+			productName = LalGeoMaps;
+			productReference = 395179BC20204782D047CCE4 /* LalGeoMaps.app */;
+			productType = "com.apple.product-type.application";
+		};
+		412178AE029317FEA187C142 /* LalGeoMapsUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = B3661E58D5FCD9E846F23039 /* Build configuration list for PBXNativeTarget "LalGeoMapsUITests" */;
+			buildPhases = (
+				1712029FEE03F9B538749416 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				68FF51CD205964E94737A5B1 /* PBXTargetDependency */,
+			);
+			name = LalGeoMapsUITests;
+			packageProductDependencies = (
+			);
+			productName = LalGeoMapsUITests;
+			productReference = 968FFA44C5DA44DC8B58EEC2 /* LalGeoMapsUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		B92A8123AC1309E81ABF81C6 /* LalGeoMapsTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = F412E5D9CD33804BD2648D75 /* Build configuration list for PBXNativeTarget "LalGeoMapsTests" */;
+			buildPhases = (
+				8FB3080D05D284B6116BC189 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				95CBB2AF41DF921C5B9BB4E5 /* PBXTargetDependency */,
+			);
+			name = LalGeoMapsTests;
+			packageProductDependencies = (
+			);
+			productName = LalGeoMapsTests;
+			productReference = D95EB68662F46B0B05A9554C /* LalGeoMapsTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		ED8402E1A377676D420E4B2C /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					1017B4B1A90618A94F4801D7 = {
+						ProvisioningStyle = Automatic;
+					};
+					412178AE029317FEA187C142 = {
+						TestTargetID = 1017B4B1A90618A94F4801D7;
+					};
+				};
+			};
+			buildConfigurationList = 524B3B4BEADDFA4AAE1C9775 /* Build configuration list for PBXProject "LalGeoMaps" */;
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = 3B6D6E1E193D9BE2DA91C58B;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 4E8784846B57A765D2354932 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				1017B4B1A90618A94F4801D7 /* LalGeoMaps */,
+				B92A8123AC1309E81ABF81C6 /* LalGeoMapsTests */,
+				412178AE029317FEA187C142 /* LalGeoMapsUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXSourcesBuildPhase section */
+		1712029FEE03F9B538749416 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F090ED755356DF713A8FD0F6 /* LalGeoMapsUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		8FB3080D05D284B6116BC189 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				09A4E11A6D663FA37B9538AC /* APIModelsTests.swift in Sources */,
+				78684469E906338D9DCC7987 /* AppStoreTests.swift in Sources */,
+				0D2D5161AEEBB5F3B353024B /* MapsAPIClientTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		990099F3CC466A4C23763437 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				C7C901F025319DA050B822A0 /* APIModels.swift in Sources */,
+				493E309AA24AF46DFE699259 /* ActivityView.swift in Sources */,
+				D11569D8FF8B7B2D3EB5574E /* AppEnvironment.swift in Sources */,
+				7F5E309F581A97291AB339A3 /* AppStore.swift in Sources */,
+				DED48EEBC27F929B2725F690 /* ConnectView.swift in Sources */,
+				0A04DA1A200581347AA145D7 /* CreateMapView.swift in Sources */,
+				3BCD93F61481548EE093ECB2 /* CredentialStore.swift in Sources */,
+				B8E8512F6A95C2E40023C9E4 /* ExportFileWriter.swift in Sources */,
+				FF9B1937F406C6498D0DDA3B /* LalGeoMapsApp.swift in Sources */,
+				CD475DC5BFCF9FFC57A0A04F /* MapCache.swift in Sources */,
+				DA0F84A2E86C56FBBD34190E /* MapCanvas.swift in Sources */,
+				1FDDB76D847EC41EFB687FFA /* MapDetailView.swift in Sources */,
+				0D78ACF3E7E50076549941E4 /* MapLibraryView.swift in Sources */,
+				185170181B255CEBB4A42489 /* MapsAPIClient.swift in Sources */,
+				FCC744CA99BD3A9459078596 /* RootView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		68FF51CD205964E94737A5B1 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1017B4B1A90618A94F4801D7 /* LalGeoMaps */;
+			targetProxy = ED58B5DFBE695E74A090CA57 /* PBXContainerItemProxy */;
+		};
+		95CBB2AF41DF921C5B9BB4E5 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = 1017B4B1A90618A94F4801D7 /* LalGeoMaps */;
+			targetProxy = 7278B18D62664746266FA4C2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		138F02F6000C2ADB9F3FD724 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_LANGUAGE = en;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		281D04F92C229B2F6FD6AA0A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lalgeo.maps.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LalGeoMaps;
+			};
+			name = Debug;
+		};
+		2A45B1B510A0F448EF04D291 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lalgeo.maps.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LalGeoMaps.app/LalGeoMaps";
+			};
+			name = Debug;
+		};
+		3C5A948189ECA95D43BF00B2 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_LANGUAGE = en;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 0.1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
+		6C827767B32E88A60A986A48 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lalgeo.maps.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/LalGeoMaps.app/LalGeoMaps";
+			};
+			name = Release;
+		};
+		6E22057B37C5E4429BAA0BA8 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lalgeo.maps.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = LalGeoMaps;
+			};
+			name = Release;
+		};
+		A2F24CF06F27A265708D9FD4 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "LalGeo Maps";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lalgeo.maps;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		C43683D719D8761C8C7BF48C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME = AccentColor;
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = "LalGeo Maps";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.navigation";
+				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
+				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.lalgeo.maps;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		524B3B4BEADDFA4AAE1C9775 /* Build configuration list for PBXProject "LalGeoMaps" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				138F02F6000C2ADB9F3FD724 /* Debug */,
+				3C5A948189ECA95D43BF00B2 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		B3661E58D5FCD9E846F23039 /* Build configuration list for PBXNativeTarget "LalGeoMapsUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				281D04F92C229B2F6FD6AA0A /* Debug */,
+				6E22057B37C5E4429BAA0BA8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DF73A8C242B1F41DBF7F6E16 /* Build configuration list for PBXNativeTarget "LalGeoMaps" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A2F24CF06F27A265708D9FD4 /* Debug */,
+				C43683D719D8761C8C7BF48C /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		F412E5D9CD33804BD2648D75 /* Build configuration list for PBXNativeTarget "LalGeoMapsTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				2A45B1B510A0F448EF04D291 /* Debug */,
+				6C827767B32E88A60A986A48 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = ED8402E1A377676D420E4B2C /* Project object */;
+}
