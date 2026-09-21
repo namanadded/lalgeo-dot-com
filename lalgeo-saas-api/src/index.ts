@@ -116,6 +116,7 @@ async function handleRequest(req: Request, env: Env, requestUrl: URL): Promise<R
     try {
       const isMapsHostname = requestUrl.hostname === CANONICAL_MAPS_HOSTNAME;
       const isMapsPath = requestUrl.pathname === "/v1/openapi.json" ||
+        requestUrl.pathname === "/v1/map-open/redeem" ||
         requestUrl.pathname === "/v1/maps" ||
         requestUrl.pathname.startsWith("/v1/maps/");
       if (isMapsPath || (isMapsHostname && requestUrl.pathname === "/v1/health")) {

@@ -22,6 +22,8 @@ export const REQUIRED_OPERATIONS = Object.freeze({
   "/v1/maps": Object.freeze({ get: "listMaps", post: "createMap" }),
   "/v1/maps/{mapId}": Object.freeze({ get: "getMap", patch: "updateMap", delete: "deleteMap" }),
   "/v1/maps/{mapId}/export": Object.freeze({ get: "exportMap" }),
+  "/v1/maps/{mapId}/open-links": Object.freeze({ post: "createMapOpenLink" }),
+  "/v1/map-open/redeem": Object.freeze({ post: "redeemMapOpenLink" }),
   "/v1/maps/{mapId}/layers": Object.freeze({ get: "listLayers", post: "createLayer" }),
   "/v1/maps/{mapId}/layers/{layerId}": Object.freeze({ get: "getLayer", patch: "updateLayer", delete: "deleteLayer" }),
   "/v1/maps/{mapId}/layers/{layerId}/features": Object.freeze({ get: "listFeatures", post: "createFeatures" }),
@@ -36,6 +38,8 @@ export const REQUIRED_SUCCESS_SCHEMAS = Object.freeze({
   "getMap:200": "#/components/schemas/MapResponse",
   "updateMap:200": "#/components/schemas/MapResponse",
   "exportMap:200": "#/components/schemas/LalGeoExportResponse",
+  "createMapOpenLink:201": "#/components/schemas/MapOpenLinkResponse",
+  "redeemMapOpenLink:200": "#/components/schemas/LalGeoExportResponse",
   "listLayers:200": "#/components/schemas/LayerListResponse",
   "createLayer:201": "#/components/schemas/LayerResponse",
   "getLayer:200": "#/components/schemas/LayerResponse",
@@ -55,25 +59,33 @@ export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
 ]);
 
 const PROTECTED_OPERATIONS = Object.freeze([
-  "listMaps", "createMap", "getMap", "updateMap", "deleteMap", "exportMap",
+  "listMaps", "createMap", "getMap", "updateMap", "deleteMap", "exportMap", "createMapOpenLink",
   "listLayers", "createLayer", "getLayer", "updateLayer", "deleteLayer",
   "listFeatures", "createFeatures", "getFeature", "updateFeature", "deleteFeature",
 ]);
 const RESOURCE_OPERATIONS = new Set(PROTECTED_OPERATIONS.filter((id) => !["listMaps", "createMap"].includes(id)));
-const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
+const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createMapOpenLink", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
 const CREATE_OPERATIONS = new Set(["createMap", "createLayer", "createFeatures"]);
 
 // Only advertise errors the Worker emits today. In particular, there is no 429 rate limiter
 // or Idempotency-Key replay yet; agents should reconcile uncertain writes with GET.
-export const REQUIRED_ERROR_RESPONSES = Object.freeze(Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
-  ["400", BODY_OPERATIONS.has(id) ? "BadRequest" : undefined],
-  ["401", "Unauthorized"],
-  ["404", RESOURCE_OPERATIONS.has(id) ? "NotFound" : undefined],
-  ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
-  ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
-  ["500", "InternalServerError"],
-  ["503", "ServiceUnavailable"],
-].filter(([, component]) => component)))])));
+export const REQUIRED_ERROR_RESPONSES = Object.freeze({
+  ...Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
+    ["400", BODY_OPERATIONS.has(id) ? "BadRequest" : undefined],
+    ["401", "Unauthorized"],
+    ["404", RESOURCE_OPERATIONS.has(id) ? "NotFound" : undefined],
+    ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
+    ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
+    ["500", "InternalServerError"],
+    ["503", "ServiceUnavailable"],
+  ].filter(([, component]) => component)))])),
+  redeemMapOpenLink: Object.freeze({
+    "400": "BadRequest",
+    "404": "OpenLinkUnavailable",
+    "413": "PayloadTooLarge",
+    "500": "InternalServerError",
+  }),
+});
 
 const CANONICAL_SERVER = DEFAULT_BASE_URL;
 const DISALLOWED_ORIGIN = "https://cors-probe.invalid";
@@ -514,8 +526,30 @@ export function validateOpenApi(spec) {
     check(isObject(pathItem), `OpenAPI is missing required path ${path}.`);
     for (const [method, operationId] of Object.entries(methods)) {
       check(pathItem[method]?.operationId === operationId, `OpenAPI ${method.toUpperCase()} ${path} must use operationId ${operationId}.`);
+      if (PROTECTED_OPERATIONS.includes(operationId)) {
+        const security = pathItem[method].security ?? spec.security;
+        check(
+          Array.isArray(security) && security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)),
+          `OpenAPI ${operationId} must require bearerAuth.`,
+        );
+      }
     }
   }
+
+  const redeemOperation = spec.paths?.["/v1/map-open/redeem"]?.post;
+  check(Array.isArray(redeemOperation?.security) && redeemOperation.security.length === 0, "/v1/map-open/redeem must explicitly allow unauthenticated POST requests.");
+  const createOpenLinkBody = spec.paths?.["/v1/maps/{mapId}/open-links"]?.post?.requestBody;
+  check(isObject(createOpenLinkBody) && createOpenLinkBody.required !== true, "createMapOpenLink request body must remain optional.");
+  check(
+    createOpenLinkBody.content?.["application/json"]?.schema?.$ref === "#/components/schemas/MapOpenLinkInput",
+    "createMapOpenLink must use the MapOpenLinkInput request schema.",
+  );
+  const redeemBody = redeemOperation?.requestBody;
+  check(isObject(redeemBody) && redeemBody.required === true, "redeemMapOpenLink request body must be required.");
+  check(
+    redeemBody.content?.["application/json"]?.schema?.$ref === "#/components/schemas/MapOpenRedeemInput",
+    "redeemMapOpenLink must use the MapOpenRedeemInput request schema.",
+  );
 
   const operationIds = [];
   const documentedSuccesses = new Set();
@@ -761,12 +795,12 @@ export async function verifyProduction({
     logger.log("PASS shared transport: redirect and HSTS cover non-Maps routes on the canonical host");
   }
   const openApi = await verifyOpenApi(normalized);
-  logger.log(`PASS OpenAPI: private authoring identity, access metadata, ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes`);
+  logger.log(`PASS OpenAPI: private authoring identity, one-time handoff contract, ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes (capability not redeemed)`);
   await verifyPublicHead(normalized);
   logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);
   logger.log("PASS auth: unauthenticated read rejected with JSON Bearer challenge");
-  logger.log(`PASS error contract: ${openApi.errorResponseCount} documented protected-route failures`);
+  logger.log(`PASS error contract: ${openApi.errorResponseCount} documented route failures`);
   await verifyCors(normalized);
   logger.log(`PASS CORS: ${normalized.origin} allowed and an untrusted origin rejected`);
   logger.log(`PASS production verifier: ${normalized.baseUrl}`);

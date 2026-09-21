@@ -17,9 +17,15 @@ class ApiError extends Error {
 }
 
 const MAX_BODY_BYTES = 2_000_000;
+const MAX_OPEN_REDEEM_BODY_BYTES = 512;
 const MAX_FEATURE_BATCH = 1_000;
+const DEFAULT_OPEN_LINK_TTL_SECONDS = 600;
+const MIN_OPEN_LINK_TTL_SECONDS = 60;
+const MAX_OPEN_LINK_TTL_SECONDS = 900;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const OPEN_LINK_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 const CANONICAL_HOSTNAME = "api.lalgeo.com";
+const MAPS_OPEN_URL = "https://maps.lalgeo.com/maps";
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
 
 function response(data: unknown, status = 200, headers: HeadersInit = {}) {
@@ -101,11 +107,12 @@ function layerPosition(value: unknown) {
   return value as number;
 }
 
-async function body(req: Request): Promise<JsonObject> {
+async function body(req: Request, maxBytes = MAX_BODY_BYTES): Promise<JsonObject> {
+  const limitLabel = maxBytes === MAX_BODY_BYTES ? "2 MB" : `${maxBytes} bytes`;
   const length = Number(req.headers.get("content-length") || "0");
-  if (length > MAX_BODY_BYTES) throw new ApiError(413, "BODY_TOO_LARGE", "Request bodies are limited to 2 MB.");
+  if (length > maxBytes) throw new ApiError(413, "BODY_TOO_LARGE", `Request bodies are limited to ${limitLabel}.`);
   const text = await req.text();
-  if (new TextEncoder().encode(text).byteLength > MAX_BODY_BYTES) throw new ApiError(413, "BODY_TOO_LARGE", "Request bodies are limited to 2 MB.");
+  if (new TextEncoder().encode(text).byteLength > maxBytes) throw new ApiError(413, "BODY_TOO_LARGE", `Request bodies are limited to ${limitLabel}.`);
   if (!text) return {};
   try {
     const parsed = JSON.parse(text);
@@ -119,6 +126,15 @@ async function body(req: Request): Promise<JsonObject> {
 async function sha256(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function openLinkToken() {
+  const bytes = crypto.getRandomValues(new Uint8Array(32));
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function openLinkUnavailable(): never {
+  throw new ApiError(404, "OPEN_LINK_UNAVAILABLE", "This map link is unavailable.");
 }
 
 async function authenticate(req: Request, env: Env): Promise<Auth> {
@@ -293,10 +309,54 @@ async function exportProject(db: D1Database, ownerId: string, mapId: string) {
   };
 }
 
+async function createOpenLink(req: Request, env: Env, auth: Auth, mapId: string) {
+  await requireMap(env.DB, auth.ownerId, mapId);
+  const input = await body(req);
+  const expiresIn = input.expires_in === undefined ? DEFAULT_OPEN_LINK_TTL_SECONDS : input.expires_in;
+  if (!Number.isSafeInteger(expiresIn) || (expiresIn as number) < MIN_OPEN_LINK_TTL_SECONDS || (expiresIn as number) > MAX_OPEN_LINK_TTL_SECONDS) {
+    throw new ApiError(400, "VALIDATION_ERROR", `expires_in must be a safe integer from ${MIN_OPEN_LINK_TTL_SECONDS} to ${MAX_OPEN_LINK_TTL_SECONDS}.`);
+  }
+
+  const createdAt = now();
+  const expiresAt = new Date(Date.now() + (expiresIn as number) * 1_000).toISOString();
+  const token = openLinkToken();
+  const tokenHash = await sha256(token);
+  await env.DB.batch([
+    env.DB.prepare("DELETE FROM map_open_links WHERE expires_at<=?1").bind(createdAt),
+    env.DB.prepare("INSERT INTO map_open_links (token_hash,owner_id,map_id,expires_at,created_at) VALUES (?1,?2,?3,?4,?5)")
+      .bind(tokenHash, auth.ownerId, mapId, expiresAt, createdAt),
+  ]);
+  return response({ open_url: `${MAPS_OPEN_URL}#open=${token}`, expires_at: expiresAt }, 201);
+}
+
+async function redeemOpenLink(req: Request, env: Env) {
+  const input = await body(req, MAX_OPEN_REDEEM_BODY_BYTES);
+  if (typeof input.token !== "string" || !OPEN_LINK_TOKEN_PATTERN.test(input.token)) openLinkUnavailable();
+
+  const redeemedAt = now();
+  const tokenHash = await sha256(input.token as string);
+  const link = await env.DB.prepare("SELECT owner_id,map_id FROM map_open_links WHERE token_hash=?1 AND expires_at>?2")
+    .bind(tokenHash, redeemedAt).first<{ owner_id: string; map_id: string }>();
+  if (!link) openLinkUnavailable();
+
+  let exported: Awaited<ReturnType<typeof exportProject>>;
+  try {
+    exported = await exportProject(env.DB, link.owner_id, link.map_id);
+  } catch (error) {
+    if (error instanceof ApiError && error.code === "MAP_NOT_FOUND") openLinkUnavailable();
+    throw error;
+  }
+  const deletion = await env.DB.prepare("DELETE FROM map_open_links WHERE token_hash=?1 AND owner_id=?2 AND map_id=?3 AND expires_at>?4")
+    .bind(tokenHash, link.owner_id, link.map_id, redeemedAt).run();
+  if (deletion.meta.changes !== 1) openLinkUnavailable();
+  return response(exported);
+}
+
 async function route(req: Request, env: Env, auth: Auth, url: URL) {
   const path = url.pathname;
   const mapMatch = path.match(/^\/v1\/maps\/([^/]+)$/);
   const exportMatch = path.match(/^\/v1\/maps\/([^/]+)\/export$/);
+  const openLinkMatch = path.match(/^\/v1\/maps\/([^/]+)\/open-links$/);
   const layersMatch = path.match(/^\/v1\/maps\/([^/]+)\/layers$/);
   const layerMatch = path.match(/^\/v1\/maps\/([^/]+)\/layers\/([^/]+)$/);
   const featuresMatch = path.match(/^\/v1\/maps\/([^/]+)\/layers\/([^/]+)\/features$/);
@@ -314,6 +374,7 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
     const rows = (await env.DB.prepare("SELECT * FROM maps WHERE owner_id=?1 ORDER BY updated_at DESC LIMIT ?2 OFFSET ?3").bind(auth.ownerId, limit, offset).all<Record<string, unknown>>()).results || [];
     return response({ maps: rows.map(mapView), pagination: { limit, offset, count: rows.length } });
   }
+  if (openLinkMatch && req.method === "POST") return createOpenLink(req, env, auth, decodeURIComponent(openLinkMatch[1]));
   if (exportMatch && req.method === "GET") return response(await exportProject(env.DB, auth.ownerId, decodeURIComponent(exportMatch[1])));
   if (mapMatch) {
     const mapId = decodeURIComponent(mapMatch[1]);
@@ -387,7 +448,9 @@ export default {
         const result = response(openapi, 200, { ...headers, "Cache-Control": "public, max-age=300" });
         return req.method === "HEAD" ? withoutBody(result) : result;
       }
-      const result = await route(req, env, await authenticate(req, env), url);
+      const result = url.pathname === "/v1/map-open/redeem" && req.method === "POST"
+        ? await redeemOpenLink(req, env)
+        : await route(req, env, await authenticate(req, env), url);
       const outgoing = new Headers(result.headers); Object.entries(headers).forEach(([key, value]) => outgoing.set(key, value));
       return new Response(result.body, { status: result.status, headers: outgoing });
     } catch (error) {

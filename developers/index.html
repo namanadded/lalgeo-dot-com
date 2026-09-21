@@ -71,8 +71,8 @@
   <main>
     <p class="eyebrow">Private authoring API · v1</p>
     <h1>Maps that agents<br>can keep building.</h1>
-    <p class="lede">Privately create and revise an owner-scoped map, organize it into geometry-safe layers, add standard GeoJSON, and export a portable project that opens in LalGeo Maps.</p>
-    <div class="status"><span class="dot"></span>Bearer-authenticated REST + OpenAPI</div>
+    <p class="lede">Privately create and revise an owner-scoped map, organize it into geometry-safe layers, add standard GeoJSON, and open an editable copy in LalGeo Maps without sharing the bearer key.</p>
+    <div class="status"><span class="dot"></span>Bearer-authenticated authoring + one-time handoff</div>
 
     <div class="grid">
       <div>
@@ -98,7 +98,7 @@
 
         <section>
           <h2>One predictable workflow</h2>
-          <ol><li>Create a map.</li><li>Add a <code>Point</code>, <code>LineString</code>, or <code>Polygon</code> layer.</li><li>Post GeoJSON features to that layer.</li><li>Export the finished map as a LalGeo project.</li></ol>
+          <ol><li>Create a map.</li><li>Add a <code>Point</code>, <code>LineString</code>, or <code>Polygon</code> layer.</li><li>Post GeoJSON features to that layer.</li><li>Create a one-time link to open an editable local copy in Maps.</li></ol>
           <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/health
 
 curl --fail-with-body https://api.lalgeo.com/v1/maps \
@@ -142,11 +142,15 @@ layers/places/features \
 
         <section>
           <h2>Open the result in Maps</h2>
-          <p>Export creates a portable LalGeo project. If the API map has no layers, the downloaded copy starts with an editable <strong>Points</strong> layer without changing the API map. Download it, then open Maps and choose <strong>Projects → Choose files</strong>. The imported copy can be edited and exported like any other project.</p>
-          <pre><code>curl --fail-with-body \
-  https://api.lalgeo.com/v1/maps/calgary_field_map/export \
+          <p>Ask for a one-time link when a person is ready to open the map. The link lasts 10 minutes by default and never longer than 15 minutes. Opening it imports an editable local copy; later edits do not write through to the API map.</p>
+          <pre><code>curl --fail-with-body --request POST \
+  https://api.lalgeo.com/v1/maps/calgary_field_map/open-links \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
-  --output calgary_field_map.lal</code></pre>
+  -H "Content-Type: application/json" \
+  --data '{"expires_in":600}'</code></pre>
+          <p>The response contains <code>open_url</code> and <code>expires_at</code>. Open the URL, then choose <strong>Open editable copy</strong> in Maps. Only that explicit click redeems it. If the link expired or was already used, request a new one.</p>
+          <p class="note"><strong>Secure handoff:</strong> the URL fragment contains a random 256-bit capability, not the bearer key. Browsers exclude fragments from HTTP requests and referrer headers. The API stores only the capability's SHA-256 hash, Maps removes it from the address bar before showing the confirmation, and invalid, expired, or reused links all return the same non-disclosing error.</p>
+          <p>For a file workflow, <code>GET /v1/maps/{mapId}/export</code> still downloads a portable project. If the API map has no layers, either kind of copy starts with an editable <strong>Points</strong> layer without changing the API map.</p>
         </section>
 
         <section>
@@ -157,11 +161,13 @@ layers/places/features \
           <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/layers</span></div>
           <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/layers/{layerId}/features</span></div>
           <div class="endpoint"><span class="method">GET</span><span class="path">/v1/maps/{mapId}/export</span></div>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/open-links</span></div>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/map-open/redeem</span></div>
         </section>
 
         <section>
           <h2>Designed for safe automation</h2>
-          <p>Every data route uses an operator-provisioned bearer API key over enforced HTTPS. The service stores only SHA-256 key hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Authentication failures include a bearer challenge; errors return stable codes and a browser-readable request ID.</p>
+          <p>Every authoring route uses an operator-provisioned bearer API key over enforced HTTPS. The public redemption route accepts only a short-lived, single-use map capability; the bearer key never reaches Maps or the link. The service stores only SHA-256 hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Authentication failures include a bearer challenge; errors return stable codes and a browser-readable request ID.</p>
         </section>
       </div>
 

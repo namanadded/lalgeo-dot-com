@@ -6,26 +6,30 @@ import { REQUIRED_ERROR_RESPONSES, validateOpenApi } from "../scripts/verify-pro
 const spec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
 const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
 const migration = await readFile(new URL("../migrations/0001_maps.sql", import.meta.url), "utf8");
+const openLinkMigration = await readFile(new URL("../migrations/0002_map_open_links.sql", import.meta.url), "utf8");
+const combinedOpenLinkMigration = await readFile(new URL("../../lalgeo-saas-api/migrations/0005_map_open_links.sql", import.meta.url), "utf8");
 const developerGuide = await readFile(new URL("../../developers/index.html", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
 
 test("OpenAPI exposes the complete canonical operation set", () => {
   assert.deepEqual(validateOpenApi(spec), {
-    operationCount: 20,
-    successSchemaCount: 15,
+    operationCount: 22,
+    successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 77,
+    errorResponseCount: 87,
   });
   const ids = Object.values(spec.paths).flatMap((path) => Object.values(path).map((operation) => operation?.operationId).filter(Boolean));
   assert.equal(new Set(ids).size, ids.length);
   assert.ok(ids.includes("createMap"));
   assert.ok(ids.includes("createFeatures"));
   assert.ok(ids.includes("exportMap"));
+  assert.ok(ids.includes("createMapOpenLink"));
+  assert.ok(ids.includes("redeemMapOpenLink"));
 });
 
 test("authoring discovery distinguishes API privacy and provides a key access path", () => {
   assert.equal(spec.info.title, "LalGeo Maps Authoring API");
-  assert.equal(spec.info.version, "1.0.1");
+  assert.equal(spec.info.version, "1.1.0");
   assert.match(spec.info.description, /owner-scoped/);
   assert.match(spec.info.description, /bearer-authenticated authoring API/);
   assert.match(spec.info.description, /https:\/\/maps\.lalgeo\.com\/api-docs/);
@@ -59,6 +63,8 @@ test("every JSON success has its runtime schema and HEAD/DELETE remain bodyless"
     ["getMap:200", "MapResponse"],
     ["updateMap:200", "MapResponse"],
     ["exportMap:200", "LalGeoExportResponse"],
+    ["createMapOpenLink:201", "MapOpenLinkResponse"],
+    ["redeemMapOpenLink:200", "LalGeoExportResponse"],
     ["listLayers:200", "LayerListResponse"],
     ["createLayer:201", "LayerResponse"],
     ["getLayer:200", "LayerResponse"],
@@ -123,6 +129,71 @@ test("response models preserve nullable maps, feature lifecycle shapes, and port
   );
 });
 
+test("one-time map-open contract keeps bearer credentials out of the browser handoff", () => {
+  const schemas = spec.components.schemas;
+  const create = spec.paths["/v1/maps/{mapId}/open-links"].post;
+  const redeem = spec.paths["/v1/map-open/redeem"].post;
+
+  assert.equal(create.operationId, "createMapOpenLink");
+  assert.equal(create.requestBody.required, undefined);
+  assert.equal(
+    create.requestBody.content["application/json"].schema.$ref,
+    "#/components/schemas/MapOpenLinkInput",
+  );
+  assert.deepEqual(schemas.MapOpenLinkInput.properties.expires_in, {
+    type: "integer",
+    minimum: 60,
+    maximum: 900,
+    default: 600,
+  });
+  assert.equal(
+    create.responses["201"].content["application/json"].schema.$ref,
+    "#/components/schemas/MapOpenLinkResponse",
+  );
+  assert.equal(schemas.MapOpenLinkResponse.properties.open_url.format, "uri");
+  assert.equal(
+    schemas.MapOpenLinkResponse.properties.open_url.pattern,
+    "^https://maps\\.lalgeo\\.com/maps#open=[0-9a-f]{64}$",
+  );
+  assert.equal(schemas.MapOpenLinkResponse.properties.expires_at.$ref, "#/components/schemas/Timestamp");
+
+  assert.equal(redeem.operationId, "redeemMapOpenLink");
+  assert.deepEqual(redeem.security, []);
+  assert.equal(redeem.requestBody.required, true);
+  assert.equal(
+    redeem.requestBody.content["application/json"].schema.$ref,
+    "#/components/schemas/MapOpenRedeemInput",
+  );
+  assert.equal(schemas.MapOpenRedeemInput.properties.token.pattern, "^[0-9a-f]{64}$");
+  assert.equal(
+    redeem.responses["200"].content["application/json"].schema.$ref,
+    "#/components/schemas/LalGeoExportResponse",
+  );
+  assert.equal(redeem.responses["404"].$ref, "#/components/responses/OpenLinkUnavailable");
+  assert.match(spec.components.responses.OpenLinkUnavailable.description, /expired, or already used/);
+  assert.ok(schemas.Error.properties.error.properties.code.enum.includes("OPEN_LINK_UNAVAILABLE"));
+
+  assert.match(worker, /crypto\.getRandomValues\(new Uint8Array\(32\)\)/);
+  assert.match(worker, /await sha256\(token\)/);
+  assert.match(worker, /MAX_OPEN_REDEEM_BODY_BYTES = 512/);
+  assert.match(worker, /body\(req, MAX_OPEN_REDEEM_BODY_BYTES\)/);
+  assert.match(worker, /OPEN_LINK_UNAVAILABLE/);
+  assert.match(worker, /url\.pathname === ["']\/v1\/map-open\/redeem["']/);
+  const redeemImplementation = worker.slice(
+    worker.indexOf("async function redeemOpenLink"),
+    worker.indexOf("async function route"),
+  );
+  assert.doesNotMatch(
+    redeemImplementation,
+    /DELETE FROM map_open_links WHERE expires_at<=/,
+    "anonymous invalid redemption must not trigger expiry-cleanup writes",
+  );
+  assert.match(developerGuide, /fragment/);
+  assert.match(developerGuide, /editable local copy/);
+  assert.match(readme, /only its SHA-256 hash/);
+  assert.match(readme, /never reaches LalGeo Maps/);
+});
+
 test("every documented data path is implemented by the worker", () => {
   for (const path of Object.keys(spec.paths).filter((path) => path.startsWith("/v1/maps"))) {
     const stableFragment = path.split("{")[0];
@@ -139,6 +210,18 @@ test("tenant ownership is present on every stored resource", () => {
   assert.match(migration, /PRIMARY KEY \(owner_id, id\)/);
   assert.match(migration, /PRIMARY KEY \(owner_id, map_id, id\)/);
   assert.match(migration, /PRIMARY KEY \(owner_id, map_id, layer_id, id\)/);
+});
+
+test("standalone and combined migrations store only owner-scoped capability hashes", () => {
+  assert.equal(combinedOpenLinkMigration.trim(), openLinkMigration.trim());
+  for (const sql of [openLinkMigration, combinedOpenLinkMigration]) {
+    assert.match(sql, /CREATE TABLE map_open_links/);
+    assert.match(sql, /token_hash TEXT NOT NULL PRIMARY KEY/);
+    assert.match(sql, /owner_id TEXT NOT NULL/);
+    assert.match(sql, /map_id TEXT NOT NULL/);
+    assert.match(sql, /FOREIGN KEY \(owner_id, map_id\) REFERENCES maps\(owner_id, id\) ON DELETE CASCADE/);
+    assert.doesNotMatch(sql, /\btoken\b TEXT/);
+  }
 });
 
 test("authentication failures advertise the bearer challenge", () => {
@@ -172,8 +255,8 @@ test("agent safety limits and portable export remain part of the contract", () =
   assert.match(worker, /Number\.isFinite\(altitude\)/);
 });
 
-test("every protected route advertises its actual errors and every response has a request ID", () => {
-  assert.equal(Object.keys(REQUIRED_ERROR_RESPONSES).length, 16);
+test("every fallible route advertises its actual errors and every response has a request ID", () => {
+  assert.equal(Object.keys(REQUIRED_ERROR_RESPONSES).length, 18);
   const documented = new Set();
   for (const pathItem of Object.values(spec.paths)) {
     for (const operation of Object.values(pathItem)) {
@@ -193,7 +276,7 @@ test("every protected route advertises its actual errors and every response has 
       }
     }
   }
-  assert.equal(documented.size, 77);
+  assert.equal(documented.size, 87);
   assert.equal(spec.components.responses.Conflict.description.includes("Idempotency-Key replay is not supported"), true);
   assert.equal(Object.hasOwn(spec.components.responses, "TooManyRequests"), false);
 });
