@@ -76,6 +76,10 @@ jobs:
         working-directory: maps
         run: npm run test:external-link-security
 
+      - name: Check secure API map-open handoff
+        working-directory: maps
+        run: npm run test:api-map-open-handoff
+
       - name: Check maps frame viewport fallback
         working-directory: maps
         run: npm run test:maps-frame-viewport

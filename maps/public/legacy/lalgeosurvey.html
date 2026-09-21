@@ -32101,6 +32101,29 @@ function setImportPanelVisibility(show) {
             setSearchExpanded(!toolbarSearchExpanded);
         });
         printButton?.addEventListener("click", () => openPrintPreparation("print"));
+        window.addEventListener("message", async (event) => {
+            if (event.origin !== window.location.origin || event.source !== window.parent) return;
+            if (!event.data || event.data.type !== "lalgeo:open-api-copy") return;
+            const requestId = typeof event.data.requestId === "string" ? event.data.requestId : undefined;
+            try {
+                await openImportedProject(event.data.payload);
+                window.parent.postMessage({
+                    type: "lalgeo:open-api-copy-result",
+                    ok: true,
+                    projectName: activeProjectRecord?.name || event.data.payload?.project?.name || "the API map"
+                }, event.origin);
+            } catch (error) {
+                console.error("Unable to open API map copy", error);
+                const message = error?.message || "The API returned a project that Maps could not open. Ask the sender for a new link.";
+                setProjectStatus(message, "error");
+                window.parent.postMessage({
+                    type: "lalgeo:open-api-copy-result",
+                    ok: false,
+                    message,
+                    requestId
+                }, event.origin);
+            }
+        });
         window.addEventListener("beforeunload", (event) => {
             if (pendingChanges) {
                 event.preventDefault();
