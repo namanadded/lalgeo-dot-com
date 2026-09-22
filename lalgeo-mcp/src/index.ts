@@ -1,10 +1,13 @@
 import { createMcpExpressApp } from "@modelcontextprotocol/sdk/server/express.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { LalGeoApi } from "./lalgeo-api.js";
+import { AppleMapsGeocoder } from "./geocoder.js";
 import { createServer } from "./server.js";
 
 const apiKey = process.env.LALGEO_API_KEY;
 if (!apiKey) throw new Error("LALGEO_API_KEY is required.");
+const mapsToken = process.env.MAPKIT_TOKEN;
+if (!mapsToken) throw new Error("MAPKIT_TOKEN is required for LalGeo place search.");
 
 const port = Number(process.env.PORT || 3000);
 const host = process.env.HOST || "127.0.0.1";
@@ -13,7 +16,7 @@ const app = createMcpExpressApp({ host });
 
 app.get("/health", (_req, res) => res.json({ ok: true, service: "lalgeo-mcp" }));
 app.post("/mcp", async (req, res) => {
-  const server = createServer(new LalGeoApi(apiKey, apiBaseUrl));
+  const server = createServer(new LalGeoApi(apiKey, apiBaseUrl), new AppleMapsGeocoder(mapsToken));
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   res.on("close", () => {
     void transport.close();

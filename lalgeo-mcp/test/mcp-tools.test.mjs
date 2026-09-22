@@ -4,7 +4,7 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer } from "../src/server.ts";
 
-test("MCP discovery exposes only the five LalGeo authoring tools", async () => {
+test("MCP discovery exposes the five authoring tools plus geocode", async () => {
   const calls = [];
   const api = {
     createMap: async (input) => { calls.push(["create_map", input]); return { map: { id: "map_1" } }; },
@@ -14,7 +14,8 @@ test("MCP discovery exposes only the five LalGeo authoring tools", async () => {
     exportMap: async () => ({}),
     createMapOpenLink: async (mapId) => { calls.push(["create_open_link", mapId]); return { open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64) }; },
   };
-  const server = createServer(api);
+  const geocoder = { geocode: async () => { throw new Error("unexpected geocode call"); } };
+  const server = createServer(api, geocoder);
   const client = new Client({ name: "lalgeo-mcp-test", version: "0.1.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
 
@@ -22,9 +23,10 @@ test("MCP discovery exposes only the five LalGeo authoring tools", async () => {
   try {
     const discovered = await client.listTools();
     assert.deepEqual(discovered.tools.map((tool) => tool.name).sort(), [
-      "add_features", "create_layer", "create_map", "export_map", "update_map",
+      "add_features", "create_layer", "create_map", "export_map", "geocode", "update_map",
     ]);
-    assert.ok(discovered.tools.every((tool) => tool._meta?.ui?.resourceUri === "ui://lalgeo/map.html"));
+    assert.ok(discovered.tools.filter((tool) => tool.name !== "geocode").every((tool) => tool._meta?.ui?.resourceUri === "ui://lalgeo/map.html"));
+    assert.equal(discovered.tools.find((tool) => tool.name === "geocode")._meta?.ui, undefined);
 
     const resource = await client.readResource({ uri: "ui://lalgeo/map.html" });
     assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");
@@ -59,7 +61,8 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
     exportMap: async (mapId) => { calls.push(["export_map", mapId]); return { project: { id: mapId, name: "Calgary", layers: [] } }; },
     createMapOpenLink: async (mapId) => { calls.push(["create_open_link", mapId]); return { open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64), expires_at: "2026-09-22T06:10:00.000Z" }; },
   };
-  const server = createServer(api);
+  const geocoder = { geocode: async () => { throw new Error("unexpected geocode call"); } };
+  const server = createServer(api, geocoder);
   const client = new Client({ name: "calgary-example", version: "0.1.0" });
   const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
   const features = [
@@ -83,6 +86,34 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
     const openResponse = await client.callTool({ name: "export_map", arguments: { map_id: "calgary_map" } });
     assert.deepEqual(calls.slice(-2), [["export_map", "calgary_map"], ["create_open_link", "calgary_map"]]);
     assert.equal(openResponse._meta["lalgeo/openUrl"], "https://maps.lalgeo.com/maps#open=" + "a".repeat(64));
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+test("geocode returns coordinates and matched place information", async () => {
+  const match = {
+    query: "Calgary Tower",
+    coordinates: { latitude: 51.0447, longitude: -114.0631 },
+    place: { name: "Calgary Tower", formattedAddress: "101 9 Ave SW, Calgary, AB", coordinate: { latitude: 51.0447, longitude: -114.0631 } },
+  };
+  const api = {
+    createMap: async () => ({}), createLayer: async () => ({}), addFeatures: async () => ({}),
+    updateMap: async () => ({}), exportMap: async () => ({}), createMapOpenLink: async () => ({}),
+  };
+  const queries = [];
+  const geocoder = { geocode: async (query) => { queries.push(query); return match; } };
+  const server = createServer(api, geocoder);
+  const client = new Client({ name: "geocode-test", version: "0.1.0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  try {
+    const response = await client.callTool({ name: "geocode", arguments: { query: "Calgary Tower" } });
+    assert.deepEqual(queries, ["Calgary Tower"]);
+    assert.deepEqual(response.structuredContent, match);
+    assert.equal(response.isError, undefined);
   } finally {
     await client.close();
     await server.close();
