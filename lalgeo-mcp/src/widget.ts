@@ -10,7 +10,8 @@ export const MAP_WIDGET_HTML = `<!doctype html>
     * { box-sizing: border-box; }
     body { margin: 0; color: #173332; background: #f4f8f7; }
     .shell { position: relative; min-height: 330px; overflow: hidden; background: linear-gradient(145deg, #dbecea, #f8fbfa); }
-    header { position: absolute; z-index: 2; top: 12px; left: 12px; max-width: calc(100% - 24px); padding: 9px 12px; border: 1px solid #b8d4d0; border-radius: 12px; background: rgba(255,255,255,.92); box-shadow: 0 5px 18px rgba(22,68,65,.12); }
+    header { position: absolute; z-index: 2; top: 12px; left: 12px; display: flex; align-items: center; gap: 12px; max-width: calc(100% - 24px); padding: 9px 10px 9px 12px; border: 1px solid #b8d4d0; border-radius: 12px; background: rgba(255,255,255,.92); box-shadow: 0 5px 18px rgba(22,68,65,.12); }
+    .heading { min-width: 0; }
     h1 { margin: 0; font-size: 15px; color: #164844; }
     #status { margin-top: 2px; color: #54706e; font-size: 12px; }
     svg { display: block; width: 100%; height: 330px; touch-action: none; cursor: grab; }
@@ -20,6 +21,8 @@ export const MAP_WIDGET_HTML = `<!doctype html>
     .point { fill: #0f766e; stroke: white; stroke-width: 2; vector-effect: non-scaling-stroke; cursor: pointer; }
     #details { position: absolute; z-index: 2; right: 12px; bottom: 12px; display: none; width: min(270px, calc(100% - 24px)); max-height: 120px; overflow: auto; margin: 0; padding: 9px 11px; border: 1px solid #b8d4d0; border-radius: 10px; background: rgba(255,255,255,.94); color: #294c49; font: 11px/1.35 ui-monospace, SFMono-Regular, Menlo, monospace; white-space: pre-wrap; }
     .empty { position: absolute; inset: 0; display: grid; place-items: center; padding: 70px 24px 24px; color: #54706e; text-align: center; }
+    #open { display: none; flex: none; border: 0; border-radius: 9px; padding: 8px 11px; background: #0f766e; color: white; font: inherit; font-weight: 650; cursor: pointer; }
+    #open:hover { background: #115e59; } #open:disabled { opacity: .65; cursor: wait; }
     @media (prefers-color-scheme: dark) {
       body, .shell { color: #e6f3f1; background: #122523; }
       .shell { background: linear-gradient(145deg, #163431, #1f2928); }
@@ -30,7 +33,7 @@ export const MAP_WIDGET_HTML = `<!doctype html>
 </head>
 <body>
   <main class="shell">
-    <header><h1 id="title">LalGeo map</h1><div id="status">Waiting for map data…</div></header>
+    <header><div class="heading"><h1 id="title">LalGeo map</h1><div id="status">Waiting for map data…</div></div><button id="open" type="button">Open in LalGeo</button></header>
     <svg id="map" viewBox="0 0 800 500" role="img" aria-label="Interactive LalGeo map"><g id="viewport"></g></svg>
     <div id="empty" class="empty">The map is ready. Add GeoJSON features to see them here.</div>
     <pre id="details"></pre>
@@ -43,8 +46,12 @@ export const MAP_WIDGET_HTML = `<!doctype html>
       const details = document.getElementById("details");
       const title = document.getElementById("title");
       const status = document.getElementById("status");
+      const openButton = document.getElementById("open");
       let box = { x: 0, y: 0, width: 800, height: 500 };
       let drag = null;
+      let currentMapId = null;
+      let requestId = 0;
+      const pending = new Map();
 
       const element = (name, attributes = {}) => {
         const node = document.createElementNS("http://www.w3.org/2000/svg", name);
@@ -83,11 +90,30 @@ export const MAP_WIDGET_HTML = `<!doctype html>
         return result?.data?.map?.name || result?.data?.project?.name || result?.context?.map_id || "LalGeo map";
       }
 
+      function mapId(result) {
+        return result?.data?.map?.id || result?.data?.project?.id || result?.context?.map_id || result?.context?.requested_map?.id || null;
+      }
+
+      function request(method, params) {
+        const id = ++requestId;
+        window.parent.postMessage({ jsonrpc: "2.0", id, method, params }, "*");
+        return new Promise((resolve, reject) => pending.set(id, { resolve, reject }));
+      }
+
+      async function openExternal(href) {
+        const target = new URL(href);
+        if (target.origin !== "https://maps.lalgeo.com" || target.pathname !== "/maps" || !/^#open=[0-9a-f]{64}$/.test(target.hash)) throw new Error("LalGeo returned an invalid map URL.");
+        if (window.openai?.openExternal) return window.openai.openExternal({ href, redirectUrl: false });
+        window.open(href, "_blank", "noopener,noreferrer");
+      }
+
       function render(result) {
         if (!result || typeof result !== "object") return;
         const features = collectFeatures(result).map((feature) => ({ ...feature, normalized: normalizeGeometry(feature.geometry) })).filter((feature) => feature.normalized);
         const coordinates = features.flatMap((feature) => feature.normalized.paths.flat());
         title.textContent = mapName(result);
+        currentMapId = mapId(result);
+        openButton.style.display = currentMapId ? "block" : "none";
         status.textContent = features.length ? features.length + (features.length === 1 ? " feature" : " features") + " · drag to pan · scroll to zoom" : "Map created · add features to preview geometry";
         empty.style.display = coordinates.length ? "none" : "grid";
         viewport.replaceChildren();
@@ -149,9 +175,32 @@ export const MAP_WIDGET_HTML = `<!doctype html>
       svg.addEventListener("pointerup", () => { drag = null; svg.classList.remove("dragging"); });
       svg.addEventListener("click", () => { details.style.display = "none"; });
 
+      openButton.addEventListener("click", async () => {
+        if (!currentMapId || openButton.disabled) return;
+        openButton.disabled = true; openButton.textContent = "Preparing…";
+        try {
+          const toolResult = window.openai?.callTool
+            ? await window.openai.callTool("export_map", { map_id: currentMapId })
+            : await request("tools/call", { name: "export_map", arguments: { map_id: currentMapId } });
+          const metadata = toolResult?._meta || window.openai?.toolResponseMetadata || {};
+          const href = metadata["lalgeo/openUrl"];
+          if (typeof href !== "string") throw new Error("LalGeo did not return an open link.");
+          await openExternal(href);
+        } catch (error) {
+          status.textContent = error instanceof Error ? error.message : "LalGeo could not open this map.";
+        } finally {
+          openButton.disabled = false; openButton.textContent = "Open in LalGeo";
+        }
+      });
+
       window.addEventListener("message", (event) => {
         if (event.source !== window.parent) return;
         const message = event.data;
+        if (message?.jsonrpc === "2.0" && message.id !== undefined && pending.has(message.id)) {
+          const request = pending.get(message.id); pending.delete(message.id);
+          if (message.error) request.reject(message.error); else request.resolve(message.result);
+          return;
+        }
         if (message?.jsonrpc === "2.0" && message.method === "ui/notifications/tool-result") render(message.params?.structuredContent);
       }, { passive: true });
       if (window.openai?.toolOutput) render(window.openai.toolOutput);

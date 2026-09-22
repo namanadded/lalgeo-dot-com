@@ -12,6 +12,7 @@ test("MCP discovery exposes only the five LalGeo authoring tools", async () => {
     addFeatures: async () => ({}),
     updateMap: async () => ({}),
     exportMap: async () => ({}),
+    createMapOpenLink: async (mapId) => { calls.push(["create_open_link", mapId]); return { open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64) }; },
   };
   const server = createServer(api);
   const client = new Client({ name: "lalgeo-mcp-test", version: "0.1.0" });
@@ -28,6 +29,8 @@ test("MCP discovery exposes only the five LalGeo authoring tools", async () => {
     const resource = await client.readResource({ uri: "ui://lalgeo/map.html" });
     assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");
     assert.match(resource.contents[0].text, /ui\/notifications\/tool-result/);
+    assert.match(resource.contents[0].text, /Open in LalGeo/);
+    assert.match(resource.contents[0].text, /tools\/call/);
     const widgetScript = resource.contents[0].text.match(/<script>([\s\S]*)<\/script>/)?.[1];
     assert.ok(widgetScript);
     assert.doesNotThrow(() => new Function(widgetScript));
@@ -53,7 +56,8 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
     createLayer: async (mapId, input) => { calls.push(["create_layer", mapId, input]); return { layer: { id: "calgary_places", map_id: mapId, ...input } }; },
     addFeatures: async (mapId, layerId, features) => { calls.push(["add_features", mapId, layerId, features]); return { type: "FeatureCollection", features }; },
     updateMap: async () => ({}),
-    exportMap: async () => ({}),
+    exportMap: async (mapId) => { calls.push(["export_map", mapId]); return { project: { id: mapId, name: "Calgary", layers: [] } }; },
+    createMapOpenLink: async (mapId) => { calls.push(["create_open_link", mapId]); return { open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64), expires_at: "2026-09-22T06:10:00.000Z" }; },
   };
   const server = createServer(api);
   const client = new Client({ name: "calgary-example", version: "0.1.0" });
@@ -75,6 +79,10 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
       data: { type: "FeatureCollection", features },
       context: { map_id: "calgary_map", layer_id: "calgary_places", features },
     });
+
+    const openResponse = await client.callTool({ name: "export_map", arguments: { map_id: "calgary_map" } });
+    assert.deepEqual(calls.slice(-2), [["export_map", "calgary_map"], ["create_open_link", "calgary_map"]]);
+    assert.equal(openResponse._meta["lalgeo/openUrl"], "https://maps.lalgeo.com/maps#open=" + "a".repeat(64));
   } finally {
     await client.close();
     await server.close();

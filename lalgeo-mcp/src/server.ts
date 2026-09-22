@@ -75,6 +75,7 @@ export function createServer(api: LalGeoApi) {
         ui: { prefersBorder: true, csp: { connectDomains: [], resourceDomains: [] } },
         "openai/widgetDescription": "Interactive preview of the LalGeo map and GeoJSON returned by the tool.",
         "openai/widgetPrefersBorder": true,
+        "openai/widgetCSP": { connect_domains: [], resource_domains: [], redirect_domains: ["https://maps.lalgeo.com"] },
       },
     }],
   }));
@@ -142,7 +143,23 @@ export function createServer(api: LalGeoApi) {
     outputSchema: widgetOutput,
     _meta: uiMeta("Preparing map…", "Map ready."),
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
-  }, (input) => call("export_map", { map_id: input.map_id }, () => api.exportMap(input.map_id)));
+  }, async (input) => {
+    try {
+      const [payload, openLink] = await Promise.all([
+        api.exportMap(input.map_id),
+        api.createMapOpenLink(input.map_id) as Promise<{ open_url?: unknown; expires_at?: unknown }>,
+      ]);
+      return {
+        ...result("export_map", payload, { map_id: input.map_id }),
+        _meta: {
+          "lalgeo/openUrl": typeof openLink.open_url === "string" ? openLink.open_url : undefined,
+          "lalgeo/openUrlExpiresAt": typeof openLink.expires_at === "string" ? openLink.expires_at : undefined,
+        },
+      };
+    } catch (error) {
+      return failure(error);
+    }
+  });
 
   return server;
 }

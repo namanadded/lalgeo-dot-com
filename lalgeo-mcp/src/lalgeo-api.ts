@@ -40,6 +40,10 @@ export class LalGeoApi {
     return this.request("GET", `/v1/maps/${encodeURIComponent(mapId)}/export`);
   }
 
+  createMapOpenLink(mapId: string) {
+    return this.request("POST", `/v1/maps/${encodeURIComponent(mapId)}/open-links`, { expires_in: 600 });
+  }
+
   private async request(method: string, path: string, body?: JsonObject) {
     const response = await fetch(new URL(path, this.baseUrl), {
       method,

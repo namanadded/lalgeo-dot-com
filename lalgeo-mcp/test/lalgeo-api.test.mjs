@@ -20,6 +20,12 @@ beforeEach(() => {
         { status: 404, headers: { "x-request-id": "request-404" } },
       );
     }
+    if (url.pathname.endsWith("/open-links")) {
+      return Response.json({
+        open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
+        expires_at: "2026-09-22T06:10:00.000Z",
+      }, { status: 201 });
+    }
     return Response.json({ ok: true }, { status: init.method === "POST" ? 201 : 200 });
   };
 });
@@ -57,4 +63,17 @@ test("API errors retain the existing response and request ID", async () => {
     assert.deepEqual(error.payload, { error: { code: "MAP_NOT_FOUND" } });
     return true;
   });
+});
+
+test("the generated LalGeo open URL is requested for the correct map", async () => {
+  const api = new LalGeoApi("secret-key", "https://api.example.test");
+  const result = await api.createMapOpenLink("calgary/map");
+
+  assert.deepEqual(requests[0], {
+    method: "POST",
+    url: "/v1/maps/calgary%2Fmap/open-links",
+    authorization: "Bearer secret-key",
+    body: { expires_in: 600 },
+  });
+  assert.equal(result.open_url, "https://maps.lalgeo.com/maps#open=" + "a".repeat(64));
 });
