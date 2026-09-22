@@ -660,8 +660,8 @@ try {
     makeEl("editPanelFinishGeometryBtn").click();
     assert(!geometryTraceMode && !isAddingSurveyPoint, "polygon trace finalizes and exits trace mode");
     assert(layer.features.at(-1).geometry.type === "Polygon", "polygon trace saves polygon geometry");
-    assert(!makeEl("editPanelUndoBtn").disabled, "toolbar undo enables after geometry edits");
-    makeEl("editPanelUndoBtn").click();
+    assert(!makeEl("undoBtn").disabled, "toolbar undo enables after geometry edits");
+    makeEl("undoBtn").click();
     assert(layer.features.at(-1).geometry.type !== "Polygon" || layer.features.length >= 1, "toolbar undo runs without breaking geometry state");
 
     layer = activate("line");

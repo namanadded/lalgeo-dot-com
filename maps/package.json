@@ -13,6 +13,7 @@
     "test:search-journey": "node scripts/test-search-journey.mjs",
     "test:help-center-journey": "node scripts/test-help-center-journey.mjs",
     "test:button-type-safety": "node scripts/test-button-type-safety.mjs",
+    "test:layer-selection-controls": "node scripts/test-layer-selection-controls.mjs",
     "test:disabled-command-explanations": "node scripts/test-disabled-command-explanations.mjs",
     "test:dropbox-status-a11y": "node scripts/test-dropbox-status-a11y.mjs",
     "test:dropbox-auth-navigation": "node scripts/test-dropbox-auth-navigation.mjs",
@@ -57,7 +58,6 @@
     "test:workflow-ui": "node scripts/test-workflow-ui.mjs",
     "test:layer-import-journey": "node scripts/test-layer-import-journey.mjs",
     "test:layer-actions-journey": "node scripts/test-layer-actions-journey.mjs",
-    "test:layer-selection-controls": "node scripts/test-layer-selection-controls.mjs",
     "test:new-layer-dialog-journey": "node scripts/test-new-layer-dialog-journey.mjs",
     "test:table-selection-filter-states": "node scripts/test-table-selection-filter-states.mjs",
     "test:attribute-table-journey": "node scripts/test-attribute-table-journey.mjs",
@@ -106,9 +106,12 @@
     "benchmark:lal-serialization": "node --expose-gc scripts/benchmark-lal-serialization.mjs",
     "benchmark:autosave-coalescing": "node --expose-gc scripts/benchmark-autosave-coalescing.mjs",
     "build": "next build",
-    "start": "next start"
+    "start": "next start",
+    "test:sharing": "node --import tsx --test tests/map-sharing.test.ts"
   },
   "dependencies": {
+    "@netlify/blobs": "^10.7.13",
+    "ipaddr.js": "^2.5.0",
     "next": "^16.1.6",
     "react": "^19.2.4",
     "react-dom": "^19.2.4"
@@ -117,6 +120,8 @@
     "@types/node": "^20.14.10",
     "@types/react": "^18.3.3",
     "@types/react-dom": "^18.3.0",
+    "netlify-cli": "^26.2.0",
+    "tsx": "^4.23.13",
     "typescript": "^5.5.4"
   }
 }

@@ -326,10 +326,15 @@ export default async function AppSettingsPage({
         {testStatus === "missing_smtp" ? <div className="banner">Please save complete SMTP settings first.</div> : null}
         {testStatus === "missing_to" ? <div className="banner">Please provide a test recipient email.</div> : null}
         {oauthStatus === "google_connected" ? <div className="banner">Gmail connected successfully.</div> : null}
+        {oauthStatus === "google_scope_missing" ? (
+          <div className="banner" role="alert">
+            Gmail was not connected because email sending permission was not granted. Reconnect Gmail and allow LalGeo to send email.
+          </div>
+        ) : null}
         {oauthStatus === "microsoft_connected" ? <div className="banner">Outlook connected successfully.</div> : null}
         {oauthStatus === "google_disconnected" ? <div className="banner">Gmail disconnected.</div> : null}
         {oauthStatus === "microsoft_disconnected" ? <div className="banner">Outlook disconnected.</div> : null}
-        {oauthStatus?.includes("failed") || oauthStatus?.includes("invalid") || oauthStatus?.includes("missing") ? (
+        {(oauthStatus?.includes("failed") || oauthStatus?.includes("invalid") || oauthStatus?.includes("missing")) && oauthStatus !== "google_scope_missing" ? (
           <div className="banner">OAuth setup failed. Check credentials and redirect URI config, then retry.</div>
         ) : null}
 

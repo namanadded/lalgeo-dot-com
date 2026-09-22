@@ -1,6 +1,7 @@
 import { buildMimeMessage, type MimeAttachment } from "@/lib/mime";
 import { getEmailRuntime, updateEmailConnectionTokens } from "@/lib/saas-store";
 import { sendMailSmtp } from "@/lib/smtp";
+import { GMAIL_SEND_SCOPE } from "@/lib/oauth";
 
 type SendInput = {
   organizationId: string;
@@ -170,6 +171,10 @@ export async function sendOrganizationEmail(input: SendInput) {
       if (provider === "google") {
         const connection = hasGoogle;
         if (!connection) throw new Error("Google not connected");
+        const grantedScopes = new Set((connection.scopes || "").split(/\s+/).filter(Boolean));
+        if (!grantedScopes.has(GMAIL_SEND_SCOPE)) {
+          throw new Error("Gmail send permission is missing. Go to Settings, reconnect Gmail, and allow email sending.");
+        }
         const token = await getConnectionToken(connection);
         await sendViaGoogle(token, {
           ...input,

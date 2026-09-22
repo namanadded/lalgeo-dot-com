@@ -3,6 +3,10 @@
 .DS_Store
 node_modules/
 .next/
+.local-shared-maps/
+
+.local-share-receipts/
+*.tsbuildinfo
 .wrangler/
 .dev.vars
 .dev.vars.*
@@ -13,3 +17,6 @@ DerivedData/
 *.xcuserstate
 xcuserdata/
 *.xcresult
+
+# Separate local checkout; not a configured submodule
+/lalgeo-dot-ca/

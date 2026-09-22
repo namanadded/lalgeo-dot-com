@@ -64,6 +64,30 @@
         font-family: var(--lalgeo-feature-label-font) !important;
         font-size: var(--lalgeo-feature-label-size) !important;
     }
+    .lalgeo-map-label {
+        max-width: 132px;
+        padding: 1px 4px;
+        color: #111827;
+        font-family: var(--lalgeo-feature-label-font);
+        font-size: var(--lalgeo-feature-label-size);
+        font-weight: 750;
+        line-height: 1.08;
+        text-align: center;
+        text-shadow:
+            0 1px 0 rgba(255,255,255,.92),
+            1px 0 0 rgba(255,255,255,.92),
+            0 -1px 0 rgba(255,255,255,.92),
+            -1px 0 0 rgba(255,255,255,.92),
+            0 0 4px rgba(255,255,255,.86);
+        pointer-events: none;
+        transform: translate(-50%, -50%);
+        transition: opacity .16s ease;
+        white-space: normal;
+        word-break: normal;
+    }
+    .lalgeo-map-label[hidden] {
+        display: none !important;
+    }
     #customBasemapAttribution {
         position: fixed;
         left: 12px;
@@ -11494,6 +11518,14 @@
                 </button>
             </div>
         </section>
+        <section class="advanced-gis-command-section" aria-labelledby="publicSharingHeading">
+            <h4 id="publicSharingHeading" class="advanced-gis-section-heading"><span>Create &amp; Share</span></h4>
+            <div class="advanced-gis-command-list">
+                <button type="button" id="toolsShareMapBtn" class="advanced-gis-command"><span class="advanced-gis-command-icon" aria-hidden="true">↗</span><span>Share map</span></button>
+                <button type="button" id="toolsPublicUrlBtn" class="advanced-gis-command"><span class="advanced-gis-command-icon" aria-hidden="true">⊕</span><span>Map from URL</span></button>
+                <button type="button" id="toolsSharedLinkBtn" class="advanced-gis-command"><span class="advanced-gis-command-icon" aria-hidden="true">⧉</span><span>Shared link</span></button>
+            </div>
+        </section>
         <div id="advancedGisEmptyState" class="advanced-gis-empty-state" role="status" aria-live="polite">
             <span class="advanced-gis-empty-icon" aria-hidden="true">
                 <svg viewBox="0 0 24 24"><path d="M4 7l8-4 8 4-8 4-8-4z"></path><path d="M4 12l8 4 8-4"></path><path d="M4 17l8 4 8-4"></path></svg>
@@ -12615,6 +12647,7 @@
     </div>
 
     <script src="../js/workspace-persistence.js"></script>
+    <script src="/map-sharing.js"></script>
     <script>
         const hostname = window.location.hostname;
 
@@ -13288,6 +13321,7 @@
         const dropboxStatusParam = urlParams.get("dropbox");
         const dropboxLinkParam = urlParams.get("dropboxLink") ? decodeURIComponent(urlParams.get("dropboxLink")) : null;
         const shareParam = urlParams.get("share");
+        const publicSharedMapId = urlParams.get("sharedMap");
         isSharedView = shareParam === "1";
         if (dropboxStatusParam === "connected") {
             dropboxConnectStatus.textContent = "Dropbox connected.";
@@ -13356,7 +13390,10 @@
         const API_REFERENCE_REFRESH_COOLDOWN_MS = 15000;
         const DEFAULT_POINT_AGGREGATION = 60;
         const MAX_POINT_AGGREGATION_CELL_DEGREES = 0.08;
+        const LABEL_DENSITY_MIN_ZOOM_SPAN = 2.5;
+        const LABEL_COLLISION_PADDING_PX = 28;
         let surveyAnnotations = [];
+        let surveyLabelAnnotations = [];
         let surveyOverlays = [];
         let activeLayerRenderTask = null;
         let activeSurveyAnnotation = null;
@@ -21680,7 +21717,7 @@
             return true;
         };
         let restoredStartupProject = false;
-        if (startupSafeMode) {
+        if (startupSafeMode || publicSharedMapId) {
             try {
                 localStorage.removeItem(WORKSPACE_ACTIVE_KEY);
             } catch {}
@@ -21697,7 +21734,7 @@
                 });
             }
         }
-        if (!restoredStartupProject && rememberLastSession && workspaceProjects[0] && !startupSafeMode) {
+        if (!restoredStartupProject && rememberLastSession && workspaceProjects[0] && !startupSafeMode && !publicSharedMapId) {
             restoredStartupProject = restoreStartupProject(
                 workspaceProjects[0],
                 "first-workspace-project"
@@ -22636,16 +22673,7 @@
         );
         exportProjectBtn?.addEventListener("click", downloadActiveProjectPackage);
         downloadProjectBtn?.addEventListener("click", () => openExportCenter(downloadProjectBtn));
-        copyShareLinkBtn?.addEventListener("click", () => {
-            const link = buildShareUrl();
-            if (!link) {
-                setProjectStatus("Share links are ready when a Dropbox-backed project is open.", "error");
-                return;
-            }
-            navigator.clipboard.writeText(link)
-                .then(() => setProjectStatus("Share link copied to clipboard.", "success"))
-                .catch(() => setProjectStatus("Unable to copy share link.", "error"));
-        });
+        copyShareLinkBtn?.addEventListener("click", openPublicMapSharing);
         document.addEventListener("keydown", (event) => {
             const key = event.key.toLowerCase();
             const primaryModifier = isMacPlatform ? event.metaKey : event.ctrlKey;
@@ -22972,22 +23000,7 @@
             await handleSurveyFiles(files);
         });
 
-        shareButton.addEventListener("click", () => {
-            if (!activeProjectName) {
-                alert("Create a project or open an existing one before sharing.");
-                return;
-            }
-            if (!isDropboxLinkSource()) {
-                setProjectStatus("Sharing is currently available for Dropbox-linked projects. Open a Dropbox-backed project to share.", "error");
-                return;
-            }
-            const shareUrl = buildShareUrl();
-            if (!shareUrl) {
-                setProjectStatus("Dropbox link required to share.", "error");
-                return;
-            }
-            showShareToast(shareUrl);
-        });
+        shareButton.addEventListener("click", openPublicMapSharing);
         shareCloseBtn?.addEventListener("click", closeSharePanel);
         shareCopyBtn?.addEventListener("click", () => {
             const link = buildShareUrl();
@@ -27463,6 +27476,9 @@
                 map.addOverlay(overlay);
                 updateSurveyOverlayVisualState(overlay);
             }
+            if (shouldCreateMapTextLabels(layer)) {
+                queueMapTextLabel(feature, layer, representativeCoordinate, markerTitle);
+            }
             const shouldShowMarker = feature.showRepresentativeMarker !== false && (!markerFeatureSet || markerFeatureSet.has(feature));
             const repCoord = shouldShowMarker ? representativeCoordinate : null;
             if (repCoord) {
@@ -27570,6 +27586,90 @@
             return markerFeatures.size > MAX_RENDERED_MAP_FEATURES
                 ? limitRenderableFeatureSet(Array.from(markerFeatures))
                 : markerFeatures;
+        }
+
+        function shouldCreateMapTextLabels(layer) {
+            const geometryType = normalizeLayerGeometryType(layer?.geometryType || "point");
+            return geometryType !== "point" && layer?.labelsVisible !== false;
+        }
+
+        function createMapTextLabelElement(text) {
+            const element = document.createElement("div");
+            element.className = "lalgeo-map-label";
+            element.textContent = String(text || "").trim();
+            element.hidden = true;
+            return element;
+        }
+
+        function getMapLabelLimit() {
+            const span = Math.max(
+                Number(map?.region?.span?.latitudeDelta) || 0,
+                Number(map?.region?.span?.longitudeDelta) || 0
+            );
+            const width = Math.max(320, mapElement?.clientWidth || window.innerWidth || 320);
+            if (span >= LABEL_DENSITY_MIN_ZOOM_SPAN) return width < 700 ? 8 : 14;
+            if (span >= 1.2) return width < 700 ? 14 : 24;
+            if (span >= 0.55) return width < 700 ? 24 : 42;
+            if (span >= 0.25) return width < 700 ? 44 : 72;
+            return width < 700 ? 80 : 140;
+        }
+
+        function updateMapTextLabelVisibility() {
+            if (!map || !surveyLabelAnnotations.length) return;
+            const labelCandidates = surveyLabelAnnotations
+                .map((annotation) => {
+                    const point = map.convertCoordinateToPointOnPage(annotation.coordinate);
+                    const layer = getLayerById(annotation.lalgeoLabel?.layerId);
+                    if (!point || !layer || layer.visible === false || layer.labelsVisible === false) return null;
+                    const inViewport = point.x >= -80 && point.y >= -40
+                        && point.x <= (window.innerWidth + 80)
+                        && point.y <= (window.innerHeight + 40);
+                    if (!inViewport) return null;
+                    return { annotation, point, priority: annotation.lalgeoLabel?.priority || 0 };
+                })
+                .filter(Boolean)
+                .sort((first, second) => second.priority - first.priority);
+            const visible = new Set();
+            const occupied = [];
+            const limit = getMapLabelLimit();
+            for (const candidate of labelCandidates) {
+                if (visible.size >= limit) break;
+                const element = candidate.annotation.lalgeoLabel?.element;
+                const width = Math.max(54, Math.min(148, (element?.textContent?.length || 8) * 7.2));
+                const height = 22;
+                const box = {
+                    left: candidate.point.x - width / 2 - LABEL_COLLISION_PADDING_PX,
+                    right: candidate.point.x + width / 2 + LABEL_COLLISION_PADDING_PX,
+                    top: candidate.point.y - height / 2 - LABEL_COLLISION_PADDING_PX / 2,
+                    bottom: candidate.point.y + height / 2 + LABEL_COLLISION_PADDING_PX / 2
+                };
+                const overlaps = occupied.some((other) => box.left < other.right && box.right > other.left && box.top < other.bottom && box.bottom > other.top);
+                if (overlaps) continue;
+                occupied.push(box);
+                visible.add(candidate.annotation);
+            }
+            surveyLabelAnnotations.forEach((annotation) => {
+                const element = annotation.lalgeoLabel?.element;
+                if (!element) return;
+                element.hidden = !visible.has(annotation);
+            });
+        }
+
+        function queueMapTextLabel(feature, layer, coordinate, labelText) {
+            if (!map || !coordinate || !String(labelText || "").trim()) return;
+            const element = createMapTextLabelElement(labelText);
+            const annotation = new mapkit.Annotation(coordinate, () => element, {
+                anchorOffset: new DOMPoint(0, 0)
+            });
+            annotation.enabled = false;
+            annotation.lalgeoLabel = {
+                element,
+                feature,
+                layerId: layer?.id || null,
+                priority: getFeaturePolygonArea(feature) || 1
+            };
+            surveyLabelAnnotations.push(annotation);
+            map.addAnnotation(annotation);
         }
 
         function waitForNextFrame() {
@@ -27681,6 +27781,7 @@
             }
             if (showProgress) updateLayerRenderProgress(totalFeatureCount, totalFeatureCount);
             if (!coords.length) {
+                updateMapTextLabelVisibility();
                 updateSurveyTable();
                 return true;
             }
@@ -27691,6 +27792,7 @@
                     map.region = computeBounds(coords);
                 }
             }
+            updateMapTextLabelVisibility();
             setTimeout(() => positionSurveyCallout(activeSurveyAnnotation), 10);
             updateSurveyTable();
             return true;
@@ -27700,7 +27802,7 @@
             hideSurveyCallout();
             clearGeometryVertexHandles();
             clearSplitPreview();
-            const annotationsToRemove = [...surveyAnnotations, ...archiveAnnotations];
+            const annotationsToRemove = [...surveyAnnotations, ...surveyLabelAnnotations, ...archiveAnnotations];
             if (annotationsToRemove.length && typeof map.removeAnnotations === "function") {
                 map.removeAnnotations(annotationsToRemove);
             } else {
@@ -27712,6 +27814,7 @@
                 drawingPreviewOverlay = null;
             }
             surveyAnnotations = [];
+            surveyLabelAnnotations = [];
             surveyOverlays = [];
             archiveAnnotations = [];
             rowAnnotationMap = new Map();
@@ -27732,6 +27835,13 @@
                 annotation.title = nextTitle;
                 if (annotation.surveyPoint) annotation.surveyPoint.title = nextTitle;
             });
+            surveyLabelAnnotations.forEach(annotation => {
+                const layer = getLayerById(annotation.lalgeoLabel?.layerId) || getActiveLayerRecord();
+                const feature = annotation.lalgeoLabel?.feature;
+                const nextTitle = feature ? computeLabelFromAttributes(feature.attributes, activeProjectName, layer) : "";
+                if (annotation.lalgeoLabel?.element && nextTitle) annotation.lalgeoLabel.element.textContent = nextTitle;
+            });
+            updateMapTextLabelVisibility();
             updateSurveyTable();
         }
 
@@ -29951,6 +30061,7 @@ function setImportPanelVisibility(show) {
             if (activeSurveyAnnotation) {
                 positionSurveyCallout(activeSurveyAnnotation);
             }
+            updateMapTextLabelVisibility();
         });
 
         map.addEventListener("select", (event) => {
@@ -30209,7 +30320,7 @@ function setImportPanelVisibility(show) {
         const searchField = document.getElementById("searchInput");
         const search = new mapkit.Search({ region: map.region });
         setSearchExpanded(false);
-        if (!activeProjectRecord && rememberLastSession) {
+        if (!activeProjectRecord && rememberLastSession && !publicSharedMapId) {
             void requestStartupCurrentLocation().then((centered) => {
                 if (centered) search.region = map.region;
             });
@@ -31898,6 +32009,83 @@ function setImportPanelVisibility(show) {
                 console.warn("Unhandled task:", task);
             }
         }
+
+        function openPublicMapSharing() {
+            if (!activeProjectRecord) return setProjectStatus("Create or open a map before sharing.", "error");
+            try {
+                const layers = activeProjectRecord.layers.filter((layer) => layer.visible !== false).map((layer) => {
+                    const entries = typeof getLayerFilteredFeatureEntries === "function" ? getLayerFilteredFeatureEntries(layer) : (layer.features || []).map((feature, index) => ({ feature, index }));
+                    const geojson = layerToGeoJson(layer, entries.map((entry) => entry.index));
+                    const settings = ensureLayerLabelSettings(layer);
+                    // Materialize custom labels as text; never publish executable expressions.
+                    if (settings.mode === "expression") geojson.features.forEach((feature) => {
+                        feature.properties.Shared_Label = String(computeLabelFromAttributes(feature.properties, layer.name, layer));
+                    });
+                    return {
+                        name: layer.name, geojson,
+                        color: String(layer.styleDefaults?.symbol_color || "Blue").toLowerCase(),
+                        opacity: layer.styleDefaults?.fillOpacity ?? 0.25,
+                        labelField: settings.mode === "expression" ? "Shared_Label" : settings.field,
+                        popoutsVisible: layer.popoutsVisible !== false,
+                        labelsVisible: layer.labelsVisible !== false,
+                        ...(layer.source?.type === "api-endpoint" ? { sourceUrl: layer.source.url } : {})
+                    };
+                }).filter((layer) => layer.geojson.features.length);
+                window.LalGeoSharing.showShare({ title: activeProjectRecord.name, description: activeProjectRecord.description || "", basemap: getProjectMapType(), layers });
+            } catch (error) { setProjectStatus(error.message || "Unable to prepare this map for sharing.", "error"); }
+        }
+
+        async function loadPublicSharedMap(id) {
+            if (!/^[a-f0-9]{32}$/.test(id)) return setProjectStatus("Invalid shared map link.", "error");
+            setProjectStatus("Loading shared map…");
+            try {
+                const shared = await window.LalGeoSharing.load(id);
+                const layers = shared.layers.flatMap((item) => {
+                    const payload = buildGeoJsonPayload(item.geojson, { projectName: item.name, fileName: item.name });
+                    return payload.geospatialLayers.map((layer) => {
+                        layer.name = payload.geospatialLayers.length === 1 ? item.name : layer.name;
+                        layer.visible = item.visible;
+                        const color = item.color.charAt(0).toUpperCase() + item.color.slice(1);
+                        layer.styleDefaults = { ...layer.styleDefaults, symbol_color: color, fillOpacity: item.opacity };
+                        layer.features.forEach((feature) => { feature.attributes.symbol_color = color; });
+                        layer.labelSettings = { mode: "field", field: item.labelField, expression: "", textSize: 13, textColor: "#1f2937", fontFamily: "Inter" };
+                        if (normalizeLayerGeometryType(layer.geometryType) !== "point") {
+                            layer.popoutsVisible = typeof item.popoutsVisible === "boolean" ? item.popoutsVisible : false;
+                            layer.labelsVisible = typeof item.labelsVisible === "boolean" ? item.labelsVisible : true;
+                        }
+                        layer.source = { type: "shared-snapshot", url: item.sourceUrl || "", loadedAt: shared.createdAt };
+                        layer.parsed = buildParsedFromLayer(layer);
+                        return layer;
+                    });
+                });
+                const project = createProjectRecord({ name: shared.title, description: shared.description, type: "GIS workspace", storageSource: "Shared snapshot", source: { type: "shared-snapshot", id }, mapOptions: { mapType: shared.basemap }, layers });
+                if (typeof assertLayerCollectionWithinBrowserLimits === "function") assertLayerCollectionWithinBrowserLimits(layers, shared.title);
+                setActiveProject(project, { refreshApi: false });
+                setSurveyTableVisibility(false);
+                setProjectStatus(`Shared snapshot · ${shared.featureCount.toLocaleString()} features. Edits here do not change the original link.`, "success");
+                document.getElementById("toolsSharedLinkBtn").disabled = false;
+            } catch (error) {
+                setActiveProject(null);
+                setProjectStatus(error.message || "Unable to open this shared map.", "error");
+                openLayerActionModal({ title: "Shared map unavailable", description: error.message || "Please try again later.", bodyHtml: "", actions: [{ label: "Close" }] });
+            }
+        }
+
+        document.getElementById("toolsShareMapBtn")?.addEventListener("click", () => { setAdvancedGisVisible(false); openPublicMapSharing(); });
+        document.getElementById("toolsPublicUrlBtn")?.addEventListener("click", () => {
+            setAdvancedGisVisible(false);
+            window.LalGeoSharing.showSourceCreator((result) => {
+                void loadPublicSharedMap(result.id);
+                window.LalGeoSharing.manageLink(result.id);
+            });
+        });
+        document.getElementById("toolsSharedLinkBtn")?.addEventListener("click", () => {
+            setAdvancedGisVisible(false);
+            const id = activeProjectRecord?.source?.type === "shared-snapshot" ? activeProjectRecord.source.id : null;
+            if (id) window.LalGeoSharing.manageLink(id);
+            else openPublicMapSharing();
+        });
+        if (publicSharedMapId) void loadPublicSharedMap(publicSharedMapId);
 
         const dataSearchInput = document.getElementById("dataSearchInput");
         if (dataSearchInput) {

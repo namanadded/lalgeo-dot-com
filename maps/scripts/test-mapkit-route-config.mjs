@@ -20,8 +20,8 @@ assert(matches.length === 1, "legacy MapKit token assignment must match exactly 
 assert(routeSource.includes("MAPKIT_TOKEN"), "route should support the server-only MAPKIT_TOKEN override");
 assert(routeSource.includes("NEXT_PUBLIC_MAPKIT_TOKEN"), "route should support the public MapKit token override");
 assert(
-  routeSource.includes("new URL(request.url).origin || process.env.DEPLOY_PRIME_URL || process.env.URL"),
-  "route should load the legacy shell from the incoming deployment origin before environment fallbacks"
+  routeSource.includes('readFile(path.join(process.cwd(), "public/legacy/lalgeosurvey.html"), "utf8")'),
+  "route should load its own bundled legacy shell"
 );
 assert(routeSource.includes("maps.lalgeo.com"), "route should special-case the production maps domain");
 assert(
@@ -33,8 +33,8 @@ assert(
   "route should replace the legacy token assignment before serving the shell"
 );
 assert(
-  routeSource.includes("new URL(request.url).origin") && routeSource.includes("DEPLOY_PRIME_URL"),
-  "route should load the legacy shell from the incoming deployment before environment fallbacks"
+  !routeSource.includes("await fetch("),
+  "route must not fetch another deployment or require an HTTP round trip"
 );
 assert(
   !routeSource.includes('process.env.URL || "https://maps.lalgeo.com"'),
@@ -42,3 +42,6 @@ assert(
 );
 
 console.log("MapKit route configuration checks passed.");
+
+const nextConfig = readFileSync(join(cwd(), "next.config.js"), "utf8");
+assert(nextConfig.includes('"/render/lalgeosurvey": ["./public/legacy/lalgeosurvey.html"]'), "server bundle must include the legacy shell");
