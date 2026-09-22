@@ -10,6 +10,28 @@ A small Model Context Protocol adapter for the existing LalGeo Maps Authoring AP
 
 The server does not implement storage, ownership, geometry validation, or export logic. It forwards each tool call to `https://api.lalgeo.com` with the configured LalGeo Developer API key, so the existing API remains the source of truth for authentication and GIS behavior.
 
+## ChatGPT map component
+
+Each successful map tool result includes the same model-readable JSON plus MCP Apps `structuredContent`. ChatGPT can render the linked `ui://lalgeo/map.html` resource as a compact interactive map with pan, zoom, and feature inspection. The component uses the GeoJSON and portable `.lal` shapes already returned by LalGeo; it does not perform API validation, storage, GIS conversion, or export work.
+
+The component uses the standard `_meta.ui.resourceUri`, `text/html;profile=mcp-app`, and `ui/notifications/tool-result` conventions. The `openai/outputTemplate` and `window.openai.toolOutput` compatibility aliases are also present for ChatGPT hosts that still use them. It has no external runtime assets or network access.
+
+See OpenAI's [MCP Apps UI guide](https://developers.openai.com/plugins/build/chatgpt-ui) for the host-side rendering contract.
+
+## Minimal end-to-end example
+
+In ChatGPT, prompt:
+
+> Create a map of Calgary and add these GeoJSON features: Calgary City Hall at `[-114.0575, 51.0466]` and Calgary Tower at `[-114.0631, 51.0447]`.
+
+The model can complete this with the existing tools, unchanged:
+
+1. `create_map` with `{"id":"calgary_map","name":"Calgary","center":{"latitude":51.0447,"longitude":-114.0719},"zoom":12}`.
+2. `create_layer` with a `Point` layer named `Calgary places`.
+3. `add_features` with the two GeoJSON Point Features.
+
+The final `add_features` result renders both points in the interactive LalGeo component while retaining the ordinary text result for MCP clients without UI support. This flow is covered by the automated end-to-end MCP test.
+
 ## Run locally
 
 Node.js 18 or newer is required.
