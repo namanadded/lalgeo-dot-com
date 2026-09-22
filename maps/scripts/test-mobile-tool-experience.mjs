@@ -1,0 +1,143 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
+
+const legacyHtmlPath = fileURLToPath(new URL("../public/legacy/lalgeosurvey.html", import.meta.url));
+const legacyHtml = await readFile(legacyHtmlPath, "utf8");
+const mobileStyles = legacyHtml.match(
+  /@media \(max-width: 600px\) \{[\s\S]*?:root \{\s*--mobile-tool-radius:[\s\S]*?(?=\n\s*\.print-prep-summary)/,
+)?.[0];
+
+assert.ok(mobileStyles, "Expected a dedicated mobile tool experience stylesheet.");
+assert.match(
+  mobileStyles,
+  /--mobile-toolbar-top:\s*calc\(56px \+ env\(safe-area-inset-top, 0px\)\);[\s\S]*?#toolbar #quickActionBar\s*\{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*var\(--mobile-toolbar-top\);[\s\S]*?bottom:\s*auto;[\s\S]*?width:\s*min\(232px,\s*calc\(100vw - 16px\)\);/,
+  "The mobile primary toolbar should be a compact, safe-area-aware control below the project header.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #mobileSelectPopover,[\s\S]*?#addActionPopover\s*\{[\s\S]*?top:\s*calc\(var\(--mobile-toolbar-top\) \+ var\(--mobile-toolbar-height\) \+ 8px\);[\s\S]*?bottom:\s*auto;/,
+  "Mobile Select and Add popovers should open below the top toolbar.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #quickActionBar \.toolbar-history-group\[hidden\]\s*\{\s*display:\s*none !important;[\s\S]*?#toolbar #quickActionBar \.toolbar-history-group:not\(\[hidden\]\)\s*\{\s*display:\s*flex;/,
+  "Undo and Redo should consume mobile toolbar space only while edit history exists.",
+);
+assert.match(
+  mobileStyles,
+  /\.toolbar-history-group:not\(\[hidden\]\) \.menu-bar-btn\.quick-action\s*\{[\s\S]*?width:\s*44px;[\s\S]*?min-width:\s*44px;[\s\S]*?min-height:\s*50px;/,
+  "Contextual mobile history controls should retain at least 44px touch targets.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #quickActionBar #editPanelToggleBtn,[\s\S]*?#toolbar #quickActionBar #myLocationBtn\s*\{\s*display:\s*none !important;[\s\S]*?#toolbar #quickActionBar #mobileSelectMenu\s*\{[\s\S]*?display:\s*block;/,
+  "Mobile should replace permanent Draw and Locate actions with Select.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #quickActionBar #toolbarBasemapBtn\s*\{\s*display:\s*none !important;/,
+  "Basemap should stay out of the persistent mobile toolbar.",
+);
+assert.doesNotMatch(
+  mobileStyles,
+  /#toolbar #quickActionBar #advancedGisBtn\s*\{\s*display:\s*none !important;/,
+  "Tools should remain visible in the persistent mobile toolbar.",
+);
+assert.match(
+  mobileStyles,
+  /#toolbar #quickActionBar \.menu-bar-btn\.quick-action\s*\{[\s\S]*?width:\s*52px;[\s\S]*?min-height:\s*50px;/,
+  "Mobile controls should remain visually compact with accessible touch targets.",
+);
+assert.match(
+  mobileStyles,
+  /#sidebar,[\s\S]*?#measurementPanel,[\s\S]*?#advancedGisPanel,[\s\S]*?#editFloatingPanel,[\s\S]*?#toolbarMenuTray\[data-active-menu="basemap"\]\s*\{[\s\S]*?position:\s*fixed(?: !important)?;[\s\S]*?bottom:\s*0(?: !important)?;[\s\S]*?border-radius:\s*var\(--mobile-tool-radius\) var\(--mobile-tool-radius\) 0 0;/,
+  "Mobile tool surfaces should share the compact bottom-sheet presentation.",
+);
+assert.match(
+  mobileStyles,
+  /#measurementPanel \.measurement-result-secondary-mobile,[\s\S]*?\.measurement-hint-mobile,[\s\S]*?\.measurement-action-label-mobile\s*\{\s*display:\s*none;[\s\S]*?#measurementPanel \.measurement-result-secondary-desktop,[\s\S]*?\.measurement-hint-desktop,[\s\S]*?\.measurement-action-label-desktop\s*\{\s*display:\s*block;/,
+  "Measure should use concise contextual result and action labels on mobile.",
+);
+assert.match(
+  mobileStyles,
+  /#advancedGisPanel \.advanced-gis-badge,[\s\S]*?\.advanced-gis-mobile-content\s*\{\s*display:\s*none;[\s\S]*?#advancedGisPanel \.advanced-gis-desktop-content\s*\{[\s\S]*?display:\s*block;/,
+  "Tools should reuse the existing contextual command groups in a mobile sheet.",
+);
+assert.match(
+  mobileStyles,
+  /#editFloatingPanel \.edit-panel-title::before,[\s\S]*?#editFloatingPanel #editPanelPinBtn,[\s\S]*?#editFloatingPanel \.edit-panel-body-mobile\s*\{\s*display:\s*none;[\s\S]*?#editFloatingPanel \.draw-context-desktop\s*\{\s*display:\s*block;/,
+  "Drawing started through Add should reuse the contextual geometry and action states on mobile.",
+);
+assert.match(
+  legacyHtml,
+  /id="mobileSelectBtn"[\s\S]*?>Select<[\s\S]*?id="addSurveyPointBtn"[\s\S]*?>Add<[\s\S]*?id="toolbarLayersBtn"[\s\S]*?>Layers<[\s\S]*?id="advancedGisBtn"[\s\S]*?>Tools</,
+  "The mobile toolbar should expose Select, Add, Layers, and Tools in order.",
+);
+assert.match(
+  legacyHtml,
+  /data-add-geometry="point"[\s\S]*?data-add-geometry="line"[\s\S]*?data-add-geometry="polygon"[\s\S]*?id="addImportDataMenuBtn"[\s\S]*?id="addImportPhotosMenuBtn"/,
+  "Add should expose existing drawing and import entry points.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /id="toolbarMoreBtn"|id="toolbarMorePopover"/,
+  "The obsolete More action and popover should be removed.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /setToolbarMoreVisibility/,
+  "Select and Add must not call the removed More-popover handler.",
+);
+assert.match(
+  legacyHtml,
+  /id="advancedGisGeneralHeading"[\s\S]*?id="advancedGisMeasureBtn"[^>]*aria-controls="measurementPanel"[\s\S]*?<span>Measure<\/span>/,
+  "Measure should be available from the Tools sheet.",
+);
+assert.match(
+  mobileStyles,
+  /#mobileLocationBtn\s*\{[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*94px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
+  "Locate should be a touch-sized floating map control.",
+);
+assert.match(
+  legacyHtml,
+  /function openBasemapControls\(\)[\s\S]*?openToolbarMenu\("basemap", anchor\);[\s\S]*?toolbarBasemapBtn\?\.addEventListener\("click", openBasemapControls\);/,
+  "Mobile Basemap should delegate to the existing focused basemap handler.",
+);
+assert.match(
+  legacyHtml,
+  /function renderSelectedFeatureInspector\(\)[\s\S]*?window\.matchMedia\("\(min-width: 601px\)"\)\.matches[\s\S]*?selectedFeatureInspector\.classList\.add\("visible"\);[\s\S]*?selectedFeatureInspector\?\.addEventListener\("click"[\s\S]*?openFeatureEditorByRow\(rowIndex, button\)[\s\S]*?mergeSelectedFeatures\([\s\S]*?exportSelectedGeoJson\([\s\S]*?function openFeatureEditorByRow\(rowIndex, returnFocus = document\.activeElement\)[\s\S]*?previewAnnotationByRow\([\s\S]*?setEditSessionActive\(true, \{ layerId \}\)/,
+  "The mobile selection surface should reuse existing selection and editing handlers.",
+);
+assert.match(
+  legacyHtml,
+  /function showSurveyCallout\(annotation,[\s\S]*?if \(mobileSelectionMode\)[\s\S]*?setTableRowSelection\(annotation\.surveyPoint\.rowIndex, \{ ctrlKey: true \}\)/,
+  "Select mode should add or remove map features through the shared multi-selection set.",
+);
+assert.match(
+  legacyHtml,
+  /data-select-tool="box-select">Box Select<[\s\S]*?id="mobileBoxSelectionOverlay"[^>]*aria-label="Box selection area"[^>]*hidden[\s\S]*?id="mobileBoxSelectionRect"[\s\S]*?id="mobileBoxSelectionCancelBtn"/,
+  "Select should expose a cancellable box-selection surface.",
+);
+assert.match(
+  legacyHtml,
+  /function setMobileBoxSelectionMode\(active\)[\s\S]*?setMobileSelectionMode\(true\)[\s\S]*?mobileBoxSelectionOverlay\.hidden = !nextActive[\s\S]*?function selectFeaturesInMobileBox\(rect\)[\s\S]*?doesFeatureIntersectMobileSelectionRect[\s\S]*?selectedTableRows = new Set\(matches\)/,
+  "Box Select should reuse the active layer and existing selected-row state.",
+);
+assert.match(
+  legacyHtml,
+  /mobileBoxSelectionOverlay\?\.addEventListener\("pointerdown"[\s\S]*?setPointerCapture[\s\S]*?addEventListener\("pointermove"[\s\S]*?normalizeMobileSelectionRect[\s\S]*?addEventListener\("pointerup", finishMobileBoxSelection\)/,
+  "Box Select should use a pointer drag with a visible selection rectangle.",
+);
+assert.match(
+  legacyHtml,
+  /if \(mobileBoxSelectionMode\) \{[\s\S]*?setMobileBoxSelectionMode\(false\);[\s\S]*?setProjectStatus\("Box selection canceled\."/,
+  "Escape should cancel Box Select before clearing an existing selection.",
+);
+assert.match(
+  legacyHtml,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)[\s\S]*?setMobileSelectionMode\(false\)[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?setSidebarVisibility\(false\)[\s\S]*?setAdvancedGisVisible\(false\)/,
+  "Opening Measure should close conflicting mobile tool sheets.",
+);
+
+console.log("Mobile tool experience checks passed.");

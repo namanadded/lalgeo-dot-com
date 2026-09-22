@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#ffffff">
+  <title>Maps Authoring API | LalGeo</title>
+  <meta name="description" content="Privately create, edit, and export owner-scoped maps with the LalGeo Maps Authoring API.">
+  <style>
+    :root { --ink:#050505; --muted:#5f6266; --line:#dedede; --soft:#f5f5f3; --accent:#136f63; }
+    * { box-sizing:border-box; }
+    body { margin:0; color:var(--ink); background:#fff; font-family:Arial,Helvetica,sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:inherit; }
+    header { display:flex; align-items:center; justify-content:space-between; max-width:1120px; margin:auto; padding:28px 32px; border-bottom:1px solid var(--line); }
+    .brand { font-size:20px; font-weight:800; text-decoration:none; letter-spacing:-.04em; }
+    .toplinks { display:flex; gap:22px; color:var(--muted); font-size:14px; font-weight:700; }
+    main { max-width:1120px; margin:auto; padding:84px 32px 112px; }
+    .eyebrow { margin:0 0 24px; color:var(--accent); font-size:13px; font-weight:800; letter-spacing:.18em; text-transform:uppercase; }
+    h1 { max-width:870px; margin:0; font-size:clamp(56px,8vw,94px); line-height:.94; letter-spacing:-.07em; }
+    .lede { max-width:760px; margin:36px 0 0; color:#303235; font-size:23px; line-height:1.42; }
+    .status { display:inline-flex; gap:9px; align-items:center; margin-top:30px; padding:9px 12px; background:#e7f5f0; color:#125e54; font-size:13px; font-weight:800; }
+    .dot { width:8px; height:8px; border-radius:50%; background:#16806f; }
+    .grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(340px,.9fr); gap:64px; margin-top:88px; }
+    .grid > * { min-width:0; }
+    section { margin-bottom:72px; }
+    h2 { margin:0 0 17px; font-size:32px; letter-spacing:-.045em; }
+    h3 { margin:32px 0 10px; font-size:17px; }
+    p,li { color:#414347; font-size:16px; line-height:1.65; }
+    ol { padding-left:22px; }
+    code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; }
+    pre { overflow:auto; margin:18px 0 0; padding:24px; border:1px solid #202020; color:#f6f6f6; background:#0b0c0d; font-size:13px; line-height:1.58; }
+    .endpoint { display:grid; grid-template-columns:68px 1fr; gap:12px; align-items:baseline; padding:15px 0; border-top:1px solid var(--line); }
+    .endpoint:last-child { border-bottom:1px solid var(--line); }
+    .method { color:var(--accent); font-size:12px; font-weight:900; letter-spacing:.08em; }
+    .path { overflow-wrap:anywhere; font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px; }
+    .api-choices { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:14px; margin-top:22px; }
+    .api-choice { padding:24px; border:1px solid var(--line); }
+    .api-choice.current { border-color:#b8d9d2; background:#f3f9f7; }
+    .api-choice h3 { margin:8px 0 10px; font-size:21px; letter-spacing:-.025em; }
+    .api-choice p { margin:0; }
+    .choice-label { color:var(--accent) !important; font-size:12px !important; font-weight:900; letter-spacing:.1em; text-transform:uppercase; }
+    .choice-link { display:inline-block; margin-top:18px; color:var(--accent); font-size:14px; font-weight:800; }
+    .card { position:sticky; top:24px; padding:30px; background:var(--soft); }
+    .card code { overflow-wrap:anywhere; }
+    .card h2 { font-size:25px; }
+    .button { display:inline-flex; min-height:48px; align-items:center; justify-content:center; margin-top:18px; padding:12px 18px; border:1px solid var(--ink); color:#fff; background:var(--ink); font-weight:800; text-decoration:none; }
+    .secondary-link { display:inline-block; margin-top:20px; color:var(--accent); font-size:14px; font-weight:800; }
+    .note { padding:18px; border-left:3px solid var(--accent); background:#f3f9f7; }
+    footer { max-width:1120px; margin:auto; padding:32px; border-top:1px solid var(--line); color:var(--muted); font-size:14px; }
+    @media(max-width:1000px) {
+      .api-choices { grid-template-columns:1fr; }
+    }
+    @media(max-width:760px) {
+      header { padding:22px 20px; }
+      .toplinks a:first-child { display:none; }
+      main { padding:56px 20px 80px; }
+      h1 { font-size:clamp(50px,15vw,72px); }
+      .lede { font-size:20px; }
+      .grid { grid-template-columns:1fr; gap:0; margin-top:68px; }
+      .card { position:static; order:-1; margin-bottom:64px; }
+      pre { margin-left:-20px; margin-right:-20px; padding:20px; border-left:0; border-right:0; font-size:12px; }
+      footer { padding:28px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a class="brand" href="/">LAL GEO</a>
+    <nav class="toplinks" aria-label="Developer navigation"><a href="https://maps.lalgeo.com/maps">Open Maps</a><a href="https://github.com/namanadded/lalgeo-dot-com">GitHub</a></nav>
+  </header>
+  <main>
+    <p class="eyebrow">Private authoring API · v1</p>
+    <h1>Maps that agents<br>can keep building.</h1>
+    <p class="lede">Privately create and revise an owner-scoped map, organize it into geometry-safe layers, add standard GeoJSON, and export a portable project that opens in LalGeo Maps.</p>
+    <div class="status"><span class="dot"></span>Bearer-authenticated REST + OpenAPI</div>
+
+    <div class="grid">
+      <div>
+        <section aria-labelledby="choose-api">
+          <h2 id="choose-api">Choose how the map should live</h2>
+          <p>LalGeo has two focused APIs. Pick the lifecycle and privacy model first; their credentials and URLs are intentionally different.</p>
+          <div class="api-choices">
+            <article class="api-choice">
+              <p class="choice-label">Public snapshot</p>
+              <h3>Share a finished map</h3>
+              <p>No account or Authoring API key is required. Creation returns a private revocation token; anyone with the link may read the immutable snapshot.</p>
+              <a class="choice-link" href="https://maps.lalgeo.com/api-docs">Open Snapshot API docs&nbsp; →</a>
+            </article>
+            <article class="api-choice current">
+              <p class="choice-label">Private authoring</p>
+              <h3>Keep building a map</h3>
+              <p>A bearer key unlocks owner-scoped create, read, update, delete, and portable export.</p>
+              <a class="choice-link" href="mailto:lalgeospatial@outlook.com?subject=LalGeo%20Maps%20Authoring%20API%20access">Request an authoring key&nbsp; →</a>
+            </article>
+          </div>
+          <p class="note"><strong>Privacy check:</strong> only send data to the Snapshot API when it is intended for anyone with the resulting link.</p>
+        </section>
+
+        <section>
+          <h2>One predictable workflow</h2>
+          <ol><li>Create a map.</li><li>Add a <code>Point</code>, <code>LineString</code>, or <code>Polygon</code> layer.</li><li>Post GeoJSON features to that layer.</li><li>Export the finished map as a LalGeo project.</li></ol>
+          <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/health
+
+curl --fail-with-body https://api.lalgeo.com/v1/maps \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "calgary_field_map",
+    "name": "Calgary field map",
+    "center": {"latitude": 51.0447, "longitude": -114.0719},
+    "zoom": 12
+  }'</code></pre>
+        </section>
+
+        <section>
+          <h2>Add real geography</h2>
+          <p>Features use ordinary GeoJSON: longitude first, latitude second. A layer enforces one geometry type so agent mistakes fail early and clearly.</p>
+          <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/layers \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "id": "places",
+    "name": "Places",
+    "geometry_type": "Point"
+  }'
+
+curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/\
+layers/places/features \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Content-Type: application/geo+json" \
+  -d '{
+    "type": "Feature",
+    "id": "central_library",
+    "geometry": {
+      "type": "Point",
+      "coordinates": [-114.0510, 51.0453]
+    },
+    "properties": {"name": "Central Library"}
+  }'</code></pre>
+          <p class="note">Always send stable IDs. If a request times out, read that ID before retrying. A duplicate returns <code>409 ID_CONFLICT</code> instead of silently duplicating data; automatic <code>Idempotency-Key</code> replay is not available yet.</p>
+        </section>
+
+        <section>
+          <h2>Open the result in Maps</h2>
+          <p>Export creates a portable LalGeo project. If the API map has no layers, the downloaded copy starts with an editable <strong>Points</strong> layer without changing the API map. Download it, then open Maps and choose <strong>Projects → Choose files</strong>. The imported copy can be edited and exported like any other project.</p>
+          <pre><code>curl --fail-with-body \
+  https://api.lalgeo.com/v1/maps/calgary_field_map/export \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  --output calgary_field_map.lal</code></pre>
+        </section>
+
+        <section>
+          <h2>API surface</h2>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps</span></div>
+          <div class="endpoint"><span class="method">GET</span><span class="path">/v1/maps</span></div>
+          <div class="endpoint"><span class="method">PATCH</span><span class="path">/v1/maps/{mapId}</span></div>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/layers</span></div>
+          <div class="endpoint"><span class="method">POST</span><span class="path">/v1/maps/{mapId}/layers/{layerId}/features</span></div>
+          <div class="endpoint"><span class="method">GET</span><span class="path">/v1/maps/{mapId}/export</span></div>
+        </section>
+
+        <section>
+          <h2>Designed for safe automation</h2>
+          <p>Every data route uses an operator-provisioned bearer API key over enforced HTTPS. The service stores only SHA-256 key hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Authentication failures include a bearer challenge; errors return stable codes and a browser-readable request ID.</p>
+        </section>
+      </div>
+
+      <aside>
+        <div class="card">
+          <p class="eyebrow">Authoring access</p>
+          <h2>Start with one private workspace.</h2>
+          <p>Authoring keys are provisioned by LalGeo and bound to an owner-scoped workspace. Request access, then give your agent the versioned contract.</p>
+          <a class="button" href="mailto:lalgeospatial@outlook.com?subject=LalGeo%20Maps%20Authoring%20API%20access">Request an authoring key&nbsp; →</a>
+          <a class="secondary-link" href="https://api.lalgeo.com/v1/openapi.json">Open API specification&nbsp; →</a>
+          <p class="note">Availability is proven only when this URL returns JSON over valid TLS and the health check reports <code>lalgeo-maps-api</code>. A website or fallback page does not count.</p>
+          <h3>Base URL</h3><code>https://api.lalgeo.com</code>
+          <h3>Authentication</h3><code>Authorization: Bearer &lt;key&gt;</code>
+        </div>
+      </aside>
+    </div>
+  </main>
+  <footer>LalGeo · Open mapping infrastructure for humans and agents.</footer>
+</body>
+</html>

@@ -1,0 +1,52 @@
+{
+  "type": "FeatureCollection",
+  "name": "Feature identity round trip",
+  "features": [
+    {
+      "type": "Feature",
+      "id": "asset/Été-α-001",
+      "properties": {
+        "name": "Station Été 🌲",
+        "inspected_at": "2026-08-11T09:15:00-06:00",
+        "nullable_note": null,
+        "field_01": "A01",
+        "field_02": "A02",
+        "field_03": "A03",
+        "field_04": "A04",
+        "field_05": "A05",
+        "field_06": "A06",
+        "field_07": "A07",
+        "field_08": "A08",
+        "field_09": "A09",
+        "field_10": "A10",
+        "field_11": "A11",
+        "field_12": "A12"
+      },
+      "geometry": { "type": "Point", "coordinates": [-114.0719, 51.0447] }
+    },
+    {
+      "type": "Feature",
+      "id": 0,
+      "properties": { "name": "Zero identifier line", "nullable_note": null },
+      "geometry": {
+        "type": "MultiLineString",
+        "coordinates": [
+          [[-114.08, 51.04], [-114.07, 51.05]],
+          [[-114.06, 51.05], [-114.05, 51.06]]
+        ]
+      }
+    },
+    {
+      "type": "Feature",
+      "id": 9007199254740991,
+      "properties": { "name": "Polygon identity", "date": "2026-08-11" },
+      "geometry": {
+        "type": "Polygon",
+        "coordinates": [
+          [[-114.10, 51.03], [-114.04, 51.03], [-114.04, 51.08], [-114.10, 51.08], [-114.10, 51.03]],
+          [[-114.08, 51.045], [-114.06, 51.045], [-114.06, 51.06], [-114.08, 51.06], [-114.08, 51.045]]
+        ]
+      }
+    }
+  ]
+}

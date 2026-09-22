@@ -27,6 +27,8 @@ jobs:
           cache: npm
           cache-dependency-path: |
             maps/package-lock.json
+            lalgeo-maps-api/package-lock.json
+            lalgeo-saas-api/package-lock.json
 
       - name: Validate static entry points
         run: |
@@ -38,6 +40,38 @@ jobs:
       - name: Check local static links
         run: node .github/scripts/check-static-links.mjs
 
+      - name: Install Maps API dependencies
+        working-directory: lalgeo-maps-api
+        run: npm ci
+
+      - name: Check Maps API types and contract
+        working-directory: lalgeo-maps-api
+        run: npm run check
+
+      - name: Verify Maps API local release gate
+        working-directory: lalgeo-maps-api
+        run: npm run verify:local
+
+      - name: Install production Worker dependencies
+        working-directory: lalgeo-saas-api
+        run: npm ci
+
+      - name: Check production Worker types
+        working-directory: lalgeo-saas-api
+        run: npm run check
+
+      - name: Build production Worker deployment bundle
+        working-directory: lalgeo-saas-api
+        run: npm run deploy:dry-run
+
+      - name: Verify Maps API through production Worker
+        working-directory: lalgeo-saas-api
+        run: npm run verify:maps-local
+
+      - name: Guard complete Maps regression coverage
+        working-directory: maps
+        run: npm run test:production-ci-coverage
+
       - name: Check maps external link security
         working-directory: maps
         run: npm run test:external-link-security
@@ -46,21 +80,64 @@ jobs:
         working-directory: maps
         run: npm run test:maps-frame-viewport
 
+      - name: Check custom basemap support
+        working-directory: maps
+        run: npm run test:custom-basemap
+
+      - name: Check custom basemap dialog
+        working-directory: maps
+        run: npm run test:custom-basemap-dialog
+
+      - name: Check basemap selection journey
+        working-directory: maps
+        run: npm run test:basemap-journey
+
+      - name: Check basemap Layers tab
+        working-directory: maps
+        run: npm run test:basemap-layers-tab
+
+      - name: Check mobile selection inspector layout
+        working-directory: maps
+        run: npm run test:mobile-selection-inspector-layout
+
+      - name: Check maps mobile search input hints
+        working-directory: maps
+        run: npm run test:search-input-mobile
+
+      - name: Check maps search journey
+        working-directory: maps
+        run: npm run test:search-journey
+
+      - name: Check Help Center journey
+        working-directory: maps
+        run: npm run test:help-center-journey
+
       - name: Check maps button type safety
         working-directory: maps
         run: npm run test:button-type-safety
 
-      - name: Check browser project resource limits
+      - name: Check disabled command explanations
         working-directory: maps
-        run: npm run test:browser-resource-limits
+        run: npm run test:disabled-command-explanations
 
-      - name: Check layer SQL filters
+      - name: Check Dropbox status accessibility
         working-directory: maps
-        run: npm run test:layer-sql-filter
+        run: npm run test:dropbox-status-a11y
 
-      - name: Check layer selection controls
+      - name: Check Dropbox authorization navigation
         working-directory: maps
-        run: npm run test:layer-selection-controls
+        run: npm run test:dropbox-auth-navigation
+      - name: Check Dropbox disconnected recovery
+        working-directory: maps
+        run: npm run test:dropbox-disconnected-recovery
+
+      - name: Check share toast accessibility
+        working-directory: maps
+        run: npm run test:share-toast-a11y
+
+      - name: Check quick actions accessibility
+        working-directory: maps
+        run: npm run test:quick-actions-a11y
 
       - name: Check empty state Dropbox flow
         working-directory: maps
@@ -70,13 +147,49 @@ jobs:
         working-directory: maps
         run: npm run test:panel-toggle-a11y
 
+      - name: Check maps feature selection highlighting
+        working-directory: maps
+        run: npm run test:feature-selection-highlight
+
+      - name: Check maps tool panel region accessibility
+        working-directory: maps
+        run: npm run test:tool-panel-regions
+
+      - name: Check mobile project onboarding
+        working-directory: maps
+        run: npm run test:mobile-project-onboarding
+
+      - name: Check project import journey
+        working-directory: maps
+        run: npm run test:project-import-journey
+
+      - name: Check recent projects journey
+        working-directory: maps
+        run: npm run test:recent-projects-journey
+
+      - name: Check project setup journey
+        working-directory: maps
+        run: npm run test:project-setup-journey
+
       - name: Check maps top menu accessibility
         working-directory: maps
         run: npm run test:top-menu-a11y
 
+      - name: Check advertised keyboard command journey
+        working-directory: maps
+        run: npm run test:keyboard-command-journey
+
       - name: Check maps toolbar architecture
         working-directory: maps
         run: npm run test:toolbar-architecture
+
+      - name: Check desktop project header
+        working-directory: maps
+        run: npm run test:desktop-project-header
+
+      - name: Check desktop drawing journey
+        working-directory: maps
+        run: npm run test:desktop-draw-flow
 
       - name: Check maps toolbar overflow accessibility
         working-directory: maps
@@ -86,9 +199,247 @@ jobs:
         working-directory: maps
         run: npm run test:survey-table-a11y
 
+      - name: Check project-local date and time display
+        working-directory: maps
+        run: npm run test:date-time-display
+
+      - name: Check attribute layer tabs
+        working-directory: maps
+        run: npm run test:attribute-layer-tabs
+
+      - name: Check geometry completion status recovery
+        working-directory: maps
+        run: npm run test:geometry-completion-status
+
       - name: Check maps view menu accessibility
         working-directory: maps
         run: npm run test:view-menu-a11y
+
+      - name: Check export center journey
+        working-directory: maps
+        run: npm run test:export-center-journey
+
+      - name: Check portable export filenames and data retention
+        working-directory: maps
+        run: npm run test:export-filename-integrity
+
+      - name: Check cloud storage recovery contracts
+        working-directory: maps
+        run: npm run test:cloud-storage
+
+      - name: Check production module integrity
+        working-directory: maps
+        run: npm run test:production-module-integrity
+
+      - name: Check Shapefile CRS and attribute integrity
+        working-directory: maps
+        run: npm run test:shapefile-integrity
+
+      - name: Check LalGeo project format integrity
+        working-directory: maps
+        run: npm run test:lalgeo-project-integrity
+
+      - name: Check KMZ main-document integrity
+        working-directory: maps
+        run: npm run test:kmz-integrity
+
+      - name: Check KML coordinate, attribute, and style integrity
+        working-directory: maps
+        run: npm run test:kml-integrity
+
+      - name: Check GeoJSON coordinate, collection, and feature identity integrity
+        working-directory: maps
+        run: npm run test:geojson-integrity
+
+      - name: Check GeoJSON, KML, and GPX altitude integrity
+        working-directory: maps
+        run: npm run test:altitude-integrity
+
+      - name: Check API row geometry and attribute integrity
+        working-directory: maps
+        run: npm run test:api-import-integrity
+
+      - name: Check CSV coordinate completeness and WGS84 integrity
+        working-directory: maps
+        run: npm run test:csv-coordinate-integrity
+
+      - name: Check multi-file import geometry and attribute integrity
+        working-directory: maps
+        run: npm run test:multifile-import-integrity
+
+      - name: Check local workspace persistence recovery
+        working-directory: maps
+        run: npm run test:workspace-persistence
+      - name: Check one-pass LalGeo import normalization
+        working-directory: maps
+        run: npm run test:lal-import-normalization
+      - name: Check low-memory project serialization
+        working-directory: maps
+        run: npm run test:lal-serialization
+      - name: Benchmark scoped cloud catalog discovery
+        working-directory: maps
+        run: npm run benchmark:cloud-catalog
+      - name: Benchmark bounded cloud catalog recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-catalog-safety
+      - name: Benchmark bounded cloud upload recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-recovery
+      - name: Benchmark stalled cloud request deadlines
+        working-directory: maps
+        run: npm run benchmark:cloud-deadline
+      - name: Benchmark provider-paced cloud retries
+        working-directory: maps
+        run: npm run benchmark:cloud-retry-control
+      - name: Check Dropbox upload content verification
+        working-directory: maps
+        run: npm run test:dropbox-content-hash
+      - name: Benchmark verified cloud downloads
+        working-directory: maps
+        run: npm run benchmark:cloud-download
+      - name: Benchmark bounded cloud open recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-open-deadline
+      - name: Benchmark direct cloud commit recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-direct-commit
+      - name: Benchmark stalled direct cloud upload deadlines
+        working-directory: maps
+        run: npm run benchmark:cloud-direct-deadline
+      - name: Benchmark server-side cloud revision snapshots
+        working-directory: maps
+        run: npm run benchmark:cloud-snapshot
+      - name: Benchmark verified cloud rename recovery
+        working-directory: maps
+        run: npm run benchmark:cloud-rename
+      - name: Benchmark large LalGeo imports
+        working-directory: maps
+        run: npm run benchmark:lal-import
+      - name: Benchmark low-memory project serialization
+        working-directory: maps
+        run: npm run benchmark:lal-serialization
+      - name: Benchmark coalesced local autosave
+        working-directory: maps
+        run: npm run benchmark:autosave-coalescing
+      - name: Check maps mobile menu organization
+        working-directory: maps
+        run: npm run test:mobile-menu-organization
+
+      - name: Check maps mobile tool experience
+        working-directory: maps
+        run: npm run test:mobile-tool-experience
+
+      - name: Check Tools readiness journey
+        working-directory: maps
+        run: npm run test:tools-readiness-journey
+
+      - name: Check maps mobile sheet refinement
+        working-directory: maps
+        run: npm run test:mobile-sheet-refinement
+
+      - name: Check contextual toolbar history controls
+        working-directory: maps
+        run: npm run test:contextual-toolbar-history
+
+      - name: Check desktop and mobile toolbar parity
+        working-directory: maps
+        run: npm run test:desktop-mobile-toolbar-parity
+
+      - name: Check toolbar interaction state
+        working-directory: maps
+        run: npm run test:toolbar-interaction-state
+
+      - name: Check large API point performance
+        working-directory: maps
+        run: npm run test:large-api-point-performance
+
+      - name: Check maps mobile feature details
+        working-directory: maps
+        run: npm run test:mobile-feature-details
+
+      - name: Check mobile feature edit exclusivity
+        working-directory: maps
+        run: npm run test:mobile-feature-edit-exclusivity
+
+      - name: Check feature editor accessible names
+        working-directory: maps
+        run: npm run test:feature-editor-labels
+
+      - name: Check feature details journey
+        working-directory: maps
+        run: npm run test:feature-details-journey
+
+      - name: Check feature details focus journey
+        working-directory: maps
+        run: npm run test:feature-details-focus-journey
+
+      - name: Check feature duplication journey
+        working-directory: maps
+        run: npm run test:feature-duplication-journey
+
+      - name: Check off-canvas panel accessibility
+        working-directory: maps
+        run: npm run test:off-canvas-panel-a11y
+
+      - name: Check maps workflow UI
+        working-directory: maps
+        run: npm run test:workflow-ui
+
+      - name: Check layer import journey
+        working-directory: maps
+        run: npm run test:layer-import-journey
+
+      - name: Check layer actions journey
+        working-directory: maps
+        run: npm run test:layer-actions-journey
+
+      - name: Check layer selection controls
+        working-directory: maps
+        run: npm run test:layer-selection-controls
+
+      - name: Check new layer dialog journey
+        working-directory: maps
+        run: npm run test:new-layer-dialog-journey
+
+      - name: Check table selection filter states
+        working-directory: maps
+        run: npm run test:table-selection-filter-states
+
+      - name: Check attribute table journey
+        working-directory: maps
+        run: npm run test:attribute-table-journey
+
+      - name: Check geometry cancellation recovery
+        working-directory: maps
+        run: npm run test:geometry-cancellation-recovery
+
+      - name: Check maps print and PDF preparation
+        working-directory: maps
+        run: npm run test:print-export-preparation
+
+      - name: Check maps share journey
+        working-directory: maps
+        run: npm run test:share-journey
+
+      - name: Check maps location journey
+        working-directory: maps
+        run: npm run test:location-journey
+
+      - name: Check maps measurement journey
+        working-directory: maps
+        run: npm run test:measurement-journey
+
+      - name: Check maps directions journey
+        working-directory: maps
+        run: npm run test:directions-journey
+
+      - name: Check maps editing journey
+        working-directory: maps
+        run: npm run test:editing-journey
+
+      - name: Check maps control layout
+        working-directory: maps
+        run: npm run test:map-control-layout
 
       - name: Install maps dependencies
         working-directory: maps
@@ -97,6 +448,10 @@ jobs:
       - name: Test maps route configuration
         working-directory: maps
         run: npm run test:mapkit-route
+
+      - name: Test shared maps API
+        working-directory: maps
+        run: npm run test:sharing
 
       - name: Build maps app
         working-directory: maps

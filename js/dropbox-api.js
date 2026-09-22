@@ -1,12 +1,23 @@
 import { exportLayer, parseLalArrayBuffer, slugify } from "./lal-file.js";
+import { collectCloudFiles, copyCloudRevisionSnapshot, DEFAULT_RESUMABLE_THRESHOLD, downloadBlobVerified, moveCloudObjectWithVerification, normalizeCloudError, uploadBlobResumably, uploadBlobWithCommitVerification } from "./cloud-storage.js";
+import { computeDropboxContentHash, isVerifiedDropboxUpdate } from "./dropbox-content-hash.js";
 
 export const WORKER_BASE = "https://dropbox.lalgeo.com";
 export const TOKEN_STORAGE_KEY = "lalgeo_dropbox_access_token";
 export const TOKEN_STORAGE_SESSION_KEY = "lalgeo_dropbox_access_token_session";
 export const CHOOSER_APP_KEY_KEY = "lalgeo_dropbox_chooser_app_key";
 export const SURVEY_DROPBOX_CONNECTED_KEY = "lalgeo_survey_dropbox_connected";
+export const DEFAULT_MAX_CLOUD_OPEN_BYTES = 512 * 1024 * 1024;
+export const DEFAULT_CLOUD_REQUEST_TIMEOUT_MS = 60 * 1000;
 const PROJECT_EXTENSIONS = new Set(["lal", "zip"]);
-const PROJECT_SCAN_ROOTS = ["/LalGeoDB", "/Apps/LalGeo", "/Apps/LalGeoSurvey", ""];
+const PROJECT_SCAN_SCOPES = [
+  { path: "/LalGeoDB", recursive: true },
+  { path: "/Apps/LalGeo", recursive: true },
+  { path: "/Apps/LalGeoSurvey", recursive: true },
+  // Preserve legacy archives saved directly at the account root without
+  // recursively enumerating unrelated folders and files.
+  { path: "", recursive: false },
+];
 
 function isProjectArchiveName(name = "", path = "") {
   const value = String(name || path).toLowerCase();
@@ -35,6 +46,10 @@ export class LalGeoDropboxClient {
     this.versionsPath = `${this.folderPath}/_versions`;
     this.accessToken = options.accessToken || readStoredDropboxToken();
     this.profile = null;
+    this.resumableThreshold = options.resumableThreshold || DEFAULT_RESUMABLE_THRESHOLD;
+    this.chunkSize = options.chunkSize;
+    this.maxOpenBytes = options.maxOpenBytes || DEFAULT_MAX_CLOUD_OPEN_BYTES;
+    this.requestTimeoutMs = options.requestTimeoutMs || DEFAULT_CLOUD_REQUEST_TIMEOUT_MS;
   }
 
   setAccessToken(token, persist = true) {
@@ -177,52 +192,73 @@ export class LalGeoDropboxClient {
   }
 
   async listLayersViaSdk() {
-    const rows = [];
-    const seenPaths = new Set();
-    for (const root of PROJECT_SCAN_ROOTS) {
-      let cursor = null;
-      do {
-        let response;
-        try {
-          response = cursor
-            ? await this.client.filesListFolderContinue({ cursor })
-            : await this.client.filesListFolder({ path: root, recursive: true });
-        } catch (error) {
-          const summary = String(error?.error?.error_summary || error?.message || error?.status || "");
-          if (summary.includes("not_found")) break;
-          throw error;
-        }
-        const entries = response.result?.entries || response.entries || [];
-        entries.forEach((entry) => {
-          if (entry[".tag"] !== "file") return;
-          const pathLower = String(entry.path_lower || "").toLowerCase();
-          if (!pathLower || seenPaths.has(pathLower)) return;
-          if (pathLower.startsWith(`${this.versionsPath.toLowerCase()}/`)) return;
-          const extension = String(entry.name || "").split(".").pop()?.toLowerCase() || "";
-          if (!PROJECT_EXTENSIONS.has(extension)) return;
-          seenPaths.add(pathLower);
-          rows.push({
-            id: entry.id,
-            pathLower,
-            pathDisplay: entry.path_display,
-            name: entry.name,
-            serverModified: entry.server_modified,
-            clientModified: entry.client_modified,
-            rev: entry.rev,
-            size: entry.size,
-            fileType: extension,
-          });
-        });
-        cursor = (response.result?.has_more || response.has_more) ? (response.result?.cursor || response.cursor) : null;
-      } while (cursor);
-    }
+    const client = this.client;
+    const unwrap = (response) => response.result || response;
+    const catalog = await collectCloudFiles({
+      async list(scope) {
+        const result = unwrap(await client.filesListFolder({ path: scope.path, recursive: scope.recursive }));
+        return { entries: result.entries, hasMore: result.has_more, cursor: result.cursor };
+      },
+      async continue(cursor) {
+        const result = unwrap(await client.filesListFolderContinue({ cursor }));
+        return { entries: result.entries, hasMore: result.has_more, cursor: result.cursor };
+      },
+      isMissingScope(error) {
+        const summary = String(error?.error?.error_summary || error?.message || error?.status || "");
+        return summary.includes("not_found");
+      },
+    }, {
+      scopes: PROJECT_SCAN_SCOPES,
+      provider: "dropbox",
+      maxPages: 2_000,
+      maxExamined: 250_000,
+      maxResults: 50_000,
+      accept: (entry) => {
+        if (entry[".tag"] !== "file") return false;
+        const pathLower = String(entry.path_lower || "").toLowerCase();
+        if (!pathLower || pathLower.startsWith(`${this.versionsPath.toLowerCase()}/`)) return false;
+        return PROJECT_EXTENSIONS.has(String(entry.name || "").split(".").pop()?.toLowerCase() || "");
+      },
+      mapEntry: (entry) => ({
+        id: entry.id,
+        pathLower: String(entry.path_lower || "").toLowerCase(),
+        pathDisplay: entry.path_display,
+        name: entry.name,
+        serverModified: entry.server_modified,
+        clientModified: entry.client_modified,
+        rev: entry.rev,
+        size: entry.size,
+        fileType: String(entry.name || "").split(".").pop()?.toLowerCase() || "",
+      }),
+      keyOf: (row) => row.pathLower,
+    });
+    const rows = catalog.rows;
     return rows.sort((a, b) => String(a.name).localeCompare(String(b.name)));
   }
 
   async loadLayer(path) {
-    const response = await this.client.filesDownload({ path });
-    const result = response.result || response;
-    const buffer = await extractArrayBuffer(result.fileBlob || result.fileBinary || response.fileBlob || response.fileBinary);
+    const client = this.client;
+    const download = await downloadBlobVerified({
+      async download(downloadPath) {
+        const response = await client.filesDownload({ path: downloadPath });
+        const result = response.result || response;
+        return {
+          file: result,
+          blob: asBlob(result.fileBlob || result.fileBinary || response.fileBlob || response.fileBinary),
+        };
+      },
+      getSize: ({ file }) => file.size,
+      async verify({ file, blob }) {
+        if (!file.content_hash) return false;
+        return await computeDropboxContentHash(blob) === file.content_hash;
+      },
+    }, path, {
+      provider: "dropbox",
+      maxBytes: this.maxOpenBytes,
+      operationTimeoutMs: this.requestTimeoutMs,
+    });
+    const result = download.file;
+    const buffer = await download.blob.arrayBuffer();
     const layer = await parseLalArrayBuffer(buffer, result.name || path.split("/").pop() || "layer.lal");
     layer.revision = {
       ...(layer.revision || {}),
@@ -244,7 +280,7 @@ export class LalGeoDropboxClient {
   }
 
   async saveLayer(layer, options = {}) {
-    const payload = exportLayer(layer, "lal");
+    const payload = exportLayer(layer, "lal", { pretty: false });
     const path = options.path || layer.revision?.sourcePath || `${this.folderPath}/${payload.fileName}`;
     const previousRev = options.rev || layer.revision?.dropboxRev || null;
     await this.ensureFolderStructure();
@@ -254,14 +290,31 @@ export class LalGeoDropboxClient {
     const contents = new Blob([payload.contents], { type: payload.mimeType });
     try {
       const mode = previousRev ? { ".tag": "update", update: previousRev } : { ".tag": "add" };
-      const response = await this.client.filesUpload({
-        path,
-        contents,
-        mode,
-        autorename: !previousRev,
-        mute: false,
+      if (contents.size >= this.resumableThreshold) {
+        return await this.uploadLargeFile(contents, { path, mode, autorename: !previousRev });
+      }
+      const commit = { path, mode, autorename: !previousRev };
+      if (!previousRev) {
+        const response = await this.client.filesUpload({ ...commit, contents, mute: false });
+        return response.result || response;
+      }
+      const client = this.client;
+      let expectedContentHash = null;
+      return await uploadBlobWithCommitVerification({
+        async upload(blob, nextCommit) {
+          const response = await client.filesUpload({ ...nextCommit, contents: blob, mute: false });
+          return response.result || response;
+        },
+        async verifyCommit(blob, nextCommit) {
+          expectedContentHash ||= await computeDropboxContentHash(blob);
+          const response = await client.filesGetMetadata({ path: nextCommit.path });
+          const metadata = response.result || response;
+          return isVerifiedDropboxUpdate(metadata, blob.size, nextCommit, expectedContentHash) ? metadata : null;
+        },
+      }, contents, commit, {
+        provider: "dropbox",
+        operationTimeoutMs: this.requestTimeoutMs,
       });
-      return response.result || response;
     } catch (error) {
       if (String(error?.error?.error_summary || error?.message || "").includes("conflict")) {
         const latest = await this.tryGetMetadata(path);
@@ -271,21 +324,93 @@ export class LalGeoDropboxClient {
     }
   }
 
+  async uploadLargeFile(contents, commit) {
+    const client = this.client;
+    let expectedContentHash = null;
+    const adapter = {
+      async start(chunk) {
+        const response = await client.filesUploadSessionStart({ close: false, contents: chunk });
+        const result = response.result || response;
+        return { sessionId: result.session_id };
+      },
+      async append(sessionId, offset, chunk) {
+        await client.filesUploadSessionAppendV2({
+          cursor: { session_id: sessionId, offset },
+          close: false,
+          contents: chunk,
+        });
+      },
+      async finish(sessionId, offset, chunk, nextCommit) {
+        const response = await client.filesUploadSessionFinish({
+          cursor: { session_id: sessionId, offset },
+          commit: { ...nextCommit, mute: false },
+          contents: chunk,
+        });
+        return response.result || response;
+      },
+      async verifyCommit(blob, nextCommit) {
+        const previousRev = nextCommit.mode?.[".tag"] === "update" ? nextCommit.mode.update : null;
+        // An autorenamed add does not have a deterministic final path after its
+        // response is lost. Only revision-controlled updates can be proven here.
+        if (!previousRev) return null;
+        expectedContentHash ||= await computeDropboxContentHash(blob);
+        let response;
+        try {
+          response = await client.filesGetMetadata({ path: nextCommit.path });
+        } catch (error) {
+          const summary = String(error?.error?.error_summary || error?.message || "");
+          if (summary.includes("not_found")) return null;
+          throw error;
+        }
+        const metadata = response.result || response;
+        return isVerifiedDropboxUpdate(metadata, blob.size, nextCommit, expectedContentHash) ? metadata : null;
+      },
+      async lookupOffset(sessionId) {
+        try {
+          await client.filesUploadSessionAppendV2({
+            cursor: { session_id: sessionId, offset: Number.MAX_SAFE_INTEGER },
+            close: false,
+            contents: new Blob([]),
+          });
+          return Number.MAX_SAFE_INTEGER;
+        } catch (error) {
+          const correctOffset = error?.error?.error?.correct_offset
+            ?? error?.error?.correct_offset
+            ?? error?.correct_offset;
+          if (Number.isSafeInteger(correctOffset)) return correctOffset;
+          throw normalizeCloudError(error, "dropbox");
+        }
+      },
+    };
+    return uploadBlobResumably(adapter, contents, {
+      commit,
+      chunkSize: this.chunkSize,
+      provider: "dropbox",
+      operationTimeoutMs: this.requestTimeoutMs,
+    });
+  }
+
   async writeVersionSnapshot(path, rev) {
     try {
-      const download = await this.client.filesDownload({ path });
-      const result = download.result || download;
       const extension = path.split(".").pop() || "lal";
-      const baseName = slugify(result.name?.replace(/\.lal$/i, "") || "layer");
+      const baseName = slugify(path.split("/").pop()?.replace(/\.lal$/i, "") || "layer");
       const stamp = new Date().toISOString().replace(/[:.]/g, "-");
       const versionPath = `${this.versionsPath}/${baseName}--${stamp}--${rev}.${extension}`;
-      const blob = result.fileBlob || result.fileBinary;
-      await this.client.filesUpload({
-        path: versionPath,
-        contents: blob,
-        mode: { ".tag": "add" },
-        autorename: true,
-        mute: true,
+      await copyCloudRevisionSnapshot({
+        copyRevision: async ({ destinationPath, revision }) => {
+          const response = await this.client.filesCopyV2({
+            from_path: `rev:${revision}`,
+            to_path: destinationPath,
+            autorename: true,
+          });
+          return response.result || response;
+        },
+      }, {
+        sourcePath: path,
+        destinationPath: versionPath,
+        revision: rev,
+      }, {
+        provider: "dropbox",
       });
     } catch {
       // Version snapshots are best-effort; save should still continue.
@@ -295,13 +420,42 @@ export class LalGeoDropboxClient {
   async renameLayer(path, nextName) {
     const extension = nextName.toLowerCase().endsWith(".lal") ? "" : ".lal";
     const target = `${this.folderPath}/${nextName}${extension}`;
-    const response = await this.client.filesMoveV2({
-      from_path: path,
-      to_path: target,
-      autorename: false,
-      allow_ownership_transfer: false,
+    const client = this.client;
+    const readMetadata = async (metadataPath) => {
+      try {
+        const response = await client.filesGetMetadata({ path: metadataPath });
+        return response.result || response;
+      } catch (error) {
+        const summary = String(error?.error?.error_summary || error?.error || error?.message || "");
+        if (summary.includes("not_found")) return null;
+        throw error;
+      }
+    };
+    return moveCloudObjectWithVerification({
+      getMetadata: readMetadata,
+      move: async ({ sourcePath, destinationPath }) => {
+        const response = await client.filesMoveV2({
+          from_path: sourcePath,
+          to_path: destinationPath,
+          autorename: false,
+          allow_ownership_transfer: false,
+        });
+        return response.result?.metadata || response.metadata || null;
+      },
+      isSameObject: (source, destination) => Boolean(
+        source?.id
+        && source.id === destination?.id
+        && source.rev
+        && source.rev === destination?.rev
+        && Number(source.size) === Number(destination?.size)
+      ),
+    }, {
+      sourcePath: path,
+      destinationPath: target,
+    }, {
+      provider: "dropbox",
+      operationTimeoutMs: this.requestTimeoutMs,
     });
-    return response.result?.metadata || response.metadata || null;
   }
 
   async duplicateLayer(path, nextName) {
@@ -365,5 +519,11 @@ async function extractArrayBuffer(blobLike) {
   if (blobLike instanceof ArrayBuffer) return blobLike;
   if (blobLike?.arrayBuffer) return blobLike.arrayBuffer();
   if (blobLike?.buffer) return blobLike.buffer;
+  throw new Error("Unable to read Dropbox file contents.");
+}
+
+function asBlob(blobLike) {
+  if (blobLike instanceof Blob) return blobLike;
+  if (blobLike instanceof ArrayBuffer || ArrayBuffer.isView(blobLike)) return new Blob([blobLike]);
   throw new Error("Unable to read Dropbox file contents.");
 }

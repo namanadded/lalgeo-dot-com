@@ -1,0 +1,81 @@
+name: LalGeoMaps
+
+options:
+  bundleIdPrefix: com.lalgeo
+  createIntermediateGroups: true
+  deploymentTarget:
+    iOS: "17.0"
+  groupSortPosition: top
+
+settings:
+  base:
+    CURRENT_PROJECT_VERSION: 1
+    DEVELOPMENT_LANGUAGE: en
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    MARKETING_VERSION: 0.1.0
+    SWIFT_VERSION: 5.0
+
+targets:
+  LalGeoMaps:
+    type: application
+    platform: iOS
+    sources:
+      - path: LalGeoMaps
+        excludes:
+          - Resources
+    resources:
+      - path: LalGeoMaps/Resources
+    settings:
+      base:
+        ASSETCATALOG_COMPILER_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        CODE_SIGN_STYLE: Automatic
+        GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_CFBundleDisplayName: LalGeo Maps
+        INFOPLIST_KEY_LSApplicationCategoryType: public.app-category.navigation
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        INFOPLIST_KEY_UILaunchScreen_Generation: YES
+        INFOPLIST_KEY_UISupportedInterfaceOrientations: UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight
+        PRODUCT_BUNDLE_IDENTIFIER: com.lalgeo.maps
+        SUPPORTS_MACCATALYST: NO
+
+  LalGeoMapsTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - LalGeoMapsTests
+    dependencies:
+      - target: LalGeoMaps
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.lalgeo.maps.tests
+
+  LalGeoMapsUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - LalGeoMapsUITests
+    dependencies:
+      - target: LalGeoMaps
+    settings:
+      base:
+        GENERATE_INFOPLIST_FILE: YES
+        PRODUCT_BUNDLE_IDENTIFIER: com.lalgeo.maps.uitests
+        TEST_TARGET_NAME: LalGeoMaps
+
+schemes:
+  LalGeoMaps:
+    build:
+      targets:
+        LalGeoMaps: all
+        LalGeoMapsTests: [test]
+        LalGeoMapsUITests: [test]
+    test:
+      gatherCoverageData: true
+      targets:
+        - name: LalGeoMapsTests
+          parallelizable: true
+        - name: LalGeoMapsUITests
+          parallelizable: false
+

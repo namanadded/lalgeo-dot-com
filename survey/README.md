@@ -63,7 +63,9 @@ Then in Stripe Dashboard:
 
 `DATABASE_URL` stays for legacy Prisma-backed routes still used by OAuth/email internals.
 
-Apply D1 migrations:
+The Worker and D1 database are shared with the Maps API. Before any remote migration or Worker deploy, run the combined checks and follow [`../lalgeo-maps-api/DEPLOYMENT.md`](../lalgeo-maps-api/DEPLOYMENT.md); do not deploy the standalone Maps Worker or create a replacement database.
+
+Apply reviewed D1 migrations to the existing database:
 
 ```bash
 cd /Users/namanmalhotra/Documents/Work/Lal_Geo/lalgeo_dot_com/lalgeo-saas-api

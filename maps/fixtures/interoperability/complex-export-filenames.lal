@@ -1,0 +1,44 @@
+{
+  "project": {
+    "id": "export-filename-fixture",
+    "name": "CON / Rivière 漢字 .. ",
+    "activeLayerId": "duplicate-a",
+    "layers": [
+      {
+        "id": "duplicate-a",
+        "name": "Field/Assets",
+        "geometryType": "point",
+        "schema": [{ "name": "Name", "type": "text" }, { "name": "Nullable", "type": "text" }],
+        "features": [{
+          "id": "point-1",
+          "geometry": { "type": "Point", "lat": 51.0447, "lng": -114.0719 },
+          "attributes": { "Name": "Café rivière 🌊", "InspectedAt": "2026-08-10T08:15:00-06:00", "Nullable": null }
+        }]
+      },
+      {
+        "id": "duplicate-b",
+        "name": "Field:Assets",
+        "geometryType": "line",
+        "schema": [{ "name": "Name", "type": "text" }],
+        "features": [{
+          "id": "line-1",
+          "geometry": { "type": "LineString", "coordinates": [{ "lat": 51.04, "lng": -114.08 }, { "lat": 51.05, "lng": -114.06 }] },
+          "attributes": { "Name": "Ligne α", "Field12": "A12" }
+        }]
+      },
+      {
+        "id": "reserved-name",
+        "name": "CON",
+        "geometryType": "polygon",
+        "schema": [{ "name": "Name", "type": "text" }],
+        "features": [{
+          "id": "polygon-1",
+          "geometry": { "type": "Polygon", "rings": [[{ "lat": 51, "lng": -114 }, { "lat": 51, "lng": -113.99 }, { "lat": 51.01, "lng": -113.99 }, { "lat": 51, "lng": -114 }]] },
+          "attributes": { "Name": "Parcelle Été" }
+        }]
+      }
+    ]
+  },
+  "activeLayerId": "duplicate-a",
+  "survey": null
+}

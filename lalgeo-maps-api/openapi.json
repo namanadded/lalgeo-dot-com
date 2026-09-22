@@ -1,0 +1,856 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "LalGeo Maps Authoring API",
+    "version": "1.0.1",
+    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export any map as a portable LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
+    "contact": {
+      "name": "LalGeo Maps API access",
+      "url": "https://lalgeo.com/developers/",
+      "email": "lalgeospatial@outlook.com"
+    }
+  },
+  "externalDocs": {
+    "description": "Authoring API guide, API choice, and key access",
+    "url": "https://lalgeo.com/developers/"
+  },
+  "servers": [{ "url": "https://api.lalgeo.com" }],
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "operationId": "getHealth",
+        "summary": "Check API health",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headHealth",
+        "summary": "Check API health headers",
+        "description": "Returns the same status and headers as GET without a response body.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "Healthy response headers",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          }
+        }
+      }
+    },
+    "/v1/openapi.json": {
+      "get": {
+        "operationId": "getOpenApi",
+        "summary": "Get this OpenAPI document",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OpenAPI document",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/OpenApiDocument" } } }
+          }
+        }
+      },
+      "head": {
+        "operationId": "headOpenApi",
+        "summary": "Check OpenAPI document headers",
+        "description": "Returns the same status and headers as GET without a response body.",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "OpenAPI response headers",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          }
+        }
+      }
+    },
+    "/v1/maps": {
+      "get": {
+        "operationId": "listMaps",
+        "summary": "List maps",
+        "parameters": [{ "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/offset" }],
+        "responses": {
+          "200": {
+            "description": "Maps",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapListResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "post": {
+        "operationId": "createMap",
+        "summary": "Create a map",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapInput" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Map created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }],
+      "get": {
+        "operationId": "getMap",
+        "summary": "Get a map",
+        "responses": {
+          "200": {
+            "description": "Map",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "patch": {
+        "operationId": "updateMap",
+        "summary": "Update a map",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapPatchInput" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated map",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteMap",
+        "summary": "Delete a map and its contents",
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}/export": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }],
+      "get": {
+        "operationId": "exportMap",
+        "summary": "Export a LalGeo-compatible .lal project payload",
+        "description": "Every export opens as an editable LalGeo Maps project. If the API map has no layers, the portable copy includes a deterministic empty point layer without changing the API map.",
+        "responses": {
+          "200": {
+            "description": "Portable LalGeo project",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LalGeoExportResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}/layers": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }],
+      "get": {
+        "operationId": "listLayers",
+        "summary": "List layers",
+        "responses": {
+          "200": {
+            "description": "Layers",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerListResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "post": {
+        "operationId": "createLayer",
+        "summary": "Create a typed layer",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerInput" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "Layer created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}/layers/{layerId}": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }, { "$ref": "#/components/parameters/layerId" }],
+      "get": {
+        "operationId": "getLayer",
+        "summary": "Get a layer",
+        "responses": {
+          "200": {
+            "description": "Layer",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "patch": {
+        "operationId": "updateLayer",
+        "summary": "Update layer name, style, or position",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerPatchInput" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated layer",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteLayer",
+        "summary": "Delete a layer and its features",
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}/layers/{layerId}/features": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }, { "$ref": "#/components/parameters/layerId" }],
+      "get": {
+        "operationId": "listFeatures",
+        "summary": "List layer features as GeoJSON",
+        "parameters": [{ "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/offset" }],
+        "responses": {
+          "200": {
+            "description": "GeoJSON FeatureCollection",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeatureListResponse" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "post": {
+        "operationId": "createFeatures",
+        "summary": "Add one Feature or up to 1,000 features in a FeatureCollection",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/geo+json": { "schema": { "oneOf": [{ "$ref": "#/components/schemas/Feature" }, { "$ref": "#/components/schemas/FeatureCollection" }] } },
+            "application/json": { "schema": { "oneOf": [{ "$ref": "#/components/schemas/Feature" }, { "$ref": "#/components/schemas/FeatureCollection" }] } }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Features created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatedFeatureCollection" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "409": { "$ref": "#/components/responses/Conflict" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}/layers/{layerId}/features/{featureId}": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }, { "$ref": "#/components/parameters/layerId" }, { "$ref": "#/components/parameters/featureId" }],
+      "get": {
+        "operationId": "getFeature",
+        "summary": "Get a GeoJSON feature",
+        "responses": {
+          "200": {
+            "description": "Feature",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoredFeature" } } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "patch": {
+        "operationId": "updateFeature",
+        "summary": "Update geometry or properties",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeaturePatchInput" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated feature",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoredFeature" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      },
+      "delete": {
+        "operationId": "deleteFeature",
+        "summary": "Delete a feature",
+        "responses": {
+          "204": {
+            "description": "Deleted",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+          },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    }
+  },
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "description": "Operator-provisioned key for the private, owner-scoped Authoring API. Request access at https://lalgeo.com/developers/."
+      }
+    },
+    "parameters": {
+      "mapId": { "name": "mapId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
+      "layerId": { "name": "layerId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
+      "featureId": { "name": "featureId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
+      "limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
+      "offset": { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } }
+    },
+    "headers": {
+      "RequestId": {
+        "description": "Request identifier to include when reporting an API error. Also returned in JSON error responses as request_id.",
+        "schema": { "type": "string", "minLength": 1 }
+      }
+    },
+    "responses": {
+      "BadRequest": {
+        "description": "Invalid JSON, ID, input, or geometry (INVALID_JSON, INVALID_ID, VALIDATION_ERROR, INVALID_GEOMETRY, or GEOMETRY_TYPE_MISMATCH).",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Unauthorized": {
+        "description": "Missing or invalid bearer key (UNAUTHORIZED).",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+          "WWW-Authenticate": { "description": "Bearer authentication challenge", "schema": { "type": "string", "const": "Bearer realm=\"lalgeo-maps-api\"" } }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "NotFound": {
+        "description": "Map, layer, or feature not found for this owner (MAP_NOT_FOUND, LAYER_NOT_FOUND, or FEATURE_NOT_FOUND).",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Conflict": {
+        "description": "A client-supplied map, layer, or feature ID already exists in its owner-scoped collection (ID_CONFLICT). Reconcile with GET before retrying a timed-out create; Idempotency-Key replay is not supported.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "PayloadTooLarge": {
+        "description": "The request body exceeds 2 MB (BODY_TOO_LARGE), or a feature batch exceeds 1,000 items (BATCH_TOO_LARGE).",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "InternalServerError": {
+        "description": "Unexpected server or database error (INTERNAL_ERROR). Provide request_id when reporting it; do not blindly replay writes.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "ServiceUnavailable": {
+        "description": "API authentication configuration is invalid (AUTH_NOT_CONFIGURED). Retry only after an operator resolves the configuration.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      }
+    },
+    "schemas": {
+      "ResourceId": {
+        "type": "string",
+        "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$",
+        "maxLength": 128
+      },
+      "Timestamp": { "type": "string", "format": "date-time" },
+      "JsonObject": { "type": "object", "additionalProperties": true },
+      "HealthResponse": {
+        "type": "object",
+        "required": ["ok", "service", "version"],
+        "properties": {
+          "ok": { "const": true },
+          "service": { "const": "lalgeo-maps-api" },
+          "version": { "const": "v1" }
+        },
+        "additionalProperties": false
+      },
+      "OpenApiDocument": {
+        "type": "object",
+        "required": ["openapi", "info", "paths", "components"],
+        "properties": {
+          "openapi": { "type": "string", "pattern": "^3\\.1(?:\\.[0-9]+)?$" },
+          "info": {
+            "type": "object",
+            "required": ["title", "version"],
+            "properties": { "title": { "type": "string" }, "version": { "type": "string" } }
+          },
+          "paths": { "type": "object", "minProperties": 1 },
+          "components": { "type": "object" }
+        }
+      },
+      "MapCenter": {
+        "type": "object",
+        "required": ["latitude", "longitude"],
+        "properties": {
+          "latitude": { "type": "number", "minimum": -90, "maximum": 90 },
+          "longitude": { "type": "number", "minimum": -180, "maximum": 180 }
+        }
+      },
+      "MapInput": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "description": { "type": "string" },
+          "center": { "$ref": "#/components/schemas/MapCenter" },
+          "zoom": { "type": "number", "minimum": 0, "maximum": 24 },
+          "map_type": { "type": "string", "enum": ["standard", "satellite", "hybrid"] },
+          "show_basemap_pois": { "type": "boolean" },
+          "metadata": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "MapPatchInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "description": { "type": "string" },
+          "center": { "oneOf": [{ "$ref": "#/components/schemas/MapCenter" }, { "type": "null" }] },
+          "zoom": { "type": ["number", "null"], "minimum": 0, "maximum": 24 },
+          "map_type": { "type": "string", "enum": ["standard", "satellite", "hybrid"] },
+          "show_basemap_pois": { "type": "boolean" },
+          "metadata": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "Map": {
+        "type": "object",
+        "required": ["id", "name", "description", "center", "zoom", "map_type", "show_basemap_pois", "metadata", "created_at", "updated_at"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "description": { "type": "string" },
+          "center": { "oneOf": [{ "$ref": "#/components/schemas/MapCenter" }, { "type": "null" }] },
+          "zoom": { "type": ["number", "null"], "minimum": 0, "maximum": 24 },
+          "map_type": { "type": "string", "enum": ["standard", "satellite", "hybrid"] },
+          "show_basemap_pois": { "type": "boolean" },
+          "metadata": { "$ref": "#/components/schemas/JsonObject" },
+          "created_at": { "$ref": "#/components/schemas/Timestamp" },
+          "updated_at": { "$ref": "#/components/schemas/Timestamp" }
+        }
+      },
+      "MapResponse": {
+        "type": "object",
+        "required": ["map"],
+        "properties": { "map": { "$ref": "#/components/schemas/Map" } }
+      },
+      "Pagination": {
+        "type": "object",
+        "description": "Page metadata. count is the number of items in this page, not the total collection size.",
+        "required": ["limit", "offset", "count"],
+        "properties": {
+          "limit": { "type": "integer", "minimum": 1, "maximum": 100 },
+          "offset": { "type": "integer", "minimum": 0 },
+          "count": { "type": "integer", "minimum": 0, "maximum": 100 }
+        }
+      },
+      "MapListResponse": {
+        "type": "object",
+        "required": ["maps", "pagination"],
+        "properties": {
+          "maps": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/Map" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "LayerInput": {
+        "type": "object",
+        "required": ["name", "geometry_type"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "geometry_type": { "type": "string", "enum": ["Point", "LineString", "Polygon"] },
+          "style": { "$ref": "#/components/schemas/JsonObject" },
+          "position": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 }
+        }
+      },
+      "LayerPatchInput": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "style": { "$ref": "#/components/schemas/JsonObject" },
+          "position": { "type": "integer", "minimum": -9007199254740991, "maximum": 9007199254740991 }
+        }
+      },
+      "Layer": {
+        "type": "object",
+        "required": ["id", "map_id", "name", "geometry_type", "style", "position", "created_at", "updated_at"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "map_id": { "$ref": "#/components/schemas/ResourceId" },
+          "name": { "type": "string", "minLength": 1, "maxLength": 200 },
+          "geometry_type": { "type": "string", "enum": ["Point", "LineString", "Polygon"] },
+          "style": { "$ref": "#/components/schemas/JsonObject" },
+          "position": { "type": "integer" },
+          "created_at": { "$ref": "#/components/schemas/Timestamp" },
+          "updated_at": { "$ref": "#/components/schemas/Timestamp" }
+        }
+      },
+      "LayerResponse": {
+        "type": "object",
+        "required": ["layer"],
+        "properties": { "layer": { "$ref": "#/components/schemas/Layer" } }
+      },
+      "LayerListResponse": {
+        "type": "object",
+        "required": ["layers"],
+        "properties": { "layers": { "type": "array", "items": { "$ref": "#/components/schemas/Layer" } } }
+      },
+      "Position": {
+        "type": "array",
+        "description": "A WGS84 [longitude, latitude] position with optional altitude in metres.",
+        "prefixItems": [
+          { "type": "number", "minimum": -180, "maximum": 180 },
+          { "type": "number", "minimum": -90, "maximum": 90 },
+          { "type": "number" }
+        ],
+        "minItems": 2,
+        "maxItems": 3,
+        "items": false
+      },
+      "PointGeometry": {
+        "type": "object",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": { "const": "Point" },
+          "coordinates": { "$ref": "#/components/schemas/Position" }
+        }
+      },
+      "LineStringGeometry": {
+        "type": "object",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": { "const": "LineString" },
+          "coordinates": { "type": "array", "minItems": 2, "items": { "$ref": "#/components/schemas/Position" } }
+        }
+      },
+      "PolygonGeometry": {
+        "type": "object",
+        "description": "GeoJSON Polygon rings must contain at least four positions and be closed.",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": { "const": "Polygon" },
+          "coordinates": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "array", "minItems": 4, "items": { "$ref": "#/components/schemas/Position" } }
+          }
+        }
+      },
+      "Geometry": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/PointGeometry" },
+          { "$ref": "#/components/schemas/LineStringGeometry" },
+          { "$ref": "#/components/schemas/PolygonGeometry" }
+        ]
+      },
+      "Feature": {
+        "type": "object",
+        "required": ["type", "geometry"],
+        "properties": {
+          "type": { "const": "Feature" },
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "geometry": { "$ref": "#/components/schemas/Geometry" },
+          "properties": { "oneOf": [{ "$ref": "#/components/schemas/JsonObject" }, { "type": "null" }] }
+        }
+      },
+      "FeatureCollection": {
+        "type": "object",
+        "required": ["type", "features"],
+        "properties": {
+          "type": { "const": "FeatureCollection" },
+          "features": { "type": "array", "minItems": 1, "maxItems": 1000, "items": { "$ref": "#/components/schemas/Feature" } }
+        }
+      },
+      "FeaturePatchInput": {
+        "type": "object",
+        "properties": {
+          "geometry": { "$ref": "#/components/schemas/Geometry" },
+          "properties": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "CreatedFeature": {
+        "type": "object",
+        "required": ["type", "id", "geometry", "properties"],
+        "properties": {
+          "type": { "const": "Feature" },
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "geometry": { "$ref": "#/components/schemas/Geometry" },
+          "properties": { "$ref": "#/components/schemas/JsonObject" }
+        }
+      },
+      "CreatedFeatureCollection": {
+        "type": "object",
+        "required": ["type", "features"],
+        "properties": {
+          "type": { "const": "FeatureCollection" },
+          "features": { "type": "array", "minItems": 1, "maxItems": 1000, "items": { "$ref": "#/components/schemas/CreatedFeature" } }
+        }
+      },
+      "StoredFeature": {
+        "type": "object",
+        "required": ["type", "id", "geometry", "properties", "created_at", "updated_at"],
+        "properties": {
+          "type": { "const": "Feature" },
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "geometry": { "$ref": "#/components/schemas/Geometry" },
+          "properties": { "$ref": "#/components/schemas/JsonObject" },
+          "created_at": { "$ref": "#/components/schemas/Timestamp" },
+          "updated_at": { "$ref": "#/components/schemas/Timestamp" }
+        }
+      },
+      "FeatureListResponse": {
+        "type": "object",
+        "required": ["type", "features", "pagination"],
+        "properties": {
+          "type": { "const": "FeatureCollection" },
+          "features": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/StoredFeature" } },
+          "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "LalGeoPosition": {
+        "type": "object",
+        "required": ["lat", "lng"],
+        "properties": {
+          "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+          "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+          "altitude": { "type": "number" }
+        }
+      },
+      "LalGeoPointGeometry": {
+        "type": "object",
+        "required": ["type", "lat", "lng"],
+        "properties": {
+          "type": { "const": "Point" },
+          "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+          "lng": { "type": "number", "minimum": -180, "maximum": 180 },
+          "altitude": { "type": "number" }
+        }
+      },
+      "LalGeoLineGeometry": {
+        "type": "object",
+        "required": ["type", "coordinates"],
+        "properties": {
+          "type": { "const": "LineString" },
+          "coordinates": { "type": "array", "minItems": 2, "items": { "$ref": "#/components/schemas/LalGeoPosition" } }
+        }
+      },
+      "LalGeoPolygonGeometry": {
+        "type": "object",
+        "required": ["type", "rings"],
+        "properties": {
+          "type": { "const": "Polygon" },
+          "rings": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "array", "minItems": 3, "items": { "$ref": "#/components/schemas/LalGeoPosition" } }
+          }
+        }
+      },
+      "LalGeoGeometry": {
+        "oneOf": [
+          { "$ref": "#/components/schemas/LalGeoPointGeometry" },
+          { "$ref": "#/components/schemas/LalGeoLineGeometry" },
+          { "$ref": "#/components/schemas/LalGeoPolygonGeometry" }
+        ]
+      },
+      "LalGeoField": {
+        "type": "object",
+        "required": ["name", "type", "options", "locked"],
+        "properties": {
+          "name": { "type": "string" },
+          "type": { "const": "text" },
+          "options": { "type": "array" },
+          "locked": { "const": false }
+        }
+      },
+      "LalGeoFeature": {
+        "type": "object",
+        "required": ["id", "geometry", "attributes", "version"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "geometry": { "$ref": "#/components/schemas/LalGeoGeometry" },
+          "attributes": { "$ref": "#/components/schemas/JsonObject" },
+          "version": { "type": "integer", "const": 1 }
+        }
+      },
+      "LalGeoLayer": {
+        "type": "object",
+        "required": ["id", "name", "geometryType", "selectable", "styleDefaults", "schema", "features"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "name": { "type": "string", "minLength": 1 },
+          "geometryType": { "type": "string", "enum": ["point", "line", "polygon"] },
+          "selectable": { "const": true },
+          "styleDefaults": { "$ref": "#/components/schemas/JsonObject" },
+          "schema": { "type": "array", "items": { "$ref": "#/components/schemas/LalGeoField" } },
+          "features": { "type": "array", "items": { "$ref": "#/components/schemas/LalGeoFeature" } }
+        }
+      },
+      "LalGeoMapOptions": {
+        "type": "object",
+        "required": ["showBasemapPOIs", "mapType"],
+        "properties": {
+          "showBasemapPOIs": { "type": "boolean" },
+          "mapType": { "type": "string", "enum": ["standard", "satellite", "hybrid"] },
+          "center": {
+            "type": "object",
+            "required": ["lat", "lng"],
+            "properties": {
+              "lat": { "type": "number", "minimum": -90, "maximum": 90 },
+              "lng": { "type": "number", "minimum": -180, "maximum": 180 }
+            }
+          },
+          "zoom": { "type": "number", "minimum": 0, "maximum": 24 }
+        }
+      },
+      "LalGeoProject": {
+        "type": "object",
+        "required": ["id", "name", "description", "type", "storageSource", "source", "mapOptions", "metadata", "layers", "activeLayerId"],
+        "properties": {
+          "id": { "$ref": "#/components/schemas/ResourceId" },
+          "name": { "type": "string", "minLength": 1 },
+          "description": { "type": "string" },
+          "type": { "const": "API project" },
+          "storageSource": { "const": "LalGeo Maps API" },
+          "source": {
+            "type": "object",
+            "required": ["type", "mapId"],
+            "properties": {
+              "type": { "const": "lalgeo-maps-api" },
+              "mapId": { "$ref": "#/components/schemas/ResourceId" }
+            }
+          },
+          "mapOptions": { "$ref": "#/components/schemas/LalGeoMapOptions" },
+          "metadata": {
+            "type": "object",
+            "required": ["createdAt", "updatedAt"],
+            "properties": {
+              "createdAt": { "$ref": "#/components/schemas/Timestamp" },
+              "updatedAt": { "$ref": "#/components/schemas/Timestamp" }
+            },
+            "additionalProperties": true
+          },
+          "layers": { "type": "array", "minItems": 1, "items": { "$ref": "#/components/schemas/LalGeoLayer" } },
+          "activeLayerId": { "$ref": "#/components/schemas/ResourceId" }
+        }
+      },
+      "LalGeoExportResponse": {
+        "type": "object",
+        "required": ["project", "activeLayerId", "survey"],
+        "properties": {
+          "project": { "$ref": "#/components/schemas/LalGeoProject" },
+          "activeLayerId": { "$ref": "#/components/schemas/ResourceId" },
+          "survey": { "type": "null" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "description": "Every API error is JSON. Match on error.code, retain request_id for support, and do not infer that a timed-out write was rolled back.",
+        "required": ["error", "request_id"],
+        "properties": {
+          "error": {
+            "type": "object",
+            "required": ["code", "message"],
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "INVALID_JSON", "INVALID_ID", "VALIDATION_ERROR", "INVALID_GEOMETRY", "GEOMETRY_TYPE_MISMATCH",
+                  "UNAUTHORIZED", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
+                  "ID_CONFLICT", "BODY_TOO_LARGE", "BATCH_TOO_LARGE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED"
+                ]
+              },
+              "message": { "type": "string", "minLength": 1 },
+              "details": {}
+            }
+          },
+          "request_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

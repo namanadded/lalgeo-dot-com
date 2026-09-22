@@ -1,0 +1,74 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const legacyHtmlPath = resolve(__dirname, "../public/legacy/lalgeosurvey.html");
+const legacyHtml = readFileSync(legacyHtmlPath, "utf8");
+
+function getButtonById(id) {
+  const tag = legacyHtml.match(new RegExp(`<button[^>]+id="${id}"[^>]*>`))?.[0];
+  assert.ok(tag, `Expected #${id} to exist.`);
+  return tag;
+}
+
+const layersButton = getButtonById("layersMapBtn");
+const lookAroundButton = getButtonById("streetViewDropBtn");
+const lookAroundMarkup = legacyHtml.match(
+  /<button id="streetViewDropBtn"[\s\S]*?<\/button>/,
+)?.[0];
+
+assert.match(
+  layersButton,
+  /\shidden(?:\s|>)/,
+  "The redundant standalone Layers bubble should be removed from the map chrome.",
+);
+assert.match(
+  legacyHtml,
+  /#layersMapBtn\[hidden\]\s*{\s*display:\s*none\s*!important;/,
+  "Author styles must preserve the hidden state of the retired Layers bubble.",
+);
+assert.match(
+  lookAroundButton,
+  /aria-label="Open Look Around at map center or drag to a street"/,
+  "Look Around must describe both its tap and precision drag interactions.",
+);
+assert.ok(lookAroundMarkup, "Look Around button markup should be available.");
+assert.match(
+  lookAroundMarkup,
+  /<circle cx="5\.5" cy="16" r="3\.2"\/>[\s\S]*?<circle cx="18\.5" cy="16" r="3\.2"\/>/,
+  "Look Around should use a recognizable binoculars symbol instead of a draggable person glyph.",
+);
+assert.doesNotMatch(
+  lookAroundMarkup,
+  /M12 3a3 3 0 1 0/,
+  "Look Around should not retain the old person icon.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#streetViewDropBtn\s*{[\s\S]*?right:\s*12px;[\s\S]*?bottom:\s*146px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;[\s\S]*?border-radius:\s*14px;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.84\);/,
+  "Mobile Look Around should align as a 44px Apple-like glass control above the lower-right map controls.",
+);
+assert.match(
+  legacyHtml,
+  /const targetPoint = moved[\s\S]*?\? dropPoint[\s\S]*?: new DOMPoint\(mapRect\.left \+ mapRect\.width \/ 2, mapRect\.top \+ mapRect\.height \/ 2\);/,
+  "Tapping Look Around should target the visible map center while retaining drag-to-street precision.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?--mobile-panel-safe-top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?\.measurement-panel,\s*\.advanced-gis-panel\s*{[\s\S]*?top:\s*var\(--mobile-panel-safe-top\);[\s\S]*?max-height:\s*calc\(100dvh\s*-\s*var\(--mobile-panel-safe-top\)\s*-\s*16px\);/,
+  "Measurement and Advanced GIS must share the mobile safe top boundary and remain scrollable within the viewport.",
+);
+assert.match(
+  legacyHtml,
+  /function setAdvancedGisVisible\(show(?:\s*,[\s\S]*?)?\)\s*{[\s\S]*?if \(show\) \{[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  "Opening Advanced GIS on mobile must collapse the quick-action strip.",
+);
+assert.match(
+  legacyHtml,
+  /function setMeasurementActive\(active, \{ restoreFocus = false \} = \{\}\)\s*{[\s\S]*?measurementActive = Boolean\(active\);[\s\S]*?window\.matchMedia\("\(max-width: 600px\)"\)\.matches[\s\S]*?topToolbarViewModel\.collapseOverflow\("right"\)/,
+  "Opening Measurement on mobile must collapse the quick-action strip.",
+);
+
+console.log("Map control layout checks passed.");

@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <name>KMZ main document integrity</name>
+    <Placemark>
+      <name>Station Été 🌲</name>
+      <ExtendedData>
+        <Data name="inspected_at"><value>2026-07-28T09:15:00-06:00</value></Data>
+        <Data name="nullable_note"><value></value></Data>
+        <Data name="field_01"><value>A01</value></Data>
+        <Data name="field_02"><value>A02</value></Data>
+        <Data name="field_03"><value>A03</value></Data>
+        <Data name="field_04"><value>A04</value></Data>
+        <Data name="field_05"><value>A05</value></Data>
+        <Data name="field_06"><value>A06</value></Data>
+        <Data name="field_07"><value>A07</value></Data>
+        <Data name="field_08"><value>A08</value></Data>
+        <Data name="field_09"><value>A09</value></Data>
+        <Data name="field_10"><value>A10</value></Data>
+        <Data name="field_11"><value>A11</value></Data>
+        <Data name="field_12"><value>A12</value></Data>
+      </ExtendedData>
+      <Point><coordinates>-114.0719,51.0447,1048.25</coordinates></Point>
+    </Placemark>
+    <Placemark>
+      <name>Route principale</name>
+      <ExtendedData><Data name="status"><value>active</value></Data></ExtendedData>
+      <LineString><coordinates>-114.0719,51.0447 -114.0619,51.0497 -114.0519,51.0547</coordinates></LineString>
+    </Placemark>
+    <Placemark>
+      <name>Parcelle α</name>
+      <Polygon>
+        <outerBoundaryIs><LinearRing><coordinates>-114.08,51.04 -114.04,51.04 -114.04,51.07 -114.08,51.07 -114.08,51.04</coordinates></LinearRing></outerBoundaryIs>
+        <innerBoundaryIs><LinearRing><coordinates>-114.07,51.05 -114.05,51.05 -114.05,51.06 -114.07,51.06 -114.07,51.05</coordinates></LinearRing></innerBoundaryIs>
+      </Polygon>
+    </Placemark>
+  </Document>
+</kml>

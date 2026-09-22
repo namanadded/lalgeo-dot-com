@@ -1,0 +1,7 @@
+{
+  "results": [
+    { "name": "Valid neighbor", "latitude": 51.0447, "longitude": -114.0719 },
+    { "name": "Must not disappear", "latitude": "north", "longitude": -73.5674 },
+    { "name": "Another valid neighbor", "latitude": 49.2827, "longitude": -123.1207 }
+  ]
+}

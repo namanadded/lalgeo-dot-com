@@ -1,0 +1,6 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    { "type": "Feature", "properties": { "name": "Invalid altitude" }, "geometry": { "type": "LineString", "coordinates": [[-115.57, 51.17, 2200], [-115.56, 51.18, "unknown"], [-115.55, 51.19, 2250]] } }
+  ]
+}

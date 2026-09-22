@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="LalGeo interoperability fixture"
+  xmlns="http://www.topografix.com/GPX/1/1">
+  <metadata>
+    <name>Été field collection 🌲</name>
+    <time>2026-07-24T14:30:00Z</time>
+  </metadata>
+  <wpt lat="51.045" lon="-114.057">
+    <ele>1048.25</ele>
+    <time>2026-07-24T14:31:02Z</time>
+    <name>Station α</name>
+    <cmt>Valve, north side</cmt>
+    <desc>Null note intentionally omitted</desc>
+    <sym>Flag, Blue</sym>
+    <type>inspection</type>
+  </wpt>
+  <trk>
+    <name>Coulee survey – été</name>
+    <cmt>Two distinct field legs</cmt>
+    <desc>Track with elevations and timestamps</desc>
+    <type>survey</type>
+    <trkseg>
+      <trkpt lat="51.0450" lon="-114.0570">
+        <ele>1048.25</ele>
+        <time>2026-07-24T14:31:02Z</time>
+      </trkpt>
+      <trkpt lat="51.0458" lon="-114.0556">
+        <ele>1049.5</ele>
+        <time>2026-07-24T14:32:03Z</time>
+      </trkpt>
+    </trkseg>
+    <trkseg>
+      <trkpt lat="51.0470" lon="-114.0530">
+        <ele>1051</ele>
+        <time>2026-07-24T14:35:00Z</time>
+      </trkpt>
+      <trkpt lat="51.0481" lon="-114.0510">
+        <ele>1052.75</ele>
+        <time>2026-07-24T14:36:04Z</time>
+      </trkpt>
+    </trkseg>
+  </trk>
+  <rte>
+    <name>Return route β</name>
+    <desc>Planned return</desc>
+    <type>vehicle</type>
+    <rtept lat="51.0481" lon="-114.0510">
+      <ele>1052.75</ele>
+      <time>2026-07-24T15:00:00Z</time>
+    </rtept>
+    <rtept lat="51.0450" lon="-114.0570">
+      <ele>1048.25</ele>
+      <time>2026-07-24T15:08:00Z</time>
+    </rtept>
+  </rte>
+</gpx>

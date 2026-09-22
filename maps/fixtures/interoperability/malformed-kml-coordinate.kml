@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
+  <Document>
+    <Placemark>
+      <name>Broken corridor</name>
+      <LineString>
+        <coordinates>-114.0719,51.0447 not-a-longitude,51.0497 -114.0519,51.0547</coordinates>
+      </LineString>
+    </Placemark>
+  </Document>
+</kml>

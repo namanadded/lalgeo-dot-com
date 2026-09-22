@@ -1,8 +1,31 @@
 import crypto from "node:crypto";
 import net from "node:net";
+import { readFileSync } from "node:fs";
 
 const DEVTOOLS = "http://127.0.0.1:9223";
 const TARGET_URL = process.env.LALGEO_TEST_URL || "https://maps.lalgeo.com/render/lalgeosurvey";
+const polygonHolesGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/polygon-holes.geojson", import.meta.url), "utf8"));
+const complexGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-geometry-collection.geojson", import.meta.url), "utf8"));
+const malformedGeometryCollection = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-geometry-collection.geojson", import.meta.url), "utf8"));
+const complexFeatureIdentifiers = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-feature-identifiers.geojson", import.meta.url), "utf8"));
+const complexReservedProperties = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-reserved-properties.geojson", import.meta.url), "utf8"));
+const polygonHolesKml = readFileSync(new URL("../fixtures/interoperability/polygon-holes.kml", import.meta.url), "utf8");
+const complexStyledKml = readFileSync(new URL("../fixtures/interoperability/complex-styled-multigeometry.kml", import.meta.url), "utf8");
+const malformedKmlCoordinate = readFileSync(new URL("../fixtures/interoperability/malformed-kml-coordinate.kml", import.meta.url), "utf8");
+const malformedPolygonGeoJson = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-polygon.geojson", import.meta.url), "utf8"));
+const complexSurveyCsv = readFileSync(new URL("../fixtures/interoperability/complex-survey.csv", import.meta.url), "utf8");
+const malformedSurveyCsv = readFileSync(new URL("../fixtures/interoperability/malformed-survey.csv", import.meta.url), "utf8");
+const malformedCoordinateCsv = readFileSync(new URL("../fixtures/interoperability/malformed-coordinate-row.csv", import.meta.url), "utf8");
+const complexGpx = readFileSync(new URL("../fixtures/interoperability/complex-field-collection.gpx", import.meta.url), "utf8");
+const malformedGpx = readFileSync(new URL("../fixtures/interoperability/malformed-track-point.gpx", import.meta.url), "utf8");
+const complexShapefile = readFileSync(new URL("../fixtures/interoperability/complex-web-mercator.zip", import.meta.url)).toString("base64");
+const projectedShapefileWithoutPrj = readFileSync(new URL("../fixtures/interoperability/projected-missing-prj.zip", import.meta.url)).toString("base64");
+const shapefileWithoutAttributes = readFileSync(new URL("../fixtures/interoperability/missing-attributes.zip", import.meta.url)).toString("base64");
+const complexKmz = readFileSync(new URL("../fixtures/interoperability/complex-main-document.kmz", import.meta.url)).toString("base64");
+const ambiguousKmz = readFileSync(new URL("../fixtures/interoperability/ambiguous-main-document.kmz", import.meta.url)).toString("base64");
+const complexApiRows = JSON.parse(readFileSync(new URL("../fixtures/interoperability/complex-api-rows.json", import.meta.url), "utf8"));
+const malformedApiRows = JSON.parse(readFileSync(new URL("../fixtures/interoperability/malformed-api-rows.json", import.meta.url), "utf8"));
+const secondaryUnicodeLines = readFileSync(new URL("../fixtures/interoperability/secondary-unicode-lines.geojson", import.meta.url), "utf8");
 
 class CdpSocket {
   constructor(url) {
@@ -210,7 +233,7 @@ try {
     const oneDegreeDistance = measurementDistanceMeters(new mapkit.Coordinate(0, 0), new mapkit.Coordinate(0, 1));
     assert(oneDegreeDistance > 111000 && oneDegreeDistance < 111300, "measurement distance uses geodesic coordinate scale");
     setMeasurementActive(true);
-    assert(measurementActive && !makeEl("measurementPanel").hidden && makeEl("measureToolBtn").classList.contains("active"), "measurement toolbar opens panel");
+    assert(measurementActive && !makeEl("measurementPanel").hidden && makeEl("advancedGisMeasureBtn").classList.contains("active"), "measurement toolbar opens panel");
     addMeasurementPoint(new mapkit.Coordinate(51, -114));
     addMeasurementPoint(new mapkit.Coordinate(51.001, -114));
     assert(measurementCoordinates.length === 2, "distance measurement records clicked points");
@@ -241,6 +264,217 @@ try {
     assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "point" && layer.features[0].attributes.asset === "A"), "GeoJSON properties become layer fields");
     assert(mixedGeoJsonPayload.geospatialLayers.some((layer) => layer.geometryType === "polygon" && layer.features[0].geometry.type === "Polygon"), "GeoJSON polygon imports as polygon geometry");
 
+    const collectionPayload = buildGeoJsonPayload(${JSON.stringify(complexGeometryCollection)}, {
+      projectName: "Complex collection",
+      fileName: "complex-geometry-collection.geojson",
+      format: "GeoJSON"
+    });
+    const collectionPointLayer = collectionPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const collectionLineLayer = collectionPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const collectionPolygonLayer = collectionPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(collectionPointLayer.features.length === 2 && collectionLineLayer.features.length === 2 && collectionPolygonLayer.features.length === 2, "GeoJSON GeometryCollection imports every multipart geometry");
+    assert(collectionPointLayer.features[0].attributes.name === "Réseau Montréal α" && collectionPointLayer.features[0].attributes.nullable_note === null, "GeoJSON GeometryCollection preserves Unicode and null attributes across parts");
+    assert(collectionLineLayer.features[1].attributes.field_12 === "A12", "GeoJSON GeometryCollection preserves large field sets across multipart lines");
+    assert(collectionPolygonLayer.features[0].geometry.rings.length === 2, "GeoJSON MultiPolygon preserves polygon holes");
+    const collectionRoundTrip = buildGeoJsonPayload(layerToGeoJson(collectionPolygonLayer), { format: "GeoJSON round trip" });
+    assert(collectionRoundTrip.geospatialLayers[0].features.length === 2 && collectionRoundTrip.geospatialLayers[0].features[0].geometry.rings.length === 2, "GeoJSON multipart import-export-import preserves polygons and holes");
+    let malformedCollectionMessage = "";
+    try {
+      buildGeoJsonPayload(${JSON.stringify(malformedGeometryCollection)}, { format: "GeoJSON" });
+    } catch (error) {
+      malformedCollectionMessage = error.message || "";
+    }
+    assert(malformedCollectionMessage === "GeoJSON feature 1 could not be imported: geometry GeometryCollection member 1 LineString coordinate 2 is invalid. Use [longitude, latitude] values in WGS84.", "GeoJSON rejects an invalid collection coordinate instead of bridging valid vertices");
+
+    const identityPayload = buildGeoJsonPayload(${JSON.stringify(complexFeatureIdentifiers)}, {
+      projectName: "Feature identity",
+      fileName: "complex-feature-identifiers.geojson",
+      format: "GeoJSON"
+    });
+    const identityPoint = identityPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const identityLines = identityPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const identityPolygon = identityPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(identityPoint.features[0].geoJsonId === "asset/Été-α-001", "GeoJSON import preserves Unicode string feature ids separately from editable LalGeo ids");
+    assert(identityLines.features.length === 2 && identityLines.features.every((feature) => feature.geoJsonId === 0), "GeoJSON multipart import preserves numeric zero feature ids on every part");
+    assert(layerToGeoJson(identityPoint).features[0].id === "asset/Été-α-001", "GeoJSON export restores the original string feature id");
+    assert(layerToGeoJson(identityLines).features.every((feature) => feature.id === 0), "GeoJSON export restores the original numeric multipart feature id");
+    assert(layerToGeoJson(identityPolygon).features[0].id === 9007199254740991, "GeoJSON export preserves a large safe numeric feature id");
+    const identityRoundTrip = buildGeoJsonPayload(layerToGeoJson(identityPoint), { format: "GeoJSON round trip" });
+    assert(identityRoundTrip.geospatialLayers[0].features[0].geoJsonId === "asset/Été-α-001", "GeoJSON import-export-import preserves feature identity");
+    assert(identityRoundTrip.geospatialLayers[0].features[0].attributes.nullable_note === null && identityRoundTrip.geospatialLayers[0].features[0].attributes.field_12 === "A12", "GeoJSON identity round trip retains nulls and large attribute sets");
+    let malformedIdentityMessage = "";
+    try {
+      buildGeoJsonPayload({ type: "FeatureCollection", features: [{ type: "Feature", id: { asset: 7 }, properties: {}, geometry: { type: "Point", coordinates: [-114, 51] } }] }, { format: "GeoJSON" });
+    } catch (error) {
+      malformedIdentityMessage = error.message || "";
+    }
+    assert(malformedIdentityMessage === "GeoJSON feature 1 could not be imported: feature id must be a string or finite number. Repair or remove the top-level id value.", "GeoJSON invalid feature ids fail with actionable repair guidance");
+
+    const reservedPayload = buildGeoJsonPayload(${JSON.stringify(complexReservedProperties)}, {
+      projectName: "Reserved property integrity",
+      fileName: "complex-reserved-properties.geojson",
+      format: "GeoJSON"
+    });
+    const reservedPoint = reservedPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const reservedLine = reservedPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const reservedPolygon = reservedPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(reservedPoint.features[0].attributes["Source ID 2"] === 0, "reserved ID is visible under a collision-safe alias without overwriting workspace identity");
+    assert(reservedPoint.features[0].attributes["Source Date"] === null, "reserved Date retains an explicit null under a collision-safe alias");
+    assert(reservedPoint.features[0].attributes["Source Latitude"] === "surveyed latitude text" && reservedPoint.features[0].attributes.Latitude === 51.0447, "source Latitude remains distinct from geometry latitude");
+    assert(reservedPoint.features[0].attributes["Source symbol_color"] === "ultraviolet-custom", "unsupported source style text is retained without changing LalGeo styling");
+    const reservedPointExport = layerToGeoJson(reservedPoint).features[0];
+    assert(reservedPointExport.properties.ID === 0 && reservedPointExport.properties.Date === null, "GeoJSON export restores falsy and null reserved properties exactly");
+    assert(reservedPointExport.properties.Latitude === "surveyed latitude text" && reservedPointExport.properties.Longitude === 0, "GeoJSON export restores coordinate-named source properties independently of geometry");
+    assert(reservedPointExport.properties["Source ID"] === "pre-existing alias" && !("Source ID 2" in reservedPointExport.properties), "pre-existing alias-like fields survive while temporary aliases never leak");
+    assert(layerToGeoJson(reservedLine).features[0].properties.symbol_color === null, "line export restores explicit null style collision");
+    assert(layerToGeoJson(reservedPolygon).features[0].properties.symbol_shape === false && reservedPolygon.features[0].geometry.rings.length === 2, "polygon export restores false collision values without losing holes");
+    const reservedRoundTrip = buildGeoJsonPayload(layerToGeoJson(reservedPoint), { format: "GeoJSON reserved-property round trip" });
+    const reservedRoundTripExport = layerToGeoJson(reservedRoundTrip.geospatialLayers[0]).features[0];
+    assert(reservedRoundTripExport.properties.ID === 0 && reservedRoundTripExport.properties.Date === null && reservedRoundTripExport.properties.field_12 === "A12", "import-export-import preserves reserved values, nulls, Unicode, and large field sets");
+
+    const apiRowsPayload = buildGeoJsonPayloadFromJsonRows(${JSON.stringify(complexApiRows)}, {
+      projectName: "Complex API rows",
+      url: "https://example.test/assets.json"
+    });
+    const apiRowsLayer = apiRowsPayload.geospatialLayers[0];
+    assert(apiRowsLayer.features.length === 2, "API JSON imports every coordinate row");
+    assert(apiRowsLayer.features[0].attributes.name === "Station Été 🌲" && apiRowsLayer.features[0].attributes.nullable_note === null, "API JSON preserves Unicode and explicit null attributes");
+    assert(apiRowsLayer.features[0].attributes.field_12 === "A12", "API JSON preserves large field sets");
+    const apiRowsRoundTrip = buildGeoJsonPayload(layerToGeoJson(apiRowsLayer), { format: "API JSON GeoJSON round trip" });
+    assert(apiRowsRoundTrip.geospatialLayers[0].features[0].attributes.inspected_at === "2026-08-03T09:15:00-06:00", "API JSON import-export-import preserves date attributes");
+    let malformedApiRowsMessage = "";
+    try {
+      buildGeoJsonPayloadFromJsonRows(${JSON.stringify(malformedApiRows)}, { projectName: "Malformed API rows" });
+    } catch (error) {
+      malformedApiRowsMessage = error.message || "";
+    }
+    assert(malformedApiRowsMessage === "API JSON row 2 has invalid latitude or longitude. Use decimal WGS84 values within latitude -90 to 90 and longitude -180 to 180.", "API JSON rejects a malformed row instead of silently importing its neighbors");
+
+    const polygonHolesPayload = buildGeoJsonPayload(${JSON.stringify(polygonHolesGeoJson)}, {
+      projectName: "Polygon holes",
+      fileName: "polygon-holes.geojson",
+      format: "GeoJSON"
+    });
+    const polygonHolesLayer = polygonHolesPayload.geospatialLayers[0];
+    assert(polygonHolesLayer.features[0].geometry.rings.length === 2, "GeoJSON import preserves polygon holes");
+    assert(polygonHolesLayer.features[0].attributes.name === "Parcelle Été 🌲", "GeoJSON import preserves Unicode attributes");
+    assert(polygonHolesLayer.features[0].attributes.nullable_note === null, "GeoJSON import preserves null attributes");
+    assert(polygonHolesLayer.features[0].attributes.inspected_at === "2026-07-17T14:30:00-06:00", "GeoJSON import preserves date strings");
+    const polygonHolesExport = layerToGeoJson(polygonHolesLayer);
+    assert(polygonHolesExport.features[0].geometry.coordinates.length === 2, "GeoJSON export preserves polygon holes");
+    const polygonHolesRoundTrip = buildGeoJsonPayload(polygonHolesExport, { format: "GeoJSON round trip" });
+    assert(polygonHolesRoundTrip.geospatialLayers[0].features[0].geometry.rings.length === 2, "GeoJSON import-export-import round trip preserves polygon holes");
+
+    const kmlHolesPayload = buildGeoJsonPayload(parseKmlText(${JSON.stringify(polygonHolesKml)}), {
+      projectName: "KML holes",
+      fileName: "polygon-holes.kml",
+      format: "KML"
+    });
+    assert(kmlHolesPayload.geospatialLayers[0].features[0].geometry.rings.length === 2, "KML import preserves inner boundaries");
+    assert(kmlHolesPayload.geospatialLayers[0].features[0].attributes.name === "Parcelle Été 🌲", "KML import preserves Unicode attributes");
+
+    const complexStyledKmlPayload = buildGeoJsonPayload(parseKmlText(${JSON.stringify(complexStyledKml)}), {
+      projectName: "Complex styled KML",
+      fileName: "complex-styled-multigeometry.kml",
+      format: "KML"
+    });
+    const styledKmlLine = complexStyledKmlPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    const styledKmlPolygon = complexStyledKmlPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(styledKmlLine.features.length === 1 && styledKmlPolygon.features.length === 1, "KML MultiGeometry imports every line and polygon");
+    assert(styledKmlLine.features[0].attributes.unicode_owner === "Montréal α", "KML SchemaData preserves Unicode SimpleData");
+    assert(styledKmlLine.features[0].attributes.nullable_note === "", "KML SchemaData preserves empty SimpleData");
+    assert(styledKmlLine.features[0].attributes.field_12 === "A12", "KML SchemaData preserves large field sets");
+    assert(styledKmlLine.features[0].attributes.description === "Line and polygon collected together", "KML preserves placemark descriptions");
+    assert(styledKmlLine.features[0].attributes.kml_timestamp === "2026-07-30T08:15:00-06:00", "KML preserves timestamp strings");
+    assert(styledKmlLine.features[0].attributes.kml_style_color === "ffff8c42" && styledKmlLine.features[0].attributes.symbol_color === "Blue", "KML preserves source color and maps it to the nearest supported palette color");
+    assert(styledKmlPolygon.features[0].geometry.rings.length === 2, "KML MultiGeometry preserves polygon holes");
+    const styledKmlExport = layerToGeoJson(styledKmlLine);
+    const styledKmlRoundTrip = buildGeoJsonPayload(styledKmlExport, { format: "KML GeoJSON round trip" });
+    assert(styledKmlRoundTrip.geospatialLayers[0].features[0].attributes.field_12 === "A12", "KML import-export-import preserves SimpleData attributes");
+    let malformedKmlMessage = "";
+    try {
+      parseKmlText(${JSON.stringify(malformedKmlCoordinate)});
+    } catch (error) {
+      malformedKmlMessage = error.message || "";
+    }
+    assert(malformedKmlMessage === "KML placemark 1, line 1, coordinate 2 is invalid. Use longitude,latitude values in WGS84.", "malformed KML blocks false lines with an actionable coordinate error");
+
+    let multiFileMessage = "";
+    try {
+      await buildSurveyPayload([
+        new File([JSON.stringify(${JSON.stringify(polygonHolesGeoJson)})], "primary.geojson", { type: "application/geo+json" }),
+        new File([${JSON.stringify(secondaryUnicodeLines)}], "Rivière secondaire Montréal α.geojson", { type: "application/geo+json" })
+      ]);
+    } catch (error) {
+      multiFileMessage = error.message || "";
+    }
+    assert(multiFileMessage.includes("Multiple datasets were selected (primary.geojson, Rivière secondaire Montréal α.geojson)"), "multi-file import names every dataset that would otherwise be skipped");
+    assert(multiFileMessage.includes("Import one dataset at a time so no geometry or attributes are skipped"), "multi-file import gives actionable data-integrity guidance");
+
+    const fileFromBase64 = (base64, name) => {
+      const bytes = Uint8Array.from(atob(base64), (character) => character.charCodeAt(0));
+      return new File([bytes], name, { type: "application/zip" });
+    };
+    const complexKmzPayload = await buildGeospatialPayload([
+      fileFromBase64(${JSON.stringify(complexKmz)}, "complex-main-document.kmz")
+    ]);
+    const complexKmzPointLayer = complexKmzPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const complexKmzPolygonLayer = complexKmzPayload.geospatialLayers.find((layer) => layer.geometryType === "polygon");
+    assert(complexKmzPayload.geospatialLayers.length === 3, "KMZ doc.kml imports point, line, and polygon layers instead of helper KML");
+    assert(complexKmzPointLayer.features[0].attributes.name === "Station Été 🌲", "KMZ preserves Unicode attributes from doc.kml");
+    assert(complexKmzPointLayer.features[0].attributes.inspected_at === "2026-07-28T09:15:00-06:00", "KMZ preserves date strings");
+    assert(complexKmzPointLayer.features[0].attributes.nullable_note === "", "KMZ preserves empty ExtendedData values");
+    assert(complexKmzPointLayer.features[0].attributes.field_12 === "A12", "KMZ preserves large ExtendedData field sets");
+    assert(complexKmzPolygonLayer.features[0].geometry.rings.length === 2, "KMZ preserves polygon holes");
+    const complexKmzExport = layerToGeoJson(complexKmzPointLayer);
+    const complexKmzRoundTrip = buildGeoJsonPayload(complexKmzExport, { format: "KMZ GeoJSON round trip" });
+    assert(complexKmzRoundTrip.geospatialLayers[0].features[0].attributes.field_12 === "A12", "KMZ import-export-import preserves attributes");
+
+    let ambiguousKmzMessage = "";
+    try {
+      await buildGeospatialPayload([fileFromBase64(${JSON.stringify(ambiguousKmz)}, "ambiguous-main-document.kmz")]);
+    } catch (error) {
+      ambiguousKmzMessage = error.message;
+    }
+    assert(ambiguousKmzMessage.includes("Rename the main document to doc.kml at the archive root"), "ambiguous KMZ explains how to select the main document");
+
+    const complexShapefilePayload = await buildGeospatialPayload([
+      fileFromBase64(${JSON.stringify(complexShapefile)}, "complex-web-mercator.zip")
+    ]);
+    const complexShapefileLayer = complexShapefilePayload.geospatialLayers[0];
+    assert(complexShapefileLayer.features.length === 2, "projected Shapefile imports every feature");
+    assert(Math.abs(complexShapefileLayer.features[0].geometry.lat - 51.0447) < 0.00001 && Math.abs(complexShapefileLayer.features[0].geometry.lng + 114.0719) < 0.00001, "Shapefile .prj transforms Web Mercator coordinates to WGS84");
+    assert(complexShapefileLayer.features[0].attributes.NAME === "Café rivière", "Shapefile preserves UTF-8 attributes declared by .cpg");
+    assert(complexShapefileLayer.features[0].attributes.INSPECTED === "2026-07-27", "Shapefile preserves DBF dates");
+    assert(complexShapefileLayer.features[0].attributes.FIELD_12 === "A12", "Shapefile preserves large DBF field sets");
+    const complexShapefileExport = layerToGeoJson(complexShapefileLayer);
+    const complexShapefileRoundTrip = buildGeoJsonPayload(complexShapefileExport, { format: "Shapefile GeoJSON round trip" });
+    assert(complexShapefileRoundTrip.geospatialLayers[0].features[1].attributes.NAME === "Montréal α", "Shapefile import-export-import preserves Unicode attributes");
+
+    let projectedWithoutPrjMessage = "";
+    try {
+      await normalizeShapefileZip(await fileFromBase64(${JSON.stringify(projectedShapefileWithoutPrj)}, "projected-missing-prj.zip").arrayBuffer());
+    } catch (error) {
+      projectedWithoutPrjMessage = error.message;
+    }
+    assert(projectedWithoutPrjMessage.includes("appears to use projected coordinates but has no .prj file"), "projected Shapefile without .prj explains how to prevent misplaced geometry");
+
+    let missingDbfMessage = "";
+    try {
+      await normalizeShapefileZip(await fileFromBase64(${JSON.stringify(shapefileWithoutAttributes)}, "missing-attributes.zip").arrayBuffer());
+    } catch (error) {
+      missingDbfMessage = error.message;
+    }
+    assert(missingDbfMessage.includes("missing its matching .dbf attribute table"), "Shapefile without .dbf blocks silent attribute loss");
+
+    let malformedPolygonMessage = "";
+    try {
+      buildGeoJsonPayload(${JSON.stringify(malformedPolygonGeoJson)}, { format: "GeoJSON" });
+    } catch (error) {
+      malformedPolygonMessage = error.message;
+    }
+    assert(malformedPolygonMessage === "GeoJSON feature 1 could not be imported: Polygon outer ring coordinate 3 is invalid. Use [longitude, latitude] values in WGS84.", "malformed GeoJSON reports the feature and exact invalid ring coordinate");
+
     const kmlPayload = buildGeoJsonPayload(parseKmlText('<kml><Document><Placemark><name>Building</name><Polygon><outerBoundaryIs><LinearRing><coordinates>-114,51 -113.999,51 -113.999,51.001 -114,51</coordinates></LinearRing></outerBoundaryIs></Polygon></Placemark></Document></kml>'), {
       projectName: "KML GIS",
       fileName: "building.kml",
@@ -254,6 +488,69 @@ try {
       format: "GPX"
     });
     assert(gpxPayload.geospatialLayers.length === 2, "GPX imports waypoint and track layers");
+
+    const complexCsvPayload = parseSurveyCSV(${JSON.stringify(complexSurveyCsv)});
+    assert(complexCsvPayload.records.length === 2, "CSV imports all response rows");
+    assert(complexCsvPayload.records[0].Name === "Café, rivière 🌊", "CSV preserves quoted commas and Unicode");
+    assert(complexCsvPayload.records[0].Notes === 'First line,\\nsecond line with "quoted" text', "CSV preserves embedded newlines and escaped quotes");
+    assert(complexCsvPayload.records[0]["Inspected At"] === "2026-07-23T08:15:00-06:00", "CSV preserves date strings");
+    assert(complexCsvPayload.records[0].Nullable === "", "CSV preserves empty fields without shifting columns");
+    assert(complexCsvPayload.records[0]["Field 08"] === "A08", "CSV preserves large field sets through the final column");
+    assert(complexCsvPayload.archiveRecords[0].Name === "Archived, feature", "CSV preserves quoted archive attributes");
+    const complexCsvRoundTrip = parseSurveyCSV(Papa.unparse([
+      ["Responses"],
+      complexCsvPayload.headers,
+      ...complexCsvPayload.records.map((record) => complexCsvPayload.headers.map((header) => record[header])),
+      ["Archive"],
+      complexCsvPayload.archiveHeaders,
+      ...complexCsvPayload.archiveRecords.map((record) => complexCsvPayload.archiveHeaders.map((header) => record[header]))
+    ]));
+    assert(complexCsvRoundTrip.records[0].Notes === complexCsvPayload.records[0].Notes, "CSV import-export-import preserves multiline attributes");
+    assert(complexCsvRoundTrip.archiveRecords[0]["Field 08"] === "C08", "CSV round trip preserves archive field sets");
+
+    let malformedCsvMessage = "";
+    try {
+      parseSurveyCSV(${JSON.stringify(malformedSurveyCsv)});
+    } catch (error) {
+      malformedCsvMessage = error.message;
+    }
+    assert(malformedCsvMessage.includes("CSV has an unclosed quoted field"), "malformed CSV explains how to fix an unclosed quote");
+
+    let malformedCoordinateMessage = "";
+    try {
+      ensureParsedCoordinates(parseSurveyCSV(${JSON.stringify(malformedCoordinateCsv)}));
+    } catch (error) {
+      malformedCoordinateMessage = error.message;
+    }
+    assert(malformedCoordinateMessage === "CSV response row 2 has a missing or non-numeric coordinate. Use decimal WGS84 latitude and longitude values.", "CSV blocks a corrupt middle coordinate row before silently dropping its attributes");
+
+    const complexGpxPayload = buildGeoJsonPayload(parseGpxText(${JSON.stringify(complexGpx)}), {
+      projectName: "Complex GPX",
+      fileName: "complex-field-collection.gpx",
+      format: "GPX"
+    });
+    const complexGpxPointLayer = complexGpxPayload.geospatialLayers.find((layer) => layer.geometryType === "point");
+    const complexGpxLineLayer = complexGpxPayload.geospatialLayers.find((layer) => layer.geometryType === "line");
+    assert(complexGpxPointLayer.features[0].attributes.name === "Station α", "GPX preserves Unicode waypoint names");
+    assert(complexGpxPointLayer.features[0].attributes.comment === "Valve, north side", "GPX preserves waypoint comments");
+    assert(complexGpxPointLayer.features[0].attributes.elevation === "1048.25", "GPX preserves waypoint elevation");
+    assert(complexGpxPointLayer.features[0].attributes.time === "2026-07-24T14:31:02Z", "GPX preserves waypoint timestamps");
+    assert(complexGpxLineLayer.features.length === 3, "GPX keeps two track segments and one route distinct");
+    assert(complexGpxLineLayer.features[0].attributes.gpx_segment === 1 && complexGpxLineLayer.features[1].attributes.gpx_segment === 2, "GPX records track segment identity");
+    assert(complexGpxLineLayer.features[0].attributes.gpx_elevations === '["1048.25","1049.5"]', "GPX preserves per-vertex elevations");
+    assert(complexGpxLineLayer.features[0].attributes.gpx_times === '["2026-07-24T14:31:02Z","2026-07-24T14:32:03Z"]', "GPX preserves per-vertex timestamps");
+    const complexGpxExport = layerToGeoJson(complexGpxLineLayer);
+    const complexGpxRoundTrip = buildGeoJsonPayload(complexGpxExport, { format: "GPX GeoJSON round trip" });
+    assert(complexGpxRoundTrip.geospatialLayers[0].features.length === 3, "GPX import-export-import round trip preserves line features");
+    assert(complexGpxRoundTrip.geospatialLayers[0].features[1].attributes.gpx_segment === 2, "GPX round trip preserves segment attributes");
+
+    let malformedGpxMessage = "";
+    try {
+      parseGpxText(${JSON.stringify(malformedGpx)});
+    } catch (error) {
+      malformedGpxMessage = error.message;
+    }
+    assert(malformedGpxMessage === "GPX track 1, segment 1, point 2 has an invalid latitude or longitude. Use decimal WGS84 coordinates within latitude -90 to 90 and longitude -180 to 180.", "malformed GPX identifies the exact invalid track point");
 
     activeProjectRecord = createProjectRecord({ name: "Append Target", layers: [createLayerRecord({ name: "Points", geometryType: "point" })] });
     activeLayerId = activeProjectRecord.activeLayerId;

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="LalGeo interoperability fixture"
+  xmlns="http://www.topografix.com/GPX/1/1">
+  <trk>
+    <name>Broken traverse</name>
+    <trkseg>
+      <trkpt lat="51.0450" lon="-114.0570"/>
+      <trkpt lat="north" lon="-114.0550"/>
+      <trkpt lat="51.0470" lon="-114.0530"/>
+    </trkseg>
+  </trk>
+</gpx>

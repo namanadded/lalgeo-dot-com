@@ -1,0 +1,20 @@
+{
+  "project": {
+    "name": "Malformed project",
+    "layers": [
+      {
+        "id": "bad-points",
+        "name": "Bad coordinates",
+        "geometryType": "point",
+        "schema": [{ "name": "Name", "type": "text" }],
+        "features": [
+          {
+            "id": "bad-1",
+            "geometry": { "type": "Point", "lat": 95, "lng": -114.0719 },
+            "attributes": { "Name": "Must be rejected" }
+          }
+        ]
+      }
+    ]
+  }
+}

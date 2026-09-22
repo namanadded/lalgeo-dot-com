@@ -1,0 +1,1 @@
+{"type":"FeatureCollection","features":[{"type":"Feature","properties":{"name":"Must not bridge corruption"},"geometry":{"type":"GeometryCollection","geometries":[{"type":"LineString","coordinates":[[-114.08,51.04],[500,51.045],[-114.06,51.05]]}]}}]}

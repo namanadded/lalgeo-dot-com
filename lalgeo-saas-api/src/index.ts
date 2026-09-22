@@ -1,11 +1,16 @@
+import mapsApi from "../../lalgeo-maps-api/src/index";
+
 interface Env {
   DB: D1Database;
   D1_API_KEY?: string;
+  LALGEO_MAPS_API_KEYS?: string;
+  CORS_ALLOWED_ORIGINS?: string;
 }
 
-type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
+const CANONICAL_MAPS_HOSTNAME = "api.lalgeo.com";
+const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
 
-function json(data: Json, status = 200) {
+function json(data: unknown, status = 200) {
   return new Response(JSON.stringify(data), {
     status,
     headers: {
@@ -81,13 +86,46 @@ async function getInvoiceRow(db: D1Database, id: string, orgId: string) {
   `).bind(id, orgId).first<Record<string, unknown>>();
 }
 
-export default {
-  async fetch(req: Request, env: Env): Promise<Response> {
+function canonicalHttpsRedirect(req: Request, url: URL) {
+  if (url.hostname !== CANONICAL_MAPS_HOSTNAME || url.protocol !== "http:") return null;
+  const destination = new URL(url);
+  destination.protocol = "https:";
+  destination.port = "";
+  return new Response(null, {
+    status: 308,
+    headers: {
+      "Cache-Control": "no-store",
+      Location: destination.toString(),
+      "X-Request-Id": req.headers.get("cf-ray") || crypto.randomUUID(),
+    },
+  });
+}
+
+function withCanonicalTransport(response: Response, url: URL) {
+  if (url.hostname !== CANONICAL_MAPS_HOSTNAME || url.protocol !== "https:") return response;
+  const headers = new Headers(response.headers);
+  headers.set("Strict-Transport-Security", STRICT_TRANSPORT_SECURITY);
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
+async function handleRequest(req: Request, env: Env, requestUrl: URL): Promise<Response> {
     try {
+      const isMapsHostname = requestUrl.hostname === CANONICAL_MAPS_HOSTNAME;
+      const isMapsPath = requestUrl.pathname === "/v1/openapi.json" ||
+        requestUrl.pathname === "/v1/maps" ||
+        requestUrl.pathname.startsWith("/v1/maps/");
+      if (isMapsPath || (isMapsHostname && requestUrl.pathname === "/v1/health")) {
+        return mapsApi.fetch(req, env);
+      }
+
       const unauthorized = requireApiKey(req, env);
       if (unauthorized) return unauthorized;
 
-      const url = new URL(req.url);
+      const url = requestUrl;
       const path = url.pathname;
 
       if (path === "/v1/health") return json({ ok: true, ts: nowIso() });
@@ -859,5 +897,13 @@ export default {
       const message = error instanceof Error ? error.message : "SERVER_ERROR";
       return json({ error: message }, 500);
     }
+}
+
+export default {
+  async fetch(req: Request, env: Env): Promise<Response> {
+    const requestUrl = new URL(req.url);
+    const redirect = canonicalHttpsRedirect(req, requestUrl);
+    if (redirect) return redirect;
+    return withCanonicalTransport(await handleRequest(req, env, requestUrl), requestUrl);
   },
 } satisfies ExportedHandler<Env>;

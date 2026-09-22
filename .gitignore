@@ -7,3 +7,16 @@ node_modules/
 
 .local-share-receipts/
 *.tsbuildinfo
+.wrangler/
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
+
+# Apple build and local workspace output
+DerivedData/
+*.xcuserstate
+xcuserdata/
+*.xcresult
+
+# Separate local checkout; not a configured submodule
+/lalgeo-dot-ca/

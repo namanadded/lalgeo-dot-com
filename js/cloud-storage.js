@@ -1,0 +1,625 @@
+export const DEFAULT_CHUNK_SIZE = 8 * 1024 * 1024;
+export const DEFAULT_RESUMABLE_THRESHOLD = 16 * 1024 * 1024;
+
+export class CloudStorageError extends Error {
+  constructor(message, options = {}) {
+    super(message, options.cause ? { cause: options.cause } : undefined);
+    this.name = "CloudStorageError";
+    this.code = options.code || "unknown";
+    this.retryable = options.retryable === true;
+    this.provider = options.provider || "unknown";
+    this.details = options.details || null;
+  }
+}
+
+function readHeader(headers, name) {
+  if (typeof headers?.get === "function") return headers.get(name);
+  const target = name.toLowerCase();
+  const entry = Object.entries(headers || {}).find(([key]) => key.toLowerCase() === target);
+  return entry?.[1];
+}
+
+export function getCloudRetryAfterMs(error, now = Date.now()) {
+  if (Number.isFinite(error?.retryAfterMs) && error.retryAfterMs >= 0) {
+    return Math.ceil(error.retryAfterMs);
+  }
+  const raw = error?.error?.retry_after
+    ?? readHeader(error?.headers || error?.response?.headers, "retry-after");
+  if (raw === undefined || raw === null || raw === "") return null;
+  if (typeof raw === "number") return Number.isFinite(raw) && raw >= 0 ? Math.ceil(raw * 1000) : null;
+  const value = String(raw).trim();
+  if (/^\d+(?:\.\d+)?$/.test(value)) return Math.ceil(Number(value) * 1000);
+  const retryAt = Date.parse(value);
+  return Number.isFinite(retryAt) ? Math.max(0, retryAt - now) : null;
+}
+
+export function normalizeCloudError(error, provider = "unknown") {
+  if (error instanceof CloudStorageError) return error;
+  const status = Number(error?.status || error?.response?.status || 0);
+  const summary = String(error?.error?.error_summary || error?.error || error?.message || error || "Cloud storage request failed");
+  const lower = summary.toLowerCase();
+  let code = "unknown";
+  if (status === 401 || lower.includes("invalid_access_token") || lower.includes("expired_access_token")) code = "auth";
+  else if (status === 409 || lower.includes("conflict")) code = "conflict";
+  else if (status === 429 || lower.includes("too_many") || lower.includes("rate_limit")) code = "rate_limit";
+  else if (status === 507 || lower.includes("insufficient_space") || lower.includes("quota")) code = "quota";
+  else if (status >= 500 || lower.includes("network") || lower.includes("timeout") || lower.includes("offline")) code = "unavailable";
+  return new CloudStorageError(summary, {
+    cause: error,
+    code,
+    provider,
+    retryable: code === "rate_limit" || code === "unavailable",
+    details: { status, retryAfterMs: getCloudRetryAfterMs(error) },
+  });
+}
+
+function throwIfCloudOperationAborted(signal) {
+  if (!signal?.aborted) return;
+  if (typeof signal.throwIfAborted === "function") signal.throwIfAborted();
+  const error = new Error("Cloud storage operation aborted");
+  error.name = "AbortError";
+  throw error;
+}
+
+function runCloudOperationWithDeadline(operation, options = {}) {
+  throwIfCloudOperationAborted(options.signal);
+  if (!Number.isFinite(options.operationTimeoutMs) || options.operationTimeoutMs <= 0) {
+    return operation();
+  }
+  const timeoutMs = Math.max(1, options.operationTimeoutMs);
+  let timer;
+  let onAbort;
+  const deadline = new Promise((_, reject) => {
+    timer = setTimeout(() => {
+      const error = new Error(`Cloud storage request timed out after ${timeoutMs} ms.`);
+      error.status = 504;
+      reject(error);
+    }, timeoutMs);
+    if (options.signal) {
+      onAbort = () => {
+        try {
+          throwIfCloudOperationAborted(options.signal);
+        } catch (error) {
+          reject(error);
+        }
+      };
+      options.signal.addEventListener("abort", onAbort, { once: true });
+    }
+  });
+  let operationResult;
+  try {
+    operationResult = operation();
+  } catch (error) {
+    operationResult = Promise.reject(error);
+  }
+  return Promise.race([Promise.resolve(operationResult), deadline]).finally(() => {
+    clearTimeout(timer);
+    options.signal?.removeEventListener("abort", onAbort);
+  });
+}
+
+export async function retryCloudOperation(operation, options = {}) {
+  const attempts = Math.max(1, options.attempts || 4);
+  const baseDelayMs = Math.max(0, options.baseDelayMs ?? 250);
+  const sleep = options.sleep || defaultCloudSleep;
+  const maxDelayMs = Math.max(baseDelayMs, options.maxDelayMs ?? 5 * 60 * 1000);
+  const jitterRatio = Math.min(1, Math.max(0, options.jitterRatio ?? 0));
+  const random = options.random || Math.random;
+  let lastError;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    throwIfCloudOperationAborted(options.signal);
+    try {
+      return await runCloudOperationWithDeadline(() => operation(attempt), options);
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      lastError = normalizeCloudError(error, options.provider);
+      if (!lastError.retryable || attempt === attempts) throw lastError;
+      const exponentialDelay = baseDelayMs * (2 ** (attempt - 1));
+      const providerDelay = Number(lastError.details?.retryAfterMs) || 0;
+      const uncappedDelay = Math.max(exponentialDelay, providerDelay);
+      const jitter = uncappedDelay * jitterRatio * random();
+      const delayMs = Math.min(maxDelayMs, Math.ceil(uncappedDelay + jitter));
+      options.onRetry?.({ attempt, maxAttempts: attempts, delayMs, error: lastError });
+      await sleepCloudBackoff(sleep, delayMs, options.signal);
+      throwIfCloudOperationAborted(options.signal);
+    }
+  }
+  throw lastError;
+}
+
+function defaultCloudSleep(delayMs, signal) {
+  return new Promise((resolve, reject) => {
+    const onAbort = () => {
+      clearTimeout(timer);
+      signal.removeEventListener("abort", onAbort);
+      try {
+        throwIfCloudOperationAborted(signal);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    const timer = setTimeout(() => {
+      signal?.removeEventListener("abort", onAbort);
+      resolve();
+    }, delayMs);
+    signal?.addEventListener("abort", onAbort, { once: true });
+  });
+}
+
+async function sleepCloudBackoff(sleep, delayMs, signal) {
+  throwIfCloudOperationAborted(signal);
+  if (sleep === defaultCloudSleep) {
+    await sleep(delayMs, signal);
+    return;
+  }
+  if (!signal) {
+    await sleep(delayMs);
+    return;
+  }
+  let onAbort;
+  const aborted = new Promise((_, reject) => {
+    onAbort = () => {
+      try {
+        throwIfCloudOperationAborted(signal);
+      } catch (error) {
+        reject(error);
+      }
+    };
+    signal.addEventListener("abort", onAbort, { once: true });
+  });
+  try {
+    await Promise.race([sleep(delayMs), aborted]);
+  } finally {
+    signal.removeEventListener("abort", onAbort);
+  }
+}
+
+/**
+ * Preserve an immutable provider revision without transferring its contents
+ * through the browser. Adapters must address the exact revision, rather than a
+ * mutable path, so a concurrent remote edit cannot be archived as the version
+ * the caller believes it is saving over.
+ */
+export async function copyCloudRevisionSnapshot(adapter, request, options = {}) {
+  if (typeof adapter?.copyRevision !== "function") {
+    throw new TypeError("Cloud revision snapshot adapter requires copyRevision().");
+  }
+  const sourcePath = String(request?.sourcePath || "");
+  const destinationPath = String(request?.destinationPath || "");
+  const revision = String(request?.revision || "");
+  if (!sourcePath || !destinationPath || !revision) {
+    throw new TypeError("Cloud revision snapshot requires sourcePath, destinationPath, and revision.");
+  }
+  throwIfCloudOperationAborted(options.signal);
+  try {
+    const result = await adapter.copyRevision({ sourcePath, destinationPath, revision });
+    if (!result) {
+      throw new CloudStorageError("Cloud provider did not confirm the revision snapshot.", {
+        code: "integrity",
+        provider: options.provider,
+        retryable: false,
+      });
+    }
+    return result;
+  } catch (error) {
+    throw normalizeCloudError(error, options.provider);
+  }
+}
+
+/**
+ * Move a cloud object without blindly repeating an ambiguous provider write.
+ * The source is identified before the move; if the move response is lost, the
+ * destination must prove that exact identity before callers treat it as success.
+ */
+export async function moveCloudObjectWithVerification(adapter, request, options = {}) {
+  for (const method of ["getMetadata", "move", "isSameObject"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Verified cloud move adapter requires ${method}().`);
+    }
+  }
+  const sourcePath = String(request?.sourcePath || "");
+  const destinationPath = String(request?.destinationPath || "");
+  if (!sourcePath || !destinationPath || sourcePath === destinationPath) {
+    throw new TypeError("Cloud move requires distinct sourcePath and destinationPath values.");
+  }
+  throwIfCloudOperationAborted(options.signal);
+  let sourceMetadata;
+  try {
+    sourceMetadata = await runCloudOperationWithDeadline(
+      () => adapter.getMetadata(sourcePath),
+      options,
+    );
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    throw normalizeCloudError(error, options.provider);
+  }
+  if (!sourceMetadata) {
+    throw new CloudStorageError("Cloud move source could not be identified.", {
+      code: "integrity",
+      provider: options.provider,
+      retryable: false,
+    });
+  }
+
+  try {
+    return await runCloudOperationWithDeadline(
+      () => adapter.move({ sourcePath, destinationPath }),
+      options,
+    );
+  } catch (error) {
+    if (error?.name === "AbortError") throw error;
+    const original = normalizeCloudError(error, options.provider);
+    if (!original.retryable) throw original;
+    try {
+      const destinationMetadata = await retryCloudOperation(
+        async () => {
+          const metadata = await adapter.getMetadata(destinationPath);
+          if (!metadata) {
+            throw new CloudStorageError("Cloud move destination is not visible yet.", {
+              code: "unavailable",
+              provider: options.provider,
+              retryable: true,
+            });
+          }
+          return metadata;
+        },
+        {
+          attempts: options.verificationAttempts || 2,
+          baseDelayMs: options.baseDelayMs,
+          maxDelayMs: options.maxDelayMs,
+          sleep: options.sleep,
+          provider: options.provider,
+          signal: options.signal,
+          operationTimeoutMs: options.operationTimeoutMs,
+        },
+      );
+      if (destinationMetadata && adapter.isSameObject(sourceMetadata, destinationMetadata)) {
+        options.onRecovered?.({ sourcePath, destinationPath, error: original });
+        return destinationMetadata;
+      }
+    } catch (verificationError) {
+      if (verificationError?.name === "AbortError") throw verificationError;
+    }
+    throw original;
+  }
+}
+
+function assertDownloadAdapter(adapter) {
+  for (const method of ["download", "getSize", "verify"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Verified download adapter requires ${method}().`);
+    }
+  }
+}
+
+/**
+ * Download and verify provider content before callers parse or replace local state.
+ * Integrity failures are retryable because a truncated transport response can be
+ * transient, but the unverified bytes are never returned to project logic.
+ */
+export async function downloadBlobVerified(adapter, request, options = {}) {
+  assertDownloadAdapter(adapter);
+  const attempts = Math.max(1, options.attempts || 2);
+  const maxBytes = Math.max(1, options.maxBytes || Number.MAX_SAFE_INTEGER);
+  let lastError;
+
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    throwIfCloudOperationAborted(options.signal);
+    try {
+      const result = await runCloudOperationWithDeadline(
+        () => adapter.download(request),
+        options,
+      );
+      const blob = result?.blob;
+      const declaredSize = Number(adapter.getSize(result));
+      const actualSize = Number(blob?.size);
+      if (!Number.isSafeInteger(actualSize) || actualSize < 0) {
+        throw new CloudStorageError("Cloud provider returned unreadable file contents.", {
+          code: "integrity",
+          provider: options.provider,
+          retryable: true,
+        });
+      }
+      if (actualSize > maxBytes || (Number.isSafeInteger(declaredSize) && declaredSize > maxBytes)) {
+        throw new CloudStorageError(`Cloud file exceeds the ${maxBytes}-byte safe open limit.`, {
+          code: "too_large",
+          provider: options.provider,
+          retryable: false,
+          details: { actualSize, declaredSize, maxBytes },
+        });
+      }
+      if (Number.isSafeInteger(declaredSize) && declaredSize !== actualSize) {
+        throw new CloudStorageError("Cloud download byte count does not match provider metadata.", {
+          code: "integrity",
+          provider: options.provider,
+          retryable: true,
+          details: { actualSize, declaredSize },
+        });
+      }
+      if (!await runCloudOperationWithDeadline(() => adapter.verify(result), options)) {
+        throw new CloudStorageError("Cloud download failed provider content verification.", {
+          code: "integrity",
+          provider: options.provider,
+          retryable: true,
+          details: { actualSize, declaredSize },
+        });
+      }
+      options.onVerified?.({ attempt, bytes: actualSize });
+      return result;
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      lastError = normalizeCloudError(error, options.provider);
+      if (!lastError.retryable || attempt === attempts) throw lastError;
+      options.onRetry?.({ attempt, maxAttempts: attempts, error: lastError });
+    }
+  }
+  throw lastError;
+}
+
+/**
+ * Perform a non-resumable revision-controlled write without blindly repeating
+ * an upload whose response may have been lost after the provider committed it.
+ * The adapter's verification must prove the new revision and exact contents;
+ * otherwise the original failure remains visible to the caller.
+ */
+export async function uploadBlobWithCommitVerification(adapter, blob, request, options = {}) {
+  for (const method of ["upload", "verifyCommit"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Verified cloud upload adapter requires ${method}().`);
+    }
+  }
+  throwIfCloudOperationAborted(options.signal);
+  try {
+    return await runCloudOperationWithDeadline(() => adapter.upload(blob, request), options);
+  } catch (error) {
+    const original = normalizeCloudError(error, options.provider);
+    if (!original.retryable) throw original;
+    try {
+      const committed = await retryCloudOperation(
+        () => adapter.verifyCommit(blob, request),
+        {
+          attempts: options.verificationAttempts || 2,
+          baseDelayMs: options.baseDelayMs,
+          maxDelayMs: options.maxDelayMs,
+          sleep: options.sleep,
+          provider: options.provider,
+          signal: options.signal,
+          operationTimeoutMs: options.operationTimeoutMs,
+        },
+      );
+      if (committed) {
+        options.onRecovered?.({ bytes: blob.size, error: original });
+        return committed;
+      }
+    } catch (verificationError) {
+      if (verificationError?.name === "AbortError") throw verificationError;
+    }
+    throw original;
+  }
+}
+
+function assertCatalogAdapter(adapter) {
+  for (const method of ["list", "continue"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Cloud catalog adapter requires ${method}().`);
+    }
+  }
+}
+
+function catalogCursorKey(cursor) {
+  if (typeof cursor === "string") return cursor;
+  if (typeof cursor === "number" || typeof cursor === "boolean") return String(cursor);
+  try {
+    return JSON.stringify(cursor);
+  } catch {
+    return String(cursor);
+  }
+}
+
+/**
+ * Walk a provider catalog one page at a time without retaining provider pages.
+ * Scopes are deliberately explicit so a provider cannot silently widen a project
+ * listing to a user's entire cloud account.
+ */
+export async function collectCloudFiles(adapter, options = {}) {
+  assertCatalogAdapter(adapter);
+  const scopes = Array.isArray(options.scopes) ? options.scopes : [];
+  const accept = options.accept || (() => true);
+  const mapEntry = options.mapEntry || ((entry) => entry);
+  const keyOf = options.keyOf || ((entry) => entry?.id || entry?.pathLower || entry?.pathDisplay || entry?.name);
+  const rows = [];
+  const seen = new Set();
+  const maxPages = Math.max(1, options.maxPages || 10_000);
+  const maxExamined = Math.max(1, options.maxExamined || 2_000_000);
+  const maxResults = Math.max(1, options.maxResults || 100_000);
+  let pages = 0;
+  let examined = 0;
+
+  for (const scope of scopes) {
+    let cursor = null;
+    const scopeCursors = new Set();
+    do {
+      throwIfCloudOperationAborted(options.signal);
+      if (pages >= maxPages) {
+        throw new CloudStorageError(`Cloud catalog exceeded the ${maxPages}-page safety limit.`, {
+          code: "catalog_limit",
+          provider: options.provider,
+          retryable: false,
+          details: { pages, examined, matched: rows.length, limit: "pages" },
+        });
+      }
+      let page;
+      try {
+        page = cursor ? await adapter.continue(cursor) : await adapter.list(scope);
+      } catch (error) {
+        if (adapter.isMissingScope?.(error, scope)) break;
+        throw error;
+      }
+      pages += 1;
+      const entries = Array.isArray(page?.entries) ? page.entries : [];
+      if (examined + entries.length > maxExamined) {
+        throw new CloudStorageError(`Cloud catalog exceeded the ${maxExamined}-entry safety limit.`, {
+          code: "catalog_limit",
+          provider: options.provider,
+          retryable: false,
+          details: { pages, examined, matched: rows.length, limit: "examined" },
+        });
+      }
+      examined += entries.length;
+      for (const entry of entries) {
+        if (!accept(entry, scope)) continue;
+        const row = mapEntry(entry, scope);
+        const key = String(keyOf(row, entry, scope) || "").toLowerCase();
+        if (!key || seen.has(key)) continue;
+        if (rows.length >= maxResults) {
+          throw new CloudStorageError(`Cloud catalog exceeded the ${maxResults}-project safety limit.`, {
+            code: "catalog_limit",
+            provider: options.provider,
+            retryable: false,
+            details: { pages, examined, matched: rows.length, limit: "results" },
+          });
+        }
+        seen.add(key);
+        rows.push(row);
+      }
+      if (page?.hasMore && (page.cursor === null || page.cursor === undefined || page.cursor === "")) {
+        throw new CloudStorageError("Cloud provider reported more catalog pages without a cursor.", {
+          code: "catalog_integrity",
+          provider: options.provider,
+          retryable: false,
+          details: { pages, examined, matched: rows.length },
+        });
+      }
+      const nextCursor = page?.hasMore ? page.cursor : null;
+      if (nextCursor !== null) {
+        const cursorKey = typeof options.cursorKey === "function"
+          ? String(options.cursorKey(nextCursor, scope))
+          : catalogCursorKey(nextCursor);
+        if (scopeCursors.has(cursorKey)) {
+          throw new CloudStorageError("Cloud provider repeated a catalog cursor.", {
+            code: "catalog_integrity",
+            provider: options.provider,
+            retryable: false,
+            details: { pages, examined, matched: rows.length },
+          });
+        }
+        scopeCursors.add(cursorKey);
+      }
+      cursor = nextCursor;
+      options.onPage?.({ scope, pages, examined, matched: rows.length });
+    } while (cursor);
+  }
+
+  return { rows, stats: { pages, examined, matched: rows.length } };
+}
+
+function assertUploadAdapter(adapter) {
+  for (const method of ["start", "append", "finish", "lookupOffset"]) {
+    if (typeof adapter?.[method] !== "function") {
+      throw new TypeError(`Resumable upload adapter requires ${method}().`);
+    }
+  }
+}
+
+export async function uploadBlobResumably(adapter, blob, options = {}) {
+  assertUploadAdapter(adapter);
+  const chunkSize = Math.max(256 * 1024, options.chunkSize || DEFAULT_CHUNK_SIZE);
+  const recoverySleep = options.sleep || ((delay) => new Promise((resolve) => setTimeout(resolve, delay)));
+  const retryOptions = {
+    attempts: options.attempts,
+    baseDelayMs: options.baseDelayMs,
+    sleep: recoverySleep,
+    provider: options.provider,
+    signal: options.signal,
+    operationTimeoutMs: options.operationTimeoutMs,
+  };
+  const maxNoProgressRecoveries = Math.max(1, options.maxNoProgressRecoveries || 4);
+  let sessionId = options.sessionId || null;
+  let offset = Math.max(0, options.offset || 0);
+  let noProgressRecoveries = 0;
+
+  if (!sessionId) {
+    throwIfCloudOperationAborted(options.signal);
+    const firstEnd = Math.min(chunkSize, blob.size);
+    const result = await retryCloudOperation(() => adapter.start(blob.slice(0, firstEnd)), retryOptions);
+    sessionId = result.sessionId;
+    offset = firstEnd;
+  }
+
+  while (offset < blob.size) {
+    throwIfCloudOperationAborted(options.signal);
+    const end = Math.min(offset + chunkSize, blob.size);
+    const isLast = end === blob.size;
+    try {
+      // Append and finish are not blindly retried: a connection can fail after the
+      // provider accepted bytes. Reconcile the remote cursor before sending again.
+      const result = isLast
+        ? await runCloudOperationWithDeadline(
+          () => adapter.finish(sessionId, offset, blob.slice(offset, end), options.commit),
+          retryOptions,
+        )
+        : await runCloudOperationWithDeadline(
+          () => adapter.append(sessionId, offset, blob.slice(offset, end)),
+          retryOptions,
+        );
+      if (isLast) return result;
+      offset = end;
+      noProgressRecoveries = 0;
+      options.onProgress?.({ loaded: offset, total: blob.size });
+    } catch (error) {
+      if (error?.name === "AbortError") throw error;
+      const normalized = normalizeCloudError(error, options.provider);
+      if (!normalized.retryable) throw normalized;
+      // A failed finish may already have committed and closed the session. Providers
+      // that can verify remote content resolve that ambiguity without re-uploading.
+      if (isLast) {
+        if (typeof adapter.verifyCommit !== "function") throw normalized;
+        const committed = await retryCloudOperation(
+          () => adapter.verifyCommit(blob, options.commit),
+          retryOptions,
+        );
+        if (committed) {
+          options.onProgress?.({ loaded: blob.size, total: blob.size });
+          return committed;
+        }
+        throw normalized;
+      }
+      const remoteOffset = await retryCloudOperation(() => adapter.lookupOffset(sessionId), retryOptions);
+      if (!Number.isSafeInteger(remoteOffset) || remoteOffset < offset || remoteOffset > blob.size) throw normalized;
+      if (remoteOffset === offset) {
+        noProgressRecoveries += 1;
+        options.onRecovery?.({
+          attempt: noProgressRecoveries,
+          maxAttempts: maxNoProgressRecoveries,
+          offset,
+          total: blob.size,
+        });
+        if (noProgressRecoveries >= maxNoProgressRecoveries) {
+          throw new CloudStorageError(
+            `Upload made no progress after ${noProgressRecoveries} recovery attempts.`,
+            {
+              cause: normalized,
+              code: normalized.code,
+              provider: normalized.provider,
+              retryable: normalized.retryable,
+              details: { ...normalized.details, offset, attempts: noProgressRecoveries },
+            },
+          );
+        }
+        await sleepCloudBackoff(
+          retryOptions.sleep,
+          retryOptions.baseDelayMs * (2 ** (noProgressRecoveries - 1)),
+          retryOptions.signal,
+        );
+      } else {
+        noProgressRecoveries = 0;
+      }
+      offset = remoteOffset;
+    }
+  }
+
+  return runCloudOperationWithDeadline(
+    () => adapter.finish(sessionId, offset, new Blob([]), options.commit),
+    retryOptions,
+  );
+}

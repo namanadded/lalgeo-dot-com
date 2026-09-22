@@ -40,8 +40,18 @@ const projectTitleBlock = legacyHtml.match(
 assert.ok(projectTitleBlock, "Toolbar must include the current project title block.");
 assert.match(
   projectTitleBlock,
-  /<span id="toolbarProjectMeta">Project<\/span>\s*<strong id="toolbarProjectName">No Project Open<\/strong>/,
-  "Toolbar project title must render a small Project caption above the project name.",
+  /<span id="toolbarProjectMeta">Project<\/span>[\s\S]*?<div class="toolbar-project-title-row">[\s\S]*?<strong id="toolbarProjectName">No Project Open<\/strong>[\s\S]*?id="renameProjectBtn"[\s\S]*?aria-label="Rename project"[\s\S]*?hidden/,
+  "Toolbar project title must render a small Project caption and a hidden-by-default rename control.",
+);
+assert.match(
+  legacyHtml,
+  /renameProjectBtn\.hidden\s*=\s*!hasProject;[\s\S]*?renameProjectBtn\.disabled\s*=\s*!hasProject;/,
+  "Project rename control should appear only when a project is open.",
+);
+assert.match(
+  legacyHtml,
+  /function openRenameProjectModal\(\)[\s\S]*?title:\s*"Rename project"[\s\S]*?id="projectRenameInput"[\s\S]*?activeProjectRecord\.name\s*=\s*nextName;[\s\S]*?activeProjectName\s*=\s*nextName;[\s\S]*?markActiveProjectUpdated\(\);/,
+  "Rename control should validate and persist the updated active project name.",
 );
 assert.match(
   legacyHtml,
@@ -80,8 +90,8 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*auto\s+minmax\(94px,\s*1fr\)\s+auto;/,
-  "Small-screen toolbar should reserve a visible middle track for the two-line project title.",
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar\s*{[\s\S]*?grid-template-columns:\s*74px\s+minmax\(0,\s*1fr\)\s+44px;/,
+  "Small-screen toolbar should reserve the widest available middle track for the project title.",
 );
 assert.match(
   legacyHtml,
@@ -93,7 +103,7 @@ assertAttribute(
   leftToggle,
   "aria-controls",
   "toolbarMenuCommands",
-  "Left toolbar overflow toggle must identify the menu commands it expands.",
+  "The desktop overflow toggle should identify only its desktop command strip.",
 );
 assertAttribute(
   leftToggle,
@@ -138,7 +148,7 @@ assert.match(
 );
 assert.ok(editingGroup, "Toolbar must include a dedicated Editing control group.");
 assert.ok(mapGroup, "Toolbar must include a dedicated Map control group.");
-assert.ok(toolsGroup, "Toolbar must keep measurement and GIS controls in their own group.");
+assert.ok(toolsGroup, "Toolbar must keep the Tools control in its own group.");
 assert.doesNotMatch(
   legacyHtml,
   /toolbar-group-label/,
@@ -146,35 +156,36 @@ assert.doesNotMatch(
 );
 assert.match(
   editingGroup,
-  /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>[\s\S]*?id="undoBtn"[\s\S]*?<span class="quick-action-label">Undo<\/span>[\s\S]*?id="redoBtn"[\s\S]*?<span class="quick-action-label">Redo<\/span>/,
-  "Editing group should read as Draw, Add, Undo, Redo.",
-);
-assertAttribute(undoButton, "aria-label", "Undo", "Icon-only Undo must retain its accessible name.");
-assertAttribute(redoButton, "aria-label", "Redo", "Icon-only Redo must retain its accessible name.");
-assert.doesNotMatch(
-  legacyHtml,
-  /id="editPanel(?:Undo|Redo)Btn"/,
-  "The contextual edit toolbar must not duplicate the primary Undo and Redo controls.",
-);
-assert.match(
-  legacyHtml,
-  /function getToolbarDockTop\(\)[\s\S]*?quickActionRect\.bottom \+ 8[\s\S]*?function positionFloatingToolbarBelowPrimaryActions[\s\S]*?panel\.style\.top = `\$\{Math\.round\(getToolbarDockTop\(\)\)\}px`;/,
-  "Floating and docked contextual toolbars should sit below the detached primary action toolbar.",
+  /id="editPanelToggleBtn"[\s\S]*?<span class="quick-action-label">Draw<\/span>[\s\S]*?id="addSurveyPointBtn"[\s\S]*?<span class="quick-action-label">Add<\/span>/,
+  "Editing group should contain Draw and Add.",
 );
 assert.match(
   mapGroup,
-  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="toolbarBasemapBtn"[\s\S]*?<span class="quick-action-label">Basemap<\/span>/,
-  "Map group should read as Locate, Layers, Basemap.",
+  /id="toolbarLayersBtn"[\s\S]*?<div class="toolbar-action-group toolbar-history-group"[^>]*hidden>[\s\S]*?id="undoBtn"[\s\S]*?id="redoBtn"[\s\S]*?id="toolbarBasemapBtn"/,
+  "Contextual Undo and Redo should remain together immediately before Basemap.",
+);
+assertAttribute(undoButton, "aria-label", "Undo", "Icon-only Undo must retain its accessible name.");
+assertAttribute(redoButton, "aria-label", "Redo", "Icon-only Redo must retain its accessible name.");
+assert.match(
+  mapGroup,
+  /id="myLocationBtn"[\s\S]*?<span class="quick-action-label">Locate<\/span>[\s\S]*?id="toolbarLayersBtn"[\s\S]*?<span class="quick-action-label">Layers<\/span>[\s\S]*?id="undoBtn"[\s\S]*?id="redoBtn"[\s\S]*?id="toolbarBasemapBtn"/,
+  "Desktop map group should place contextual history between Layers and Basemap.",
+);
+assert.doesNotMatch(legacyHtml, /id="toolbarMoreBtn"|id="toolbarMorePopover"/, "The obsolete More control and popover should be removed.");
+assert.match(
+  legacyHtml,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*62px;[\s\S]*?left:\s*50%;[\s\S]*?transform:\s*translateX\(-50%\);[\s\S]*?min-width:\s*0;[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.76\);/,
+  "Desktop editing controls should live in one compact floating glass toolbar centered below the top navigation.",
 );
 assert.match(
   legacyHtml,
-  /@media \(min-width:\s*1281px\)\s*{[\s\S]*?\.menu-bar-btn\.quick-action\s*{[\s\S]*?width:\s*auto;[\s\S]*?\.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
-  "Toolbar quick action labels should appear beside icons when there is enough horizontal space.",
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*4px\s+6px;[\s\S]*?overflow:\s*visible;/,
+  "The compact desktop toolbar should allow floating panels to render outside its glass surface.",
 );
-assert.match(
+assert.doesNotMatch(
   legacyHtml,
-  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?position:\s*absolute;[\s\S]*?top:\s*calc\(100%\s*\+\s*28px\);[\s\S]*?min-width:\s*min\(720px,\s*calc\(100vw\s*-\s*48px\)\);[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.76\);/,
-  "Desktop editing controls should live in one wider floating glass toolbar below the top navigation.",
+  /#toolbar \.menu-bar-btn\.quick-action,\s*#toolbar \.toolbar-btn\.ghost\.search-toggle-btn\s*{[^}]*width:\s*32px;/,
+  "Late toolbar chrome rules must not force labeled desktop actions back into 32px squares.",
 );
 assert.match(
   legacyHtml,
@@ -188,19 +199,25 @@ assert.match(
 );
 assert.match(
   toolsGroup,
-  /id="measureToolBtn"[\s\S]*?id="advancedGisBtn"/,
-  "Measure and Tools controls should remain available outside the primary Map group.",
+  /id="advancedGisBtn"[\s\S]*?<span class="quick-action-label">Tools<\/span>/,
+  "Tools should remain directly available outside the primary Map group.",
 );
+assert.doesNotMatch(toolsGroup, /id="measureToolBtn"/, "Measure should no longer be a standalone toolbar action.");
 assertAttribute(
   advancedGisButton,
   "aria-label",
-  "Open advanced GIS tools",
-  "Renaming GIS to Tools must preserve the existing accessible description.",
+  "Open tools",
+  "Renaming Advanced GIS to Tools must update the accessible description.",
 );
 assert.match(
   toolsGroup,
   /id="advancedGisBtn"[\s\S]*?<span class="quick-action-label">Tools<\/span>/,
   "The advanced GIS control should be presented as Tools without changing its panel target.",
+);
+assert.match(
+  legacyHtml,
+  /id="advancedGisGeneralHeading"[\s\S]*?id="advancedGisMeasureBtn"[^>]*aria-controls="measurementPanel"[^>]*aria-expanded="false"[\s\S]*?<span>Measure<\/span>/,
+  "Measure should be the global command inside Tools.",
 );
 assert.doesNotMatch(
   legacyHtml,
@@ -219,12 +236,6 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /\.toolbar-quick-actions\s*{[\s\S]*?gap:\s*14px;/,
-  "Logical toolbar groups should have additional spacing between them.",
-);
-
-assert.match(
-  legacyHtml,
   /leftToolbarExpandBtn\.setAttribute\("aria-expanded",\s*expanded\s*\?\s*"true"\s*:\s*"false"\)/,
   "Left toolbar overflow handler must synchronize aria-expanded.",
 );
@@ -233,11 +244,61 @@ assert.match(
   /rightToolbarExpandBtn\.setAttribute\("aria-expanded",\s*expanded\s*\?\s*"true"\s*:\s*"false"\)/,
   "Right toolbar overflow handler must synchronize aria-expanded.",
 );
+assert.match(
+  legacyHtml,
+  /if \(!expanded\) setToolbarMenuVisibility\(false\);[\s\S]*?rightToolbarExpandBtn\?\.addEventListener\("click"[\s\S]*?setToolbarMenuVisibility\(false\);/,
+  "Closing Menu or opening Tools should dismiss an open desktop-style command tray on mobile.",
+);
 
 assert.match(
   legacyHtml,
-  /#leftToolbarExpand,\s*#rightToolbarExpand\s*{[\s\S]*?flex:\s*0\s+0\s+44px;[\s\S]*?width:\s*44px;[\s\S]*?height:\s*44px;/,
-  "Mobile toolbar overflow toggles must provide at least a 44px touch target.",
+  /#toolbar \.brand-menu-btn\s*{[\s\S]*?min-height:\s*44px;/,
+  "The consolidated mobile logo menu must provide at least a 44px touch target.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar #leftToolbarExpand\s*{\s*display:\s*none;/,
+  "The desktop overflow trigger should be removed from the mobile map.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-left \.app-menubar\s*{\s*display:\s*none\s*!important;/,
+  "The mobile logo menu should keep the redundant desktop category strip hidden.",
+);
+assert.match(
+  legacyHtml,
+  /id="sidebarToggleBtn"[^>]*data-menu="mobile"[\s\S]*?const menuKey = button\.dataset\.menu;[\s\S]*?openToolbarMenu\(menuKey, button\)/,
+  "The LalGeo logo should open the unified command pane directly at every viewport size.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?position:\s*fixed;[\s\S]*?top:\s*calc\(env\(safe-area-inset-top,\s*0px\)\s*\+\s*116px\);[\s\S]*?left:\s*max\(8px,\s*env\(safe-area-inset-left,\s*0px\)\);[\s\S]*?right:\s*max\(8px,\s*env\(safe-area-inset-right,\s*0px\)\);[\s\S]*?justify-content:\s*safe center;[\s\S]*?overflow-x:\s*auto;[\s\S]*?z-index:\s*1270;/,
+  "Expanded mobile tools must open in a separate safe-area row below the floating controls and scroll instead of being clipped.",
+);
+assert.match(
+  legacyHtml,
+  /@media \(max-width:\s*600px\)\s*{[\s\S]*?#toolbar \.toolbar-right\.expanded \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*5px\s+7px;[\s\S]*?border-radius:\s*12px;[\s\S]*?#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*36px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
+  "Expanded mobile tools should share one compact glass container with borderless controls.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar \.toolbar-right\.expanded #advancedGisBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;[\s\S]*?white-space:\s*nowrap;/,
+  "Named mobile tools should retain the same icon-and-text presentation as desktop.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded \.toolbar-action-group \+ \.toolbar-action-group::before,[\s\S]*?#toolbar \.toolbar-right\.expanded #toolbarLayersBtn::before\s*{[\s\S]*?height:\s*24px;/,
+  "Expanded mobile tools should preserve the four visual toolbar sections.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\.active,[\s\S]*?#toolbar \.toolbar-right\.expanded \.menu-bar-btn\.quick-action\[aria-expanded="true"\]\s*{[\s\S]*?background:\s*rgba\(15,\s*23,\s*42,\s*0\.075\);/,
+  "Open mobile tool panels should use the same selected treatment as desktop.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-right\.expanded #undoBtn,[\s\S]*?#toolbar \.toolbar-right\.expanded #redoBtn\s*{[\s\S]*?width:\s*36px;[\s\S]*?#toolbar \.toolbar-right\.expanded #undoBtn \.quick-action-label,[\s\S]*?#toolbar \.toolbar-right\.expanded #redoBtn \.quick-action-label\s*{[\s\S]*?display:\s*none !important;/,
+  "Mobile Undo and Redo should remain compact icon-only controls.",
 );
 assert.doesNotMatch(
   legacyHtml,
@@ -256,23 +317,28 @@ assert.match(
 );
 assert.match(
   legacyHtml,
-  /#toolbar \.brand-menu-btn,[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?background:\s*rgba\(255,\s*255,\s*255,\s*0\.62\);[\s\S]*?border:\s*1px\s+solid\s+rgba\(209,\s*213,\s*219,\s*0\.24\);[\s\S]*?box-shadow:\s*0\s+1px\s+3px\s+rgba\(15,\s*23,\s*42,\s*0\.025\);/,
-  "Toolbar buttons should use lighter chrome with reduced border contrast.",
-);
-assert.match(
-  legacyHtml,
-  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*5px\s+7px;[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*28px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar \.toolbar-quick-actions\s*{[\s\S]*?gap:\s*0;[\s\S]*?padding:\s*4px\s+6px;[\s\S]*?#toolbar \.menu-bar-btn\.quick-action\s*{[\s\S]*?height:\s*28px;[\s\S]*?gap:\s*4px;[\s\S]*?padding:\s*0\s+6px;[\s\S]*?background:\s*transparent;[\s\S]*?border:\s*0;[\s\S]*?box-shadow:\s*none;/,
   "Desktop quick actions should share one compact container and remain borderless at rest.",
 );
 assert.match(
   legacyHtml,
-  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #measureToolBtn \.quick-action-label,[\s\S]*?#toolbar #advancedGisBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
-  "Named desktop tools should retain their icon-and-text presentation.",
+  /#toolbar #editPanelToggleBtn \.quick-action-label,[\s\S]*?#toolbar #mobileSelectBtn \.quick-action-label,[\s\S]*?#toolbar #addSurveyPointBtn \.quick-action-label,[\s\S]*?#toolbar #advancedGisBtn \.quick-action-label\s*{[\s\S]*?display:\s*inline;/,
+  "Select, Draw, Add, Locate, Layers, and Tools should retain icon-and-text presentation.",
 );
 assert.match(
   legacyHtml,
-  /#toolbar \.toolbar-action-group \+ \.toolbar-action-group::before,[\s\S]*?#toolbar #toolbarLayersBtn::before\s*{[\s\S]*?width:\s*1px;[\s\S]*?height:\s*20px;/,
-  "Desktop toolbar sections should be divided into Editing, Navigation, Map Display, and Utilities.",
+  /@media \(min-width:\s*601px\)\s*{[\s\S]*?#toolbar #mobileSelectMenu\s*{[\s\S]*?display:\s*inline-flex;[\s\S]*?#toolbar #mobileSelectPopover\s*{[\s\S]*?position:\s*absolute;[\s\S]*?width:\s*208px;/,
+  "Desktop should expose Select and its compact selection-tool popover.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-action-group \+ \.toolbar-action-group::before\s*{[\s\S]*?width:\s*1px;[\s\S]*?height:\s*20px;/,
+  "Desktop toolbar should divide Editing, History, and Map control groups.",
+);
+assert.match(
+  legacyHtml,
+  /#toolbar \.toolbar-map-group #toolbarBasemapBtn\s*{[\s\S]*?display:\s*none;/,
+  "Basemap should leave the directly visible desktop toolbar while Tools remains available.",
 );
 assert.match(
   legacyHtml,
@@ -283,6 +349,11 @@ assert.match(
   legacyHtml,
   /#toolbar #undoBtn,[\s\S]*?#toolbar #redoBtn\s*{[\s\S]*?width:\s*26px;[\s\S]*?padding:\s*0;[\s\S]*?#toolbar #undoBtn \.quick-action-label,[\s\S]*?#toolbar #redoBtn \.quick-action-label\s*{[\s\S]*?display:\s*none !important;/,
   "Undo and Redo should remain compact icon-only controls on desktop.",
+);
+assert.doesNotMatch(
+  legacyHtml,
+  /setAddNewButtonLabel\("Add New"\)/,
+  "The desktop Add control should not revert to the old Add New label.",
 );
 assert.match(
   legacyHtml,
