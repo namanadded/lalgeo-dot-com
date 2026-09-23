@@ -7,6 +7,8 @@ const legacy = await readFile(new URL("../public/legacy/lalgeosurvey.html", impo
 assert.match(frame, /^"use client";/, "The outer Maps shell must capture the browser-only URL fragment.");
 assert.match(frame, /OPEN_TOKEN_PATTERN = \/\^\[0-9a-f\]\{64\}\$\//, "Only a 256-bit lowercase hexadecimal capability may be redeemed.");
 assert.match(frame, /params\.getAll\("open"\)/, "Duplicate open parameters must be detectable.");
+assert.match(frame, /addEventListener\("hashchange", captureOpenCapability\)/, "An already-open Maps tab must accept a newly navigated handoff URL.");
+assert.match(frame, /removeEventListener\("hashchange", captureOpenCapability\)/, "The active-tab handoff listener must be cleaned up.");
 
 const scrubIndex = frame.indexOf("window.history.replaceState");
 const confirmIndex = frame.indexOf('setHandoff({ kind: "ready" })');

@@ -33,28 +33,35 @@ export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}
   const dialogOpen = visibleState(handoff);
 
   useEffect(() => {
-    const hash = window.location.hash;
-    if (!hash) return;
+    const captureOpenCapability = () => {
+      const hash = window.location.hash;
+      if (!hash) return;
 
-    const params = new URLSearchParams(hash.slice(1));
-    const openValues = params.getAll("open");
-    if (!openValues.length) return;
+      const params = new URLSearchParams(hash.slice(1));
+      const openValues = params.getAll("open");
+      if (!openValues.length) return;
 
-    // Fragments stay in the browser, but scrub the capability before showing any UI.
-    window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}`);
+      // Fragments stay in the browser, but scrub the capability before showing any UI.
+      window.history.replaceState(window.history.state, "", `${window.location.pathname}${window.location.search}`);
 
-    const onlyOpenParameter = [...params.keys()].every((key) => key === "open");
-    const capability = openValues.length === 1 ? openValues[0] : "";
-    if (!onlyOpenParameter || !OPEN_TOKEN_PATTERN.test(capability)) {
-      setHandoff({
-        kind: "error",
-        message: "This link is incomplete. Ask the sender to create a new map link.",
-      });
-      return;
-    }
+      const onlyOpenParameter = [...params.keys()].every((key) => key === "open");
+      const capability = openValues.length === 1 ? openValues[0] : "";
+      if (!onlyOpenParameter || !OPEN_TOKEN_PATTERN.test(capability)) {
+        capabilityRef.current = null;
+        setHandoff({
+          kind: "error",
+          message: "This link is incomplete. Ask the sender to create a new map link.",
+        });
+        return;
+      }
 
-    capabilityRef.current = capability;
-    setHandoff({ kind: "ready" });
+      capabilityRef.current = capability;
+      setHandoff({ kind: "ready" });
+    };
+
+    captureOpenCapability();
+    window.addEventListener("hashchange", captureOpenCapability);
+    return () => window.removeEventListener("hashchange", captureOpenCapability);
   }, []);
 
   useEffect(() => {
