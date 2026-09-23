@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LalGeo Maps Authoring API",
-    "version": "1.0.1",
-    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export any map as a portable LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
+    "version": "1.1.0",
+    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
     "contact": {
       "name": "LalGeo Maps API access",
       "url": "https://lalgeo.com/developers/",
@@ -176,6 +176,54 @@
           "404": { "$ref": "#/components/responses/NotFound" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/maps/{mapId}/open-links": {
+      "parameters": [{ "$ref": "#/components/parameters/mapId" }],
+      "post": {
+        "operationId": "createMapOpenLink",
+        "summary": "Create a one-time link that opens a map in LalGeo Maps",
+        "description": "Creates a short-lived, single-use capability for an editable local copy of the current API map. Maps scrubs the fragment before presenting an explicit user confirmation; only that confirmation redeems it. The bearer key is never included in the link or sent to LalGeo Maps. The API map remains unchanged by edits to the local copy.",
+        "requestBody": {
+          "description": "Optional lifetime override. An omitted body or expires_in uses 600 seconds.",
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapOpenLinkInput" } } }
+        },
+        "responses": {
+          "201": {
+            "description": "One-time map-open link created",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapOpenLinkResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "401": { "$ref": "#/components/responses/Unauthorized" },
+          "404": { "$ref": "#/components/responses/NotFound" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
+        }
+      }
+    },
+    "/v1/map-open/redeem": {
+      "post": {
+        "operationId": "redeemMapOpenLink",
+        "summary": "Redeem a one-time map-open capability",
+        "description": "Public exchange used by LalGeo Maps. A valid capability is consumed atomically and returns an editable local project copy. Invalid, expired, and previously used capabilities all return the same non-disclosing 404 response. Request a new link after a capability is consumed or expires.",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapOpenRedeemInput" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Portable LalGeo project for local editing",
+            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LalGeoExportResponse" } } }
+          },
+          "400": { "$ref": "#/components/responses/BadRequest" },
+          "404": { "$ref": "#/components/responses/OpenLinkUnavailable" },
+          "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "500": { "$ref": "#/components/responses/InternalServerError" }
         }
       }
     },
@@ -410,13 +458,18 @@
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
+      "OpenLinkUnavailable": {
+        "description": "The one-time capability is absent, malformed, unknown, expired, or already used (OPEN_LINK_UNAVAILABLE). These cases are intentionally indistinguishable.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
       "Conflict": {
         "description": "A client-supplied map, layer, or feature ID already exists in its owner-scoped collection (ID_CONFLICT). Reconcile with GET before retrying a timed-out create; Idempotency-Key replay is not supported.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "PayloadTooLarge": {
-        "description": "The request body exceeds 2 MB (BODY_TOO_LARGE), or a feature batch exceeds 1,000 items (BATCH_TOO_LARGE).",
+        "description": "The request body exceeds 2 MB on an authoring route or 512 bytes on capability redemption (BODY_TOO_LARGE), or a feature batch exceeds 1,000 items (BATCH_TOO_LARGE).",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
@@ -534,6 +587,37 @@
         "properties": {
           "maps": { "type": "array", "maxItems": 100, "items": { "$ref": "#/components/schemas/Map" } },
           "pagination": { "$ref": "#/components/schemas/Pagination" }
+        }
+      },
+      "MapOpenLinkInput": {
+        "type": "object",
+        "properties": {
+          "expires_in": { "type": "integer", "minimum": 60, "maximum": 900, "default": 600 }
+        }
+      },
+      "MapOpenLinkResponse": {
+        "type": "object",
+        "required": ["open_url", "expires_at"],
+        "properties": {
+          "open_url": {
+            "type": "string",
+            "format": "uri",
+            "pattern": "^https://maps\\.lalgeo\\.com/maps#open=[0-9a-f]{64}$",
+            "description": "Exact LalGeo Maps URL. The 256-bit capability is carried only in the fragment, which browsers exclude from HTTP requests and referrer headers."
+          },
+          "expires_at": { "$ref": "#/components/schemas/Timestamp" }
+        },
+        "additionalProperties": false
+      },
+      "MapOpenRedeemInput": {
+        "type": "object",
+        "required": ["token"],
+        "properties": {
+          "token": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$",
+            "description": "Single-use 256-bit capability from the URL fragment. The API stores only its SHA-256 hash."
+          }
         }
       },
       "LayerInput": {
@@ -841,7 +925,7 @@
                 "enum": [
                   "INVALID_JSON", "INVALID_ID", "VALIDATION_ERROR", "INVALID_GEOMETRY", "GEOMETRY_TYPE_MISMATCH",
                   "UNAUTHORIZED", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
-                  "ID_CONFLICT", "BODY_TOO_LARGE", "BATCH_TOO_LARGE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED"
+                  "ID_CONFLICT", "BODY_TOO_LARGE", "BATCH_TOO_LARGE", "OPEN_LINK_UNAVAILABLE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED"
                 ]
               },
               "message": { "type": "string", "minLength": 1 },

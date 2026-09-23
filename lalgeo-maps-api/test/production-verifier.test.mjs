@@ -91,10 +91,10 @@ test("URL and CLI policy defaults to production and permits HTTP only on loopbac
 
 test("OpenAPI validation enforces the canonical 3.1 bearer contract and operation IDs", () => {
   assert.deepEqual(validateOpenApi(openApiFixture()), {
-    operationCount: 20,
-    successSchemaCount: 15,
+    operationCount: 22,
+    successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 77,
+    errorResponseCount: 87,
   });
 
   const wrongVersion = structuredClone(openApiFixture());
@@ -136,6 +136,22 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   const protectedHealth = structuredClone(openApiFixture());
   delete protectedHealth.paths["/v1/health"].get.security;
   assert.throws(() => validateOpenApi(protectedHealth), /explicitly allow unauthenticated/);
+
+  const protectedRedeem = structuredClone(openApiFixture());
+  protectedRedeem.paths["/v1/map-open/redeem"].post.security = [{ bearerAuth: [] }];
+  assert.throws(() => validateOpenApi(protectedRedeem), /redeem must explicitly allow unauthenticated POST/);
+
+  const publicCreateLink = structuredClone(openApiFixture());
+  publicCreateLink.paths["/v1/maps/{mapId}/open-links"].post.security = [];
+  assert.throws(() => validateOpenApi(publicCreateLink), /createMapOpenLink must require bearerAuth/);
+
+  const requiredCreateBody = structuredClone(openApiFixture());
+  requiredCreateBody.paths["/v1/maps/{mapId}/open-links"].post.requestBody.required = true;
+  assert.throws(() => validateOpenApi(requiredCreateBody), /createMapOpenLink request body must remain optional/);
+
+  const optionalRedeemBody = structuredClone(openApiFixture());
+  optionalRedeemBody.paths["/v1/map-open/redeem"].post.requestBody.required = false;
+  assert.throws(() => validateOpenApi(optionalRedeemBody), /redeemMapOpenLink request body must be required/);
 
   const wrongOperation = structuredClone(openApiFixture());
   wrongOperation.paths["/v1/maps"].get.operationId = "getMaps";
@@ -337,10 +353,10 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
   assert.deepEqual(result, {
     baseUrl: service.baseUrl,
     origin,
-    operationCount: 20,
-    successSchemaCount: 15,
+    operationCount: 22,
+    successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 77,
+    errorResponseCount: 87,
   });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],

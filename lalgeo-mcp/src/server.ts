@@ -144,12 +144,12 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
   }, (input) => call("update_map", { map_id: input.map_id }, () => api.updateMap(input.map_id, without(input, ["map_id"]))));
 
   server.registerTool("export_map", {
-    title: "Export LalGeo map",
-    description: "Export a map as a portable LalGeo .lal project payload.",
+    title: "Export and open LalGeo map",
+    description: "Export a map as a portable LalGeo .lal project payload and create a short-lived, single-use Maps link.",
     inputSchema: { map_id: id },
     outputSchema: widgetOutput,
     _meta: uiMeta("Preparing map…", "Map ready."),
-    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+    annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   }, async (input) => {
     try {
       const [payload, openLink] = await Promise.all([

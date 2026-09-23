@@ -8,7 +8,7 @@ Maps is part of the existing production API stack:
 
 - Worker: `lalgeo-saas-api`
 - D1 database: `lalgeo-business`
-- Maps migration: `lalgeo-saas-api/migrations/0004_maps.sql`
+- Maps migrations: `lalgeo-saas-api/migrations/0004_maps.sql` and additive `0005_map_open_links.sql`
 - canonical Maps hostname: `https://api.lalgeo.com`
 - existing Survey/SaaS hostname: `lalgeo-saas-api.namanadded.workers.dev`
 
@@ -16,18 +16,17 @@ The combined Worker enforces the canonical hostname's HTTPS and HSTS policy befo
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-15 07:09 UTC.
+Last read-only canonical check: 2026-09-23 UTC.
 
-- The verifier merged at commit `f84e548` passed every credential-free check against `https://api.lalgeo.com`; GitHub's production Worker build for that commit reports version `17f7f879-797d-40cf-8440-6d0f222096d4`.
 - `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, valid TLS, one-year HSTS, `no-store`, and a request ID. Plain HTTP returned an exact bodyless 308 to HTTPS.
-- `/v1/openapi.json` returned a valid OpenAPI 3.1 document with 20 unique operations, 15 JSON success schemas, and five bodyless HEAD/DELETE successes. Public `HEAD` returned 200 without a body.
+- `/v1/openapi.json` returned the valid 1.0.1 predecessor contract from `origin/main`: 20 unique operations, 15 JSON success schemas, and five bodyless HEAD/DELETE successes. This release's canonical contract has 22 unique operations and 17 JSON success schemas; the read-only verifier must stop at contract parity until that exact document is deployed. Public `HEAD` remains bodyless.
 - Missing and synthetic invalid bearer credentials returned the documented JSON `401 UNAUTHORIZED` response and bearer challenge without disclosing a secret.
 - CORS allowed `https://maps.lalgeo.com`, exposed `X-Request-Id` to that origin, and did not allow an untrusted origin.
 - The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
-- Snapshot API source currently exists only on the old, conflicting [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151), not on `main`; reconcile that production drift separately rather than importing the divergent branch here. That repair should identify its contract as `LalGeo Maps Snapshot API` and link back to the Authoring API so discovery works from either entry point.
-- This repository change identifies the bearer service as the private Authoring API and adds its access path. Its stricter verifier passes transport and health, then correctly stops at production's former generic OpenAPI title until this document is deployed.
+- Snapshot API source is now on `main` through [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151). Its anonymous-create, immutable sharing contract remains separate from this private Authoring API handoff; smoke-test both surfaces after deploying the shared Worker.
+- The one-time Authoring API → Maps handoff is not live: production exposes neither `/v1/maps/{mapId}/open-links` nor `/v1/map-open/redeem`, and the deployed Maps bundle has no fragment-redemption client. This branch's stricter verifier passes transport and health, then intentionally stops at the former OpenAPI contract until this document, Maps UI, Worker code, and both matching migration chains are deployed.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-15 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-23 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
 
 ## 1. Prove the repository state
 
@@ -50,7 +49,7 @@ npm run deploy:dry-run
 npm run verify:maps-local
 ```
 
-The combined gate uses disposable local D1 state, applies migrations `0001` through the latest migration, sends a synthetic hostname-routed Maps journey through `lalgeo-saas-api`, and removes its temporary files. It must not require Cloudflare credentials or contact a remote database.
+The combined gate uses disposable local D1 state, applies migrations `0001` through the latest migration, sends a synthetic hostname-routed Maps journey through `lalgeo-saas-api`, creates and redeems a 256-bit one-time capability, rejects its reuse, validates the editable project copy, and removes its temporary files. It must not require Cloudflare credentials or contact a remote database.
 
 ## 2. Inspect the existing Cloudflare targets
 
@@ -83,6 +82,8 @@ npx wrangler d1 migrations list lalgeo-business --remote
 ```
 
 Never create a replacement database as part of a release. Maps migrations must remain additive or reversible and must not alter unrelated business tables.
+
+For this release, confirm `0005_map_open_links.sql` matches the standalone `lalgeo-maps-api/migrations/0002_map_open_links.sql`: the table contains the SHA-256 `token_hash`, owner and map IDs, expiry and creation timestamps, but never a raw capability. The owner/map foreign key must cascade when its API map is deleted.
 
 ## 4. Provision or rotate a Maps key when required
 
@@ -125,7 +126,7 @@ cd ../lalgeo-maps-api
 npm run verify:production
 ```
 
-The verifier sends only credential-free `GET`, `HEAD`, and `OPTIONS` requests. It requires exact bodyless `308` redirects for both Maps and non-Maps paths on the shared hostname, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, and the complete JSON/OpenAPI/auth/CORS contract. It must pass without `--insecure`, following redirects, a custom host header, response overrides, or fallback HTML.
+The verifier sends only credential-free `GET`, `HEAD`, and `OPTIONS` requests. It validates the 22-operation/17-success-schema contract for the public redemption exchange but deliberately does not issue or redeem a capability. It requires exact bodyless `308` redirects for both Maps and non-Maps paths on the shared hostname, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, and the complete JSON/OpenAPI/auth/CORS contract. It must pass without `--insecure`, following redirects, a custom host header, response overrides, or fallback HTML.
 
 ## 7. Accept with one synthetic map
 
@@ -151,19 +152,35 @@ curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/layers/pl
   -H "Content-Type: application/geo+json" \
   --data '{"type":"Feature","id":"central_library","geometry":{"type":"Point","coordinates":[-114.051,51.0453]},"properties":{"name":"Central Library","source":"synthetic acceptance"}}'
 
-curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/export" \
+umask 077
+curl --fail-with-body --request POST "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/open-links" \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
-  --output /tmp/lalgeo-api-acceptance.lal
+  -H "Content-Type: application/json" \
+  --data '{"expires_in":600}' \
+  --output /tmp/lalgeo-open-link.json
+
+LALGEO_OPEN_URL="$(jq -er '.open_url' /tmp/lalgeo-open-link.json)"
 ```
 
-Open `https://maps.lalgeo.com/maps`, choose **Projects → Choose files**, and select `/tmp/lalgeo-api-acceptance.lal`. Confirm that the project opens at Calgary, the Places layer contains one Central Library point, and an edit survives export and reopen.
+Open `$LALGEO_OPEN_URL` in a browser. Confirm that Maps removes the `#open=…` fragment from the visible address before it shows an accessible **Open editable copy** confirmation. Choose that action, then confirm the project opens at Calgary and the Places layer contains one Central Library point. Make a clearly synthetic local edit, export the local project, and reopen it to prove the edit survives.
+
+Open the original `$LALGEO_OPEN_URL` again and choose **Open editable copy**. It must fail with the same expired-or-used message and must not replace the open project. Issue another link with the command above and confirm it returns `201`; this is the supported recovery after use or expiry. The token must be 64 lowercase hexadecimal characters, the response must not contain the bearer key, and the expiry must be no more than 15 minutes after issuance.
+
+Finally, export the server map and confirm the synthetic local edit is absent—the handoff is an editable copy, not write-through:
+
+```sh
+curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/export" \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  --output /tmp/lalgeo-api-server-after-open.lal
+```
 
 Always remove the synthetic server record, including when the visual check fails:
 
 ```sh
 curl --fail-with-body --request DELETE "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP" \
   -H "Authorization: Bearer $LALGEO_API_KEY"
-unset LALGEO_API_KEY LALGEO_API_BASE LALGEO_ACCEPTANCE_MAP
+rm -f /tmp/lalgeo-open-link.json /tmp/lalgeo-api-server-after-open.lal
+unset LALGEO_API_KEY LALGEO_API_BASE LALGEO_ACCEPTANCE_MAP LALGEO_OPEN_URL
 ```
 
 Also smoke-test one existing Survey/SaaS journey so the shared deployment cannot silently regress the non-Maps surface.
@@ -190,6 +207,6 @@ Attach these items to the release review:
 - isolated Maps API check and local release-gate output;
 - combined Worker type-check, dry-run bundle metrics, migration list, and local Maps gate output;
 - canonical read-only verifier output;
-- synthetic `.lal` open/edit/export/reopen result and delete response;
+- one-time link fragment scrub/confirmation/open/edit/export/reopen, reuse rejection, server-unchanged proof, and delete response;
 - one existing Survey/SaaS smoke result;
 - risk notes, rollback version, and the operator who retained the credential source of truth.

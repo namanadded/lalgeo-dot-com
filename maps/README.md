@@ -35,3 +35,9 @@ Creation is anonymous and limited to 20 attempts per connecting IP per hour (dat
 Run `npm run test:sharing` and `npm run build`. Tests exercise validation, geometry preservation (including polygon holes), Calgary view resolution, API creation/read/revocation, and the browser integration. Existing `test:*` scripts cover editor regressions. Netlify deployment uses the existing linked maps site; shared snapshots are stored independently of deploy artifacts.
 
 The September 9 sharing release preserves the currently published editor shell and its workspace-persistence helper, which were newer than this checkout. The 12 sharing tests and production build pass; live API creation/read/revocation and browser sharing were verified. Six older structural checks (browser resource limits, SQL filter, panel toggle, top menu, toolbar architecture, toolbar overflow) also fail against the unmodified published shell; the sharing changes introduce no additional failures in those comparisons.
+
+## Authoring API handoff
+
+The outer `MapsFrame` accepts only a `#open=<64 lowercase hex characters>` fragment created by the LalGeo Maps Authoring API. It removes that fragment from the visible URL immediately, waits for the embedded workspace, and asks the person to confirm **Open editable copy** before redeeming the one-time capability at `https://api.lalgeo.com/v1/map-open/redeem`.
+
+Redemption omits credentials and referrer data. The returned project crosses the same-origin iframe boundary through a source- and origin-checked message, then uses the existing `validateLalGeoProject` and `openImportedProject` path. The result is a local editable copy; it is not a write-through API session. Never put an Authoring API bearer key in a Maps URL or browser storage.

@@ -27,6 +27,14 @@ test("MCP discovery exposes the five authoring tools plus geocode", async () => 
     ]);
     assert.ok(discovered.tools.filter((tool) => tool.name !== "geocode").every((tool) => tool._meta?.ui?.resourceUri === "ui://lalgeo/map.html"));
     assert.equal(discovered.tools.find((tool) => tool.name === "geocode")._meta?.ui, undefined);
+    const exportTool = discovered.tools.find((tool) => tool.name === "export_map");
+    assert.match(exportTool.description, /single-use Maps link/);
+    assert.deepEqual(exportTool.annotations, {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    });
 
     const resource = await client.readResource({ uri: "ui://lalgeo/map.html" });
     assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");

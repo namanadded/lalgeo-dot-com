@@ -398,10 +398,10 @@ async function main({ workerDirectory, database, requestHostname }) {
       timeoutMs: 5_000,
       logger: { log() {} },
     });
-    assert.equal(publicVerification.operationCount, 20);
-    assert.equal(publicVerification.successSchemaCount, 15);
+    assert.equal(publicVerification.operationCount, 22);
+    assert.equal(publicVerification.successSchemaCount, 17);
     assert.equal(publicVerification.bodylessSuccessCount, 5);
-    assert.equal(publicVerification.errorResponseCount, 77);
+    assert.equal(publicVerification.errorResponseCount, 87);
     const healthSchemaResponse = await request(baseUrl, "/v1/health");
     assert.equal(healthSchemaResponse.status, 200);
     if (requestHostname) assert.equal(healthSchemaResponse.headers.get("strict-transport-security"), "max-age=31536000");
@@ -767,8 +767,6 @@ async function main({ workerDirectory, database, requestHostname }) {
     });
     assert.equal(featurePatchResponse.status, 200);
     assert.equal((await successJson(featurePatchResponse, responseContract, "updateFeature")).properties?.source, "synthetic updated");
-    assert.deepEqual([...responseContract.covered].sort(), [...responseContract.expected].sort());
-    record("all 15 body-bearing operation payloads match their OpenAPI success schemas");
     record("feature list, read, and update routes preserve GeoJSON");
 
     const conflictResponse = await request(baseUrl, "/v1/maps", {
@@ -798,9 +796,97 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.deepEqual((await successJson(afterOversizedBatchResponse, responseContract, "listFeatures")).features.map((feature) => feature.id), ["central_library"]);
     record("oversized feature batches return the documented 413 without partial inserts");
 
+    const issueOpenLink = (payload) => request(baseUrl, "/v1/maps/synthetic_runtime_map/open-links", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", Origin: allowedOrigin },
+      ...(payload === undefined ? {} : { body: JSON.stringify(payload) }),
+    });
+    const defaultLinkIssuedAt = Date.now();
+    const defaultOpenLinkResponse = await issueOpenLink(undefined);
+    assert.equal(defaultOpenLinkResponse.status, 201);
+    const defaultOpenLink = await successJson(defaultOpenLinkResponse, responseContract, "createMapOpenLink");
+    const defaultExpiresAfterMs = Date.parse(defaultOpenLink.expires_at) - defaultLinkIssuedAt;
+    assert.ok(defaultExpiresAfterMs >= 599_000 && defaultExpiresAfterMs <= 605_000);
+    for (const expiresIn of [60, 900]) {
+      const boundaryResponse = await issueOpenLink({ expires_in: expiresIn });
+      assert.equal(boundaryResponse.status, 201);
+      await successJson(boundaryResponse, responseContract, "createMapOpenLink");
+    }
+    for (const expiresIn of [59, 901, 60.5, "60", null]) {
+      const invalidTtlResponse = await issueOpenLink({ expires_in: expiresIn });
+      assert.equal(invalidTtlResponse.status, 400);
+      assert.equal((await errorJson(invalidTtlResponse, errorContract, "createMapOpenLink")).error?.code, "VALIDATION_ERROR");
+    }
+    record("map-open links enforce the documented default and 60–900 second lifetime");
+
+    const linkIssuedAt = Date.now();
+    const openLinkResponse = await issueOpenLink({ expires_in: 120 });
+    assert.equal(openLinkResponse.status, 201);
+    assert.equal(openLinkResponse.headers.get("access-control-allow-origin"), allowedOrigin);
+    const openLink = await successJson(openLinkResponse, responseContract, "createMapOpenLink");
+    const openUrl = new URL(openLink.open_url);
+    assert.equal(openUrl.origin, allowedOrigin);
+    assert.equal(openUrl.pathname, "/maps");
+    assert.equal(openUrl.search, "");
+    assert.equal(openUrl.username, "");
+    assert.equal(openUrl.password, "");
+    assert.equal(openLink.open_url.includes(localApiKey), false);
+    const openToken = new URLSearchParams(openUrl.hash.slice(1)).get("open");
+    assert.match(openToken || "", /^[a-f0-9]{64}$/);
+    const expiresAfterMs = Date.parse(openLink.expires_at) - linkIssuedAt;
+    assert.ok(expiresAfterMs >= 119_000 && expiresAfterMs <= 125_000);
+
+    const redeem = (token) => request(baseUrl, "/v1/map-open/redeem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: allowedOrigin },
+      body: JSON.stringify({ token }),
+    });
+    const redeemedResponse = await redeem(openToken);
+    assert.equal(redeemedResponse.status, 200);
+    assert.equal(redeemedResponse.headers.get("access-control-allow-origin"), allowedOrigin);
+    const exported = await successJson(redeemedResponse, responseContract, "redeemMapOpenLink");
+
+    const reusedResponse = await redeem(openToken);
+    assert.equal(reusedResponse.status, 404);
+    const reusedError = await errorJson(reusedResponse, errorContract, "redeemMapOpenLink");
+    assert.equal(reusedError.error?.code, "OPEN_LINK_UNAVAILABLE");
+    const invalidResponse = await redeem("0".repeat(64));
+    assert.equal(invalidResponse.status, 404);
+    const invalidError = await errorJson(invalidResponse, errorContract, "redeemMapOpenLink");
+    assert.equal(invalidError.error?.code, "OPEN_LINK_UNAVAILABLE");
+    for (const payload of [{}, { token: "short" }]) {
+      const malformedResponse = await request(baseUrl, "/v1/map-open/redeem", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Origin: allowedOrigin },
+        body: JSON.stringify(payload),
+      });
+      assert.equal(malformedResponse.status, 404);
+      const malformedError = await errorJson(malformedResponse, errorContract, "redeemMapOpenLink");
+      assert.equal(malformedError.error?.code, reusedError.error.code);
+      assert.equal(malformedError.error?.message, reusedError.error.message);
+    }
+    const oversizedRedeemResponse = await request(baseUrl, "/v1/map-open/redeem", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Origin: allowedOrigin },
+      body: JSON.stringify({ token: "0".repeat(512) }),
+    });
+    assert.equal(oversizedRedeemResponse.status, 413);
+    assert.equal((await errorJson(oversizedRedeemResponse, errorContract, "redeemMapOpenLink")).error?.code, "BODY_TOO_LARGE");
+
+    const concurrentOpenLinkResponse = await issueOpenLink({ expires_in: 120 });
+    const concurrentOpenLink = await successJson(concurrentOpenLinkResponse, responseContract, "createMapOpenLink");
+    const concurrentToken = new URLSearchParams(new URL(concurrentOpenLink.open_url).hash.slice(1)).get("open");
+    const concurrentResponses = await Promise.all([redeem(concurrentToken), redeem(concurrentToken)]);
+    assert.deepEqual(concurrentResponses.map((result) => result.status).sort(), [200, 404]);
+    const concurrentSuccess = concurrentResponses.find((result) => result.status === 200);
+    const concurrentFailure = concurrentResponses.find((result) => result.status === 404);
+    assert.deepEqual(await successJson(concurrentSuccess, responseContract, "redeemMapOpenLink"), exported);
+    assert.equal((await errorJson(concurrentFailure, errorContract, "redeemMapOpenLink")).error?.code, "OPEN_LINK_UNAVAILABLE");
+    record("short-lived fragment links expose no API key and exactly one concurrent redemption succeeds");
+
     const exportResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/export", { headers: authorization });
     assert.equal(exportResponse.status, 200);
-    const exported = await successJson(exportResponse, responseContract, "exportMap");
+    assert.deepEqual(await successJson(exportResponse, responseContract, "exportMap"), exported);
     const imported = mapsProjectContract.validateLalGeoProject(exported.project, { fileName: "synthetic-api-export.lal" });
     assert.equal(imported.layers.length, 3);
     assert.ok(imported.layers.some((layer) => layer.id === imported.activeLayerId));
@@ -841,6 +927,9 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(reopened.layers.find((layer) => layer.id === "areas").features[0].geometry.rings[0][0].altitude, -12);
     assert.equal(reopened.source?.mapId, "synthetic_runtime_map");
     record("Maps validator and serializer preserve covered geometry and attributes");
+
+    assert.deepEqual([...responseContract.covered].sort(), [...responseContract.expected].sort());
+    record(`all ${responseContract.expected.size} body-bearing operation payloads match their OpenAPI success schemas`);
 
     const featureDeleteResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", {
       method: "DELETE",
