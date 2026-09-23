@@ -1,6 +1,7 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { LalGeoApi, LalGeoApiError, type JsonObject } from "./lalgeo-api.js";
+import { GeocodeError, type Geocoder } from "./geocoder.js";
 import { MAP_WIDGET_HTML, MAP_WIDGET_URI } from "./widget.js";
 
 const id = z.string().min(1).max(128).regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
@@ -48,6 +49,12 @@ function failure(error: unknown) {
       }],
     };
   }
+  if (error instanceof GeocodeError) {
+    return {
+      isError: true,
+      content: [{ type: "text" as const, text: JSON.stringify({ error: { code: error.code, message: error.message, details: error.details } }, null, 2) }],
+    };
+  }
   throw error;
 }
 
@@ -63,8 +70,8 @@ function without<T extends JsonObject>(input: T, keys: string[]) {
   return Object.fromEntries(Object.entries(input).filter(([key]) => !keys.includes(key)));
 }
 
-export function createServer(api: LalGeoApi) {
-  const server = new McpServer({ name: "lalgeo", version: "0.2.0" });
+export function createServer(api: LalGeoApi, geocoder: Geocoder) {
+  const server = new McpServer({ name: "lalgeo", version: "0.3.0" });
 
   server.registerResource("lalgeo-map", MAP_WIDGET_URI, {}, async () => ({
     contents: [{
@@ -155,6 +162,28 @@ export function createServer(api: LalGeoApi) {
           "lalgeo/openUrl": typeof openLink.open_url === "string" ? openLink.open_url : undefined,
           "lalgeo/openUrlExpiresAt": typeof openLink.expires_at === "string" ? openLink.expires_at : undefined,
         },
+      };
+    } catch (error) {
+      return failure(error);
+    }
+  });
+
+  server.registerTool("geocode", {
+    title: "Geocode a place",
+    description: "Find a place name or address with LalGeo's existing Apple Maps search and return the best match with coordinates.",
+    inputSchema: { query: z.string().trim().min(1).max(300).describe("Place name or street address to find.") },
+    outputSchema: {
+      query: z.string(),
+      coordinates: z.object({ latitude: z.number(), longitude: z.number() }),
+      place: z.record(z.unknown()),
+    },
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  }, async ({ query }) => {
+    try {
+      const payload = await geocoder.geocode(query);
+      return {
+        structuredContent: payload,
+        content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
       };
     } catch (error) {
       return failure(error);
