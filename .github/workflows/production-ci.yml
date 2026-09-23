@@ -29,6 +29,7 @@ jobs:
             maps/package-lock.json
             lalgeo-maps-api/package-lock.json
             lalgeo-saas-api/package-lock.json
+            lalgeo-mcp/package-lock.json
 
       - name: Validate static entry points
         run: |
@@ -67,6 +68,14 @@ jobs:
       - name: Verify Maps API through production Worker
         working-directory: lalgeo-saas-api
         run: npm run verify:maps-local
+
+      - name: Install LalGeo MCP dependencies
+        working-directory: lalgeo-mcp
+        run: npm ci
+
+      - name: Check LalGeo MCP adapter
+        working-directory: lalgeo-mcp
+        run: npm run check
 
       - name: Guard complete Maps regression coverage
         working-directory: maps

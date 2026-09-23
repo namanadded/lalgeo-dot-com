@@ -16,18 +16,17 @@ The combined Worker enforces the canonical hostname's HTTPS and HSTS policy befo
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-15 07:09 UTC.
+Last read-only canonical check: 2026-09-23 UTC.
 
-- The verifier merged at commit `f84e548` passed every credential-free check against `https://api.lalgeo.com`; GitHub's production Worker build for that commit reports version `17f7f879-797d-40cf-8440-6d0f222096d4`.
 - `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, valid TLS, one-year HSTS, `no-store`, and a request ID. Plain HTTP returned an exact bodyless 308 to HTTPS.
-- `/v1/openapi.json` returned the valid predecessor OpenAPI document. This release's canonical contract has 22 unique operations, 17 JSON success schemas, and five bodyless HEAD/DELETE successes; the read-only verifier must stop at contract parity until that exact document is deployed. Public `HEAD` remains bodyless.
+- `/v1/openapi.json` returned the valid 1.0.1 predecessor contract from `origin/main`: 20 unique operations, 15 JSON success schemas, and five bodyless HEAD/DELETE successes. This release's canonical contract has 22 unique operations and 17 JSON success schemas; the read-only verifier must stop at contract parity until that exact document is deployed. Public `HEAD` remains bodyless.
 - Missing and synthetic invalid bearer credentials returned the documented JSON `401 UNAUTHORIZED` response and bearer challenge without disclosing a secret.
 - CORS allowed `https://maps.lalgeo.com`, exposed `X-Request-Id` to that origin, and did not allow an untrusted origin.
 - The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
-- Snapshot API source currently exists only on the old, conflicting [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151), not on `main`; reconcile that production drift separately rather than importing the divergent branch here. That repair should identify its contract as `LalGeo Maps Snapshot API` and link back to the Authoring API so discovery works from either entry point.
-- This repository change adds the one-time Authoring API → Maps handoff. Its stricter verifier can pass transport and health, then must stop at the former OpenAPI contract until this document and both matching migration chains are deployed.
+- Snapshot API source is now on `main` through [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151). Its anonymous-create, immutable sharing contract remains separate from this private Authoring API handoff; smoke-test both surfaces after deploying the shared Worker.
+- The one-time Authoring API → Maps handoff is not live: production exposes neither `/v1/maps/{mapId}/open-links` nor `/v1/map-open/redeem`, and the deployed Maps bundle has no fragment-redemption client. This branch's stricter verifier passes transport and health, then intentionally stops at the former OpenAPI contract until this document, Maps UI, Worker code, and both matching migration chains are deployed.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-15 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-23 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
 
 ## 1. Prove the repository state
 

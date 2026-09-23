@@ -24,6 +24,8 @@ assert.match(frame, /role="dialog"[\s\S]*?aria-modal="true"[\s\S]*?aria-labelled
 assert.match(frame, /Open editable copy/, "The destructive-looking external handoff needs an explicit, plain-language confirmation.");
 assert.match(frame, /Changes you make here won’t update the original API map/, "The UI must explain that the handoff is a copy, not write-through editing.");
 assert.match(frame, /shellRef\.current\?\.toggleAttribute\("inert", dialogOpen\)/, "The map behind the modal must be inert.");
+assert.match(frame, /\[dialogOpen, handoff\.kind, frameReady\]/, "The primary action must receive focus when the map workspace becomes ready.");
+assert.match(frame, /window\.setTimeout\(\(\) => frameRef\.current\?\.focus\(\), 0\)/, "Closing the handoff must return focus to the map workspace.");
 assert.match(frame, /event\.key === "Escape"[\s\S]*?event\.key !== "Tab"/, "The modal must support Escape and trapped keyboard focus.");
 assert.match(frame, /This one-time link has expired or was already used/, "Expired and reused capabilities must share a recovery message.");
 assert.match(frame, /Request ID:/, "Failures should expose the API request ID when available.");

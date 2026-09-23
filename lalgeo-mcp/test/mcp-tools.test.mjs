@@ -25,6 +25,14 @@ test("MCP discovery exposes only the five LalGeo authoring tools", async () => {
       "add_features", "create_layer", "create_map", "export_map", "update_map",
     ]);
     assert.ok(discovered.tools.every((tool) => tool._meta?.ui?.resourceUri === "ui://lalgeo/map.html"));
+    const exportTool = discovered.tools.find((tool) => tool.name === "export_map");
+    assert.match(exportTool.description, /single-use Maps link/);
+    assert.deepEqual(exportTool.annotations, {
+      readOnlyHint: false,
+      destructiveHint: false,
+      idempotentHint: false,
+      openWorldHint: true,
+    });
 
     const resource = await client.readResource({ uri: "ui://lalgeo/map.html" });
     assert.equal(resource.contents[0].mimeType, "text/html;profile=mcp-app");

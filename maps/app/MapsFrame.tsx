@@ -19,9 +19,9 @@ function visibleState(state: HandoffState) {
 }
 
 export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}) {
-   const legacyMapUrl = sharedMapId
-     ? `/render/lalgeosurvey?sharedMap=${encodeURIComponent(sharedMapId)}`
-     : process.env.NEXT_PUBLIC_LEGACY_MAP_URL || "/render/lalgeosurvey";
+  const legacyMapUrl = sharedMapId
+    ? `/render/lalgeosurvey?sharedMap=${encodeURIComponent(sharedMapId)}`
+    : process.env.NEXT_PUBLIC_LEGACY_MAP_URL || "/render/lalgeosurvey";
   const frameRef = useRef<HTMLIFrameElement>(null);
   const shellRef = useRef<HTMLElement>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
@@ -64,7 +64,7 @@ export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}
       dialogRef.current?.querySelector<HTMLElement>("[data-autofocus]")?.focus();
     }, 0);
     return () => window.clearTimeout(focusTimer);
-  }, [dialogOpen, handoff.kind]);
+  }, [dialogOpen, handoff.kind, frameReady]);
 
   useEffect(() => {
     const receiveOpenResult = (event: MessageEvent) => {
@@ -106,6 +106,7 @@ export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}
     if (handoff.kind === "opening") return;
     capabilityRef.current = null;
     setHandoff({ kind: "hidden" });
+    window.setTimeout(() => frameRef.current?.focus(), 0);
   };
 
   const openEditableCopy = async () => {
@@ -196,13 +197,13 @@ export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}
     }
   };
 
-   const title = handoff.kind === "ready"
+  const title = handoff.kind === "ready"
     ? "Open this API map?"
     : handoff.kind === "opening"
       ? "Opening a secure copy…"
       : handoff.kind === "opened"
         ? "Your copy is ready"
-         : "This map link can’t be opened";
+        : "This map link can’t be opened";
 
   return (
     <>
@@ -373,7 +374,7 @@ export default function MapsFrame({ sharedMapId }: { sharedMapId?: string } = {}
               {handoff.kind === "opening" ? <span className="map-open-spinner" /> : handoff.kind === "opened" ? "✓" : "↗"}
             </div>
             <h1 id="map-open-title">{title}</h1>
-            <p id="map-open-description">
+            <p id="map-open-description" aria-live="polite">
               {handoff.kind === "ready" ? (
                 frameReady
                   ? "This one-time link imports an editable local copy. Changes you make here won’t update the original API map."
