@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LalGeo Maps Authoring API",
-    "version": "1.1.0",
+    "version": "1.2.0",
     "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
     "contact": {
       "name": "LalGeo Maps API access",
@@ -72,6 +72,7 @@
     "/v1/maps": {
       "get": {
         "operationId": "listMaps",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "List maps",
         "parameters": [{ "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/offset" }],
         "responses": {
@@ -87,6 +88,7 @@
       },
       "post": {
         "operationId": "createMap",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Create a map",
         "requestBody": {
           "required": true,
@@ -100,6 +102,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
@@ -111,6 +114,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }],
       "get": {
         "operationId": "getMap",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "Get a map",
         "responses": {
           "200": {
@@ -126,6 +130,7 @@
       },
       "patch": {
         "operationId": "updateMap",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Update a map",
         "requestBody": {
           "required": true,
@@ -139,6 +144,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
@@ -147,6 +153,7 @@
       },
       "delete": {
         "operationId": "deleteMap",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Delete a map and its contents",
         "responses": {
           "204": {
@@ -154,6 +161,7 @@
             "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
@@ -164,6 +172,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }],
       "get": {
         "operationId": "exportMap",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "Export a LalGeo-compatible .lal project payload",
         "description": "Every export opens as an editable LalGeo Maps project. If the API map has no layers, the portable copy includes a deterministic empty point layer without changing the API map.",
         "responses": {
@@ -183,6 +192,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }],
       "post": {
         "operationId": "createMapOpenLink",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Create a one-time link that opens a map in LalGeo Maps",
         "description": "Creates a short-lived, single-use capability for an editable local copy of the current API map. Maps scrubs the fragment before presenting an explicit user confirmation; only that confirmation redeems it. The bearer key is never included in the link or sent to LalGeo Maps. The API map remains unchanged by edits to the local copy.",
         "requestBody": {
@@ -197,6 +207,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
@@ -231,6 +242,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }],
       "get": {
         "operationId": "listLayers",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "List layers",
         "responses": {
           "200": {
@@ -246,6 +258,7 @@
       },
       "post": {
         "operationId": "createLayer",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Create a typed layer",
         "requestBody": {
           "required": true,
@@ -259,6 +272,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
@@ -271,6 +285,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }, { "$ref": "#/components/parameters/layerId" }],
       "get": {
         "operationId": "getLayer",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "Get a layer",
         "responses": {
           "200": {
@@ -286,6 +301,7 @@
       },
       "patch": {
         "operationId": "updateLayer",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Update layer name, style, or position",
         "requestBody": {
           "required": true,
@@ -299,6 +315,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
@@ -307,6 +324,7 @@
       },
       "delete": {
         "operationId": "deleteLayer",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Delete a layer and its features",
         "responses": {
           "204": {
@@ -314,6 +332,7 @@
             "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
@@ -324,6 +343,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }, { "$ref": "#/components/parameters/layerId" }],
       "get": {
         "operationId": "listFeatures",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "List layer features as GeoJSON",
         "parameters": [{ "$ref": "#/components/parameters/limit" }, { "$ref": "#/components/parameters/offset" }],
         "responses": {
@@ -340,6 +360,7 @@
       },
       "post": {
         "operationId": "createFeatures",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Add one Feature or up to 1,000 features in a FeatureCollection",
         "requestBody": {
           "required": true,
@@ -356,6 +377,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
@@ -368,6 +390,7 @@
       "parameters": [{ "$ref": "#/components/parameters/mapId" }, { "$ref": "#/components/parameters/layerId" }, { "$ref": "#/components/parameters/featureId" }],
       "get": {
         "operationId": "getFeature",
+        "x-lalgeo-required-scope": "maps:read",
         "summary": "Get a GeoJSON feature",
         "responses": {
           "200": {
@@ -383,6 +406,7 @@
       },
       "patch": {
         "operationId": "updateFeature",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Update geometry or properties",
         "requestBody": {
           "required": true,
@@ -396,6 +420,7 @@
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
@@ -404,6 +429,7 @@
       },
       "delete": {
         "operationId": "deleteFeature",
+        "x-lalgeo-required-scope": "maps:write",
         "summary": "Delete a feature",
         "responses": {
           "204": {
@@ -411,6 +437,7 @@
             "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
@@ -423,7 +450,7 @@
       "bearerAuth": {
         "type": "http",
         "scheme": "bearer",
-        "description": "Operator-provisioned key for the private, owner-scoped Authoring API. Request access at https://lalgeo.com/developers/."
+        "description": "Operator-provisioned key for the private, owner-scoped Authoring API. Every scoped key requires maps:read for protected GET and export operations. Add maps:write for POST, PATCH, DELETE, and one-time open-link creation; maps:write is never valid without maps:read. Request access at https://lalgeo.com/developers/."
       }
     },
     "parameters": {
@@ -446,10 +473,24 @@
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "Unauthorized": {
-        "description": "Missing or invalid bearer key (UNAUTHORIZED).",
+        "description": "Missing, invalid, or expired bearer key (UNAUTHORIZED).",
         "headers": {
           "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
           "WWW-Authenticate": { "description": "Bearer authentication challenge", "schema": { "type": "string", "const": "Bearer realm=\"lalgeo-maps-api\"" } }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "Forbidden": {
+        "description": "The bearer key is valid for reads but lacks maps:write for this operation (INSUFFICIENT_SCOPE).",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+          "WWW-Authenticate": {
+            "description": "Bearer challenge naming the required maps:write scope.",
+            "schema": {
+              "type": "string",
+              "const": "Bearer realm=\"lalgeo-maps-api\", error=\"insufficient_scope\", scope=\"maps:write\""
+            }
+          }
         },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
@@ -924,7 +965,7 @@
                 "type": "string",
                 "enum": [
                   "INVALID_JSON", "INVALID_ID", "VALIDATION_ERROR", "INVALID_GEOMETRY", "GEOMETRY_TYPE_MISMATCH",
-                  "UNAUTHORIZED", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
+                  "UNAUTHORIZED", "INSUFFICIENT_SCOPE", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
                   "ID_CONFLICT", "BODY_TOO_LARGE", "BATCH_TOO_LARGE", "OPEN_LINK_UNAVAILABLE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED"
                 ]
               },

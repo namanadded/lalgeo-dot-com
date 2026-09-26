@@ -94,7 +94,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 87,
+    errorResponseCount: 97,
   });
 
   const wrongVersion = structuredClone(openApiFixture());
@@ -131,7 +131,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
 
   const unactionableBearer = structuredClone(openApiFixture());
   unactionableBearer.components.securitySchemes.bearerAuth.description = "LalGeo API key";
-  assert.throws(() => validateOpenApi(unactionableBearer), /must explain its owner scope and where to request access/);
+  assert.throws(() => validateOpenApi(unactionableBearer), /must explain owner, read\/write scope, and where to request access/);
 
   const protectedHealth = structuredClone(openApiFixture());
   delete protectedHealth.paths["/v1/health"].get.security;
@@ -144,6 +144,14 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   const publicCreateLink = structuredClone(openApiFixture());
   publicCreateLink.paths["/v1/maps/{mapId}/open-links"].post.security = [];
   assert.throws(() => validateOpenApi(publicCreateLink), /createMapOpenLink must require bearerAuth/);
+
+  const missingWriteScope = structuredClone(openApiFixture());
+  delete missingWriteScope.paths["/v1/maps/{mapId}/open-links"].post["x-lalgeo-required-scope"];
+  assert.throws(() => validateOpenApi(missingWriteScope), /createMapOpenLink must require maps:write/);
+
+  const wrongReadScope = structuredClone(openApiFixture());
+  wrongReadScope.paths["/v1/maps"].get["x-lalgeo-required-scope"] = "maps:write";
+  assert.throws(() => validateOpenApi(wrongReadScope), /listMaps must require maps:read/);
 
   const requiredCreateBody = structuredClone(openApiFixture());
   requiredCreateBody.paths["/v1/maps/{mapId}/open-links"].post.requestBody.required = true;
@@ -280,6 +288,10 @@ test("OpenAPI validation rejects missing or misleading failure contracts", () =>
   const missingBearerChallenge = openApiFixture();
   delete missingBearerChallenge.components.responses.Unauthorized.headers["WWW-Authenticate"];
   assert.throws(() => validateOpenApi(missingBearerChallenge), /listMaps 401 response must document the bearer challenge/);
+
+  const missingScopeChallenge = openApiFixture();
+  delete missingScopeChallenge.components.responses.Forbidden.headers["WWW-Authenticate"];
+  assert.throws(() => validateOpenApi(missingScopeChallenge), /createMap 403 response must document the scoped bearer challenge/);
 });
 
 test("production verification sends only credential-free GET, HEAD, and OPTIONS requests", async (t) => {
@@ -313,7 +325,7 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
           "Cache-Control": "no-store",
           "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
           "Access-Control-Allow-Origin": origin,
-          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           Vary: "Origin",
         }));
         response.end(JSON.stringify({
@@ -326,7 +338,7 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
           "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Headers": "Authorization, Content-Type",
           "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         });
@@ -356,7 +368,7 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 87,
+    errorResponseCount: 97,
   });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],
@@ -437,7 +449,7 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
             "Cache-Control": "no-store",
             "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
             "Access-Control-Allow-Origin": origin,
-            "Access-Control-Expose-Headers": "X-Request-Id",
+            "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           },
         },
       );
@@ -451,7 +463,7 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
           "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Headers": "Authorization, Content-Type",
           "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         },

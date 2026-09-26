@@ -58,11 +58,26 @@ export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
   "deleteFeature:204",
 ]);
 
-const PROTECTED_OPERATIONS = Object.freeze([
-  "listMaps", "createMap", "getMap", "updateMap", "deleteMap", "exportMap", "createMapOpenLink",
-  "listLayers", "createLayer", "getLayer", "updateLayer", "deleteLayer",
-  "listFeatures", "createFeatures", "getFeature", "updateFeature", "deleteFeature",
-]);
+export const REQUIRED_OPERATION_SCOPES = Object.freeze({
+  listMaps: "maps:read",
+  createMap: "maps:write",
+  getMap: "maps:read",
+  updateMap: "maps:write",
+  deleteMap: "maps:write",
+  exportMap: "maps:read",
+  createMapOpenLink: "maps:write",
+  listLayers: "maps:read",
+  createLayer: "maps:write",
+  getLayer: "maps:read",
+  updateLayer: "maps:write",
+  deleteLayer: "maps:write",
+  listFeatures: "maps:read",
+  createFeatures: "maps:write",
+  getFeature: "maps:read",
+  updateFeature: "maps:write",
+  deleteFeature: "maps:write",
+});
+const PROTECTED_OPERATIONS = Object.freeze(Object.keys(REQUIRED_OPERATION_SCOPES));
 const RESOURCE_OPERATIONS = new Set(PROTECTED_OPERATIONS.filter((id) => !["listMaps", "createMap"].includes(id)));
 const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createMapOpenLink", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
 const CREATE_OPERATIONS = new Set(["createMap", "createLayer", "createFeatures"]);
@@ -73,6 +88,7 @@ export const REQUIRED_ERROR_RESPONSES = Object.freeze({
   ...Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
     ["400", BODY_OPERATIONS.has(id) ? "BadRequest" : undefined],
     ["401", "Unauthorized"],
+    ["403", REQUIRED_OPERATION_SCOPES[id] === "maps:write" ? "Forbidden" : undefined],
     ["404", RESOURCE_OPERATIONS.has(id) ? "NotFound" : undefined],
     ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
     ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
@@ -509,8 +525,11 @@ export function validateOpenApi(spec) {
   check(
     typeof bearer.description === "string" &&
       bearer.description.includes("owner-scoped") &&
+      bearer.description.includes("maps:read") &&
+      bearer.description.includes("maps:write") &&
+      bearer.description.includes("maps:write is never valid without maps:read") &&
       bearer.description.includes(AUTHORING_GUIDE_URL),
-    "OpenAPI bearerAuth must explain its owner scope and where to request access.",
+    "OpenAPI bearerAuth must explain owner, read/write scope, and where to request access.",
   );
   check(Array.isArray(spec.security) && spec.security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)), "OpenAPI must apply bearerAuth security by default.");
 
@@ -531,6 +550,10 @@ export function validateOpenApi(spec) {
         check(
           Array.isArray(security) && security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)),
           `OpenAPI ${operationId} must require bearerAuth.`,
+        );
+        check(
+          pathItem[method]["x-lalgeo-required-scope"] === REQUIRED_OPERATION_SCOPES[operationId],
+          `OpenAPI ${operationId} must require ${REQUIRED_OPERATION_SCOPES[operationId]}.`,
         );
       }
     }
@@ -581,6 +604,12 @@ export function validateOpenApi(spec) {
         check(resolved.content?.["application/json"]?.schema?.$ref === "#/components/schemas/Error", `${label} must use the JSON Error schema.`);
         check(resolved.headers?.["X-Request-Id"]?.$ref === "#/components/headers/RequestId", `${label} must document the X-Request-Id header.`);
         if (status === "401") check(resolved.headers?.["WWW-Authenticate"]?.schema?.const === 'Bearer realm="lalgeo-maps-api"', `${label} must document the bearer challenge.`);
+        if (status === "403") {
+          check(
+            resolved.headers?.["WWW-Authenticate"]?.schema?.const === 'Bearer realm="lalgeo-maps-api", error="insufficient_scope", scope="maps:write"',
+            `${label} must document the scoped bearer challenge.`,
+          );
+        }
         errorResponseCount += 1;
       }
 
@@ -678,6 +707,7 @@ async function verifyUnauthorized(options) {
   check(result.headers.get("access-control-allow-origin") === options.origin, `Unauthenticated maps request must allow origin ${options.origin}.`);
   expectVaryOrigin(result, "Unauthenticated maps request");
   expectRequestIdExposed(result, "Unauthenticated maps request");
+  check(headerTokens(result, "access-control-expose-headers").includes("www-authenticate"), "Unauthenticated maps request must expose WWW-Authenticate to browser clients.");
 
   const payload = parseJsonResponse(result, "Unauthenticated maps request");
   check(isObject(payload) && isObject(payload.error), "Unauthenticated maps request must return a JSON error object.");

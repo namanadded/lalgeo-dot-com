@@ -53,7 +53,7 @@ The MCP endpoint is `http://127.0.0.1:3000/mcp`, and `GET /health` is available 
 - `HOST` (default `127.0.0.1`)
 - `LALGEO_API_BASE_URL` (default `https://api.lalgeo.com`; useful for local API verification)
 
-Keep `LALGEO_API_KEY` in the process environment. Do not commit it or put it in ChatGPT prompts.
+Keep `LALGEO_API_KEY` in the process environment. The MCP authoring flow needs an unexpired key with both `maps:read` and `maps:write`: its tools create and update resources, export maps, and issue one-time open links. A read-only key can export through the underlying API but cannot complete the MCP creation or **Open in LalGeo** journey. Rotate the environment value before its configured expiry. Do not commit it or put it in ChatGPT prompts.
 
 `MAPKIT_TOKEN` is the existing Apple Maps authorization token used by LalGeo's MapKit search integration. Keep it in the process environment as well.
 

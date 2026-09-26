@@ -12,21 +12,21 @@ Maps is part of the existing production API stack:
 - canonical Maps hostname: `https://api.lalgeo.com`
 - existing Survey/SaaS hostname: `lalgeo-saas-api.namanadded.workers.dev`
 
-The combined Worker enforces the canonical hostname's HTTPS and HSTS policy before routing, then imports `lalgeo-maps-api/src/index.ts`. Requests for Maps discovery and `/v1/maps` are routed to that implementation; all other routes retain the existing SaaS behavior. The custom domain and database already exist. Do not deploy the standalone `lalgeo-maps-api/wrangler.jsonc`, create a `lalgeo-maps` production database, or move DNS during a routine release.
+The combined Worker enforces the canonical hostname's HTTPS and HSTS policy before routing, then imports `lalgeo-maps-api/src/index.ts`. Requests for Maps discovery, `/v1/maps`, and `/v1/map-open/redeem` are routed to that implementation; all other routes retain the existing SaaS behavior. The custom domain and database already exist. Do not deploy the standalone `lalgeo-maps-api/wrangler.jsonc`, create a `lalgeo-maps` production database, or move DNS during a routine release.
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-23 UTC.
+Last read-only canonical check: 2026-09-26 UTC.
 
 - `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, valid TLS, one-year HSTS, `no-store`, and a request ID. Plain HTTP returned an exact bodyless 308 to HTTPS.
-- `/v1/openapi.json` returned the valid 1.0.1 predecessor contract from `origin/main`: 20 unique operations, 15 JSON success schemas, and five bodyless HEAD/DELETE successes. This release's canonical contract has 22 unique operations and 17 JSON success schemas; the read-only verifier must stop at contract parity until that exact document is deployed. Public `HEAD` remains bodyless.
+- `/v1/openapi.json` returned the valid live 1.1.0 contract from `origin/main` commit `4240528`: 22 unique operations, 17 JSON success schemas, five bodyless HEAD/DELETE successes, and 87 documented failures. Its complete read-only production verifier passed against the canonical hostname. This release advances the repository contract to 1.2.0 with scoped-key metadata and 97 documented failures, so its stricter verifier must stop at contract parity until the shared Worker is deployed. Public `HEAD` remained bodyless.
 - Missing and synthetic invalid bearer credentials returned the documented JSON `401 UNAUTHORIZED` response and bearer challenge without disclosing a secret.
 - CORS allowed `https://maps.lalgeo.com`, exposed `X-Request-Id` to that origin, and did not allow an untrusted origin.
 - The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
 - Snapshot API source is now on `main` through [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151). Its anonymous-create, immutable sharing contract remains separate from this private Authoring API handoff; smoke-test both surfaces after deploying the shared Worker.
-- The one-time Authoring API → Maps handoff is not live: production exposes neither `/v1/maps/{mapId}/open-links` nor `/v1/map-open/redeem`, and the deployed Maps bundle has no fragment-redemption client. This branch's stricter verifier passes transport and health, then intentionally stops at the former OpenAPI contract until this document, Maps UI, Worker code, and both matching migration chains are deployed.
+- The live contract and shared Worker architecture include authenticated `/v1/maps/{mapId}/open-links` issuance and public `/v1/map-open/redeem`, and the deployed Maps client includes the fragment-redemption journey. The read-only check proved discovery and authentication boundaries only: no production authoring key was available, so a positive issue/redeem/open/edit/export handoff remains unverified.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-23 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-26 check, and a read-only verifier intentionally cannot repeat that proof or validate the positive handoff. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
 
 ## 1. Prove the repository state
 
@@ -68,7 +68,7 @@ Before changing anything, record the current Worker version, confirm the D1 bind
 The secrets have separate responsibilities:
 
 - `D1_API_KEY` protects existing non-Maps routes with `X-LalGeo-API-Key` and is mirrored to Netlify as `LALGEO_SAAS_API_KEY`.
-- `LALGEO_MAPS_API_KEYS` is a complete JSON map of SHA-256 bearer-key hashes to Maps owner IDs.
+- `LALGEO_MAPS_API_KEYS` is the complete Maps key document. Each new hash maps to an expiring descriptor containing `owner_id`, `scopes`, and `expires_at`; legacy hash-to-owner strings remain full-access compatibility entries.
 
 Do not replace one with the other.
 
@@ -85,9 +85,9 @@ Never create a replacement database as part of a release. Maps migrations must r
 
 For this release, confirm `0005_map_open_links.sql` matches the standalone `lalgeo-maps-api/migrations/0002_map_open_links.sql`: the table contains the SHA-256 `token_hash`, owner and map IDs, expiry and creation timestamps, but never a raw capability. The owner/map foreign key must cascade when its API map is deleted.
 
-## 4. Provision or rotate a Maps key when required
+## 4. Prepare a scoped Maps key when required
 
-Skip this step when the current keys remain valid. The Worker secret cannot be read back, so the password-manager copy of the complete hash-to-owner document is the source of truth.
+Skip this step when the current keys remain valid. The Worker secret cannot be read back, so the password-manager copy of the complete key document is the source of truth.
 
 Generate a raw key only in a secure owner terminal:
 
@@ -97,18 +97,31 @@ LALGEO_NEW_KEY_HASH="$(printf %s "$LALGEO_NEW_RAW_KEY" | shasum -a 256 | awk '{p
 printf 'raw key: %s\nhash: %s\n' "$LALGEO_NEW_RAW_KEY" "$LALGEO_NEW_KEY_HASH"
 ```
 
-Store the raw key in the password manager. Add its hash and owner ID to the complete existing JSON document, then upload that full document when Wrangler prompts:
+Store the raw key in the password manager. Add only its hash to the complete existing JSON document, using an expiring descriptor:
+
+```json
+{
+  "<sha256-of-raw-api-key>": {
+    "owner_id": "owner_demo",
+    "scopes": ["maps:read", "maps:write"],
+    "expires_at": "2026-12-31T23:59:59Z"
+  }
+}
+```
+
+`owner_id` must be non-empty and have no leading or trailing whitespace. `scopes` must be either `["maps:read"]` for read-only access or `["maps:read", "maps:write"]` for read/write access, without duplicates. `expires_at` must be a future RFC3339 timestamp. `maps:read` permits protected `GET` routes, including export. `maps:write` additionally permits protected `POST`, `PATCH`, and `DELETE` routes, including one-time open-link issuance. Write-only descriptors fail closed because update responses and map-open handoffs can reveal existing map data. Health, OpenAPI discovery, and capability redemption remain public.
+
+Legacy `"<hash>": "owner_id"` entries retain full read/write access during migration. Do not issue new legacy entries; replace them with scoped descriptors during a controlled rotation. Save the complete proposed document in the password manager, then clear the terminal variables:
 
 ```sh
-npx wrangler secret put LALGEO_MAPS_API_KEYS
 unset LALGEO_NEW_KEY_HASH LALGEO_NEW_RAW_KEY
 ```
 
-Uploading only the new entry would revoke every omitted key. For rotation, deploy a document containing both old and new hashes, verify the new key, then deploy a second complete document without the old hash. Never paste a raw key into source, configuration, a PR, an issue, logs, or chat.
+Do not upload a descriptor while production still serves contract 1.1.0: that Worker understands only legacy string values. The first scoped-key rollout must deploy and verify the backward-compatible 1.2.0 Worker with the existing legacy document unchanged, then activate descriptors in step 6. Expired keys return the same `401 UNAUTHORIZED` response as invalid keys. A read-only key used for a write returns `403 INSUFFICIENT_SCOPE`; a matched malformed descriptor fails closed with `503 AUTH_NOT_CONFIGURED`. Never paste a raw key into source, configuration, a PR, an issue, logs, or chat.
 
 ## 5. Deploy the combined Worker
 
-Build once more without publishing, then deploy only `lalgeo-saas-api`:
+Build once more without publishing, then deploy only `lalgeo-saas-api`. Keep the existing legacy key document unchanged for this deployment; the new Worker accepts it with full access.
 
 ```sh
 npm run deploy:dry-run
@@ -126,15 +139,38 @@ cd ../lalgeo-maps-api
 npm run verify:production
 ```
 
-The verifier sends only credential-free `GET`, `HEAD`, and `OPTIONS` requests. It validates the 22-operation/17-success-schema contract for the public redemption exchange but deliberately does not issue or redeem a capability. It requires exact bodyless `308` redirects for both Maps and non-Maps paths on the shared hostname, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, and the complete JSON/OpenAPI/auth/CORS contract. It must pass without `--insecure`, following redirects, a custom host header, response overrides, or fallback HTML.
+The verifier sends only credential-free `GET`, `HEAD`, and `OPTIONS` requests. It validates the 1.2.0, 22-operation/17-success-schema/97-failure scoped contract for the public redemption exchange but deliberately does not issue or redeem a capability. It requires exact bodyless `308` redirects for both Maps and non-Maps paths on the shared hostname, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs and bearer challenges, and the complete JSON/OpenAPI/auth/CORS contract. It must pass without `--insecure`, following redirects, a custom host header, response overrides, or fallback HTML.
+
+Only after that verifier passes should an owner activate a prepared descriptor. From `lalgeo-saas-api`, upload the complete document containing every retained legacy entry plus the new descriptor:
+
+```sh
+npx wrangler secret put LALGEO_MAPS_API_KEYS
+```
+
+Uploading only the new entry would revoke every omitted key. Retrieve the new raw key from the password manager without putting it in shell history, prove that it is unexpired and has `maps:read`, and clear it from the shell:
+
+```sh
+printf 'LalGeo API key: ' >&2
+IFS= read -r -s LALGEO_API_KEY
+printf '\n' >&2
+curl --fail-with-body https://api.lalgeo.com/v1/maps \
+  -H "Authorization: Bearer $LALGEO_API_KEY"
+unset LALGEO_API_KEY
+```
+
+That list request cannot prove the configured `owner_id` when the intended workspace is empty, and it does not test `maps:write`. Review `owner_id` against the password-manager source of truth; step 7 proves write access and the complete synthetic journey. If the workspace has a retained synthetic probe map, a direct `GET` for that known ID can additionally confirm the owner binding without inspecting real user data.
+
+For rotation, keep both old and new hashes until the new key passes its intended read/write journey, then upload a second complete document without the retired hash. Retain at least one controlled legacy compatibility key until the rollback window closes, because a pre-1.2.0 Worker cannot interpret descriptor values.
 
 ## 7. Accept with one synthetic map
 
-This step writes a synthetic record to production and deletes it. Run it only as the owner, after the read-only verifier passes, using a dedicated acceptance key when possible.
+This step writes a synthetic record to production and deletes it. Run it only as the owner, after the read-only verifier passes, using a dedicated, unexpired acceptance key with both `maps:read` and `maps:write` when possible.
 
 ```sh
 LALGEO_API_BASE="https://api.lalgeo.com"
-LALGEO_API_KEY="REPLACE_WITH_ACCEPTANCE_KEY"
+printf 'LalGeo acceptance API key: ' >&2
+IFS= read -r -s LALGEO_API_KEY
+printf '\n' >&2
 LALGEO_ACCEPTANCE_MAP="owner_acceptance_YYYYMMDD"
 
 curl --fail-with-body "$LALGEO_API_BASE/v1/maps" \
@@ -187,17 +223,17 @@ Also smoke-test one existing Survey/SaaS journey so the shared deployment cannot
 
 ## Rollback
 
-Keep the custom domain and D1 binding in place. Roll the shared Worker back to the version recorded before deployment:
+Keep the custom domain and D1 binding in place. If descriptor entries were activated and the rollback target predates 1.2.0, first use the still-running 1.2.0 Worker to restore the password-manager copy of the complete pre-release legacy key document, then verify its controlled legacy key. Never roll an older Worker back while descriptor-only credentials are the sole access path.
+
+Roll the shared Worker back to the version recorded before deployment:
 
 ```sh
 cd lalgeo-saas-api
 npx wrangler versions list
 npx wrangler rollback REPLACE_WITH_LAST_GOOD_VERSION --message "Rollback shared API release"
-cd ../lalgeo-maps-api
-npm run verify:production
 ```
 
-The Maps tables are additive and can remain unused after a Worker rollback. Clients that have observed HSTS will continue upgrading this hostname to HTTPS for up to one year, so every rollback target must remain HTTPS-compatible. Do not improvise a down migration, delete shared D1 data, restore the former Netlify DNS target, or detach the custom domain.
+Run the read-only production verifier from the recorded rollback release checkout. The 1.2.0 verifier in this release will deliberately reject the older 1.1.0 document, so that expected contract mismatch is not an outage signal after an intentional rollback. The Maps tables are additive and can remain unused after a Worker rollback. Clients that have observed HSTS will continue upgrading this hostname to HTTPS for up to one year, so every rollback target must remain HTTPS-compatible. Do not improvise a down migration, delete shared D1 data, restore the former Netlify DNS target, or detach the custom domain.
 
 ## Acceptance record
 
@@ -209,4 +245,4 @@ Attach these items to the release review:
 - canonical read-only verifier output;
 - one-time link fragment scrub/confirmation/open/edit/export/reopen, reuse rejection, server-unchanged proof, and delete response;
 - one existing Survey/SaaS smoke result;
-- risk notes, rollback version, and the operator who retained the credential source of truth.
+- acceptance-key scopes and expiry, risk notes, rollback version, and the operator who retained the credential source of truth.

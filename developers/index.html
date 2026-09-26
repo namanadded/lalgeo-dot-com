@@ -72,7 +72,7 @@
     <p class="eyebrow">Private authoring API · v1</p>
     <h1>Maps that agents<br>can keep building.</h1>
     <p class="lede">Privately create and revise an owner-scoped map, organize it into geometry-safe layers, add standard GeoJSON, and open an editable copy in LalGeo Maps without sharing the bearer key.</p>
-    <div class="status"><span class="dot"></span>Bearer-authenticated authoring + one-time handoff</div>
+    <div class="status"><span class="dot"></span>Scoped, expiring authoring keys + one-time handoff</div>
 
     <div class="grid">
       <div>
@@ -89,7 +89,7 @@
             <article class="api-choice current">
               <p class="choice-label">Private authoring</p>
               <h3>Keep building a map</h3>
-              <p>A bearer key unlocks owner-scoped create, read, update, delete, and portable export.</p>
+              <p>An expiring bearer key grants owner-scoped read access and, only when needed, write operations.</p>
               <a class="choice-link" href="mailto:lalgeospatial@outlook.com?subject=LalGeo%20Maps%20Authoring%20API%20access">Request an authoring key&nbsp; →</a>
             </article>
           </div>
@@ -167,7 +167,7 @@ layers/places/features \
 
         <section>
           <h2>Designed for safe automation</h2>
-          <p>Every authoring route uses an operator-provisioned bearer API key over enforced HTTPS. The public redemption route accepts only a short-lived, single-use map capability; the bearer key never reaches Maps or the link. The service stores only SHA-256 hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Authentication failures include a bearer challenge; errors return stable codes and a browser-readable request ID.</p>
+          <p>New authoring keys are operator-provisioned, scoped, and expiring, and every authoring route enforces HTTPS. Every scoped key includes <code>maps:read</code> for protected GET requests and export; add <code>maps:write</code> only when the key must POST, PATCH, DELETE, or create a one-time open link. Write access is never issued without read access because update responses and map handoffs contain existing map data. Existing full-access keys remain compatible during controlled rotation. Missing, invalid, and expired keys share the same <code>401</code> response. A read-only key used for a write receives <code>403 INSUFFICIENT_SCOPE</code>. The public redemption route accepts only a short-lived, single-use map capability; the bearer key never reaches Maps or the link. The service stores only SHA-256 hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Errors return stable codes and a browser-readable request ID.</p>
         </section>
       </div>
 
@@ -175,12 +175,12 @@ layers/places/features \
         <div class="card">
           <p class="eyebrow">Authoring access</p>
           <h2>Start with one private workspace.</h2>
-          <p>Authoring keys are provisioned by LalGeo and bound to an owner-scoped workspace. Request access, then give your agent the versioned contract.</p>
+          <p>New authoring keys are provisioned by LalGeo, bound to one owner-scoped workspace, limited to read-only or read/write access, and issued with an expiry. Request access, then give your agent the versioned contract.</p>
           <a class="button" href="mailto:lalgeospatial@outlook.com?subject=LalGeo%20Maps%20Authoring%20API%20access">Request an authoring key&nbsp; →</a>
           <a class="secondary-link" href="https://api.lalgeo.com/v1/openapi.json">Open API specification&nbsp; →</a>
           <p class="note">Availability is proven only when this URL returns JSON over valid TLS and the health check reports <code>lalgeo-maps-api</code>. A website or fallback page does not count.</p>
           <h3>Base URL</h3><code>https://api.lalgeo.com</code>
-          <h3>Authentication</h3><code>Authorization: Bearer &lt;key&gt;</code>
+          <h3>Authentication</h3><code>Authorization: Bearer &lt;scoped-key&gt;</code>
         </div>
       </aside>
     </div>

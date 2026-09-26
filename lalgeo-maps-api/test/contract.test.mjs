@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { REQUIRED_ERROR_RESPONSES, validateOpenApi } from "../scripts/verify-production.mjs";
+import { REQUIRED_ERROR_RESPONSES, REQUIRED_OPERATION_SCOPES, validateOpenApi } from "../scripts/verify-production.mjs";
 
 const spec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
 const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
@@ -16,7 +16,7 @@ test("OpenAPI exposes the complete canonical operation set", () => {
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 87,
+    errorResponseCount: 97,
   });
   const ids = Object.values(spec.paths).flatMap((path) => Object.values(path).map((operation) => operation?.operationId).filter(Boolean));
   assert.equal(new Set(ids).size, ids.length);
@@ -29,7 +29,7 @@ test("OpenAPI exposes the complete canonical operation set", () => {
 
 test("authoring discovery distinguishes API privacy and provides a key access path", () => {
   assert.equal(spec.info.title, "LalGeo Maps Authoring API");
-  assert.equal(spec.info.version, "1.1.0");
+  assert.equal(spec.info.version, "1.2.0");
   assert.match(spec.info.description, /owner-scoped/);
   assert.match(spec.info.description, /bearer-authenticated authoring API/);
   assert.match(spec.info.description, /https:\/\/maps\.lalgeo\.com\/api-docs/);
@@ -224,11 +224,46 @@ test("standalone and combined migrations store only owner-scoped capability hash
   }
 });
 
-test("authentication failures advertise the bearer challenge", () => {
+test("scoped authentication is exhaustive, expiring, and backward compatible", () => {
   assert.match(worker, /WWW-Authenticate/);
-  assert.match(worker, /Bearer realm=["']lalgeo-maps-api/);
+  assert.match(worker, /BEARER_REALM = ["']lalgeo-maps-api["']/);
+  assert.match(worker, /Bearer realm="\$\{BEARER_REALM\}"/);
   const unauthorized = spec.components.responses.Unauthorized;
   assert.equal(unauthorized.headers["WWW-Authenticate"].schema.const, 'Bearer realm="lalgeo-maps-api"');
+  assert.match(spec.components.responses.Forbidden.description, /INSUFFICIENT_SCOPE/);
+  assert.match(spec.components.responses.Forbidden.headers["WWW-Authenticate"].schema.const, /insufficient_scope/);
+  assert.ok(spec.components.schemas.Error.properties.error.properties.code.enum.includes("INSUFFICIENT_SCOPE"));
+
+  const documentedScopes = {};
+  for (const pathItem of Object.values(spec.paths)) {
+    for (const operation of Object.values(pathItem)) {
+      if (operation?.["x-lalgeo-required-scope"]) {
+        documentedScopes[operation.operationId] = operation["x-lalgeo-required-scope"];
+      }
+    }
+  }
+  assert.deepEqual(documentedScopes, REQUIRED_OPERATION_SCOPES);
+  const runtimeScopeMap = worker.slice(
+    worker.indexOf("const PROTECTED_OPERATION_SCOPES"),
+    worker.indexOf("type ProtectedOperation"),
+  );
+  for (const [operationId, scope] of Object.entries(REQUIRED_OPERATION_SCOPES)) {
+    assert.match(runtimeScopeMap, new RegExp(`${operationId}: ["']${scope}["']`));
+  }
+  assert.match(worker, /typeof configured === ["']string["']/);
+  assert.match(worker, /descriptor\.expires_at/);
+  assert.match(worker, /function rfc3339Millis/);
+  assert.match(worker, /!descriptor\.scopes\.includes\(["']maps:read["']\)/);
+  assert.match(worker, /descriptor\.owner_id !== descriptor\.owner_id\.trim\(\)/);
+  assert.match(worker, /Object\.hasOwn\(keys, keyHash\)/);
+  assert.match(worker, /if \(!operation\) throw new ApiError\(404, ["']NOT_FOUND["']/);
+  assert.match(worker, /Access-Control-Expose-Headers["']?: ["']X-Request-Id, WWW-Authenticate/);
+  assert.match(developerGuide, /maps:read/);
+  assert.match(developerGuide, /maps:write/);
+  assert.match(developerGuide, /INSUFFICIENT_SCOPE/);
+  assert.match(readme, /supported profiles are read-only/);
+  assert.match(readme, /Write-only descriptors fail closed/);
+  assert.match(readme, /Legacy hash-to-owner string entries remain accepted with full read\/write access/);
 });
 
 test("canonical transport and public diagnostics stay hardened", () => {
@@ -276,7 +311,7 @@ test("every fallible route advertises its actual errors and every response has a
       }
     }
   }
-  assert.equal(documented.size, 87);
+  assert.equal(documented.size, 97);
   assert.equal(spec.components.responses.Conflict.description.includes("Idempotency-Key replay is not supported"), true);
   assert.equal(Object.hasOwn(spec.components.responses, "TooManyRequests"), false);
 });

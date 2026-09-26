@@ -8,7 +8,8 @@ interface Env {
 
 type JsonObject = Record<string, unknown>;
 type GeometryType = "Point" | "LineString" | "Polygon";
-type Auth = { ownerId: string };
+type ApiScope = "maps:read" | "maps:write";
+type Auth = { ownerId: string; scopes: ReadonlySet<ApiScope> };
 
 class ApiError extends Error {
   constructor(public status: number, public code: string, message: string, public details?: unknown) {
@@ -27,6 +28,28 @@ const OPEN_LINK_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 const CANONICAL_HOSTNAME = "api.lalgeo.com";
 const MAPS_OPEN_URL = "https://maps.lalgeo.com/maps";
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
+const BEARER_REALM = "lalgeo-maps-api";
+const API_SCOPES = new Set<ApiScope>(["maps:read", "maps:write"]);
+const PROTECTED_OPERATION_SCOPES = {
+  listMaps: "maps:read",
+  createMap: "maps:write",
+  getMap: "maps:read",
+  updateMap: "maps:write",
+  deleteMap: "maps:write",
+  exportMap: "maps:read",
+  createMapOpenLink: "maps:write",
+  listLayers: "maps:read",
+  createLayer: "maps:write",
+  getLayer: "maps:read",
+  updateLayer: "maps:write",
+  deleteLayer: "maps:write",
+  listFeatures: "maps:read",
+  createFeatures: "maps:write",
+  getFeature: "maps:read",
+  updateFeature: "maps:write",
+  deleteFeature: "maps:write",
+} as const satisfies Record<string, ApiScope>;
+type ProtectedOperation = keyof typeof PROTECTED_OPERATION_SCOPES;
 
 function response(data: unknown, status = 200, headers: HeadersInit = {}) {
   return new Response(JSON.stringify(data), {
@@ -128,6 +151,27 @@ async function sha256(value: string) {
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function rfc3339Millis(value: unknown) {
+  if (typeof value !== "string") return null;
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([Zz]|[+-](\d{2}):(\d{2}))$/);
+  if (!match) return null;
+  const [, year, month, day, hour, minute, second, , offsetHour, offsetMinute] = match;
+  const parts = [year, month, day, hour, minute, second].map(Number);
+  const calendarSecond = Math.min(parts[5], 59);
+  const calendar = new Date(0);
+  calendar.setUTCFullYear(parts[0], parts[1] - 1, parts[2]);
+  calendar.setUTCHours(parts[3], parts[4], calendarSecond, 0);
+  if (calendar.getUTCFullYear() !== parts[0] || calendar.getUTCMonth() !== parts[1] - 1 ||
+      calendar.getUTCDate() !== parts[2] || calendar.getUTCHours() !== parts[3] ||
+      calendar.getUTCMinutes() !== parts[4] || calendar.getUTCSeconds() !== calendarSecond || parts[5] > 60 ||
+      (offsetHour !== undefined && (Number(offsetHour) > 23 || Number(offsetMinute) > 59))) return null;
+  const normalized = (parts[5] === 60
+    ? value.replace(/:60(?=(?:\.\d+)?(?:[Zz]|[+-]\d{2}:\d{2})$)/, ":59")
+    : value).replace("t", "T").replace(/z$/, "Z");
+  const milliseconds = Date.parse(normalized);
+  return Number.isFinite(milliseconds) ? milliseconds + (parts[5] === 60 ? 1_000 : 0) : null;
+}
+
 function openLinkToken() {
   const bytes = crypto.getRandomValues(new Uint8Array(32));
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
@@ -140,12 +184,64 @@ function openLinkUnavailable(): never {
 async function authenticate(req: Request, env: Env): Promise<Auth> {
   const match = req.headers.get("authorization")?.match(/^Bearer\s+(.+)$/i);
   if (!match) throw new ApiError(401, "UNAUTHORIZED", "Send an API key using Authorization: Bearer <key>.");
-  let keys: Record<string, string>;
+  let keys: unknown;
   try { keys = JSON.parse(env.LALGEO_MAPS_API_KEYS || "{}"); }
   catch { throw new ApiError(503, "AUTH_NOT_CONFIGURED", "API authentication is not configured."); }
-  const ownerId = keys[await sha256(match[1])];
-  if (!ownerId) throw new ApiError(401, "UNAUTHORIZED", "The API key is invalid.");
-  return { ownerId };
+  if (!keys || typeof keys !== "object" || Array.isArray(keys)) {
+    throw new ApiError(503, "AUTH_NOT_CONFIGURED", "API authentication is not configured.");
+  }
+
+  const keyHash = await sha256(match[1]);
+  if (!Object.hasOwn(keys, keyHash)) throw new ApiError(401, "UNAUTHORIZED", "The API key is invalid.");
+  const configured = (keys as Record<string, unknown>)[keyHash];
+
+  // Legacy hash-to-owner entries retain full access so existing keys keep working.
+  if (typeof configured === "string" && configured) {
+    return { ownerId: configured, scopes: new Set(API_SCOPES) };
+  }
+  if (!configured || typeof configured !== "object" || Array.isArray(configured)) {
+    throw new ApiError(503, "AUTH_NOT_CONFIGURED", "API authentication is not configured.");
+  }
+
+  const descriptor = configured as JsonObject;
+  if (typeof descriptor.owner_id !== "string" || !descriptor.owner_id.trim() ||
+      descriptor.owner_id !== descriptor.owner_id.trim() ||
+      !Array.isArray(descriptor.scopes) || descriptor.scopes.length === 0 ||
+      descriptor.scopes.some((scope) => typeof scope !== "string" || !API_SCOPES.has(scope as ApiScope)) ||
+      new Set(descriptor.scopes).size !== descriptor.scopes.length ||
+      !descriptor.scopes.includes("maps:read")) {
+    throw new ApiError(503, "AUTH_NOT_CONFIGURED", "API authentication is not configured.");
+  }
+  const expiresAt = rfc3339Millis(descriptor.expires_at);
+  if (expiresAt === null) throw new ApiError(503, "AUTH_NOT_CONFIGURED", "API authentication is not configured.");
+  if (expiresAt <= Date.now()) {
+    throw new ApiError(401, "UNAUTHORIZED", "The API key is invalid.");
+  }
+  return { ownerId: descriptor.owner_id, scopes: new Set(descriptor.scopes as ApiScope[]) };
+}
+
+function requireScope(auth: Auth, scope: ApiScope) {
+  if (!auth.scopes.has(scope)) {
+    throw new ApiError(403, "INSUFFICIENT_SCOPE", `This API key requires the ${scope} scope.`, { required_scope: scope });
+  }
+}
+
+function protectedOperation(method: string, path: string): ProtectedOperation | null {
+  if (path === "/v1/maps") return method === "GET" ? "listMaps" : method === "POST" ? "createMap" : null;
+  if (/^\/v1\/maps\/[^/]+\/export$/.test(path)) return method === "GET" ? "exportMap" : null;
+  if (/^\/v1\/maps\/[^/]+\/open-links$/.test(path)) return method === "POST" ? "createMapOpenLink" : null;
+  if (/^\/v1\/maps\/[^/]+\/layers$/.test(path)) return method === "GET" ? "listLayers" : method === "POST" ? "createLayer" : null;
+  if (/^\/v1\/maps\/[^/]+\/layers\/[^/]+\/features$/.test(path)) return method === "GET" ? "listFeatures" : method === "POST" ? "createFeatures" : null;
+  if (/^\/v1\/maps\/[^/]+\/layers\/[^/]+\/features\/[^/]+$/.test(path)) {
+    return method === "GET" ? "getFeature" : method === "PATCH" ? "updateFeature" : method === "DELETE" ? "deleteFeature" : null;
+  }
+  if (/^\/v1\/maps\/[^/]+\/layers\/[^/]+$/.test(path)) {
+    return method === "GET" ? "getLayer" : method === "PATCH" ? "updateLayer" : method === "DELETE" ? "deleteLayer" : null;
+  }
+  if (/^\/v1\/maps\/[^/]+$/.test(path)) {
+    return method === "GET" ? "getMap" : method === "PATCH" ? "updateMap" : method === "DELETE" ? "deleteMap" : null;
+  }
+  return null;
 }
 
 function cors(req: Request, env: Env): Record<string, string> {
@@ -157,7 +253,7 @@ function cors(req: Request, env: Env): Record<string, string> {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Authorization, Content-Type",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Expose-Headers": "X-Request-Id",
+    "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
@@ -354,6 +450,9 @@ async function redeemOpenLink(req: Request, env: Env) {
 
 async function route(req: Request, env: Env, auth: Auth, url: URL) {
   const path = url.pathname;
+  const operation = protectedOperation(req.method, path);
+  if (!operation) throw new ApiError(404, "NOT_FOUND", "Endpoint not found.");
+  requireScope(auth, PROTECTED_OPERATION_SCOPES[operation]);
   const mapMatch = path.match(/^\/v1\/maps\/([^/]+)$/);
   const exportMatch = path.match(/^\/v1\/maps\/([^/]+)\/export$/);
   const openLinkMatch = path.match(/^\/v1\/maps\/([^/]+)\/open-links$/);
@@ -455,9 +554,12 @@ export default {
       return new Response(result.body, { status: result.status, headers: outgoing });
     } catch (error) {
       if (error instanceof ApiError) {
+        const requiredScope = (error.details as { required_scope?: string } | undefined)?.required_scope;
         const errorHeaders = error.status === 401
-          ? { ...headers, "WWW-Authenticate": 'Bearer realm="lalgeo-maps-api"' }
-          : headers;
+          ? { ...headers, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}"` }
+          : error.status === 403 && requiredScope
+            ? { ...headers, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}", error="insufficient_scope", scope="${requiredScope}"` }
+            : headers;
         return response({ error: { code: error.code, message: error.message, details: error.details }, request_id: requestId }, error.status, errorHeaders);
       }
       if (error instanceof Error && /UNIQUE constraint failed/.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, headers);

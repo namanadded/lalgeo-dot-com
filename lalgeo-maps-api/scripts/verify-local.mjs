@@ -15,6 +15,17 @@ export const DEFAULT_WORKER_DIRECTORY = path.resolve(path.dirname(fileURLToPath(
 export const DEFAULT_DATABASE = "lalgeo-maps";
 export const DEFAULT_REQUEST_HOSTNAME = null;
 const localApiKey = "lalgeo_synthetic_runtime_key";
+const localReadApiKey = "lalgeo_synthetic_read_key";
+const localLegacyApiKey = "lalgeo_synthetic_legacy_key";
+const localExpiredApiKey = "lalgeo_synthetic_expired_key";
+const localInvalidScopeApiKey = "lalgeo_synthetic_invalid_scope_key";
+const localWriteOnlyApiKey = "lalgeo_synthetic_write_only_key";
+const localMissingExpiryApiKey = "lalgeo_synthetic_missing_expiry_key";
+const localInvalidDateApiKey = "lalgeo_synthetic_invalid_date_key";
+const localInvalidTimeApiKey = "lalgeo_synthetic_invalid_time_key";
+const localWhitespaceOwnerApiKey = "lalgeo_synthetic_whitespace_owner_key";
+const localLowercaseExpiryApiKey = "lalgeo_synthetic_lowercase_expiry_key";
+const localLeapSecondExpiryApiKey = "lalgeo_synthetic_leap_second_expiry_key";
 const localOwner = "owner_synthetic_runtime";
 const allowedOrigin = "https://maps.lalgeo.com";
 const checks = [];
@@ -93,6 +104,14 @@ export function createErrorResponseValidator(spec) {
       assert.equal(payload.request_id, response.headers.get("x-request-id"), `${operationId}:${response.status} request_id must match X-Request-Id`);
       assert.equal(response.headers.get("cache-control"), "no-store");
       if (response.status === 401) assert.equal(response.headers.get("www-authenticate"), 'Bearer realm="lalgeo-maps-api"');
+      if (response.status === 403) {
+        const requiredScope = payload.error?.details?.required_scope;
+        assert.ok(["maps:read", "maps:write"].includes(requiredScope));
+        assert.equal(
+          response.headers.get("www-authenticate"),
+          `Bearer realm="lalgeo-maps-api", error="insufficient_scope", scope="${requiredScope}"`,
+        );
+      }
       return payload;
     },
   };
@@ -301,8 +320,22 @@ async function main({ workerDirectory, database, requestHostname }) {
   const port = await availablePort();
   assert.ok(port, "could not reserve a loopback port");
   const baseUrl = `http://127.0.0.1:${port}`;
-  const keyHash = createHash("sha256").update(localApiKey).digest("hex");
-  const bindings = JSON.stringify({ [keyHash]: localOwner });
+  const keyHash = (key) => createHash("sha256").update(key).digest("hex");
+  const futureExpiry = "2099-12-31T23:59:59Z";
+  const bindings = JSON.stringify({
+    [keyHash(localApiKey)]: { owner_id: localOwner, scopes: ["maps:read", "maps:write"], expires_at: futureExpiry },
+    [keyHash(localReadApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: futureExpiry },
+    [keyHash(localLegacyApiKey)]: localOwner,
+    [keyHash(localExpiredApiKey)]: { owner_id: localOwner, scopes: ["maps:read", "maps:write"], expires_at: "2000-01-01T00:00:00Z" },
+    [keyHash(localInvalidScopeApiKey)]: { owner_id: localOwner, scopes: ["maps:admin"], expires_at: futureExpiry },
+    [keyHash(localWriteOnlyApiKey)]: { owner_id: localOwner, scopes: ["maps:write"], expires_at: futureExpiry },
+    [keyHash(localMissingExpiryApiKey)]: { owner_id: localOwner, scopes: ["maps:read"] },
+    [keyHash(localInvalidDateApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: "2099-02-30T00:00:00Z" },
+    [keyHash(localInvalidTimeApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: "2099-01-01T24:00:00Z" },
+    [keyHash(localWhitespaceOwnerApiKey)]: { owner_id: ` ${localOwner}`, scopes: ["maps:read"], expires_at: futureExpiry },
+    [keyHash(localLowercaseExpiryApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: "2099-12-31t23:59:59z" },
+    [keyHash(localLeapSecondExpiryApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: "2099-12-31T23:59:60Z" },
+  });
   const childEnvironment = {
     ...process.env,
     CI: "true",
@@ -401,7 +434,7 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(publicVerification.operationCount, 22);
     assert.equal(publicVerification.successSchemaCount, 17);
     assert.equal(publicVerification.bodylessSuccessCount, 5);
-    assert.equal(publicVerification.errorResponseCount, 87);
+    assert.equal(publicVerification.errorResponseCount, 97);
     const healthSchemaResponse = await request(baseUrl, "/v1/health");
     assert.equal(healthSchemaResponse.status, 200);
     if (requestHostname) assert.equal(healthSchemaResponse.headers.get("strict-transport-security"), "max-age=31536000");
@@ -416,9 +449,48 @@ async function main({ workerDirectory, database, requestHostname }) {
     record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
+    const readAuthorization = { Authorization: `Bearer ${localReadApiKey}` };
+    const legacyAuthorization = { Authorization: `Bearer ${localLegacyApiKey}` };
     const unauthenticatedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map");
     assert.equal(unauthenticatedMapResponse.status, 401);
     assert.equal((await errorJson(unauthenticatedMapResponse, errorContract, "getMap")).error.code, "UNAUTHORIZED");
+    const expiredKeyResponse = await request(baseUrl, "/v1/maps", {
+      headers: { Authorization: `Bearer ${localExpiredApiKey}` },
+    });
+    assert.equal(expiredKeyResponse.status, 401);
+    assert.equal((await errorJson(expiredKeyResponse, errorContract, "listMaps")).error.code, "UNAUTHORIZED");
+    for (const invalidKey of [
+      localInvalidScopeApiKey, localWriteOnlyApiKey, localMissingExpiryApiKey,
+      localInvalidDateApiKey, localInvalidTimeApiKey, localWhitespaceOwnerApiKey,
+    ]) {
+      const invalidDescriptorResponse = await request(baseUrl, "/v1/maps", {
+        headers: { Authorization: `Bearer ${invalidKey}` },
+      });
+      assert.equal(invalidDescriptorResponse.status, 503);
+      assert.equal((await errorJson(invalidDescriptorResponse, errorContract, "listMaps")).error.code, "AUTH_NOT_CONFIGURED");
+    }
+    for (const validRfc3339Key of [localLowercaseExpiryApiKey, localLeapSecondExpiryApiKey]) {
+      const validDescriptorResponse = await request(baseUrl, "/v1/maps", {
+        headers: { Authorization: `Bearer ${validRfc3339Key}` },
+      });
+      assert.equal(validDescriptorResponse.status, 200);
+      assert.deepEqual((await successJson(validDescriptorResponse, responseContract, "listMaps")).maps, []);
+    }
+    const legacyKeyResponse = await request(baseUrl, "/v1/maps", { headers: legacyAuthorization });
+    assert.equal(legacyKeyResponse.status, 200);
+    assert.deepEqual((await successJson(legacyKeyResponse, responseContract, "listMaps")).maps, []);
+    const legacyCreateResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...legacyAuthorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "legacy_compat_map", name: "Legacy compatibility fixture" }),
+    });
+    assert.equal(legacyCreateResponse.status, 201);
+    assert.equal((await successJson(legacyCreateResponse, responseContract, "createMap")).map.id, "legacy_compat_map");
+    const legacyDeleteResponse = await request(baseUrl, "/v1/maps/legacy_compat_map", {
+      method: "DELETE", headers: legacyAuthorization,
+    });
+    assert.equal(legacyDeleteResponse.status, 204);
+    record("scoped descriptors require read access, accept RFC3339 variants, enforce expiry, and fail closed while legacy owner entries retain full access");
     const invalidMetadataMapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -795,6 +867,67 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(afterOversizedBatchResponse.status, 200);
     assert.deepEqual((await successJson(afterOversizedBatchResponse, responseContract, "listFeatures")).features.map((feature) => feature.id), ["central_library"]);
     record("oversized feature batches return the documented 413 without partial inserts");
+
+    const readOperations = [
+      ["listMaps", "/v1/maps"],
+      ["getMap", "/v1/maps/synthetic_runtime_map"],
+      ["exportMap", "/v1/maps/synthetic_runtime_map/export"],
+      ["listLayers", "/v1/maps/synthetic_runtime_map/layers"],
+      ["getLayer", "/v1/maps/synthetic_runtime_map/layers/places"],
+      ["listFeatures", "/v1/maps/synthetic_runtime_map/layers/places/features"],
+      ["getFeature", "/v1/maps/synthetic_runtime_map/layers/places/features/central_library"],
+    ];
+    for (const [operationId, pathname] of readOperations) {
+      const allowed = await request(baseUrl, pathname, { headers: readAuthorization });
+      assert.equal(allowed.status, 200, operationId);
+      await successJson(allowed, responseContract, operationId);
+    }
+    const writeOperations = [
+      ["createMap", "POST", "/v1/maps"],
+      ["updateMap", "PATCH", "/v1/maps/synthetic_runtime_map"],
+      ["deleteMap", "DELETE", "/v1/maps/synthetic_runtime_map"],
+      ["createMapOpenLink", "POST", "/v1/maps/synthetic_runtime_map/open-links"],
+      ["createLayer", "POST", "/v1/maps/synthetic_runtime_map/layers"],
+      ["updateLayer", "PATCH", "/v1/maps/synthetic_runtime_map/layers/places"],
+      ["deleteLayer", "DELETE", "/v1/maps/synthetic_runtime_map/layers/places"],
+      ["createFeatures", "POST", "/v1/maps/synthetic_runtime_map/layers/places/features"],
+      ["updateFeature", "PATCH", "/v1/maps/synthetic_runtime_map/layers/places/features/central_library"],
+      ["deleteFeature", "DELETE", "/v1/maps/synthetic_runtime_map/layers/places/features/central_library"],
+    ];
+    for (const [operationId, method, pathname] of writeOperations) {
+      const denied = await request(baseUrl, pathname, {
+        method,
+        headers: { ...readAuthorization, "Content-Type": "application/json", Origin: allowedOrigin },
+        ...(method === "POST" || method === "PATCH" ? { body: "{}" } : {}),
+      });
+      assert.equal(denied.status, 403, operationId);
+      const payload = await errorJson(denied, errorContract, operationId);
+      assert.equal(payload.error.code, "INSUFFICIENT_SCOPE");
+      assert.equal(payload.error.details.required_scope, "maps:write");
+      assert.ok((denied.headers.get("access-control-expose-headers") || "").toLowerCase().includes("www-authenticate"));
+    }
+    assert.equal(readOperations.length + writeOperations.length, 17);
+    for (const [operationId, method, pathname] of [
+      ["updateMap", "PATCH", "/v1/maps/synthetic_runtime_map"],
+      ["createMapOpenLink", "POST", "/v1/maps/synthetic_runtime_map/open-links"],
+    ]) {
+      const rejected = await request(baseUrl, pathname, {
+        method,
+        headers: { Authorization: `Bearer ${localWriteOnlyApiKey}`, "Content-Type": "application/json" },
+        body: "{}",
+      });
+      assert.equal(rejected.status, 503, operationId);
+      assert.equal((await errorJson(rejected, errorContract, operationId)).error.code, "AUTH_NOT_CONFIGURED");
+    }
+    const unknownWriteResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/unknown", {
+      method: "POST", headers: readAuthorization,
+    });
+    assert.equal(unknownWriteResponse.status, 404);
+    assert.equal((await json(unknownWriteResponse)).error.code, "NOT_FOUND");
+    const scopedIntegrityResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/central_library", { headers: authorization });
+    assert.equal(scopedIntegrityResponse.status, 200);
+    assert.equal((await successJson(scopedIntegrityResponse, responseContract, "getFeature")).id, "central_library");
+    record("all 17 protected operations enforce read or additive write scope without mutating denied requests or permitting write-only disclosure");
 
     const issueOpenLink = (payload) => request(baseUrl, "/v1/maps/synthetic_runtime_map/open-links", {
       method: "POST",
