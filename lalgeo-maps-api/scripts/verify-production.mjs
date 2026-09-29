@@ -15,6 +15,9 @@ export const AUTHORING_API_TITLE = "LalGeo Maps Authoring API";
 export const AUTHORING_GUIDE_URL = "https://lalgeo.com/developers/";
 export const SNAPSHOT_API_DOCS_URL = "https://maps.lalgeo.com/api-docs";
 export const API_ACCESS_EMAIL = "lalgeospatial@outlook.com";
+export const MAP_OPEN_READINESS_TOKEN = "__lalgeo_map_open_store_probe_v1__";
+export const MAP_OPEN_READINESS_HEADER = "X-LalGeo-Readiness-Probe";
+export const MAP_OPEN_READINESS_VALUE = "map-open-store-v1";
 
 export const REQUIRED_OPERATIONS = Object.freeze({
   "/v1/health": Object.freeze({ get: "getHealth", head: "headHealth" }),
@@ -94,6 +97,7 @@ const MIN_HSTS_MAX_AGE_SECONDS = 31_536_000;
 const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
 const SAFE_REQUEST_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const FORBIDDEN_CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization", "x-api-key", "x-lalgeo-api-key"];
+const MAP_OPEN_READINESS_BODY = JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN });
 
 export class VerificationError extends Error {
   constructor(message) {
@@ -302,7 +306,7 @@ export function usage() {
     `  --origin <url>    Allowed browser origin to verify (default: ${DEFAULT_ORIGIN})`,
     "  --help            Show this help",
     "",
-    "The verifier sends only unauthenticated GET, HEAD, and OPTIONS requests.",
+    "The verifier sends unauthenticated GET, HEAD, and OPTIONS requests plus one reserved, read-only map-open readiness POST.",
   ].join("\n");
 }
 
@@ -315,11 +319,11 @@ function errorReason(error) {
 async function request(baseUrl, pathname, {
   method = "GET",
   headers = {},
+  body,
   fetchImpl,
   timeoutMs,
   allowRedirect = false,
 }) {
-  check(SAFE_REQUEST_METHODS.has(method), `Internal safety check rejected mutating method ${method}.`);
   const target = new URL(pathname, `${baseUrl}/`);
   check(target.origin === baseUrl, "Internal safety check rejected a cross-origin request.");
 
@@ -327,6 +331,15 @@ async function request(baseUrl, pathname, {
   for (const header of FORBIDDEN_CREDENTIAL_HEADERS) {
     check(!outgoing.has(header), `Internal safety check rejected credential header ${header}.`);
   }
+  const isMapOpenReadinessProbe = method === "POST" &&
+    target.pathname === "/v1/map-open/redeem" && !target.search &&
+    outgoing.get("content-type") === "application/json" &&
+    outgoing.get(MAP_OPEN_READINESS_HEADER) === MAP_OPEN_READINESS_VALUE &&
+    body === MAP_OPEN_READINESS_BODY;
+  check(
+    (SAFE_REQUEST_METHODS.has(method) && body === undefined) || isMapOpenReadinessProbe,
+    `Internal safety check rejected request ${method} ${target.pathname}.`,
+  );
 
   const controller = new AbortController();
   let timedOut = false;
@@ -339,7 +352,7 @@ async function request(baseUrl, pathname, {
     const response = await fetchImpl(target, {
       method,
       headers: outgoing,
-      body: undefined,
+      body,
       credentials: "omit",
       redirect: "manual",
       signal: controller.signal,
@@ -480,6 +493,10 @@ export function validateOpenApi(spec) {
 
   const info = spec.info;
   check(isObject(info) && info.title === AUTHORING_API_TITLE, `OpenAPI must identify itself as ${AUTHORING_API_TITLE}.`);
+  check(
+    info.version === repositorySpec.info.version,
+    `OpenAPI info.version must match the repository contract; expected ${repositorySpec.info.version}, received ${String(info.version)}.`,
+  );
   check(
     typeof info.description === "string" &&
       info.description.includes("owner-scoped") &&
@@ -762,6 +779,63 @@ async function verifyCors(options) {
   check(!rejected.headers.has("access-control-allow-credentials"), "Disallowed CORS preflight must not return Access-Control-Allow-Credentials.");
 }
 
+export async function verifyMapOpenReadiness(options) {
+  const label = "Map-open datastore readiness probe";
+  const result = await request(options.baseUrl, "/v1/map-open/redeem", {
+    method: "POST",
+    headers: {
+      Accept: "application/json",
+      "Content-Type": "application/json",
+      Origin: options.origin,
+      [MAP_OPEN_READINESS_HEADER]: MAP_OPEN_READINESS_VALUE,
+    },
+    body: MAP_OPEN_READINESS_BODY,
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+  });
+
+  if (result.status !== 404) {
+    let reportedCode = "";
+    try {
+      const payload = JSON.parse(result.text);
+      if (typeof payload?.error?.code === "string") reportedCode = ` ${payload.error.code}`;
+    } catch {
+      // The status and request ID remain actionable when an intermediary did not return JSON.
+    }
+    const requestId = result.headers.get("x-request-id")?.trim();
+    throw new VerificationError(
+      `${label} returned HTTP ${result.status}${reportedCode}; expected 404 OPEN_LINK_UNAVAILABLE. ` +
+      "The shared lalgeo-business D1 map_open_links migration may be missing or incompatible; inspect and apply 0005_map_open_links.sql before deploying. " +
+      `Request ID: ${requestId || "missing"}.`,
+    );
+  }
+
+  const requestId = expectRequestId(result, label);
+  expectNoStore(result, label);
+  if (options.verifyTransport) expectHsts(result, label);
+  check(result.headers.get("access-control-allow-origin") === options.origin, `${label} must allow origin ${options.origin}.`);
+  expectVaryOrigin(result, label);
+  expectRequestIdExposed(result, label);
+  check(!result.headers.has("www-authenticate"), `${label} must remain public and must not return a bearer challenge.`);
+  check(
+    result.headers.get(MAP_OPEN_READINESS_HEADER) === MAP_OPEN_READINESS_VALUE,
+    `${label} must acknowledge the reserved read-only probe; deploy the matching Worker runtime before relying on this check.`,
+  );
+
+  const payload = parseJsonResponse(result, label);
+  check(
+    isObject(payload) && JSON.stringify(Object.keys(payload).sort()) === JSON.stringify(["error", "request_id"]),
+    `${label} must return exactly error and request_id fields.`,
+  );
+  check(
+    isObject(payload.error) && JSON.stringify(Object.keys(payload.error).sort()) === JSON.stringify(["code", "message"]),
+    `${label} must return exactly error.code and error.message.`,
+  );
+  check(payload.error.code === "OPEN_LINK_UNAVAILABLE", `${label} must return error code OPEN_LINK_UNAVAILABLE.`);
+  check(payload.error.message === "This map link is unavailable.", `${label} must keep the non-disclosing map-link message.`);
+  check(payload.request_id === requestId, `${label} body request_id must match X-Request-Id.`);
+}
+
 export async function verifyProduction({
   baseUrl = DEFAULT_BASE_URL,
   origin = DEFAULT_ORIGIN,
@@ -803,6 +877,8 @@ export async function verifyProduction({
   logger.log(`PASS error contract: ${openApi.errorResponseCount} documented route failures`);
   await verifyCors(normalized);
   logger.log(`PASS CORS: ${normalized.origin} allowed and an untrusted origin rejected`);
+  await verifyMapOpenReadiness(normalized);
+  logger.log("PASS map-open readiness: reserved non-mutating probe reached the shared D1 schema and remained unavailable");
   logger.log(`PASS production verifier: ${normalized.baseUrl}`);
 
   return {

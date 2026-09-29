@@ -12,28 +12,29 @@ Maps is part of the existing production API stack:
 - canonical Maps hostname: `https://api.lalgeo.com`
 - existing Survey/SaaS hostname: `lalgeo-saas-api.namanadded.workers.dev`
 
-The combined Worker enforces the canonical hostname's HTTPS and HSTS policy before routing, then imports `lalgeo-maps-api/src/index.ts`. Requests for Maps discovery and `/v1/maps` are routed to that implementation; all other routes retain the existing SaaS behavior. The custom domain and database already exist. Do not deploy the standalone `lalgeo-maps-api/wrangler.jsonc`, create a `lalgeo-maps` production database, or move DNS during a routine release.
+The combined Worker enforces the canonical hostname's HTTPS and HSTS policy before routing, then imports `lalgeo-maps-api/src/index.ts`. Requests for Maps discovery, `/v1/maps`, and `/v1/map-open/redeem` are routed to that implementation; all other routes retain the existing SaaS behavior. The custom domain and database already exist. Do not deploy the standalone `lalgeo-maps-api/wrangler.jsonc`, create a `lalgeo-maps` production database, or move DNS during a routine release.
 
 ## Current evidence
 
-Last read-only canonical check: 2026-09-23 UTC.
+Last credential-free canonical check: 2026-09-28 UTC.
 
 - `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, valid TLS, one-year HSTS, `no-store`, and a request ID. Plain HTTP returned an exact bodyless 308 to HTTPS.
-- `/v1/openapi.json` returned the valid 1.0.1 predecessor contract from `origin/main`: 20 unique operations, 15 JSON success schemas, and five bodyless HEAD/DELETE successes. This release's canonical contract has 22 unique operations and 17 JSON success schemas; the read-only verifier must stop at contract parity until that exact document is deployed. Public `HEAD` remains bodyless.
+- `/v1/openapi.json` returned valid OpenAPI 3.1.0, Authoring API version 1.1.0: 22 unique operations, 17 JSON success schemas, five bodyless HEAD/DELETE successes, and no unresolved local references. This release advances only the patch version to 1.1.1 so verification cannot mistake the older runtime for the reserved readiness implementation.
 - Missing and synthetic invalid bearer credentials returned the documented JSON `401 UNAUTHORIZED` response and bearer challenge without disclosing a secret.
 - CORS allowed `https://maps.lalgeo.com`, exposed `X-Request-Id` to that origin, and did not allow an untrusted origin.
 - The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
 - Snapshot API source is now on `main` through [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151). Its anonymous-create, immutable sharing contract remains separate from this private Authoring API handoff; smoke-test both surfaces after deploying the shared Worker.
-- The one-time Authoring API → Maps handoff is not live: production exposes neither `/v1/maps/{mapId}/open-links` nor `/v1/map-open/redeem`, and the deployed Maps bundle has no fragment-redemption client. This branch's stricter verifier passes transport and health, then intentionally stops at the former OpenAPI contract until this document, Maps UI, Worker code, and both matching migration chains are deployed.
+- Production exposes the one-time handoff routes and the Maps client correctly scrubs the fragment, asks for confirmation, traps modal focus, and shows request IDs on failure. A malformed capability returns the documented non-disclosing `404 OPEN_LINK_UNAVAILABLE`.
+- Two distinct, well-formed synthetic unknown capabilities returned `500 INTERNAL_ERROR` instead of `404`, with request IDs `a420e57f1cba935e` and `a420e95cb9e3756b`. That isolates the failure to the datastore lookup path. A missing or incompatible `0005_map_open_links.sql` migration is the leading diagnosis, but the owner must confirm it with Wrangler rather than treating the inference as proof. Health remains green and therefore is not a handoff-readiness signal.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production key was available for the 2026-09-23 check, and a read-only verifier intentionally cannot repeat that proof. Every release owner should still complete the synthetic open/edit/cleanup acceptance below.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production authoring key was available for the 2026-09-28 check, so positive issue/redeem/open/edit coverage remains owner-only. Do not claim the API-created map journey works live until both the credential-free readiness probe and the synthetic acceptance below pass.
 
 ## 1. Prove the repository state
 
 Run the isolated implementation gate first:
 
 ```sh
-cd lalgeo-maps-api
+cd "$(git rev-parse --show-toplevel)/lalgeo-maps-api"
 npm ci
 npm run check
 npm run verify:local
@@ -42,7 +43,7 @@ npm run verify:local
 Then run the production composition gate:
 
 ```sh
-cd ../lalgeo-saas-api
+cd "$(git rev-parse --show-toplevel)/lalgeo-saas-api"
 npm ci
 npm run check
 npm run deploy:dry-run
@@ -56,7 +57,7 @@ The combined gate uses disposable local D1 state, applies migrations `0001` thro
 Owner only:
 
 ```sh
-cd lalgeo-saas-api
+cd "$(git rev-parse --show-toplevel)/lalgeo-saas-api"
 npx wrangler whoami
 npx wrangler versions list
 npx wrangler d1 migrations list lalgeo-business --remote
@@ -74,7 +75,15 @@ Do not replace one with the other.
 
 ## 3. Apply additive migrations
 
-Review every pending SQL file before applying it, then target the existing database:
+First prove that the standalone and shared migrations are byte-identical, then list pending migrations against the existing production database:
+
+```sh
+cd "$(git rev-parse --show-toplevel)/lalgeo-saas-api"
+cmp ../lalgeo-maps-api/migrations/0002_map_open_links.sql migrations/0005_map_open_links.sql
+npx wrangler d1 migrations list lalgeo-business --remote
+```
+
+Review every pending SQL file. If and only if the list shows the expected additive Maps migration, apply it to `lalgeo-business`, then prove the pending list is empty:
 
 ```sh
 npx wrangler d1 migrations apply lalgeo-business --remote
@@ -83,7 +92,7 @@ npx wrangler d1 migrations list lalgeo-business --remote
 
 Never create a replacement database as part of a release. Maps migrations must remain additive or reversible and must not alter unrelated business tables.
 
-For this release, confirm `0005_map_open_links.sql` matches the standalone `lalgeo-maps-api/migrations/0002_map_open_links.sql`: the table contains the SHA-256 `token_hash`, owner and map IDs, expiry and creation timestamps, but never a raw capability. The owner/map foreign key must cascade when its API map is deleted.
+`0005_map_open_links.sql` creates only the additive capability table and expiry index. The table contains the SHA-256 `token_hash`, owner and map IDs, expiry and creation timestamps, but never a raw capability. The owner/map foreign key cascades when its API map is deleted. Wrangler prompts before applying remote migrations and captures a backup; do not bypass that review, create a replacement database, or improvise a production `CREATE TABLE` command.
 
 ## 4. Provision or rotate a Maps key when required
 
@@ -111,6 +120,7 @@ Uploading only the new entry would revoke every omitted key. For rotation, deplo
 Build once more without publishing, then deploy only `lalgeo-saas-api`:
 
 ```sh
+cd "$(git rev-parse --show-toplevel)/lalgeo-saas-api"
 npm run deploy:dry-run
 npm run deploy
 ```
@@ -122,11 +132,13 @@ A generic `workers.dev` preview does not have the `api.lalgeo.com` hostname, so 
 ## 6. Verify the canonical API without credentials
 
 ```sh
-cd ../lalgeo-maps-api
+cd "$(git rev-parse --show-toplevel)/lalgeo-maps-api"
 npm run verify:production
 ```
 
-The verifier sends only credential-free `GET`, `HEAD`, and `OPTIONS` requests. It validates the 22-operation/17-success-schema contract for the public redemption exchange but deliberately does not issue or redeem a capability. It requires exact bodyless `308` redirects for both Maps and non-Maps paths on the shared hostname, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, and the complete JSON/OpenAPI/auth/CORS contract. It must pass without `--insecure`, following redirects, a custom host header, response overrides, or fallback HTML.
+The verifier sends credential-free `GET`, `HEAD`, and `OPTIONS` requests plus one reserved map-open readiness `POST`. Its out-of-grammar token is recognized only with the exact `X-LalGeo-Readiness-Probe: map-open-store-v1` header, so it can never identify an issued capability. The dedicated branch performs one indexed `SELECT` of every required `map_open_links` column using a deliberately non-hash lookup, discards the empty result, and returns the ordinary non-disclosing `404 OPEN_LINK_UNAVAILABLE` with an acknowledgement header. It cannot create, read, consume, or delete a real capability. A `500` reports the request ID and names `lalgeo-business` migration `0005_map_open_links.sql` as the first operator check, not as a proven cause.
+
+The verifier also validates the exact 22-operation/17-success-schema contract, bodyless `308` redirects across Maps and non-Maps paths, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, auth, and bounded CORS. It must pass without `--insecure`, credentials, redirect following, a custom host header, response overrides, or fallback HTML. Contract version 1.1.1 proves the reserved runtime is deployed before the POST can run.
 
 ## 7. Accept with one synthetic map
 
@@ -190,14 +202,14 @@ Also smoke-test one existing Survey/SaaS journey so the shared deployment cannot
 Keep the custom domain and D1 binding in place. Roll the shared Worker back to the version recorded before deployment:
 
 ```sh
-cd lalgeo-saas-api
+cd "$(git rev-parse --show-toplevel)/lalgeo-saas-api"
 npx wrangler versions list
 npx wrangler rollback REPLACE_WITH_LAST_GOOD_VERSION --message "Rollback shared API release"
-cd ../lalgeo-maps-api
+cd "$(git rev-parse --show-toplevel)/lalgeo-maps-api"
 npm run verify:production
 ```
 
-The Maps tables are additive and can remain unused after a Worker rollback. Clients that have observed HSTS will continue upgrading this hostname to HTTPS for up to one year, so every rollback target must remain HTTPS-compatible. Do not improvise a down migration, delete shared D1 data, restore the former Netlify DNS target, or detach the custom domain.
+The Maps tables are additive and can remain unused after a Worker rollback. Run the production verifier from the rollback release checkout: this release's verifier deliberately rejects an older OpenAPI patch version before sending its reserved readiness POST. Clients that have observed HSTS will continue upgrading this hostname to HTTPS for up to one year, so every rollback target must remain HTTPS-compatible. Do not improvise a down migration, delete shared D1 data, restore the former Netlify DNS target, or detach the custom domain.
 
 ## Acceptance record
 
