@@ -13,6 +13,7 @@ import {
   MAP_OPEN_READINESS_HEADER,
   MAP_OPEN_READINESS_TOKEN,
   MAP_OPEN_READINESS_VALUE,
+  verifyMapOpenReadiness,
   verifyProduction,
 } from "./verify-production.mjs";
 
@@ -841,6 +842,14 @@ async function main({ workerDirectory, database, requestHostname }) {
     const expiresAfterMs = Date.parse(openLink.expires_at) - linkIssuedAt;
     assert.ok(expiresAfterMs >= 119_000 && expiresAfterMs <= 125_000);
 
+    await verifyMapOpenReadiness({
+      baseUrl,
+      origin: allowedOrigin,
+      timeoutMs: 5_000,
+      fetchImpl: globalThis.fetch,
+      verifyTransport: false,
+    });
+
     const redeem = (token) => request(baseUrl, "/v1/map-open/redeem", {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: allowedOrigin },
@@ -850,6 +859,7 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(redeemedResponse.status, 200);
     assert.equal(redeemedResponse.headers.get("access-control-allow-origin"), allowedOrigin);
     const exported = await successJson(redeemedResponse, responseContract, "redeemMapOpenLink");
+    record("reserved map-open readiness leaves an issued capability available for normal redemption");
 
     const reusedResponse = await redeem(openToken);
     assert.equal(reusedResponse.status, 404);
