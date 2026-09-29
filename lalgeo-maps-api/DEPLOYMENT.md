@@ -16,7 +16,7 @@ The combined Worker enforces the canonical hostname's HTTPS and HSTS policy befo
 
 ## Current evidence
 
-Last credential-free canonical check: 2026-09-28 UTC.
+Last credential-free canonical check: 2026-09-29 UTC.
 
 - `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, valid TLS, one-year HSTS, `no-store`, and a request ID. Plain HTTP returned an exact bodyless 308 to HTTPS.
 - `/v1/openapi.json` returned valid OpenAPI 3.1.0, Authoring API version 1.1.0: 22 unique operations, 17 JSON success schemas, five bodyless HEAD/DELETE successes, and no unresolved local references. This release advances only the patch version to 1.1.1 so verification cannot mistake the older runtime for the reserved readiness implementation.
@@ -25,9 +25,9 @@ Last credential-free canonical check: 2026-09-28 UTC.
 - The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
 - Snapshot API source is now on `main` through [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151). Its anonymous-create, immutable sharing contract remains separate from this private Authoring API handoff; smoke-test both surfaces after deploying the shared Worker.
 - Production exposes the one-time handoff routes and the Maps client correctly scrubs the fragment, asks for confirmation, traps modal focus, and shows request IDs on failure. A malformed capability returns the documented non-disclosing `404 OPEN_LINK_UNAVAILABLE`.
-- Two distinct, well-formed synthetic unknown capabilities returned `500 INTERNAL_ERROR` instead of `404`, with request IDs `a420e57f1cba935e` and `a420e95cb9e3756b`. That isolates the failure to the datastore lookup path. A missing or incompatible `0005_map_open_links.sql` migration is the leading diagnosis, but the owner must confirm it with Wrangler rather than treating the inference as proof. Health remains green and therefore is not a handoff-readiness signal.
+- Repeated well-formed synthetic unknown capabilities returned `500 INTERNAL_ERROR` instead of `404`; the latest request ID was `a4292627580a1c43` on 2026-09-29. That isolates the failure to the datastore lookup path. A missing or incompatible `0005_map_open_links.sql` migration is the leading diagnosis, but the owner must confirm it with Wrangler rather than treating the inference as proof. Health remains green and therefore is not a handoff-readiness signal.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production authoring key was available for the 2026-09-28 check, so positive issue/redeem/open/edit coverage remains owner-only. Do not claim the API-created map journey works live until both the credential-free readiness probe and the synthetic acceptance below pass.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No production authoring key was available for the 2026-09-29 check, so positive issue/redeem/open/edit coverage remains owner-only. Do not claim the API-created map journey works live until both the credential-free readiness probe and the synthetic acceptance below pass.
 
 ## 1. Prove the repository state
 
