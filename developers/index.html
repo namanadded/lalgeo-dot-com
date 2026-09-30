@@ -150,6 +150,7 @@ layers/places/features \
   --data '{"expires_in":600}'</code></pre>
           <p>The response contains <code>open_url</code> and <code>expires_at</code>. Open the URL, then choose <strong>Open editable copy</strong> in Maps. Only that explicit click redeems it. If the link expired or was already used, request a new one.</p>
           <p class="note"><strong>Secure handoff:</strong> the URL fragment contains a random 256-bit capability, not the bearer key. Browsers exclude fragments from HTTP requests and referrer headers. The API stores only the capability's SHA-256 hash, Maps removes it from the address bar before showing the confirmation, and invalid, expired, or reused links all return the same non-disclosing error.</p>
+          <p class="note"><strong>Deployment check:</strong> a green health response proves service identity, not handoff storage. Operators must also pass the repository's credential-free map-open readiness check and one owner-key synthetic handoff before declaring this journey ready.</p>
           <p>For a file workflow, <code>GET /v1/maps/{mapId}/export</code> still downloads a portable project. If the API map has no layers, either kind of copy starts with an editable <strong>Points</strong> layer without changing the API map.</p>
         </section>
 
@@ -178,7 +179,7 @@ layers/places/features \
           <p>Authoring keys are provisioned by LalGeo and bound to an owner-scoped workspace. Request access, then give your agent the versioned contract.</p>
           <a class="button" href="mailto:lalgeospatial@outlook.com?subject=LalGeo%20Maps%20Authoring%20API%20access">Request an authoring key&nbsp; →</a>
           <a class="secondary-link" href="https://api.lalgeo.com/v1/openapi.json">Open API specification&nbsp; →</a>
-          <p class="note">Availability is proven only when this URL returns JSON over valid TLS and the health check reports <code>lalgeo-maps-api</code>. A website or fallback page does not count.</p>
+          <p class="note">Discovery is proven only when this URL returns JSON over valid TLS and health reports <code>lalgeo-maps-api</code>. Handoff readiness additionally requires the repository verifier and an owner-key synthetic journey; a website, fallback page, or health response alone does not count.</p>
           <h3>Base URL</h3><code>https://api.lalgeo.com</code>
           <h3>Authentication</h3><code>Authorization: Bearer &lt;key&gt;</code>
         </div>

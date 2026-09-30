@@ -2,7 +2,7 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LalGeo Maps Authoring API",
-    "version": "1.1.0",
+    "version": "1.1.1",
     "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
     "contact": {
       "name": "LalGeo Maps API access",

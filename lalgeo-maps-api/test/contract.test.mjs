@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import test from "node:test";
-import { REQUIRED_ERROR_RESPONSES, validateOpenApi } from "../scripts/verify-production.mjs";
+import { MAP_OPEN_READINESS_TOKEN, REQUIRED_ERROR_RESPONSES, validateOpenApi } from "../scripts/verify-production.mjs";
 
 const spec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
 const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8");
@@ -29,7 +29,7 @@ test("OpenAPI exposes the complete canonical operation set", () => {
 
 test("authoring discovery distinguishes API privacy and provides a key access path", () => {
   assert.equal(spec.info.title, "LalGeo Maps Authoring API");
-  assert.equal(spec.info.version, "1.1.0");
+  assert.equal(spec.info.version, "1.1.1");
   assert.match(spec.info.description, /owner-scoped/);
   assert.match(spec.info.description, /bearer-authenticated authoring API/);
   assert.match(spec.info.description, /https:\/\/maps\.lalgeo\.com\/api-docs/);
@@ -179,6 +179,8 @@ test("one-time map-open contract keeps bearer credentials out of the browser han
   assert.match(worker, /body\(req, MAX_OPEN_REDEEM_BODY_BYTES\)/);
   assert.match(worker, /OPEN_LINK_UNAVAILABLE/);
   assert.match(worker, /url\.pathname === ["']\/v1\/map-open\/redeem["']/);
+  assert.equal(MAP_OPEN_READINESS_TOKEN, "__lalgeo_map_open_store_probe_v1__");
+  assert.match(worker, /MAP_OPEN_READINESS_TOKEN = ["']__lalgeo_map_open_store_probe_v1__["']/);
   const redeemImplementation = worker.slice(
     worker.indexOf("async function redeemOpenLink"),
     worker.indexOf("async function route"),
@@ -188,8 +190,19 @@ test("one-time map-open contract keeps bearer credentials out of the browser han
     /DELETE FROM map_open_links WHERE expires_at<=/,
     "anonymous invalid redemption must not trigger expiry-cleanup writes",
   );
+  const readinessImplementation = redeemImplementation.slice(
+    redeemImplementation.indexOf("if (input.token === MAP_OPEN_READINESS_TOKEN &&"),
+    redeemImplementation.indexOf("const redeemedAt"),
+  );
+  assert.match(
+    readinessImplementation,
+    /SELECT token_hash,owner_id,map_id,expires_at,created_at FROM map_open_links WHERE token_hash=\?1 AND expires_at>\?2/,
+  );
+  assert.match(readinessImplementation, /\.bind\(["']readiness:not-a-sha256["'], now\(\)\)\.first\(\)/);
+  assert.doesNotMatch(readinessImplementation, /\b(?:INSERT|UPDATE|DELETE)\b/);
   assert.match(developerGuide, /fragment/);
   assert.match(developerGuide, /editable local copy/);
+  assert.match(developerGuide, /health response proves service identity, not handoff storage/);
   assert.match(readme, /only its SHA-256 hash/);
   assert.match(readme, /never reaches LalGeo Maps/);
 });
