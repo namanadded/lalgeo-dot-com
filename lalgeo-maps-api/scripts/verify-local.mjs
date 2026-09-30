@@ -9,7 +9,13 @@ import { fileURLToPath } from "node:url";
 import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { loadLalGeoProjectContract } from "../../maps/scripts/lib/lalgeo-project-contract.mjs";
-import { verifyProduction } from "./verify-production.mjs";
+import {
+  MAP_OPEN_READINESS_HEADER,
+  MAP_OPEN_READINESS_TOKEN,
+  MAP_OPEN_READINESS_VALUE,
+  verifyMapOpenReadiness,
+  verifyProduction,
+} from "./verify-production.mjs";
 
 export const DEFAULT_WORKER_DIRECTORY = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 export const DEFAULT_DATABASE = "lalgeo-maps";
@@ -413,7 +419,7 @@ async function main({ workerDirectory, database, requestHostname }) {
       const sharedPathResponse = await request(baseUrl, "/v1/transport-probe?surface=shared", { redirect: "manual" });
       assert.equal(sharedPathResponse.headers.get("strict-transport-security"), "max-age=31536000");
     }
-    record(`strict health, OpenAPI, auth, and bounded CORS checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
+    record(`strict health, OpenAPI, auth, bounded CORS, and map-open readiness checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
     const unauthenticatedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map");
@@ -836,6 +842,14 @@ async function main({ workerDirectory, database, requestHostname }) {
     const expiresAfterMs = Date.parse(openLink.expires_at) - linkIssuedAt;
     assert.ok(expiresAfterMs >= 119_000 && expiresAfterMs <= 125_000);
 
+    await verifyMapOpenReadiness({
+      baseUrl,
+      origin: allowedOrigin,
+      timeoutMs: 5_000,
+      fetchImpl: globalThis.fetch,
+      verifyTransport: false,
+    });
+
     const redeem = (token) => request(baseUrl, "/v1/map-open/redeem", {
       method: "POST",
       headers: { "Content-Type": "application/json", Origin: allowedOrigin },
@@ -845,6 +859,7 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(redeemedResponse.status, 200);
     assert.equal(redeemedResponse.headers.get("access-control-allow-origin"), allowedOrigin);
     const exported = await successJson(redeemedResponse, responseContract, "redeemMapOpenLink");
+    record("reserved map-open readiness leaves an issued capability available for normal redemption");
 
     const reusedResponse = await redeem(openToken);
     assert.equal(reusedResponse.status, 404);
@@ -1000,13 +1015,28 @@ async function main({ workerDirectory, database, requestHostname }) {
     devServer.stdout.on("data", (chunk) => { serverLogs += chunk; });
     devServer.stderr.on("data", (chunk) => { serverLogs += chunk; });
     await waitForWorker(unmigratedBaseUrl, devServer, () => serverLogs);
+    const missingOpenLinkTableResponse = await request(unmigratedBaseUrl, "/v1/map-open/redeem", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: allowedOrigin,
+        [MAP_OPEN_READINESS_HEADER]: MAP_OPEN_READINESS_VALUE,
+      },
+      body: JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }),
+    });
+    assert.equal(missingOpenLinkTableResponse.status, 500);
+    assert.equal(missingOpenLinkTableResponse.headers.get(MAP_OPEN_READINESS_HEADER), null);
+    const missingOpenLinkTableError = await errorJson(missingOpenLinkTableResponse, errorContract, "redeemMapOpenLink");
+    assert.equal(missingOpenLinkTableError.error?.code, "INTERNAL_ERROR");
+    assert.equal(missingOpenLinkTableError.error?.message, "An unexpected error occurred.");
+    assert.equal(Object.hasOwn(missingOpenLinkTableError.error, "details"), false);
     const missingTableResponse = await request(unmigratedBaseUrl, "/v1/maps", { headers: authorization });
     assert.equal(missingTableResponse.status, 500);
     const missingTableError = await errorJson(missingTableResponse, errorContract, "listMaps");
     assert.equal(missingTableError.error?.code, "INTERNAL_ERROR");
     assert.equal(missingTableError.error?.message, "An unexpected error occurred.");
     assert.equal(Object.hasOwn(missingTableError.error, "details"), false);
-    record("unmigrated disposable D1 returns the documented 500 without leaking details");
+    record("reserved map-open readiness and authenticated reads return documented 500s against unmigrated disposable D1 without leaking details");
 
     process.stdout.write(`\nMaps API local release gate passed ${checks.length}/${checks.length}. No production resources were contacted.\n`);
   } finally {
