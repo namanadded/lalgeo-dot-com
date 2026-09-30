@@ -1,11 +1,12 @@
 # LalGeo MCP server
 
-A small Model Context Protocol adapter for the existing LalGeo Maps Authoring API and place search. It exposes six tools:
+A small Model Context Protocol adapter for the existing LalGeo Maps Authoring API and place search. It exposes seven tools:
 
 - `create_map`
 - `create_layer`
 - `add_features`
 - `update_map`
+- `inspect_map`
 - `export_map`
 - `geocode`
 
@@ -16,6 +17,8 @@ The server does not implement storage, ownership, geometry validation, or export
 ## ChatGPT map component
 
 Each successful map tool result includes the same model-readable JSON plus MCP Apps `structuredContent`. ChatGPT can render the linked `ui://lalgeo/map.html` resource as a compact interactive map with pan, zoom, and feature inspection. The component uses the GeoJSON and portable `.lal` shapes already returned by LalGeo; it does not perform API validation, storage, GIS conversion, or export work.
+
+`inspect_map` reads the complete current map through the Authoring API's portable-project export and stored-layer listing. It does not create a map-open link, so it is advertised as read-only and idempotent. Use it before retrying an uncertain write: every map, layer, and feature create should include a stable client ID; after a timeout or `409 ID_CONFLICT`, inspect the map and compare that ID and content instead of blindly repeating the write. An API map with no stored layers includes the documented virtual `empty_points` layer in its portable view. The result context reports authoritative `stored_layer_ids`, so an empty list distinguishes that compatibility layer from a stored resource with the same ID.
 
 The widget's **Open in LalGeo** action calls the existing `export_map` MCP tool for the current map ID. The adapter requests the Developer API's short-lived `/v1/maps/{mapId}/open-links` handoff and passes that URL to the widget as hidden tool-result metadata. LalGeo Maps redeems the handoff and opens the API's complete project copy, so every persisted layer and feature is included without sending project data through the widget or adding another MCP tool. Because each call issues a new single-use capability, the tool is intentionally advertised as neither read-only nor idempotent.
 
@@ -29,13 +32,14 @@ In ChatGPT, prompt:
 
 > Create a map of Calgary and add these GeoJSON features: Calgary City Hall at `[-114.0575, 51.0466]` and Calgary Tower at `[-114.0631, 51.0447]`.
 
-The model can complete this with the existing tools, unchanged:
+The model can complete this with the tools above:
 
 1. `create_map` with `{"id":"calgary_map","name":"Calgary","center":{"latitude":51.0447,"longitude":-114.0719},"zoom":12}`.
-2. `create_layer` with a `Point` layer named `Calgary places`.
-3. `add_features` with the two GeoJSON Point Features.
+2. `create_layer` with stable ID `calgary_places` and a `Point` layer named `Calgary places`.
+3. `add_features` with stable IDs on the two GeoJSON Point Features.
+4. `inspect_map` whenever a create result is uncertain, before deciding whether a retry is safe.
 
-The final `add_features` result renders both points in the interactive LalGeo component while retaining the ordinary text result for MCP clients without UI support. This flow is covered by the automated end-to-end MCP test.
+The final `add_features` and `inspect_map` results render both points in the interactive LalGeo component while retaining the ordinary text result for MCP clients without UI support. This flow and the no-side-effect reconciliation path are covered by the automated end-to-end MCP tests.
 
 ## Run locally
 
@@ -66,7 +70,7 @@ This server intentionally binds to localhost and does not add a second authentic
 3. Install and run `tunnel-client` using the profile and `tunnel_id` provided by the tunnel settings. Keep both the LalGeo MCP process and the tunnel client running.
 4. In ChatGPT, open **Settings → Security and login** and enable **Developer mode**.
 5. Open **ChatGPT Plugins**, select **+**, choose **Tunnel** as the connection, then select the tunnel (or paste its `tunnel_id`).
-6. Confirm that ChatGPT discovers only the six tools listed above, then test with development credentials before using production data.
+6. Confirm that ChatGPT discovers only the seven tools listed above, then test with development credentials before using production data.
 
 Account or workspace policy can limit Developer mode and tunnel availability. See OpenAI's [Secure MCP Tunnel guide](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels) and [ChatGPT connection guide](https://developers.openai.com/plugins/deploy/connect-chatgpt) for the current setup flow.
 
