@@ -1,11 +1,11 @@
 import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { AppleMapsGeocoder } from "../../../lalgeo-mcp/src/geocoder";
-import { LalGeoApi } from "../../../lalgeo-mcp/src/lalgeo-api";
-import { createServer } from "../../../lalgeo-mcp/src/server";
+import { AppleMapsGeocoder } from "lalgeo-mcp/src/geocoder";
+import { LalGeoApi } from "lalgeo-mcp/src/lalgeo-api";
+import { createServer } from "lalgeo-mcp/src/server";
 
-function responseFromWeb(response: Response) {
+function responseFromWeb(response) {
   return response.arrayBuffer().then((body) => {
-    const headers: Record<string, string> = {};
+    const headers = {};
     response.headers.forEach((value, key) => {
       headers[key] = value;
     });
@@ -18,14 +18,7 @@ function responseFromWeb(response: Response) {
   });
 }
 
-export async function handler(event: {
-  body: string | null;
-  headers: Record<string, string | undefined>;
-  httpMethod: string;
-  isBase64Encoded?: boolean;
-  path: string;
-  rawUrl?: string;
-}) {
+export async function handler(event) {
   if (event.path.endsWith("/health")) {
     return {
       statusCode: 200,
@@ -60,7 +53,7 @@ export async function handler(event: {
   const url = event.rawUrl || `https://${event.headers.host || "mcp.lalgeo.com"}/mcp`;
   const request = new Request(url, {
     method: event.httpMethod,
-    headers: event.headers as HeadersInit,
+    headers: event.headers,
     body: event.httpMethod === "GET" || event.httpMethod === "HEAD" ? undefined : body,
   });
 

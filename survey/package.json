@@ -17,12 +17,13 @@
     "bcryptjs": "^2.4.3",
     "formidable": "^3.5.1",
     "jsonwebtoken": "^9.0.2",
+    "lalgeo-mcp": "file:../lalgeo-mcp",
     "nanoid": "^5.0.7",
     "next": "^16.1.6",
     "prisma": "^6.19.2",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",
-    "zod": "^4.6.5"
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.6",
