@@ -18,7 +18,7 @@ const mapFields = {
 };
 
 const widgetOutput = {
-  operation: z.enum(["create_map", "create_layer", "add_features", "update_map", "export_map"]),
+  operation: z.enum(["create_map", "create_layer", "add_features", "update_map", "inspect_map", "export_map"]),
   data: z.unknown(),
   context: z.record(z.unknown()),
 };
@@ -71,7 +71,7 @@ function without<T extends JsonObject>(input: T, keys: string[]) {
 }
 
 export function createServer(api: LalGeoApi, geocoder: Geocoder) {
-  const server = new McpServer({ name: "lalgeo", version: "0.3.0" });
+  const server = new McpServer({ name: "lalgeo", version: "0.4.0" });
 
   server.registerResource("lalgeo-map", MAP_WIDGET_URI, {}, async () => ({
     contents: [{
@@ -89,9 +89,9 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
 
   server.registerTool("create_map", {
     title: "Create LalGeo map",
-    description: "Create an owner-scoped map through the LalGeo Developer API.",
+    description: "Create an owner-scoped map. Supply a stable ID; after an uncertain result or ID_CONFLICT, inspect_map before retrying.",
     inputSchema: {
-      id: id.optional().describe("Stable client-supplied ID for safe retry reconciliation."),
+      id: id.optional().describe("Supply a stable client ID so inspect_map can reconcile an uncertain result before retrying."),
       ...mapFields,
       name: mapFields.name.unwrap(),
     },
@@ -102,10 +102,10 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
 
   server.registerTool("create_layer", {
     title: "Create LalGeo layer",
-    description: "Create a typed layer in an existing LalGeo map.",
+    description: "Create a typed layer in an existing map. Supply a stable ID; after an uncertain result or ID_CONFLICT, inspect_map before retrying.",
     inputSchema: {
       map_id: id,
-      id: id.optional().describe("Stable client-supplied ID for safe retry reconciliation."),
+      id: id.optional().describe("Supply a stable client ID so inspect_map can reconcile an uncertain result before retrying."),
       name: z.string().min(1).max(200),
       geometry_type: z.enum(["Point", "LineString", "Polygon"]),
       style: jsonObject.optional(),
@@ -118,13 +118,13 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
 
   server.registerTool("add_features", {
     title: "Add GeoJSON features",
-    description: "Add GeoJSON Features to an existing typed layer. Geometry rules are enforced by the LalGeo Developer API.",
+    description: "Add GeoJSON Features to an existing typed layer. Give every feature a stable ID; after an uncertain result or ID_CONFLICT, inspect_map before retrying.",
     inputSchema: {
       map_id: id,
       layer_id: id,
       features: z.array(z.object({
         type: z.literal("Feature"),
-        id: id.optional().describe("Stable client-supplied ID for safe retry reconciliation."),
+        id: id.optional().describe("Supply a stable client ID so inspect_map can reconcile an uncertain result before retrying."),
         geometry: jsonObject,
         properties: jsonObject.nullable().optional(),
       })).min(1).max(1000),
@@ -142,6 +142,30 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
     _meta: uiMeta("Updating map…", "Map updated."),
     annotations: { destructiveHint: true, idempotentHint: true, openWorldHint: true },
   }, (input) => call("update_map", { map_id: input.map_id }, () => api.updateMap(input.map_id, without(input, ["map_id"]))));
+
+  server.registerTool("inspect_map", {
+    title: "Inspect LalGeo map",
+    description: "Read the complete current map as a portable LalGeo project without creating a Maps link. Use this to reconcile stable IDs after a timeout or ID_CONFLICT before retrying a write. The stored_layer_ids context distinguishes stored layers from the virtual empty_points placeholder used for an empty portable project.",
+    inputSchema: { map_id: id },
+    outputSchema: widgetOutput,
+    _meta: uiMeta("Inspecting map…", "Map inspected."),
+    annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
+  }, async (input) => {
+    try {
+      const [payload, storedLayerIds] = await Promise.all([
+        api.exportMap(input.map_id),
+        api.listLayerIds(input.map_id),
+      ]);
+      return result("inspect_map", payload, {
+        map_id: input.map_id,
+        view: "portable_project",
+        stored_layer_ids: storedLayerIds,
+        empty_map_placeholder_id: "empty_points",
+      });
+    } catch (error) {
+      return failure(error);
+    }
+  });
 
   server.registerTool("export_map", {
     title: "Export and open LalGeo map",

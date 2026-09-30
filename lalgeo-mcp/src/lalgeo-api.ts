@@ -40,6 +40,26 @@ export class LalGeoApi {
     return this.request("GET", `/v1/maps/${encodeURIComponent(mapId)}/export`);
   }
 
+  async listLayerIds(mapId: string) {
+    const payload = await this.request("GET", `/v1/maps/${encodeURIComponent(mapId)}/layers`);
+    const layers = payload && typeof payload === "object"
+      ? (payload as JsonObject).layers
+      : undefined;
+    if (!Array.isArray(layers)) {
+      throw new LalGeoApiError(502, {
+        error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid layer list." },
+      }, null);
+    }
+    return layers.map((layer) => {
+      if (!layer || typeof layer !== "object" || typeof (layer as JsonObject).id !== "string") {
+        throw new LalGeoApiError(502, {
+          error: { code: "INVALID_RESPONSE", message: "LalGeo API returned a layer without an ID." },
+        }, null);
+      }
+      return (layer as JsonObject).id as string;
+    });
+  }
+
   createMapOpenLink(mapId: string) {
     return this.request("POST", `/v1/maps/${encodeURIComponent(mapId)}/open-links`, { expires_in: 600 });
   }

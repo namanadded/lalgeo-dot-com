@@ -32,7 +32,7 @@ beforeEach(() => {
 
 afterEach(() => { globalThis.fetch = originalFetch; });
 
-test("the adapter forwards all five tools to the existing authenticated API", async () => {
+test("the adapter forwards authoring writes and export to the authenticated API", async () => {
   const api = new LalGeoApi("secret-key", "https://api.example.test");
   await api.createMap({ id: "map_1", name: "Map" });
   await api.createLayer("map/with slash", { id: "layer_1", name: "Sites", geometry_type: "Point" });
@@ -76,4 +76,44 @@ test("the generated LalGeo open URL is requested for the correct map", async () 
     body: { expires_in: 600 },
   });
   assert.equal(result.open_url, "https://maps.lalgeo.com/maps#open=" + "a".repeat(64));
+});
+
+test("stored layer IDs are read from the authenticated layer listing", async () => {
+  globalThis.fetch = async (url, init) => {
+    requests.push({
+      method: init.method,
+      url: `${url.pathname}${url.search}`,
+      authorization: init.headers.Authorization,
+    });
+    return Response.json({
+      layers: Array.from({ length: 101 }, (_, index) => ({ id: `layer_${index}` })),
+    });
+  };
+  const api = new LalGeoApi("secret-key", "https://api.example.test");
+
+  const ids = await api.listLayerIds("map/with slash");
+
+  assert.equal(ids.length, 101);
+  assert.equal(ids[0], "layer_0");
+  assert.equal(ids.at(-1), "layer_100");
+  assert.deepEqual(requests, [
+    {
+      method: "GET",
+      url: "/v1/maps/map%2Fwith%20slash/layers",
+      authorization: "Bearer secret-key",
+    },
+  ]);
+});
+
+test("invalid layer listings fail closed instead of inventing stored IDs", async () => {
+  const api = new LalGeoApi("secret-key", "https://api.example.test");
+
+  await assert.rejects(api.listLayerIds("map_1"), (error) => {
+    assert.ok(error instanceof LalGeoApiError);
+    assert.equal(error.status, 502);
+    assert.deepEqual(error.payload, {
+      error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid layer list." },
+    });
+    return true;
+  });
 });
