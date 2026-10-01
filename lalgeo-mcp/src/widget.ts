@@ -78,7 +78,7 @@ export const MAP_WIDGET_HTML = `<!doctype html>
 
       function collectFeatures(result) {
         if (result?.operation === "add_features") return result.context?.features || [];
-        if (result?.operation === "export_map") {
+        if (result?.operation === "export_map" || result?.operation === "inspect_map") {
           return (result.data?.project?.layers || []).flatMap((layer) => (layer.features || []).map((feature) => ({
             type: "Feature", id: feature.id, geometry: feature.geometry, properties: feature.attributes || {},
           })));
@@ -114,7 +114,13 @@ export const MAP_WIDGET_HTML = `<!doctype html>
         title.textContent = mapName(result);
         currentMapId = mapId(result);
         openButton.style.display = currentMapId ? "block" : "none";
-        status.textContent = features.length ? features.length + (features.length === 1 ? " feature" : " features") + " · drag to pan · scroll to zoom" : "Map created · add features to preview geometry";
+        status.textContent = features.length
+          ? features.length + (features.length === 1 ? " feature" : " features") + " · drag to pan · scroll to zoom"
+          : result.operation === "inspect_map"
+            ? "Map inspected · no stored features"
+            : result.operation === "export_map"
+              ? "Map ready · no stored features"
+              : "Map created · add features to preview geometry";
         empty.style.display = coordinates.length ? "none" : "grid";
         viewport.replaceChildren();
         details.style.display = "none";

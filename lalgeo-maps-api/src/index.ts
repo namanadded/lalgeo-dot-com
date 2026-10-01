@@ -11,7 +11,13 @@ type GeometryType = "Point" | "LineString" | "Polygon";
 type Auth = { ownerId: string };
 
 class ApiError extends Error {
-  constructor(public status: number, public code: string, message: string, public details?: unknown) {
+  constructor(
+    public status: number,
+    public code: string,
+    message: string,
+    public details?: unknown,
+    public responseHeaders: Record<string, string> = {},
+  ) {
     super(message);
   }
 }
@@ -24,6 +30,9 @@ const MIN_OPEN_LINK_TTL_SECONDS = 60;
 const MAX_OPEN_LINK_TTL_SECONDS = 900;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const OPEN_LINK_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
+const MAP_OPEN_READINESS_TOKEN = "__lalgeo_map_open_store_probe_v1__";
+const MAP_OPEN_READINESS_HEADER = "X-LalGeo-Readiness-Probe";
+const MAP_OPEN_READINESS_VALUE = "map-open-store-v1";
 const CANONICAL_HOSTNAME = "api.lalgeo.com";
 const MAPS_OPEN_URL = "https://maps.lalgeo.com/maps";
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
@@ -133,8 +142,8 @@ function openLinkToken() {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-function openLinkUnavailable(): never {
-  throw new ApiError(404, "OPEN_LINK_UNAVAILABLE", "This map link is unavailable.");
+function openLinkUnavailable(responseHeaders: Record<string, string> = {}): never {
+  throw new ApiError(404, "OPEN_LINK_UNAVAILABLE", "This map link is unavailable.", undefined, responseHeaders);
 }
 
 async function authenticate(req: Request, env: Env): Promise<Auth> {
@@ -331,6 +340,16 @@ async function createOpenLink(req: Request, env: Env, auth: Auth, mapId: string)
 
 async function redeemOpenLink(req: Request, env: Env) {
   const input = await body(req, MAX_OPEN_REDEEM_BODY_BYTES);
+
+  // This out-of-grammar token and exact request header can never identify an
+  // issued capability. They give release verification a deterministic,
+  // read-only proof that the production table and columns are ready.
+  if (input.token === MAP_OPEN_READINESS_TOKEN &&
+      req.headers.get(MAP_OPEN_READINESS_HEADER) === MAP_OPEN_READINESS_VALUE) {
+    await env.DB.prepare("SELECT token_hash,owner_id,map_id,expires_at,created_at FROM map_open_links WHERE token_hash=?1 AND expires_at>?2")
+      .bind("readiness:not-a-sha256", now()).first();
+    openLinkUnavailable({ [MAP_OPEN_READINESS_HEADER]: MAP_OPEN_READINESS_VALUE });
+  }
   if (typeof input.token !== "string" || !OPEN_LINK_TOKEN_PATTERN.test(input.token)) openLinkUnavailable();
 
   const redeemedAt = now();
@@ -456,8 +475,8 @@ export default {
     } catch (error) {
       if (error instanceof ApiError) {
         const errorHeaders = error.status === 401
-          ? { ...headers, "WWW-Authenticate": 'Bearer realm="lalgeo-maps-api"' }
-          : headers;
+          ? { ...headers, ...error.responseHeaders, "WWW-Authenticate": 'Bearer realm="lalgeo-maps-api"' }
+          : { ...headers, ...error.responseHeaders };
         return response({ error: { code: error.code, message: error.message, details: error.details }, request_id: requestId }, error.status, errorHeaders);
       }
       if (error instanceof Error && /UNIQUE constraint failed/.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, headers);

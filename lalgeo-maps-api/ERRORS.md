@@ -44,5 +44,10 @@ link beyond its intended recipient.
 
 The Worker does not yet implement `Idempotency-Key` replay or a rate limiter. Its
 contract intentionally does not advertise `429` or `Retry-After`. The production
-verifier checks the documented errors without a key or any production mutation;
-the local release gates exercise the error envelope using only synthetic data.
+verifier checks the documented errors without a key or any production mutation.
+Its reserved map-open probe must return acknowledged `404 OPEN_LINK_UNAVAILABLE`;
+`500 INTERNAL_ERROR` there means the owner should retain the request ID and inspect
+the shared `lalgeo-business` binding and `0005_map_open_links.sql` migration before
+deploying or retrying acceptance. That diagnosis is a starting point, not proof of
+the cause. The local release gates exercise both migrated and unmigrated behavior
+using only disposable synthetic state.

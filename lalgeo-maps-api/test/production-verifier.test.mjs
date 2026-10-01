@@ -7,12 +7,16 @@ import test from "node:test";
 import {
   DEFAULT_BASE_URL,
   DEFAULT_ORIGIN,
+  MAP_OPEN_READINESS_HEADER,
+  MAP_OPEN_READINESS_TOKEN,
+  MAP_OPEN_READINESS_VALUE,
   VerificationError,
   assertTlsSafety,
   normalizeBaseUrl,
   normalizeOrigin,
   parseArguments,
   validateOpenApi,
+  verifyMapOpenReadiness,
   verifyProduction,
 } from "../scripts/verify-production.mjs";
 
@@ -123,7 +127,10 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
 
   const staleIdentityVersion = structuredClone(openApiFixture());
   staleIdentityVersion.info.version = "1.0.0";
-  assert.throws(() => validateOpenApi(staleIdentityVersion), /identity and access metadata must match the repository contract/);
+  assert.throws(
+    () => validateOpenApi(staleIdentityVersion),
+    /info\.version must match the repository contract; expected 1\.1\.1, received 1\.0\.0/,
+  );
 
   const missingBearer = structuredClone(openApiFixture());
   delete missingBearer.components.securitySchemes.bearerAuth;
@@ -282,7 +289,42 @@ test("OpenAPI validation rejects missing or misleading failure contracts", () =>
   assert.throws(() => validateOpenApi(missingBearerChallenge), /listMaps 401 response must document the bearer challenge/);
 });
 
-test("production verification sends only credential-free GET, HEAD, and OPTIONS requests", async (t) => {
+test("production verification never sends the readiness POST before the exact runtime contract is deployed", async () => {
+  const calls = [];
+  const previousContract = openApiFixture();
+  previousContract.info.version = "1.1.0";
+  await assert.rejects(
+    verifyProduction({
+      baseUrl: "http://127.0.0.1:8787",
+      timeoutMs: 100,
+      logger: { log() {} },
+      fetchImpl: async (target, init) => {
+        const url = new URL(target);
+        calls.push([init.method, url.pathname]);
+        if (url.pathname === "/v1/health") {
+          return jsonResponse(
+            { ok: true, service: "lalgeo-maps-api", version: "v1" },
+            { requestId: "request_health", headers: { "Cache-Control": "no-store" } },
+          );
+        }
+        if (url.pathname === "/v1/openapi.json") {
+          return jsonResponse(previousContract, {
+            requestId: "request_openapi",
+            headers: { "Cache-Control": "public, max-age=300" },
+          });
+        }
+        throw new Error(`Unexpected request: ${init.method} ${url.pathname}`);
+      },
+    }),
+    /info\.version must match the repository contract; expected 1\.1\.1, received 1\.1\.0/,
+  );
+  assert.deepEqual(calls, [
+    ["GET", "/v1/health"],
+    ["GET", "/v1/openapi.json"],
+  ]);
+});
+
+test("production verification sends only credential-free reads and the reserved non-mutating readiness POST", async (t) => {
   const requests = [];
   const origin = "https://maps.lalgeo.com";
   const service = await listen((request, response) => {
@@ -334,6 +376,18 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
       } else if (request.method === "OPTIONS" && request.url === "/v1/maps") {
         response.writeHead(204, { "X-Request-Id": "request_cors_rejected", Vary: "Origin" });
         response.end();
+      } else if (request.method === "POST" && request.url === "/v1/map-open/redeem") {
+        response.writeHead(404, jsonHeaders("request_readiness", {
+          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin": origin,
+          "Access-Control-Expose-Headers": "X-Request-Id",
+          [MAP_OPEN_READINESS_HEADER]: MAP_OPEN_READINESS_VALUE,
+          Vary: "Origin",
+        }));
+        response.end(JSON.stringify({
+          error: { code: "OPEN_LINK_UNAVAILABLE", message: "This map link is unavailable." },
+          request_id: "request_readiness",
+        }));
       } else {
         response.writeHead(500);
         response.end("unexpected request");
@@ -366,9 +420,14 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
     ["GET", "/v1/maps"],
     ["OPTIONS", "/v1/maps"],
     ["OPTIONS", "/v1/maps"],
+    ["POST", "/v1/map-open/redeem"],
   ]);
   for (const request of requests) {
-    assert.equal(request.body, "");
+    if (request.method === "POST") {
+      assert.equal(request.body, JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }));
+    } else {
+      assert.equal(request.body, "");
+    }
     assert.equal(request.headers.authorization, undefined);
     assert.equal(request.headers.cookie, undefined);
     assert.equal(request.headers["proxy-authorization"], undefined);
@@ -380,6 +439,9 @@ test("production verification sends only credential-free GET, HEAD, and OPTIONS 
   assert.equal(requests[5].headers["access-control-request-method"], "GET");
   assert.equal(requests[5].headers["access-control-request-headers"], "Authorization, Content-Type");
   assert.equal(requests[6].headers.origin, "https://cors-probe.invalid");
+  assert.equal(requests[7].headers.origin, origin);
+  assert.equal(requests[7].headers["content-type"], "application/json");
+  assert.equal(requests[7].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
   assert.match(logs.at(-1), /PASS production verifier/);
 });
 
@@ -389,7 +451,7 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
   const secureHeaders = { "Strict-Transport-Security": "max-age=31536000" };
   const fetchImpl = async (target, init) => {
     const url = new URL(target);
-    calls.push({ url: url.toString(), method: init.method, headers: Object.fromEntries(init.headers) });
+    calls.push({ url: url.toString(), method: init.method, headers: Object.fromEntries(init.headers), body: init.body });
     if (url.protocol === "http:") {
       const destination = new URL(url);
       destination.protocol = "https:";
@@ -463,6 +525,22 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
         headers: { ...secureHeaders, "X-Request-Id": "request_cors_rejected", Vary: "Origin" },
       });
     }
+    if (init.method === "POST" && url.pathname === "/v1/map-open/redeem") {
+      return jsonResponse(
+        { error: { code: "OPEN_LINK_UNAVAILABLE", message: "This map link is unavailable." }, request_id: "request_readiness" },
+        {
+          status: 404,
+          requestId: "request_readiness",
+          headers: {
+            ...secureHeaders,
+            "Cache-Control": "no-store",
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Expose-Headers": "X-Request-Id",
+            [MAP_OPEN_READINESS_HEADER]: MAP_OPEN_READINESS_VALUE,
+          },
+        },
+      );
+    }
     throw new Error(`Unexpected request: ${init.method} ${url}`);
   };
 
@@ -479,11 +557,66 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
     ["GET", "https://api.lalgeo.com/v1/maps"],
     ["OPTIONS", "https://api.lalgeo.com/v1/maps"],
     ["OPTIONS", "https://api.lalgeo.com/v1/maps"],
+    ["POST", "https://api.lalgeo.com/v1/map-open/redeem"],
   ]);
   for (const call of calls) {
     assert.equal(call.headers.authorization, undefined);
     assert.equal(call.headers.cookie, undefined);
   }
+  assert.equal(calls.at(-1).body, JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }));
+  assert.equal(calls.at(-1).headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
+});
+
+test("map-open readiness reports the exact shared D1 migration action on runtime failure", async () => {
+  let request;
+  await assert.rejects(
+    verifyMapOpenReadiness({
+      baseUrl: "http://127.0.0.1:8787",
+      origin: DEFAULT_ORIGIN,
+      timeoutMs: 100,
+      verifyTransport: false,
+      fetchImpl: async (target, init) => {
+        request = { target: String(target), ...init, headers: Object.fromEntries(init.headers) };
+        return jsonResponse(
+          { error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." }, request_id: "request_broken_d1" },
+          { status: 500, requestId: "request_broken_d1", headers: { "Cache-Control": "no-store" } },
+        );
+      },
+    }),
+    /lalgeo-business D1 map_open_links migration may be missing or incompatible.*0005_map_open_links\.sql.*request_broken_d1/i,
+  );
+  assert.equal(request.target, "http://127.0.0.1:8787/v1/map-open/redeem");
+  assert.equal(request.method, "POST");
+  assert.equal(request.body, JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }));
+  assert.equal(request.credentials, "omit");
+  assert.equal(request.redirect, "manual");
+  assert.equal(request.headers.authorization, undefined);
+  assert.equal(request.headers.cookie, undefined);
+  assert.equal(request.headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
+});
+
+test("map-open readiness rejects an unacknowledged generic 404 from an older runtime", async () => {
+  await assert.rejects(
+    verifyMapOpenReadiness({
+      baseUrl: "http://127.0.0.1:8787",
+      origin: DEFAULT_ORIGIN,
+      timeoutMs: 100,
+      verifyTransport: false,
+      fetchImpl: async () => jsonResponse(
+        { error: { code: "OPEN_LINK_UNAVAILABLE", message: "This map link is unavailable." }, request_id: "request_old_runtime" },
+        {
+          status: 404,
+          requestId: "request_old_runtime",
+          headers: {
+            "Cache-Control": "no-store",
+            "Access-Control-Allow-Origin": DEFAULT_ORIGIN,
+            "Access-Control-Expose-Headers": "X-Request-Id",
+          },
+        },
+      ),
+    }),
+    /must acknowledge the reserved read-only probe; deploy the matching Worker runtime/,
+  );
 });
 
 test("canonical verification rejects an unprotected transport", async () => {
