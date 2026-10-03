@@ -1,7 +1,16 @@
-import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/webStandardStreamableHttp.js";
-import { AppleMapsGeocoder } from "lalgeo-mcp/src/geocoder";
-import { LalGeoApi } from "lalgeo-mcp/src/lalgeo-api";
-import { createServer } from "lalgeo-mcp/src/server";
+import path from "node:path";
+import { pathToFileURL } from "node:url";
+import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
+
+async function loadLalGeoMcp() {
+  const distDir = "/var/task/lalgeo-mcp/dist";
+  const [{ AppleMapsGeocoder }, { LalGeoApi }, { createServer }] = await Promise.all([
+    import(pathToFileURL(path.join(distDir, "geocoder.js")).href),
+    import(pathToFileURL(path.join(distDir, "lalgeo-api.js")).href),
+    import(pathToFileURL(path.join(distDir, "server.js")).href),
+  ]);
+  return { AppleMapsGeocoder, LalGeoApi, createServer };
+}
 
 function responseFromWeb(response) {
   return response.arrayBuffer().then((body) => {
@@ -45,8 +54,9 @@ export async function handler(event) {
   }
 
   const apiBaseUrl = process.env.LALGEO_API_BASE_URL || "https://api.lalgeo.com";
+  const { AppleMapsGeocoder, LalGeoApi, createServer } = await loadLalGeoMcp();
   const server = createServer(new LalGeoApi(apiKey, apiBaseUrl), new AppleMapsGeocoder(mapsToken));
-  const transport = new WebStandardStreamableHTTPServerTransport({ sessionIdGenerator: undefined });
+  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
   const body = event.body
     ? Buffer.from(event.body, event.isBase64Encoded ? "base64" : "utf8")
     : undefined;
@@ -59,7 +69,7 @@ export async function handler(event) {
 
   try {
     await server.connect(transport);
-    return await responseFromWeb(await transport.handleRequest(request));
+    return await responseFromWeb(await transport._webStandardTransport.handleRequest(request));
   } finally {
     await transport.close();
     await server.close();
