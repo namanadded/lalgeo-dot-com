@@ -8,7 +8,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "prisma:seed": "tsx prisma/seed.ts"
+    "prisma:seed": "tsx prisma/seed.ts",
+    "test:mcp-package": "node scripts/verify-mcp-function-package.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.31.0",

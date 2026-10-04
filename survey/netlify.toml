@@ -1,5 +1,5 @@
 [build]
-  command = "npm run build"
+  command = "npm --prefix ../lalgeo-mcp ci && npm --prefix ../lalgeo-mcp run build && npm run build"
 
 [functions]
   included_files = [
