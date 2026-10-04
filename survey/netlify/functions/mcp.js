@@ -3,7 +3,8 @@ import { pathToFileURL } from "node:url";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 
 async function loadLalGeoMcp() {
-  const distDir = "/var/task/lalgeo-mcp/dist";
+  const taskRoot = process.env.LAMBDA_TASK_ROOT || path.resolve(__dirname, "../../..");
+  const distDir = path.join(taskRoot, "lalgeo-mcp/dist");
   const [{ AppleMapsGeocoder }, { LalGeoApi }, { createServer }] = await Promise.all([
     import(pathToFileURL(path.join(distDir, "geocoder.js")).href),
     import(pathToFileURL(path.join(distDir, "lalgeo-api.js")).href),
