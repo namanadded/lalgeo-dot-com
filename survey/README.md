@@ -46,6 +46,23 @@ LALGEO_SAAS_API_KEY="<optional-shared-secret-if-configured>"
 DATABASE_URL="file:./dev.db"
 ```
 
+## Hosted LalGeo MCP
+
+This Netlify site packages the adapter served at `https://mcp.lalgeo.com/mcp`. The public `/health` route is only a process check. Every `/mcp` request must send the caller's LalGeo Authoring API key as a bearer credential; the function validates that key read-only and never uses `LALGEO_API_KEY` as a shared Maps identity. `MAPKIT_TOKEN` remains a server-side dependency for the `geocode` tool.
+
+The static bearer path is for generic MCP clients with protected connection settings. ChatGPT requires OAuth 2.1 for authenticated public MCP and cannot present a custom API key, so use the local Secure MCP Tunnel workflow in [`../lalgeo-mcp/README.md`](../lalgeo-mcp/README.md) until LalGeo implements OAuth.
+
+Before deployment, build the MCP package and the Netlify site, verify the generated function archive, then run the credential-free boundary check against the preview:
+
+```bash
+npm ci
+npx netlify build --offline
+npm run test:mcp-package
+npm --prefix ../lalgeo-mcp run verify:hosted -- https://deploy-preview-000--lalgeosurvey.netlify.app
+```
+
+The remote verifier sends no key and invokes no tool. A passing preview must return exact health JSON and reject MCP initialization with `401`; a successful website fallback is a failure.
+
 ## Stripe Payments (cards + Apple Pay + Google Pay)
 Add these env vars in Netlify for invoice payments:
 

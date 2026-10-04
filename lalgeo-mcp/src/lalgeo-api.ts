@@ -16,6 +16,26 @@ export class LalGeoApi {
     private readonly baseUrl = "https://api.lalgeo.com",
   ) {}
 
+  async verifyCredentials() {
+    const payload = await this.request("GET", "/v1/maps?limit=1");
+    const object = payload && typeof payload === "object" && !Array.isArray(payload)
+      ? payload as JsonObject
+      : null;
+    const pagination = object?.pagination && typeof object.pagination === "object" && !Array.isArray(object.pagination)
+      ? object.pagination as JsonObject
+      : null;
+    const maps = object?.maps;
+    if (
+      !Array.isArray(maps) || maps.length > 1 ||
+      !pagination || pagination.limit !== 1 || pagination.offset !== 0 ||
+      !Number.isSafeInteger(pagination.count) || pagination.count !== maps.length
+    ) {
+      throw new LalGeoApiError(502, {
+        error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid credential check response." },
+      }, null);
+    }
+  }
+
   createMap(input: JsonObject) {
     return this.request("POST", "/v1/maps", input);
   }

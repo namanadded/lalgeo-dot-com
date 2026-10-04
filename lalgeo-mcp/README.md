@@ -10,7 +10,7 @@ A small Model Context Protocol adapter for the existing LalGeo Maps Authoring AP
 - `export_map`
 - `geocode`
 
-The server does not implement storage, ownership, geometry validation, or export logic. It forwards each tool call to `https://api.lalgeo.com` with the configured LalGeo Developer API key, so the existing API remains the source of truth for authentication and GIS behavior.
+The server does not implement storage, ownership, geometry validation, or export logic. It forwards map tool calls to `https://api.lalgeo.com`, so the existing API remains the source of truth for authentication, owner isolation, and GIS behavior. Local and hosted connections have separate credential boundaries: a localhost process reads `LALGEO_API_KEY`, while the hosted endpoint requires each caller's own LalGeo Authoring API key.
 
 `geocode` accepts a place name or address and delegates to the Apple Maps search service already used by LalGeo's browser map and address components. It returns the best match's latitude and longitude together with the original matched place fields; the MCP adapter does not implement geocoding or spatial matching.
 
@@ -61,7 +61,7 @@ Keep `LALGEO_API_KEY` in the process environment. Do not commit it or put it in 
 
 `MAPKIT_TOKEN` is the existing Apple Maps authorization token used by LalGeo's MapKit search integration. Keep it in the process environment as well.
 
-## Connect to ChatGPT
+## Connect ChatGPT through Secure MCP Tunnel
 
 This server intentionally binds to localhost and does not add a second authentication system. Connect it through OpenAI's Secure MCP Tunnel so the server and its LalGeo API key remain private:
 
@@ -76,8 +76,26 @@ Account or workspace policy can limit Developer mode and tunnel availability. Se
 
 Do not expose this process directly to the public internet: the tunnel is the access boundary, while `LALGEO_API_KEY` authenticates its calls to the existing LalGeo Developer API.
 
+## Hosted endpoint for generic MCP clients
+
+`https://mcp.lalgeo.com/mcp` is available to MCP clients that can store and attach a static bearer credential securely. Send your own LalGeo Maps Authoring API key on every request:
+
+```text
+Authorization: Bearer <caller LalGeo Authoring API key>
+```
+
+The hosted adapter validates the key with a bounded, read-only Authoring API request before servicing MCP, then uses that same key for owner-scoped map calls. It never falls back to a shared server-side `LALGEO_API_KEY`. `https://mcp.lalgeo.com/health` stays public for process checks; health does not authenticate a caller or grant map access.
+
+Store the key only in the MCP client's protected connection settings. Never put it in a prompt, log, issue, map property, or tool argument.
+
+ChatGPT cannot attach a custom API key to a public MCP connection. OpenAI's [MCP authentication guidance](https://developers.openai.com/plugins/build/auth) requires OAuth 2.1 for user-authenticated hosted tools, and LalGeo does not advertise that flow yet. Use the localhost + Secure MCP Tunnel path above for ChatGPT. Do not configure the hosted endpoint as an unauthenticated ChatGPT connection.
+
 ## Verify
 
 ```sh
 npm run check
+npm run build
+npm run verify:hosted -- https://deploy-preview-000--lalgeosurvey.netlify.app
 ```
+
+The hosted deployment verifier is credential-free. It accepts only exact public health JSON and a `401` bearer challenge from `/mcp`; it never invokes a tool or sends an Authoring API key.

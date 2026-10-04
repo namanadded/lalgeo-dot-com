@@ -10,7 +10,7 @@ beforeEach(() => {
   globalThis.fetch = async (url, init) => {
     requests.push({
       method: init.method,
-      url: url.pathname,
+      url: `${url.pathname}${url.search}`,
       authorization: init.headers.Authorization,
       body: init.body ? JSON.parse(init.body) : undefined,
     });
@@ -52,6 +52,51 @@ test("the adapter forwards authoring writes and export to the authenticated API"
     type: "FeatureCollection",
     features: [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }],
   });
+});
+
+test("hosted credential verification performs one bounded authenticated read", async () => {
+  globalThis.fetch = async (url, init) => {
+    requests.push({
+      method: init.method,
+      url: `${url.pathname}${url.search}`,
+      authorization: init.headers.Authorization,
+      body: undefined,
+    });
+    return Response.json({ maps: [], pagination: { limit: 1, offset: 0, count: 0 } });
+  };
+  const api = new LalGeoApi("caller-key", "https://api.example.test");
+
+  await api.verifyCredentials();
+
+  assert.deepEqual(requests, [{
+    method: "GET",
+    url: "/v1/maps?limit=1",
+    authorization: "Bearer caller-key",
+    body: undefined,
+  }]);
+});
+
+test("hosted credential verification rejects successful website fallbacks and malformed JSON", async () => {
+  const responses = [
+    new Response("<!doctype html><title>Website fallback</title>", {
+      status: 200,
+      headers: { "content-type": "text/html" },
+    }),
+    Response.json({ ok: true }),
+  ];
+  globalThis.fetch = async () => responses.shift();
+  const api = new LalGeoApi("caller-key", "https://api.example.test");
+
+  for (let index = 0; index < 2; index += 1) {
+    await assert.rejects(api.verifyCredentials(), (error) => {
+      assert.ok(error instanceof LalGeoApiError);
+      assert.equal(error.status, 502);
+      assert.deepEqual(error.payload, {
+        error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid credential check response." },
+      });
+      return true;
+    });
+  }
 });
 
 test("API errors retain the existing response and request ID", async () => {
