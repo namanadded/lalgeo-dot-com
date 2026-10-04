@@ -10,7 +10,7 @@ beforeEach(() => {
   globalThis.fetch = async (url, init) => {
     requests.push({
       method: init.method,
-      url: url.pathname,
+      url: `${url.pathname}${url.search}`,
       authorization: init.headers.Authorization,
       body: init.body ? JSON.parse(init.body) : undefined,
     });
@@ -52,6 +52,67 @@ test("the adapter forwards authoring writes and export to the authenticated API"
     type: "FeatureCollection",
     features: [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }],
   });
+});
+
+test("hosted credential verification performs one bounded authenticated read", async () => {
+  globalThis.fetch = async (url, init) => {
+    requests.push({
+      method: init.method,
+      url: `${url.pathname}${url.search}`,
+      authorization: init.headers.Authorization,
+      redirect: init.redirect,
+      body: undefined,
+    });
+    return Response.json({ error: { code: "MAP_NOT_FOUND" }, request_id: "request-auth-probe" }, {
+      status: 404,
+      headers: { "x-request-id": "request-auth-probe" },
+    });
+  };
+  const api = new LalGeoApi("caller-key", "https://api.example.test");
+
+  await api.verifyCredentials();
+
+  assert.equal(requests.length, 1);
+  assert.deepEqual({ ...requests[0], url: undefined }, {
+    method: "GET",
+    url: undefined,
+    authorization: "Bearer caller-key",
+    redirect: "error",
+    body: undefined,
+  });
+  assert.match(requests[0].url, /^\/v1\/maps\/mcp_credential_probe_[a-f0-9]{32}$/);
+});
+
+test("hosted credential verification rejects website fallbacks, malformed JSON, oversized responses, and fictitious 404s", async () => {
+  const responses = [
+    new Response("<!doctype html><title>Website fallback</title>", {
+      status: 200,
+      headers: { "content-type": "text/html" },
+    }),
+    Response.json({ ok: true }),
+    new Response("{}", { headers: { "content-length": "64001" } }),
+    new Response(`{"padding":"${"x".repeat(64_000)}"}`),
+    Response.json({ error: { code: "NOT_FOUND" } }, { status: 404 }),
+    Response.json({ error: { code: "MAP_NOT_FOUND" }, request_id: "payload-request" }, {
+      status: 404,
+      headers: { "x-request-id": "different-header-request" },
+    }),
+  ];
+  const api = new LalGeoApi("caller-key", "https://api.example.test");
+
+  for (const response of responses) {
+    globalThis.fetch = async () => response;
+    await assert.rejects(api.verifyCredentials(), (error) => {
+      assert.ok(error instanceof LalGeoApiError);
+      assert.ok([404, 502].includes(error.status));
+      if (error.status === 502) {
+        assert.deepEqual(error.payload, {
+          error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid credential check response." },
+        });
+      }
+      return true;
+    });
+  }
 });
 
 test("API errors retain the existing response and request ID", async () => {

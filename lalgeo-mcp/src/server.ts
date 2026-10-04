@@ -71,7 +71,7 @@ function without<T extends JsonObject>(input: T, keys: string[]) {
 }
 
 export function createServer(api: LalGeoApi, geocoder: Geocoder) {
-  const server = new McpServer({ name: "lalgeo", version: "0.4.0" });
+  const server = new McpServer({ name: "lalgeo", version: "0.5.0" });
 
   server.registerResource("lalgeo-map", MAP_WIDGET_URI, {}, async () => ({
     contents: [{
