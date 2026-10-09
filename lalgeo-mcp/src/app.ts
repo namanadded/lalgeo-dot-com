@@ -9,6 +9,7 @@ export function createLalGeoMcpApp() {
   if (!apiKey) throw new Error("LALGEO_API_KEY is required.");
   const mapsToken = process.env.MAPKIT_TOKEN;
   if (!mapsToken) throw new Error("MAPKIT_TOKEN is required for LalGeo place search.");
+  const mapsOrigin = process.env.MAPKIT_ORIGIN || "https://mcp.lalgeo.com";
 
   const host = process.env.HOST || "127.0.0.1";
   const allowedHosts = (process.env.MCP_ALLOWED_HOSTS || [
@@ -23,7 +24,7 @@ export function createLalGeoMcpApp() {
 
   app.get("/health", (_req, res) => res.json({ ok: true, service: "lalgeo-mcp" }));
   app.post("/mcp", async (req, res) => {
-    const server = createServer(new LalGeoApi(apiKey, apiBaseUrl), new AppleMapsGeocoder(mapsToken));
+    const server = createServer(new LalGeoApi(apiKey, apiBaseUrl), new AppleMapsGeocoder(mapsToken, undefined, mapsOrigin));
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: undefined });
     res.on("close", () => {
       void transport.close();

@@ -18,6 +18,7 @@ export class AppleMapsGeocoder implements Geocoder {
   constructor(
     private readonly mapsToken: string,
     private readonly baseUrl = "https://maps-api.apple.com",
+    private readonly origin = "https://mcp.lalgeo.com",
   ) {}
 
   async geocode(query: string): Promise<GeocodeResult> {
@@ -26,7 +27,12 @@ export class AppleMapsGeocoder implements Geocoder {
     url.searchParams.set("lang", "en-CA");
 
     const response = await fetch(url, {
-      headers: { Authorization: `Bearer ${this.mapsToken}`, Accept: "application/json" },
+      headers: {
+        Authorization: `Bearer ${this.mapsToken}`,
+        Accept: "application/json",
+        Origin: this.origin,
+        Referer: `${this.origin}/`,
+      },
     });
     const payload = await response.json().catch(() => null) as { results?: unknown[] } | null;
     if (!response.ok) {

@@ -24,6 +24,8 @@ test("geocoder delegates to Apple Maps search and returns the best existing matc
   assert.equal(calls[0].url.pathname, "/v1/search");
   assert.equal(calls[0].url.searchParams.get("q"), "Calgary Tower");
   assert.equal(calls[0].init.headers.Authorization, "Bearer mapkit-token");
+  assert.equal(calls[0].init.headers.Origin, "https://mcp.lalgeo.com");
+  assert.equal(calls[0].init.headers.Referer, "https://mcp.lalgeo.com/");
   assert.deepEqual(result.coordinates, { latitude: 51.0447, longitude: -114.0631 });
   assert.equal(result.place.formattedAddress, "101 9 Ave SW, Calgary, AB");
 });
