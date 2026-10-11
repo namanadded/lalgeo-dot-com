@@ -15,9 +15,11 @@ import {
   normalizeBaseUrl,
   normalizeOrigin,
   parseArguments,
+  usage,
   validateOpenApi,
   verifyMapOpenReadiness,
   verifyProduction,
+  verifySyntheticInvalidBearer,
 } from "../scripts/verify-production.mjs";
 
 const repositorySpec = JSON.parse(await readFile(new URL("../openapi.json", import.meta.url), "utf8"));
@@ -91,6 +93,7 @@ test("URL and CLI policy defaults to production and permits HTTP only on loopbac
   assert.throws(() => parseArguments(["--unknown"]), /Unknown option/);
   assert.throws(() => assertTlsSafety({ NODE_TLS_REJECT_UNAUTHORIZED: "0" }), /disables TLS certificate verification/);
   assert.doesNotThrow(() => assertTlsSafety({}));
+  assert.match(usage(), /randomized synthetic-invalid bearer/);
 });
 
 test("OpenAPI validation enforces the canonical 3.1 bearer contract and operation IDs", () => {
@@ -98,7 +101,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 87,
+    errorResponseCount: 97,
   });
 
   const wrongVersion = structuredClone(openApiFixture());
@@ -129,7 +132,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   staleIdentityVersion.info.version = "1.0.0";
   assert.throws(
     () => validateOpenApi(staleIdentityVersion),
-    /info\.version must match the repository contract; expected 1\.1\.1, received 1\.0\.0/,
+    /info\.version must match the repository contract; expected 1\.2\.0, received 1\.0\.0/,
   );
 
   const missingBearer = structuredClone(openApiFixture());
@@ -138,7 +141,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
 
   const unactionableBearer = structuredClone(openApiFixture());
   unactionableBearer.components.securitySchemes.bearerAuth.description = "LalGeo API key";
-  assert.throws(() => validateOpenApi(unactionableBearer), /must explain its owner scope and where to request access/);
+  assert.throws(() => validateOpenApi(unactionableBearer), /must explain owner, read\/write scope, and where to request access/);
 
   const protectedHealth = structuredClone(openApiFixture());
   delete protectedHealth.paths["/v1/health"].get.security;
@@ -151,6 +154,14 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   const publicCreateLink = structuredClone(openApiFixture());
   publicCreateLink.paths["/v1/maps/{mapId}/open-links"].post.security = [];
   assert.throws(() => validateOpenApi(publicCreateLink), /createMapOpenLink must require bearerAuth/);
+
+  const missingWriteScope = structuredClone(openApiFixture());
+  delete missingWriteScope.paths["/v1/maps/{mapId}/open-links"].post["x-lalgeo-required-scope"];
+  assert.throws(() => validateOpenApi(missingWriteScope), /createMapOpenLink must require maps:write/);
+
+  const wrongReadScope = structuredClone(openApiFixture());
+  wrongReadScope.paths["/v1/maps"].get["x-lalgeo-required-scope"] = "maps:write";
+  assert.throws(() => validateOpenApi(wrongReadScope), /listMaps must require maps:read/);
 
   const requiredCreateBody = structuredClone(openApiFixture());
   requiredCreateBody.paths["/v1/maps/{mapId}/open-links"].post.requestBody.required = true;
@@ -287,6 +298,10 @@ test("OpenAPI validation rejects missing or misleading failure contracts", () =>
   const missingBearerChallenge = openApiFixture();
   delete missingBearerChallenge.components.responses.Unauthorized.headers["WWW-Authenticate"];
   assert.throws(() => validateOpenApi(missingBearerChallenge), /listMaps 401 response must document the bearer challenge/);
+
+  const missingScopeChallenge = openApiFixture();
+  delete missingScopeChallenge.components.responses.Forbidden.headers["WWW-Authenticate"];
+  assert.throws(() => validateOpenApi(missingScopeChallenge), /createMap 403 response must document the scoped bearer challenge/);
 });
 
 test("production verification never sends the readiness POST before the exact runtime contract is deployed", async () => {
@@ -316,7 +331,7 @@ test("production verification never sends the readiness POST before the exact ru
         throw new Error(`Unexpected request: ${init.method} ${url.pathname}`);
       },
     }),
-    /info\.version must match the repository contract; expected 1\.1\.1, received 1\.1\.0/,
+    /info\.version must match the repository contract; expected 1\.2\.0, received 1\.1\.0/,
   );
   assert.deepEqual(calls, [
     ["GET", "/v1/health"],
@@ -324,7 +339,7 @@ test("production verification never sends the readiness POST before the exact ru
   ]);
 });
 
-test("production verification sends only credential-free reads and the reserved non-mutating readiness POST", async (t) => {
+test("production verification sends no usable credential and only the reserved non-mutating POST", async (t) => {
   const requests = [];
   const origin = "https://maps.lalgeo.com";
   const service = await listen((request, response) => {
@@ -351,16 +366,18 @@ test("production verification sends only credential-free reads and the reserved 
         response.writeHead(200, jsonHeaders("request_openapi_head", { "Cache-Control": "public, max-age=300" }));
         response.end();
       } else if (request.method === "GET" && request.url === "/v1/maps") {
-        response.writeHead(401, jsonHeaders("request_auth", {
+        const syntheticInvalid = /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/.test(request.headers.authorization || "");
+        const requestId = syntheticInvalid ? "request_invalid_auth" : "request_auth";
+        response.writeHead(401, jsonHeaders(requestId, {
           "Cache-Control": "no-store",
           "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
           "Access-Control-Allow-Origin": origin,
-          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           Vary: "Origin",
         }));
         response.end(JSON.stringify({
-          error: { code: "UNAUTHORIZED", message: "Send an API key using Authorization: Bearer <key>." },
-          request_id: "request_auth",
+          error: { code: "UNAUTHORIZED", message: syntheticInvalid ? "The API key is invalid." : "Send an API key using Authorization: Bearer <key>." },
+          request_id: requestId,
         }));
       } else if (request.method === "OPTIONS" && request.url === "/v1/maps" && request.headers.origin === origin) {
         response.writeHead(204, {
@@ -368,7 +385,7 @@ test("production verification sends only credential-free reads and the reserved 
           "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Headers": "Authorization, Content-Type",
           "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         });
@@ -410,7 +427,7 @@ test("production verification sends only credential-free reads and the reserved 
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 87,
+    errorResponseCount: 97,
   });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],
@@ -418,17 +435,19 @@ test("production verification sends only credential-free reads and the reserved 
     ["HEAD", "/v1/health"],
     ["HEAD", "/v1/openapi.json"],
     ["GET", "/v1/maps"],
+    ["GET", "/v1/maps"],
     ["OPTIONS", "/v1/maps"],
     ["OPTIONS", "/v1/maps"],
     ["POST", "/v1/map-open/redeem"],
   ]);
-  for (const request of requests) {
+  for (const [index, request] of requests.entries()) {
     if (request.method === "POST") {
       assert.equal(request.body, JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }));
     } else {
       assert.equal(request.body, "");
     }
-    assert.equal(request.headers.authorization, undefined);
+    if (index === 5) assert.match(request.headers.authorization, /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/);
+    else assert.equal(request.headers.authorization, undefined);
     assert.equal(request.headers.cookie, undefined);
     assert.equal(request.headers["proxy-authorization"], undefined);
     assert.equal(request.headers["x-api-key"], undefined);
@@ -436,12 +455,13 @@ test("production verification sends only credential-free reads and the reserved 
   }
   assert.equal(requests[4].headers.origin, origin);
   assert.equal(requests[5].headers.origin, origin);
-  assert.equal(requests[5].headers["access-control-request-method"], "GET");
-  assert.equal(requests[5].headers["access-control-request-headers"], "Authorization, Content-Type");
-  assert.equal(requests[6].headers.origin, "https://cors-probe.invalid");
-  assert.equal(requests[7].headers.origin, origin);
-  assert.equal(requests[7].headers["content-type"], "application/json");
-  assert.equal(requests[7].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
+  assert.equal(requests[6].headers.origin, origin);
+  assert.equal(requests[6].headers["access-control-request-method"], "GET");
+  assert.equal(requests[6].headers["access-control-request-headers"], "Authorization, Content-Type");
+  assert.equal(requests[7].headers.origin, "https://cors-probe.invalid");
+  assert.equal(requests[8].headers.origin, origin);
+  assert.equal(requests[8].headers["content-type"], "application/json");
+  assert.equal(requests[8].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
   assert.match(logs.at(-1), /PASS production verifier/);
 });
 
@@ -489,17 +509,19 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
       return headResponse({ requestId: "request_openapi_head", headers: { ...secureHeaders, "Cache-Control": "public, max-age=300" } });
     }
     if (init.method === "GET" && url.pathname === "/v1/maps") {
+      const syntheticInvalid = /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/.test(init.headers.get("authorization") || "");
+      const requestId = syntheticInvalid ? "request_invalid_auth" : "request_auth";
       return jsonResponse(
-        { error: { code: "UNAUTHORIZED", message: "Missing key" }, request_id: "request_auth" },
+        { error: { code: "UNAUTHORIZED", message: syntheticInvalid ? "Invalid key" : "Missing key" }, request_id: requestId },
         {
           status: 401,
-          requestId: "request_auth",
+          requestId,
           headers: {
             ...secureHeaders,
             "Cache-Control": "no-store",
             "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
             "Access-Control-Allow-Origin": origin,
-            "Access-Control-Expose-Headers": "X-Request-Id",
+            "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           },
         },
       );
@@ -513,7 +535,7 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
           "Access-Control-Allow-Origin": origin,
           "Access-Control-Allow-Headers": "Authorization, Content-Type",
           "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Expose-Headers": "X-Request-Id",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         },
@@ -555,16 +577,46 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
     ["HEAD", "https://api.lalgeo.com/v1/health"],
     ["HEAD", "https://api.lalgeo.com/v1/openapi.json"],
     ["GET", "https://api.lalgeo.com/v1/maps"],
+    ["GET", "https://api.lalgeo.com/v1/maps"],
     ["OPTIONS", "https://api.lalgeo.com/v1/maps"],
     ["OPTIONS", "https://api.lalgeo.com/v1/maps"],
     ["POST", "https://api.lalgeo.com/v1/map-open/redeem"],
   ]);
+  const authenticatedCalls = calls.filter((call) => call.headers.authorization !== undefined);
+  assert.equal(authenticatedCalls.length, 1);
+  assert.match(authenticatedCalls[0].headers.authorization, /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/);
   for (const call of calls) {
-    assert.equal(call.headers.authorization, undefined);
     assert.equal(call.headers.cookie, undefined);
   }
   assert.equal(calls.at(-1).body, JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }));
   assert.equal(calls.at(-1).headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
+});
+
+test("synthetic-invalid bearer verification catches global authentication misconfiguration", async () => {
+  let request;
+  await assert.rejects(
+    verifySyntheticInvalidBearer({
+      baseUrl: "http://127.0.0.1:8787",
+      origin: DEFAULT_ORIGIN,
+      timeoutMs: 100,
+      verifyTransport: false,
+      fetchImpl: async (target, init) => {
+        request = { target: String(target), ...init, headers: Object.fromEntries(init.headers) };
+        return jsonResponse(
+          { error: { code: "AUTH_NOT_CONFIGURED", message: "API authentication is not configured." }, request_id: "request_broken_auth" },
+          { status: 503, requestId: "request_broken_auth", headers: { "Cache-Control": "no-store" } },
+        );
+      },
+    }),
+    /Synthetic-invalid bearer request returned HTTP 503 AUTH_NOT_CONFIGURED; expected 401 UNAUTHORIZED.*LALGEO_MAPS_API_KEYS.*request_broken_auth/,
+  );
+  assert.equal(request.target, "http://127.0.0.1:8787/v1/maps");
+  assert.equal(request.method, "GET");
+  assert.equal(request.body, undefined);
+  assert.equal(request.credentials, "omit");
+  assert.equal(request.redirect, "manual");
+  assert.match(request.headers.authorization, /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/);
+  assert.equal(request.headers.cookie, undefined);
 });
 
 test("map-open readiness reports the exact shared D1 migration action on runtime failure", async () => {

@@ -36,10 +36,10 @@ npm run verify:maps-local
 ```
 
 - `check` type-checks the selected Worker and runs the Maps API contract tests where applicable.
-- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with a synthetic key, exercises public `HEAD`, health, OpenAPI, auth, CORS, map/layer/feature creation, conflict handling, one-time open-link redemption, and export through the Maps project validator and serializer. It validates all 17 JSON success payloads and representative 400/401/404/409/413/500/503 errors against the documented schemas, including rejection of an invalid or reused capability and isolated misconfiguration and unmigrated-D1 probes for 503 and 500.
+- `verify:local` applies the standalone migrations to disposable local D1 state, builds and starts the standalone Worker with synthetic scoped keys, exercises public `HEAD`, health, OpenAPI, auth, CORS, scope enforcement, map/layer/feature creation, conflict handling, one-time open-link redemption, and export through the Maps project validator and serializer. It validates all 17 JSON success payloads and representative 400/401/403/404/409/413/500/503 errors against the documented schemas, including rejection of expired credentials, insufficient scopes, an invalid or reused capability, and isolated misconfiguration and unmigrated-D1 probes for 503 and 500.
 - `verify:maps-local` runs the same synthetic journey through `lalgeo-saas-api`, including the real `lalgeo-business` migration chain, hostname routing, host-wide HTTP-to-HTTPS redirect, and HSTS policy used by production.
 - `deploy:dry-run` bundles the combined Worker without publishing it.
-- `verify:production` sends unauthenticated `GET`, `HEAD`, and `OPTIONS` requests plus one reserved map-open readiness `POST` to the canonical API. The out-of-grammar probe token is recognized only with an exact internal header, can never identify an issued capability, and performs one bounded schema `SELECT` using a deliberately non-hash lookup before returning the ordinary non-disclosing `404 OPEN_LINK_UNAVAILABLE` with an acknowledgement header. This proves the shared D1 handoff table is readable without creating, reading, consuming, or deleting a real link. The verifier also requires a host-wide permanent HTTP-to-HTTPS redirect, one year of HSTS, public bodyless `HEAD` probes, browser-readable request IDs, an unambiguous private Authoring API identity and access path, and the strict JSON, OpenAPI, auth, and CORS contracts. It never sends a key or mutates data.
+- `verify:production` sends public and unauthenticated `GET`, `HEAD`, and `OPTIONS` requests, one read-only `GET /v1/maps` with a newly randomized `lalgeo_synthetic_invalid_…` bearer, and one reserved map-open readiness `POST` to the canonical API. The synthetic bearer must return `401 UNAUTHORIZED`; `503 AUTH_NOT_CONFIGURED` proves the complete key document needs operator repair. It is never a usable owner credential and cannot mutate data. The out-of-grammar map-open token is recognized only with an exact internal header, can never identify an issued capability, and performs one bounded schema `SELECT` using a deliberately non-hash lookup before returning the ordinary non-disclosing `404 OPEN_LINK_UNAVAILABLE` with an acknowledgement header. This proves the shared D1 handoff table is readable without creating, reading, consuming, or deleting a real link. The verifier also requires a host-wide permanent HTTP-to-HTTPS redirect, one year of HSTS, public bodyless `HEAD` probes, browser-readable request IDs, an unambiguous private Authoring API identity and access path, and the strict JSON, OpenAPI, auth, and CORS contracts. Positive key access still requires the owner-run synthetic acceptance journey.
 
 All local gates use only disposable synthetic data and never contact production.
 
@@ -52,15 +52,23 @@ npm run db:migrate:local
 npm run dev
 ```
 
-Replace the placeholder in `.dev.vars` with the SHA-256 hash of a development-only API key. `.dev.vars` is ignored by Git; never place a raw key in a tracked file.
+Replace the placeholders in `.dev.vars` with the SHA-256 hash of a development-only API key and a future RFC3339 expiry. `.dev.vars` is ignored by Git; never place a raw key in a tracked file.
 
-`LALGEO_MAPS_API_KEYS` is a JSON object whose keys are SHA-256 API-key hashes and whose values are stable owner IDs:
+`LALGEO_MAPS_API_KEYS` is a JSON object whose keys are SHA-256 API-key hashes. New entries use a descriptor with a stable owner ID, the required `maps:read` scope, optional `maps:write`, and a required RFC3339 expiry:
 
 ```json
-{"<sha256-of-raw-api-key>": "owner_demo"}
+{
+  "<sha256-of-raw-api-key>": {
+    "owner_id": "owner_demo",
+    "scopes": ["maps:read", "maps:write"],
+    "expires_at": "2026-12-31T23:59:59Z"
+  }
+}
 ```
 
-Send the raw key as `Authorization: Bearer <key>`. Protected authoring routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing or invalid. Health, OpenAPI discovery, and the capability-only redemption exchange are public. Canonical HTTP requests redirect permanently to HTTPS, and browser clients from an allowed origin can read `X-Request-Id`. Every map, layer, and feature query is owner-scoped.
+`maps:read` permits protected `GET` operations, including export. Add `maps:write` to permit protected `POST`, `PATCH`, and `DELETE` operations, including one-time open-link creation. The supported profiles are read-only (`["maps:read"]`) and read/write (`["maps:read", "maps:write"]`). Write-only descriptors fail closed because update responses and map-open handoffs can reveal existing map data. Legacy hash-to-owner string entries remain accepted with full read/write access so existing keys keep working, but new and rotated keys should use expiring descriptors.
+
+Send the raw key as `Authorization: Bearer <key>`. Protected authoring routes return `401 UNAUTHORIZED` with `WWW-Authenticate: Bearer realm="lalgeo-maps-api"` when the header is missing, invalid, or expired. A read-only key used for a write returns `403 INSUFFICIENT_SCOPE` and names `maps:write` in the response details and bearer challenge. A matched descriptor with an invalid owner, scope list, or expiry fails closed with `503 AUTH_NOT_CONFIGURED`. Health, OpenAPI discovery, and the capability-only redemption exchange are public. Canonical HTTP requests redirect permanently to HTTPS, and browser clients from an allowed origin can read `X-Request-Id` and `WWW-Authenticate`. Every map, layer, and feature query is owner-scoped.
 
 Omit an `id` to generate one; an explicitly supplied `id` must be a valid string. Optional map and layer fields use defaults only when omitted—invalid values return `400` without changing stored data. A map center requires both numeric coordinates; use `{"center":null}` in a map `PATCH` to clear it, and `{"zoom":null}` to clear zoom. A layer position must be a safe integer.
 

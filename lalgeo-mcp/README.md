@@ -12,6 +12,8 @@ A small Model Context Protocol adapter for the existing LalGeo Maps Authoring AP
 
 The server does not implement storage, ownership, geometry validation, or export logic. It forwards map tool calls to `https://api.lalgeo.com`, so the existing API remains the source of truth for authentication, owner isolation, and GIS behavior. Local and hosted connections have separate credential boundaries: a localhost process reads `LALGEO_API_KEY`, while the hosted endpoint requires each caller's own LalGeo Authoring API key.
 
+New Authoring API keys are expiring and always include `maps:read`; add `maps:write` for `create_map`, `create_layer`, `add_features`, `update_map`, and `export_map`. A read-only key can use `inspect_map`, while `geocode` uses the separate Apple Maps credential. `export_map` requires write access because it creates a new single-use handoff capability after reading the project. The adapter forwards the caller's key unchanged and preserves the API's `401` expired-or-invalid and `403 INSUFFICIENT_SCOPE` responses. Legacy full-access keys remain supported only for controlled rotation.
+
 `geocode` accepts a place name or address and delegates to the Apple Maps search service already used by LalGeo's browser map and address components. It returns the best match's latitude and longitude together with the original matched place fields; the MCP adapter does not implement geocoding or spatial matching.
 
 ## ChatGPT map component
