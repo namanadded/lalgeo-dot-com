@@ -21,6 +21,11 @@
   status = 200
 
 [[redirects]]
+  from = "/mcp-public"
+  to = "/.netlify/functions/mcp/mcp"
+  status = 200
+
+[[redirects]]
   from = "/health"
   to = "/.netlify/functions/mcp/health"
   status = 200
