@@ -22,7 +22,7 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
 
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   try {
-    assert.deepEqual(client.getServerVersion(), { name: "lalgeo", version: "0.4.0" });
+    assert.deepEqual(client.getServerVersion(), { name: "lalgeo", version: "0.5.0" });
     const discovered = await client.listTools();
     assert.deepEqual(discovered.tools.map((tool) => tool.name).sort(), [
       "add_features", "create_layer", "create_map", "export_map", "geocode", "inspect_map", "update_map",

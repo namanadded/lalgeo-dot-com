@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 
+import { randomUUID } from "node:crypto";
 import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -61,11 +62,26 @@ export const REQUIRED_BODYLESS_SUCCESSES = Object.freeze([
   "deleteFeature:204",
 ]);
 
-const PROTECTED_OPERATIONS = Object.freeze([
-  "listMaps", "createMap", "getMap", "updateMap", "deleteMap", "exportMap", "createMapOpenLink",
-  "listLayers", "createLayer", "getLayer", "updateLayer", "deleteLayer",
-  "listFeatures", "createFeatures", "getFeature", "updateFeature", "deleteFeature",
-]);
+export const REQUIRED_OPERATION_SCOPES = Object.freeze({
+  listMaps: "maps:read",
+  createMap: "maps:write",
+  getMap: "maps:read",
+  updateMap: "maps:write",
+  deleteMap: "maps:write",
+  exportMap: "maps:read",
+  createMapOpenLink: "maps:write",
+  listLayers: "maps:read",
+  createLayer: "maps:write",
+  getLayer: "maps:read",
+  updateLayer: "maps:write",
+  deleteLayer: "maps:write",
+  listFeatures: "maps:read",
+  createFeatures: "maps:write",
+  getFeature: "maps:read",
+  updateFeature: "maps:write",
+  deleteFeature: "maps:write",
+});
+const PROTECTED_OPERATIONS = Object.freeze(Object.keys(REQUIRED_OPERATION_SCOPES));
 const RESOURCE_OPERATIONS = new Set(PROTECTED_OPERATIONS.filter((id) => !["listMaps", "createMap"].includes(id)));
 const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createMapOpenLink", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
 const CREATE_OPERATIONS = new Set(["createMap", "createLayer", "createFeatures"]);
@@ -76,6 +92,7 @@ export const REQUIRED_ERROR_RESPONSES = Object.freeze({
   ...Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
     ["400", BODY_OPERATIONS.has(id) ? "BadRequest" : undefined],
     ["401", "Unauthorized"],
+    ["403", REQUIRED_OPERATION_SCOPES[id] === "maps:write" ? "Forbidden" : undefined],
     ["404", RESOURCE_OPERATIONS.has(id) ? "NotFound" : undefined],
     ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
     ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
@@ -98,6 +115,7 @@ const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head",
 const SAFE_REQUEST_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const FORBIDDEN_CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization", "x-api-key", "x-lalgeo-api-key"];
 const MAP_OPEN_READINESS_BODY = JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN });
+const SYNTHETIC_INVALID_API_KEY_PATTERN = /^lalgeo_synthetic_invalid_[0-9a-f]{32}$/;
 
 export class VerificationError extends Error {
   constructor(message) {
@@ -306,7 +324,7 @@ export function usage() {
     `  --origin <url>    Allowed browser origin to verify (default: ${DEFAULT_ORIGIN})`,
     "  --help            Show this help",
     "",
-    "The verifier sends unauthenticated GET, HEAD, and OPTIONS requests plus one reserved, read-only map-open readiness POST.",
+    "The verifier sends public and unauthenticated GET, HEAD, and OPTIONS requests, one read-only GET with a randomized synthetic-invalid bearer, and one reserved, read-only map-open readiness POST.",
   ].join("\n");
 }
 
@@ -328,7 +346,13 @@ async function request(baseUrl, pathname, {
   check(target.origin === baseUrl, "Internal safety check rejected a cross-origin request.");
 
   const outgoing = new Headers(headers);
+  const authorization = outgoing.get("authorization") || "";
+  const syntheticInvalidBearer = authorization.match(/^Bearer\s+(.+)$/i)?.[1] || "";
+  const isSyntheticInvalidAuthProbe = method === "GET" &&
+    target.pathname === "/v1/maps" && !target.search && body === undefined &&
+    SYNTHETIC_INVALID_API_KEY_PATTERN.test(syntheticInvalidBearer);
   for (const header of FORBIDDEN_CREDENTIAL_HEADERS) {
+    if (header === "authorization" && isSyntheticInvalidAuthProbe) continue;
     check(!outgoing.has(header), `Internal safety check rejected credential header ${header}.`);
   }
   const isMapOpenReadinessProbe = method === "POST" &&
@@ -526,8 +550,11 @@ export function validateOpenApi(spec) {
   check(
     typeof bearer.description === "string" &&
       bearer.description.includes("owner-scoped") &&
+      bearer.description.includes("maps:read") &&
+      bearer.description.includes("maps:write") &&
+      bearer.description.includes("maps:write is never valid without maps:read") &&
       bearer.description.includes(AUTHORING_GUIDE_URL),
-    "OpenAPI bearerAuth must explain its owner scope and where to request access.",
+    "OpenAPI bearerAuth must explain owner, read/write scope, and where to request access.",
   );
   check(Array.isArray(spec.security) && spec.security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)), "OpenAPI must apply bearerAuth security by default.");
 
@@ -548,6 +575,10 @@ export function validateOpenApi(spec) {
         check(
           Array.isArray(security) && security.some((entry) => isObject(entry) && Array.isArray(entry.bearerAuth)),
           `OpenAPI ${operationId} must require bearerAuth.`,
+        );
+        check(
+          pathItem[method]["x-lalgeo-required-scope"] === REQUIRED_OPERATION_SCOPES[operationId],
+          `OpenAPI ${operationId} must require ${REQUIRED_OPERATION_SCOPES[operationId]}.`,
         );
       }
     }
@@ -598,6 +629,12 @@ export function validateOpenApi(spec) {
         check(resolved.content?.["application/json"]?.schema?.$ref === "#/components/schemas/Error", `${label} must use the JSON Error schema.`);
         check(resolved.headers?.["X-Request-Id"]?.$ref === "#/components/headers/RequestId", `${label} must document the X-Request-Id header.`);
         if (status === "401") check(resolved.headers?.["WWW-Authenticate"]?.schema?.const === 'Bearer realm="lalgeo-maps-api"', `${label} must document the bearer challenge.`);
+        if (status === "403") {
+          check(
+            resolved.headers?.["WWW-Authenticate"]?.schema?.const === 'Bearer realm="lalgeo-maps-api", error="insufficient_scope", scope="maps:write"',
+            `${label} must document the scoped bearer challenge.`,
+          );
+        }
         errorResponseCount += 1;
       }
 
@@ -679,29 +716,64 @@ async function verifyOpenApi(options) {
   return validateOpenApi(spec);
 }
 
-async function verifyUnauthorized(options) {
+async function verifyBearerRejection(options, {
+  label,
+  authorization,
+} = {}) {
   const result = await request(options.baseUrl, "/v1/maps", {
     method: "GET",
-    headers: { Accept: "application/json", Origin: options.origin },
+    headers: {
+      Accept: "application/json",
+      Origin: options.origin,
+      ...(authorization ? { Authorization: authorization } : {}),
+    },
     fetchImpl: options.fetchImpl,
     timeoutMs: options.timeoutMs,
   });
-  expectStatus(result, 401, "Unauthenticated maps request");
-  const requestId = expectRequestId(result, "Unauthenticated maps request");
-  expectNoStore(result, "Unauthenticated maps request");
-  if (options.verifyTransport) expectHsts(result, "Unauthenticated maps request");
+  if (result.status !== 401) {
+    let reportedCode = "";
+    try {
+      const payload = JSON.parse(result.text);
+      if (typeof payload?.error?.code === "string") reportedCode = ` ${payload.error.code}`;
+    } catch {
+      // Status and request ID remain actionable when an intermediary did not return JSON.
+    }
+    const requestId = result.headers.get("x-request-id")?.trim();
+    const repair = authorization
+      ? " A 503 AUTH_NOT_CONFIGURED means the complete LALGEO_MAPS_API_KEYS document must be repaired before authenticated clients can use the API."
+      : "";
+    throw new VerificationError(
+      `${label} returned HTTP ${result.status}${reportedCode}; expected 401 UNAUTHORIZED.${repair} Request ID: ${requestId || "missing"}.`,
+    );
+  }
+  const requestId = expectRequestId(result, label);
+  expectNoStore(result, label);
+  if (options.verifyTransport) expectHsts(result, label);
   const challenge = result.headers.get("www-authenticate")?.trim() || "";
-  check(/^Bearer(?:\s|$)/i.test(challenge), "Unauthenticated maps request must return a WWW-Authenticate Bearer challenge.");
-  check(result.headers.get("access-control-allow-origin") === options.origin, `Unauthenticated maps request must allow origin ${options.origin}.`);
-  expectVaryOrigin(result, "Unauthenticated maps request");
-  expectRequestIdExposed(result, "Unauthenticated maps request");
+  check(/^Bearer(?:\s|$)/i.test(challenge), `${label} must return a WWW-Authenticate Bearer challenge.`);
+  check(result.headers.get("access-control-allow-origin") === options.origin, `${label} must allow origin ${options.origin}.`);
+  expectVaryOrigin(result, label);
+  expectRequestIdExposed(result, label);
+  check(headerTokens(result, "access-control-expose-headers").includes("www-authenticate"), `${label} must expose WWW-Authenticate to browser clients.`);
 
-  const payload = parseJsonResponse(result, "Unauthenticated maps request");
-  check(isObject(payload) && isObject(payload.error), "Unauthenticated maps request must return a JSON error object.");
-  check(payload.error.code === "UNAUTHORIZED", `Unauthenticated maps request must return error code UNAUTHORIZED; received ${String(payload.error.code)}.`);
-  check(typeof payload.error.message === "string" && payload.error.message, "Unauthenticated maps request must return a non-empty error message.");
-  check(typeof payload.request_id === "string" && payload.request_id, "Unauthenticated maps request must return request_id in its JSON body.");
-  check(payload.request_id === requestId, "Unauthenticated maps request body request_id must match X-Request-Id.");
+  const payload = parseJsonResponse(result, label);
+  check(isObject(payload) && isObject(payload.error), `${label} must return a JSON error object.`);
+  check(payload.error.code === "UNAUTHORIZED", `${label} must return error code UNAUTHORIZED; received ${String(payload.error.code)}.`);
+  check(typeof payload.error.message === "string" && payload.error.message, `${label} must return a non-empty error message.`);
+  check(typeof payload.request_id === "string" && payload.request_id, `${label} must return request_id in its JSON body.`);
+  check(payload.request_id === requestId, `${label} body request_id must match X-Request-Id.`);
+}
+
+async function verifyUnauthorized(options) {
+  await verifyBearerRejection(options, { label: "Unauthenticated maps request" });
+}
+
+export async function verifySyntheticInvalidBearer(options) {
+  const syntheticInvalidApiKey = `lalgeo_synthetic_invalid_${randomUUID().replaceAll("-", "")}`;
+  await verifyBearerRejection(options, {
+    label: "Synthetic-invalid bearer request",
+    authorization: `Bearer ${syntheticInvalidApiKey}`,
+  });
 }
 
 async function verifyPublicHead(options) {
@@ -874,6 +946,8 @@ export async function verifyProduction({
   logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);
   logger.log("PASS auth: unauthenticated read rejected with JSON Bearer challenge");
+  await verifySyntheticInvalidBearer(normalized);
+  logger.log("PASS auth configuration: randomized synthetic-invalid bearer rejected with JSON Bearer challenge");
   logger.log(`PASS error contract: ${openApi.errorResponseCount} documented route failures`);
   await verifyCors(normalized);
   logger.log(`PASS CORS: ${normalized.origin} allowed and an untrusted origin rejected`);

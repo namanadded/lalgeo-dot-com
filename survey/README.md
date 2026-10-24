@@ -46,6 +46,25 @@ LALGEO_SAAS_API_KEY="<optional-shared-secret-if-configured>"
 DATABASE_URL="file:./dev.db"
 ```
 
+## Hosted LalGeo MCP
+
+This Netlify site packages the adapter served at `https://mcp.lalgeo.com/mcp`. The public `/health` route is only a process check. Every `/mcp` request must send the caller's LalGeo Authoring API key as a bearer credential; the function validates that key read-only and never uses `LALGEO_API_KEY` as a shared Maps identity. `MAPKIT_TOKEN` remains a server-side dependency for the `geocode` tool.
+
+The static bearer path is for generic MCP clients with protected connection settings. ChatGPT requires OAuth 2.1 for authenticated public MCP and cannot present a custom API key, so use the local Secure MCP Tunnel workflow in [`../lalgeo-mcp/README.md`](../lalgeo-mcp/README.md) until LalGeo implements OAuth.
+
+Before deployment, build the MCP package and the Netlify site, verify the generated function archive, then run the credential-free boundary check against the preview:
+
+```bash
+npm ci
+npx netlify build --offline
+npm run test:mcp-package
+npm --prefix ../lalgeo-mcp run verify:hosted -- https://deploy-preview-000--lalgeosurvey.netlify.app
+```
+
+The remote verifier sends no real key and invokes no tool. It checks one missing credential and one clearly synthetic invalid credential. A passing preview must return exact health JSON and reject both MCP initialization requests with `401`; a successful website fallback is a failure, while `503` on the synthetic probe identifies an unavailable Authoring API authentication configuration.
+
+For production, deploy the fail-closed function first and run the same verifier against `https://mcp.lalgeo.com`. Only after that endpoint returns the exact `401` challenge should an owner remove the legacy `LALGEO_API_KEY` from this Netlify site's environment; the hosted function no longer reads it. Keep `MAPKIT_TOKEN`, then rerun the verifier. This order makes a rollback fail unavailable instead of silently restoring a shared Maps identity.
+
 ## Stripe Payments (cards + Apple Pay + Google Pay)
 Add these env vars in Netlify for invoice payments:
 
