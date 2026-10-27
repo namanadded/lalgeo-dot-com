@@ -8,7 +8,13 @@ import { createServer } from "../src/server.ts";
 test("MCP discovery exposes side-effect-free inspection separately from opening a map", async () => {
   const calls = [];
   const api = {
-    createMap: async (input) => { calls.push(["create_map", input]); return { map: { id: "map_1" } }; },
+    createMap: async (input, idempotencyKey) => {
+      calls.push(["create_map", input, idempotencyKey]);
+      return {
+        payload: { map: { id: "map_1" } },
+        idempotency: { replayed: true, expires_at: "2026-10-27T07:00:00.000Z" },
+      };
+    },
     createLayer: async () => ({}),
     addFeatures: async () => ({}),
     updateMap: async () => ({}),
@@ -22,7 +28,7 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
 
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   try {
-    assert.deepEqual(client.getServerVersion(), { name: "lalgeo", version: "0.5.0" });
+    assert.deepEqual(client.getServerVersion(), { name: "lalgeo", version: "0.6.0" });
     const discovered = await client.listTools();
     assert.deepEqual(discovered.tools.map((tool) => tool.name).sort(), [
       "add_features", "create_layer", "create_map", "export_map", "geocode", "inspect_map", "update_map",
@@ -49,7 +55,8 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
     });
     for (const name of ["create_map", "create_layer", "add_features"]) {
       assert.match(discovered.tools.find((tool) => tool.name === name).description, /stable ID/);
-      assert.match(discovered.tools.find((tool) => tool.name === name).description, /inspect_map/);
+      assert.match(discovered.tools.find((tool) => tool.name === name).description, /Idempotency-Key/);
+      assert.equal(discovered.tools.find((tool) => tool.name === name).inputSchema.properties.idempotency_key.type, "string");
     }
 
     const resource = await client.readResource({ uri: "ui://lalgeo/map.html" });
@@ -63,14 +70,20 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
     assert.ok(widgetScript);
     assert.doesNotThrow(() => new Function(widgetScript));
 
-    const response = await client.callTool({ name: "create_map", arguments: { name: "Agent map" } });
+    const response = await client.callTool({
+      name: "create_map",
+      arguments: { name: "Agent map", idempotency_key: "tool-map-create-0001" },
+    });
     assert.equal(response.isError, undefined);
     assert.deepEqual(response.structuredContent, {
       operation: "create_map",
       data: { map: { id: "map_1" } },
-      context: { requested_map: { name: "Agent map" } },
+      context: {
+        requested_map: { name: "Agent map" },
+        idempotency: { replayed: true, expires_at: "2026-10-27T07:00:00.000Z" },
+      },
     });
-    assert.deepEqual(calls, [["create_map", { name: "Agent map" }]]);
+    assert.deepEqual(calls, [["create_map", { name: "Agent map" }, "tool-map-create-0001"]]);
   } finally {
     await client.close();
     await server.close();
@@ -100,9 +113,27 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
     },
   };
   const api = {
-    createMap: async (input) => { calls.push(["create_map", input]); return { map: { id: "calgary_map", name: input.name, center: input.center } }; },
-    createLayer: async (mapId, input) => { calls.push(["create_layer", mapId, input]); return { layer: { id: "calgary_places", map_id: mapId, ...input } }; },
-    addFeatures: async (mapId, layerId, features) => { calls.push(["add_features", mapId, layerId, features]); return { type: "FeatureCollection", features }; },
+    createMap: async (input, idempotencyKey) => {
+      calls.push(["create_map", input, idempotencyKey]);
+      return {
+        payload: { map: { id: "calgary_map", name: input.name, center: input.center } },
+        idempotency: { replayed: false, expires_at: "2026-10-27T07:00:00.000Z" },
+      };
+    },
+    createLayer: async (mapId, input, idempotencyKey) => {
+      calls.push(["create_layer", mapId, input, idempotencyKey]);
+      return {
+        payload: { layer: { id: "calgary_places", map_id: mapId, ...input } },
+        idempotency: { replayed: true, expires_at: "2026-10-27T07:00:01.000Z" },
+      };
+    },
+    addFeatures: async (mapId, layerId, features, idempotencyKey) => {
+      calls.push(["add_features", mapId, layerId, features, idempotencyKey]);
+      return {
+        payload: { type: "FeatureCollection", features },
+        idempotency: { replayed: false, expires_at: "2026-10-27T07:00:02.000Z" },
+      };
+    },
     updateMap: async () => ({}),
     exportMap: async (mapId) => { calls.push(["export_map", mapId]); return portableProject; },
     listLayerIds: async (mapId) => { calls.push(["list_layer_ids", mapId]); return ["calgary_places"]; },
@@ -115,15 +146,33 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
 
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   try {
-    await client.callTool({ name: "create_map", arguments: { id: "calgary_map", name: "Calgary", center: { latitude: 51.0447, longitude: -114.0719 }, zoom: 12 } });
-    await client.callTool({ name: "create_layer", arguments: { map_id: "calgary_map", id: "calgary_places", name: "Calgary places", geometry_type: "Point" } });
-    const response = await client.callTool({ name: "add_features", arguments: { map_id: "calgary_map", layer_id: "calgary_places", features } });
+    const mapResponse = await client.callTool({ name: "create_map", arguments: { id: "calgary_map", idempotency_key: "calgary-map-create-0001", name: "Calgary", center: { latitude: 51.0447, longitude: -114.0719 }, zoom: 12 } });
+    const layerResponse = await client.callTool({ name: "create_layer", arguments: { map_id: "calgary_map", id: "calgary_places", idempotency_key: "calgary-layer-create-0001", name: "Calgary places", geometry_type: "Point" } });
+    const response = await client.callTool({ name: "add_features", arguments: { map_id: "calgary_map", layer_id: "calgary_places", idempotency_key: "calgary-feature-create-0001", features } });
 
     assert.equal(calls.length, 3);
+    assert.deepEqual(calls, [
+      ["create_map", { id: "calgary_map", name: "Calgary", center: { latitude: 51.0447, longitude: -114.0719 }, zoom: 12 }, "calgary-map-create-0001"],
+      ["create_layer", "calgary_map", { id: "calgary_places", name: "Calgary places", geometry_type: "Point" }, "calgary-layer-create-0001"],
+      ["add_features", "calgary_map", "calgary_places", features, "calgary-feature-create-0001"],
+    ]);
+    assert.deepEqual(mapResponse.structuredContent.context.idempotency, {
+      replayed: false,
+      expires_at: "2026-10-27T07:00:00.000Z",
+    });
+    assert.deepEqual(layerResponse.structuredContent.context.idempotency, {
+      replayed: true,
+      expires_at: "2026-10-27T07:00:01.000Z",
+    });
     assert.deepEqual(response.structuredContent, {
       operation: "add_features",
       data: { type: "FeatureCollection", features },
-      context: { map_id: "calgary_map", layer_id: "calgary_places", features },
+      context: {
+        map_id: "calgary_map",
+        layer_id: "calgary_places",
+        features,
+        idempotency: { replayed: false, expires_at: "2026-10-27T07:00:02.000Z" },
+      },
     });
 
     const inspectResponse = await client.callTool({ name: "inspect_map", arguments: { map_id: "calgary_map" } });

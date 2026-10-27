@@ -1,11 +1,13 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
-import { LalGeoApi, LalGeoApiError, type JsonObject } from "./lalgeo-api.js";
+import { LalGeoApi, LalGeoApiError, type IdempotentCreateResult, type JsonObject } from "./lalgeo-api.js";
 import { GeocodeError, type Geocoder } from "./geocoder.js";
 import { MAP_WIDGET_HTML, MAP_WIDGET_URI } from "./widget.js";
 
 const id = z.string().min(1).max(128).regex(/^[A-Za-z0-9][A-Za-z0-9_-]*$/);
-const jsonObject = z.record(z.unknown());
+const idempotencyKey = z.string().min(8).max(128).regex(/^[!-~]+$/).optional()
+  .describe("Use a fresh UUID-like value for this intended create, then reuse it only for an exact retry. Successful results replay for 24 hours.");
+const jsonObject = z.record(z.string(), z.unknown());
 const center = z.object({ latitude: z.number(), longitude: z.number() });
 const mapFields = {
   name: z.string().min(1).max(200).optional(),
@@ -20,7 +22,7 @@ const mapFields = {
 const widgetOutput = {
   operation: z.enum(["create_map", "create_layer", "add_features", "update_map", "inspect_map", "export_map"]),
   data: z.unknown(),
-  context: z.record(z.unknown()),
+  context: z.record(z.string(), z.unknown()),
 };
 
 function uiMeta(invoking: string, invoked: string) {
@@ -66,12 +68,24 @@ async function call(name: string, context: JsonObject, operation: () => Promise<
   }
 }
 
+async function createCall(name: string, context: JsonObject, operation: () => Promise<IdempotentCreateResult>) {
+  try {
+    const created = await operation();
+    return result(name, created.payload, {
+      ...context,
+      ...(created.idempotency ? { idempotency: created.idempotency } : {}),
+    });
+  } catch (error) {
+    return failure(error);
+  }
+}
+
 function without<T extends JsonObject>(input: T, keys: string[]) {
   return Object.fromEntries(Object.entries(input).filter(([key]) => !keys.includes(key)));
 }
 
 export function createServer(api: LalGeoApi, geocoder: Geocoder) {
-  const server = new McpServer({ name: "lalgeo", version: "0.5.0" });
+  const server = new McpServer({ name: "lalgeo", version: "0.6.0" });
 
   server.registerResource("lalgeo-map", MAP_WIDGET_URI, {}, async () => ({
     contents: [{
@@ -89,23 +103,28 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
 
   server.registerTool("create_map", {
     title: "Create LalGeo map",
-    description: "Create an owner-scoped map. Supply a stable ID; after an uncertain result or ID_CONFLICT, inspect_map before retrying.",
+    description: "Create an owner-scoped map. Supply a stable ID and Idempotency-Key; an exact retry with that key replays the original result.",
     inputSchema: {
       id: id.optional().describe("Supply a stable client ID so inspect_map can reconcile an uncertain result before retrying."),
+      idempotency_key: idempotencyKey,
       ...mapFields,
       name: mapFields.name.unwrap(),
     },
     outputSchema: widgetOutput,
     _meta: uiMeta("Creating map…", "Map created."),
     annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
-  }, (input) => call("create_map", { requested_map: input }, () => api.createMap(input)));
+  }, (input) => {
+    const requestedMap = without(input, ["idempotency_key"]);
+    return createCall("create_map", { requested_map: requestedMap }, () => api.createMap(requestedMap, input.idempotency_key));
+  });
 
   server.registerTool("create_layer", {
     title: "Create LalGeo layer",
-    description: "Create a typed layer in an existing map. Supply a stable ID; after an uncertain result or ID_CONFLICT, inspect_map before retrying.",
+    description: "Create a typed layer in an existing map. Supply a stable ID and Idempotency-Key; an exact retry with that key replays the original result.",
     inputSchema: {
       map_id: id,
       id: id.optional().describe("Supply a stable client ID so inspect_map can reconcile an uncertain result before retrying."),
+      idempotency_key: idempotencyKey,
       name: z.string().min(1).max(200),
       geometry_type: z.enum(["Point", "LineString", "Polygon"]),
       style: jsonObject.optional(),
@@ -114,14 +133,19 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
     outputSchema: widgetOutput,
     _meta: uiMeta("Creating layer…", "Layer created."),
     annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
-  }, (input) => call("create_layer", { map_id: input.map_id }, () => api.createLayer(input.map_id, without(input, ["map_id"]))));
+  }, (input) => createCall(
+    "create_layer",
+    { map_id: input.map_id },
+    () => api.createLayer(input.map_id, without(input, ["map_id", "idempotency_key"]), input.idempotency_key),
+  ));
 
   server.registerTool("add_features", {
     title: "Add GeoJSON features",
-    description: "Add GeoJSON Features to an existing typed layer. Give every feature a stable ID; after an uncertain result or ID_CONFLICT, inspect_map before retrying.",
+    description: "Add GeoJSON Features to an existing typed layer. Give every feature a stable ID and supply an Idempotency-Key; an exact retry with that key replays the original result.",
     inputSchema: {
       map_id: id,
       layer_id: id,
+      idempotency_key: idempotencyKey,
       features: z.array(z.object({
         type: z.literal("Feature"),
         id: id.optional().describe("Supply a stable client ID so inspect_map can reconcile an uncertain result before retrying."),
@@ -132,7 +156,11 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
     outputSchema: widgetOutput,
     _meta: uiMeta("Adding features…", "Features added."),
     annotations: { destructiveHint: false, idempotentHint: false, openWorldHint: true },
-  }, (input) => call("add_features", { map_id: input.map_id, layer_id: input.layer_id, features: input.features }, () => api.addFeatures(input.map_id, input.layer_id, input.features)));
+  }, (input) => createCall(
+    "add_features",
+    { map_id: input.map_id, layer_id: input.layer_id, features: input.features },
+    () => api.addFeatures(input.map_id, input.layer_id, input.features, input.idempotency_key),
+  ));
 
   server.registerTool("update_map", {
     title: "Update LalGeo map",
@@ -199,7 +227,7 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
     outputSchema: {
       query: z.string(),
       coordinates: z.object({ latitude: z.number(), longitude: z.number() }),
-      place: z.record(z.unknown()),
+      place: z.record(z.string(), z.unknown()),
     },
     annotations: { readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: true },
   }, async ({ query }) => {

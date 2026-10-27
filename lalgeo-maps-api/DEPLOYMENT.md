@@ -8,7 +8,7 @@ Maps is part of the existing production API stack:
 
 - Worker: `lalgeo-saas-api`
 - D1 database: `lalgeo-business`
-- Maps migrations: `lalgeo-saas-api/migrations/0004_maps.sql` and additive `0005_map_open_links.sql`
+- Maps migrations: `lalgeo-saas-api/migrations/0004_maps.sql`, additive `0005_map_open_links.sql`, and additive `0006_map_idempotency_keys.sql`
 - canonical Maps hostname: `https://api.lalgeo.com`
 - existing Survey/SaaS hostname: `lalgeo-saas-api.namanadded.workers.dev`
 
@@ -16,17 +16,18 @@ The combined Worker enforces the canonical hostname's HTTPS and HSTS policy befo
 
 ## Current evidence
 
-Last read-only canonical check: 2026-10-10 UTC.
+Last read-only canonical check: 2026-10-25 UTC.
 
-- `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, one-year HSTS, `no-store`, and request ID `a483bb022cb2eb3e`.
-- `/v1/openapi.json` returned the repository's valid 1.2.0 scoped-key contract: OpenAPI 3.1.0 with 22 unique operations, 17 JSON success schemas, five bodyless HEAD/DELETE successes, and 97 documented failures. Request ID: `a483bb3d690175e6`.
-- Missing and randomized synthetic-invalid bearer credentials both returned the documented `401 UNAUTHORIZED` challenge, with request IDs `a483bb023fa279fd` and `a483bb002c2acdf7`. This proves the deployed authentication path is no longer globally failing closed with `AUTH_NOT_CONFIGURED`; it does not prove that any owner-held key is valid, correctly scoped, or unexpired.
+- `GET /v1/health` returned HTTP 200 with exactly `{"ok":true,"service":"lalgeo-maps-api","version":"v1"}`, one-year HSTS, `no-store`, and request ID `a4ff60aa7f212ed2`.
+- `/v1/openapi.json` returned the repository's valid 1.2.0 scoped-key contract: OpenAPI 3.1.0 with 22 unique operations, 17 JSON success schemas, five bodyless HEAD/DELETE successes, and 97 documented failures. Its canonical SHA-256 `e1f431b5789347a944840780f5fb7b2b24626129afad0846fba74498eccd27d0` matched `origin/main`; request ID `a4ff60aa6b3c70f4`.
+- Missing and randomized synthetic-invalid bearer credentials both returned the documented `401 UNAUTHORIZED` challenge, with request IDs `a4ff60aa6a5828dc` and `a4ff60aa7d637631`. This proves the deployed authentication path is no longer globally failing closed with `AUTH_NOT_CONFIGURED`; it does not prove that any owner-held key is valid, correctly scoped, or unexpired.
 - CORS allowed `https://maps.lalgeo.com`, exposed `X-Request-Id` and `WWW-Authenticate` to that origin, and did not allow an untrusted origin.
 - The anonymous-create, immutable [Snapshot API](https://maps.lalgeo.com/api-docs) is also live and returns a private token for revocation.
 - Snapshot API source is now on `main` through [PR #151](https://github.com/namanadded/lalgeo-dot-com/pull/151). Its anonymous-create, immutable sharing contract remains separate from this private Authoring API handoff; smoke-test both surfaces after deploying the shared Worker.
-- Production exposes the one-time handoff routes and the Maps client scrubs the fragment, asks for confirmation, traps modal focus, and shows request IDs on failure. The reserved read-only datastore probe returned the expected `404 OPEN_LINK_UNAVAILABLE` but omitted `X-LalGeo-Readiness-Probe` (request ID `a483bc484c552b03`), so the exact readiness runtime and complete handoff storage path are still unproven.
+- Production exposes the one-time handoff routes and the Maps client scrubs the fragment, asks for confirmation, traps modal focus, and shows request IDs on failure. The exact `origin/main` production contract passed its read-only checks, including acknowledged `404 OPEN_LINK_UNAVAILABLE` from the reserved non-mutating datastore probe (request ID `a4ff60aa7c81b1f8`). This proves the live runtime can read the required handoff table without creating, reading, consuming, or deleting a capability.
+- Production does not yet expose this branch's 1.3.0 durable-create contract or its idempotency readiness acknowledgement. Do not infer `map_idempotency_keys` readiness from health, the 1.2.0 OpenAPI response, or the handoff probe; apply `0006_map_idempotency_keys.sql`, deploy the matching shared Worker, and require this branch's complete read-only verifier to pass first.
 
-The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No owner-held production authoring key was used for the 2026-10-10 check, so positive issue/redeem/open/edit/export coverage remains owner-only. Do not claim the API-created map journey works live until the credential-free readiness probe and the synthetic acceptance below both pass.
+The initial combined-Worker release recorded an authenticated synthetic create/export/delete acceptance in [PR #146](https://github.com/namanadded/lalgeo-dot-com/pull/146). No owner-held production authoring key was used for the 2026-10-25 check, so positive scoped-key create/issue/redeem/open/edit/export coverage remains owner-only. Do not claim the complete API-created map journey works live until the synthetic acceptance below passes.
 
 ## 1. Prove the repository state
 
@@ -49,7 +50,7 @@ npm run deploy:dry-run
 npm run verify:maps-local
 ```
 
-The combined gate uses disposable local D1 state, applies migrations `0001` through the latest migration, sends a synthetic hostname-routed Maps journey through `lalgeo-saas-api`, creates and redeems a 256-bit one-time capability, rejects its reuse, validates the editable project copy, and removes its temporary files. It must not require Cloudflare credentials or contact a remote database.
+The combined gate uses disposable local D1 state, applies migrations `0001` through the latest migration, sends a synthetic hostname-routed Maps journey through `lalgeo-saas-api`, proves concurrent create replay and mismatched-key rejection, creates and redeems a 256-bit one-time capability, rejects its reuse, validates the editable project copy, and removes its temporary files. It must not require Cloudflare credentials or contact a remote database.
 
 ## 2. Inspect the existing Cloudflare targets
 
@@ -79,6 +80,7 @@ First prove that the standalone and shared migrations are byte-identical, then l
 ```sh
 cd "$(git rev-parse --show-toplevel)/lalgeo-saas-api"
 cmp ../lalgeo-maps-api/migrations/0002_map_open_links.sql migrations/0005_map_open_links.sql
+cmp ../lalgeo-maps-api/migrations/0003_map_idempotency_keys.sql migrations/0006_map_idempotency_keys.sql
 npx wrangler d1 migrations list lalgeo-business --remote
 ```
 
@@ -91,7 +93,9 @@ npx wrangler d1 migrations list lalgeo-business --remote
 
 Never create a replacement database as part of a release. Maps migrations must remain additive or reversible and must not alter unrelated business tables.
 
-`0005_map_open_links.sql` creates only the additive capability table and expiry index. The table contains the SHA-256 `token_hash`, owner and map IDs, expiry and creation timestamps, but never a raw capability. The owner/map foreign key cascades when its API map is deleted. Wrangler prompts before applying remote migrations and captures a backup; do not bypass that review, create a replacement database, or improvise a production `CREATE TABLE` command.
+`0005_map_open_links.sql` creates only the additive capability table and expiry index. The table contains the SHA-256 `token_hash`, owner and map IDs, expiry and creation timestamps, but never a raw capability. The owner/map foreign key cascades when its API map is deleted.
+
+`0006_map_idempotency_keys.sql` creates only the additive owner-scoped receipt table and expiry index. It stores the SHA-256 key hash and request fingerprint, operation name, successful `201` response JSON, and timestamps for 24-hour replay; it never stores the raw header value. Expired receipts are removed lazily in bounded batches. Wrangler prompts before applying remote migrations and captures a backup; do not bypass that review, create a replacement database, or improvise a production `CREATE TABLE` command.
 
 ## 4. Prepare a scoped Maps key when required
 
@@ -125,7 +129,7 @@ Legacy `"<hash>": "owner_id"` entries retain full read/write access during migra
 unset LALGEO_NEW_KEY_HASH LALGEO_NEW_RAW_KEY
 ```
 
-Do not upload a descriptor until the exact repository 1.2.0 contract and reserved readiness probe both pass; the version number alone does not prove the deployed runtime or its secret is usable. Production correctly rejected a randomized synthetic-invalid key on 2026-10-10, but no owner-held key was tested, so the owner must still validate the complete password-manager document before preserving or rotating entries. Expired keys return the same `401 UNAUTHORIZED` response as invalid keys. A read-only key used for a write returns `403 INSUFFICIENT_SCOPE`; a matched malformed descriptor fails closed with `503 AUTH_NOT_CONFIGURED`. Never paste a raw key into source, configuration, a PR, an issue, logs, or chat.
+Do not upload a descriptor until the exact repository 1.3.0 contract and both reserved readiness probes pass; the version number alone does not prove the deployed runtime or its secret is usable. Production correctly rejected a randomized synthetic-invalid key on 2026-10-25, but no owner-held key was tested, so the owner must still validate the complete password-manager document before preserving or rotating entries. Expired keys return the same `401 UNAUTHORIZED` response as invalid keys. A read-only key used for a write returns `403 INSUFFICIENT_SCOPE`; a matched malformed descriptor fails closed with `503 AUTH_NOT_CONFIGURED`. Never paste a raw key into source, configuration, a PR, an issue, logs, or chat.
 
 ## 5. Deploy the combined Worker
 
@@ -148,11 +152,13 @@ cd "$(git rev-parse --show-toplevel)/lalgeo-maps-api"
 npm run verify:production
 ```
 
-The verifier sends public and unauthenticated `GET`, `HEAD`, and `OPTIONS` requests, one read-only `GET /v1/maps` with a newly randomized `lalgeo_synthetic_invalid_…` bearer, and one reserved map-open readiness `POST`. The synthetic bearer must return `401 UNAUTHORIZED`; `503 AUTH_NOT_CONFIGURED` proves the complete `LALGEO_MAPS_API_KEYS` document needs operator repair. It is never a usable owner credential and cannot mutate data. The readiness POST's out-of-grammar token is recognized only with the exact `X-LalGeo-Readiness-Probe: map-open-store-v1` header, so it can never identify an issued capability. The dedicated branch performs one bounded `SELECT` of every required `map_open_links` column using a deliberately non-hash lookup, discards the empty result, and returns the ordinary non-disclosing `404 OPEN_LINK_UNAVAILABLE` with an acknowledgement header. It cannot create, read, consume, or delete a real capability. A `500` reports the request ID and names `lalgeo-business` migration `0005_map_open_links.sql` as the first operator check, not as a proven cause.
+The verifier sends public and unauthenticated `GET`, `HEAD`, and `OPTIONS` requests, one read-only `GET /v1/maps` with a newly randomized `lalgeo_synthetic_invalid_…` bearer, one reserved idempotency readiness `GET`, and one reserved map-open readiness `POST`. The synthetic bearer must return `401 UNAUTHORIZED`; `503 AUTH_NOT_CONFIGURED` proves the complete `LALGEO_MAPS_API_KEYS` document needs operator repair. It is never a usable owner credential and cannot mutate data.
 
-The verifier also validates the exact 1.2.0, 22-operation/17-success-schema/97-failure scoped contract, bodyless `308` redirects across Maps and non-Maps paths, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs and bearer challenges, and bounded CORS. It must pass without `--insecure`, credentials, redirect following, a custom host header, response overrides, or fallback HTML.
+The exact `X-LalGeo-Readiness-Probe: map-idempotency-store-v1` health request performs one bounded read of every required `map_idempotency_keys` column using impossible owner/hash values, discards the empty result, and preserves the exact public health JSON. The map-open POST's out-of-grammar token is recognized only with `X-LalGeo-Readiness-Probe: map-open-store-v1`; it likewise performs a bounded non-hash lookup and returns ordinary non-disclosing `404 OPEN_LINK_UNAVAILABLE`. Neither probe can create, read, consume, or delete a user record. A failure reports the request ID and names `0006_map_idempotency_keys.sql` or `0005_map_open_links.sql` as the first operator check, not as a proven cause.
 
-Only after that verifier passes should an owner activate new descriptors or rotate a working key document. There is one recovery exception: if the verifier has already accepted the exact 1.2.0 runtime contract but the randomized synthetic-invalid request returns `503 AUTH_NOT_CONFIGURED`, restore the complete last-known-good document from the password manager before continuing. Do not add a new descriptor during this recovery action, and do not upload a partial document; retain every controlled legacy entry so the recovery remains compatible with an older Worker rollback. Then rerun the complete credential-free verifier and require the auth and readiness checks to pass.
+The verifier also validates the exact 1.3.0, 22-operation/17-success-schema/101-failure scoped contract, bodyless `308` redirects across Maps and non-Maps paths, valid TLS, at least one year of host-wide HSTS, public bodyless health/OpenAPI `HEAD` responses, browser-readable request IDs, bearer challenges, idempotency response headers, and bounded CORS. It must pass without `--insecure`, credentials, redirect following, a custom host header, response overrides, or fallback HTML.
+
+Only after that verifier passes should an owner activate new descriptors or rotate a working key document. There is one recovery exception: if the verifier has already accepted the exact 1.3.0 runtime contract but the randomized synthetic-invalid request returns `503 AUTH_NOT_CONFIGURED`, restore the complete last-known-good document from the password manager before continuing. Do not add a new descriptor during this recovery action, and do not upload a partial document; retain every controlled legacy entry so the recovery remains compatible with an older Worker rollback. Then rerun the complete credential-free verifier and require the auth and readiness checks to pass.
 
 After a full pass, upload the complete intended password-manager document containing every retained legacy entry plus each intended descriptor from `lalgeo-saas-api`:
 
@@ -184,24 +190,76 @@ LALGEO_API_BASE="https://api.lalgeo.com"
 printf 'LalGeo acceptance API key: ' >&2
 IFS= read -r -s LALGEO_API_KEY
 printf '\n' >&2
-LALGEO_ACCEPTANCE_MAP="owner_acceptance_YYYYMMDD"
+LALGEO_ACCEPTANCE_MAP="owner_acceptance_$(date -u +%Y%m%d)_$(openssl rand -hex 4)"
+LALGEO_MAP_CREATE_KEY="map-$(openssl rand -hex 16)"
+LALGEO_LAYER_CREATE_KEY="layer-$(openssl rand -hex 16)"
+LALGEO_FEATURE_CREATE_KEY="features-$(openssl rand -hex 16)"
+umask 077
 
 curl --fail-with-body "$LALGEO_API_BASE/v1/maps" \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $LALGEO_MAP_CREATE_KEY" \
   -H "Content-Type: application/json" \
-  --data "{\"id\":\"$LALGEO_ACCEPTANCE_MAP\",\"name\":\"Synthetic API acceptance\",\"center\":{\"latitude\":51.0447,\"longitude\":-114.0719},\"zoom\":12}"
+  --data "{\"id\":\"$LALGEO_ACCEPTANCE_MAP\",\"name\":\"Synthetic API acceptance\",\"center\":{\"latitude\":51.0447,\"longitude\":-114.0719},\"zoom\":12}" \
+  --dump-header /tmp/lalgeo-map-create.headers \
+  --output /tmp/lalgeo-map-create.json
+
+curl --fail-with-body "$LALGEO_API_BASE/v1/maps" \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $LALGEO_MAP_CREATE_KEY" \
+  -H "Content-Type: application/json" \
+  --data "{\"id\":\"$LALGEO_ACCEPTANCE_MAP\",\"name\":\"Synthetic API acceptance\",\"center\":{\"latitude\":51.0447,\"longitude\":-114.0719},\"zoom\":12}" \
+  --dump-header /tmp/lalgeo-map-replay.headers \
+  --output /tmp/lalgeo-map-replay.json
+
+grep -Eiq '^idempotency-replayed:[[:space:]]*false[[:space:]]*$' /tmp/lalgeo-map-create.headers
+grep -Eiq '^idempotency-replayed:[[:space:]]*true[[:space:]]*$' /tmp/lalgeo-map-replay.headers
+LALGEO_CREATE_EXPIRY="$(awk 'tolower($1)=="idempotency-key-expires-at:" {sub(/\r$/, "", $2); print $2}' /tmp/lalgeo-map-create.headers)"
+LALGEO_REPLAY_EXPIRY="$(awk 'tolower($1)=="idempotency-key-expires-at:" {sub(/\r$/, "", $2); print $2}' /tmp/lalgeo-map-replay.headers)"
+test -n "$LALGEO_CREATE_EXPIRY"
+test "$LALGEO_CREATE_EXPIRY" = "$LALGEO_REPLAY_EXPIRY"
+cmp /tmp/lalgeo-map-create.json /tmp/lalgeo-map-replay.json
 
 curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/layers" \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $LALGEO_LAYER_CREATE_KEY" \
   -H "Content-Type: application/json" \
-  --data '{"id":"places","name":"Places","geometry_type":"Point"}'
+  --data '{"id":"places","name":"Places","geometry_type":"Point"}' \
+  --dump-header /tmp/lalgeo-layer-create.headers \
+  --output /tmp/lalgeo-layer-create.json
+
+curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/layers" \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $LALGEO_LAYER_CREATE_KEY" \
+  -H "Content-Type: application/json" \
+  --data '{"id":"places","name":"Places","geometry_type":"Point"}' \
+  --dump-header /tmp/lalgeo-layer-replay.headers \
+  --output /tmp/lalgeo-layer-replay.json
+
+grep -Eiq '^idempotency-replayed:[[:space:]]*false[[:space:]]*$' /tmp/lalgeo-layer-create.headers
+grep -Eiq '^idempotency-replayed:[[:space:]]*true[[:space:]]*$' /tmp/lalgeo-layer-replay.headers
+cmp /tmp/lalgeo-layer-create.json /tmp/lalgeo-layer-replay.json
 
 curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/layers/places/features" \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $LALGEO_FEATURE_CREATE_KEY" \
   -H "Content-Type: application/geo+json" \
-  --data '{"type":"Feature","id":"central_library","geometry":{"type":"Point","coordinates":[-114.051,51.0453]},"properties":{"name":"Central Library","source":"synthetic acceptance"}}'
+  --data '{"type":"Feature","id":"central_library","geometry":{"type":"Point","coordinates":[-114.051,51.0453]},"properties":{"name":"Central Library","source":"synthetic acceptance"}}' \
+  --dump-header /tmp/lalgeo-feature-create.headers \
+  --output /tmp/lalgeo-feature-create.json
 
-umask 077
+curl --fail-with-body "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/layers/places/features" \
+  -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $LALGEO_FEATURE_CREATE_KEY" \
+  -H "Content-Type: application/geo+json" \
+  --data '{"type":"Feature","id":"central_library","geometry":{"type":"Point","coordinates":[-114.051,51.0453]},"properties":{"name":"Central Library","source":"synthetic acceptance"}}' \
+  --dump-header /tmp/lalgeo-feature-replay.headers \
+  --output /tmp/lalgeo-feature-replay.json
+
+grep -Eiq '^idempotency-replayed:[[:space:]]*false[[:space:]]*$' /tmp/lalgeo-feature-create.headers
+grep -Eiq '^idempotency-replayed:[[:space:]]*true[[:space:]]*$' /tmp/lalgeo-feature-replay.headers
+cmp /tmp/lalgeo-feature-create.json /tmp/lalgeo-feature-replay.json
+
 curl --fail-with-body --request POST "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP/open-links" \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
   -H "Content-Type: application/json" \
@@ -210,6 +268,12 @@ curl --fail-with-body --request POST "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANC
 
 LALGEO_OPEN_URL="$(jq -er '.open_url' /tmp/lalgeo-open-link.json)"
 ```
+
+Each create/replay pair must be byte-identical: the first header says `false`, the
+second says `true`, and the map pair exposes the same expiry. This proves the live
+receipt path for maps, layers, and feature batches replayed the original success
+instead of attempting a second insert. Keep all three keys until cleanup so an
+interrupted command can be retried exactly.
 
 Open `$LALGEO_OPEN_URL` in a browser. Confirm that Maps removes the `#open=…` fragment from the visible address before it shows an accessible **Open editable copy** confirmation. Choose that action, then confirm the project opens at Calgary and the Places layer contains one Central Library point. Make a clearly synthetic local edit, export the local project, and reopen it to prove the edit survives.
 
@@ -228,15 +292,23 @@ Always remove the synthetic server record, including when the visual check fails
 ```sh
 curl --fail-with-body --request DELETE "$LALGEO_API_BASE/v1/maps/$LALGEO_ACCEPTANCE_MAP" \
   -H "Authorization: Bearer $LALGEO_API_KEY"
-rm -f /tmp/lalgeo-open-link.json /tmp/lalgeo-api-server-after-open.lal
-unset LALGEO_API_KEY LALGEO_API_BASE LALGEO_ACCEPTANCE_MAP LALGEO_OPEN_URL
+rm -f /tmp/lalgeo-map-create.headers /tmp/lalgeo-map-create.json \
+  /tmp/lalgeo-map-replay.headers /tmp/lalgeo-map-replay.json \
+  /tmp/lalgeo-layer-create.headers /tmp/lalgeo-layer-create.json \
+  /tmp/lalgeo-layer-replay.headers /tmp/lalgeo-layer-replay.json \
+  /tmp/lalgeo-feature-create.headers /tmp/lalgeo-feature-create.json \
+  /tmp/lalgeo-feature-replay.headers /tmp/lalgeo-feature-replay.json \
+  /tmp/lalgeo-open-link.json /tmp/lalgeo-api-server-after-open.lal
+unset LALGEO_API_KEY LALGEO_API_BASE LALGEO_ACCEPTANCE_MAP LALGEO_OPEN_URL \
+  LALGEO_MAP_CREATE_KEY LALGEO_LAYER_CREATE_KEY LALGEO_FEATURE_CREATE_KEY \
+  LALGEO_CREATE_EXPIRY LALGEO_REPLAY_EXPIRY
 ```
 
 Also smoke-test one existing Survey/SaaS journey so the shared deployment cannot silently regress the non-Maps surface.
 
 ## Rollback
 
-Keep the custom domain and D1 binding in place. If descriptor entries were activated and the rollback target predates 1.2.0, first use the still-running 1.2.0 Worker to restore the password-manager copy of the complete pre-release legacy key document, then verify its controlled legacy key. Never roll an older Worker back while descriptor-only credentials are the sole access path.
+Keep the custom domain and D1 binding in place. If descriptor entries were activated and the rollback target predates 1.2.0, first use the still-running current Worker to restore the password-manager copy of the complete pre-release legacy key document, then verify its controlled legacy key. Never roll an older Worker back while descriptor-only credentials are the sole access path.
 
 Roll the shared Worker back to the version recorded before deployment:
 
@@ -256,6 +328,7 @@ Attach these items to the release review:
 - isolated Maps API check and local release-gate output;
 - combined Worker type-check, dry-run bundle metrics, migration list, and local Maps gate output;
 - canonical read-only verifier output;
+- first-create and exact-replay headers, matching expiry, and byte-identical response bodies;
 - one-time link fragment scrub/confirmation/open/edit/export/reopen, reuse rejection, server-unchanged proof, and delete response;
 - one existing Survey/SaaS smoke result;
 - acceptance-key scopes and expiry, risk notes, rollback version, and the operator who retained the credential source of truth.

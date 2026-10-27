@@ -7,6 +7,21 @@ const INVALID_RESPONSE = {
   error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid response." },
 };
 
+type RequestOptions = {
+  idempotencyKey?: string;
+  maxResponseBytes?: number;
+};
+
+export type IdempotencyMetadata = {
+  replayed: boolean;
+  expires_at: string;
+};
+
+export type IdempotentCreateResult = {
+  payload: unknown;
+  idempotency: IdempotencyMetadata | null;
+};
+
 async function readJson(response: Response, maxBytes?: number): Promise<unknown> {
   if (maxBytes === undefined) return response.json();
 
@@ -56,7 +71,9 @@ export class LalGeoApi {
   async verifyCredentials() {
     const probeId = `mcp_credential_probe_${crypto.randomUUID().replaceAll("-", "")}`;
     try {
-      await this.request("GET", `/v1/maps/${probeId}`, undefined, MAX_CREDENTIAL_RESPONSE_BYTES);
+      await this.request("GET", `/v1/maps/${probeId}`, undefined, {
+        maxResponseBytes: MAX_CREDENTIAL_RESPONSE_BYTES,
+      });
     } catch (error) {
       const payload = error instanceof LalGeoApiError &&
           error.payload && typeof error.payload === "object" && !Array.isArray(error.payload)
@@ -80,19 +97,19 @@ export class LalGeoApi {
     }, null);
   }
 
-  createMap(input: JsonObject) {
-    return this.request("POST", "/v1/maps", input);
+  createMap(input: JsonObject, idempotencyKey?: string) {
+    return this.requestCreate("/v1/maps", input, idempotencyKey);
   }
 
-  createLayer(mapId: string, input: JsonObject) {
-    return this.request("POST", `/v1/maps/${encodeURIComponent(mapId)}/layers`, input);
+  createLayer(mapId: string, input: JsonObject, idempotencyKey?: string) {
+    return this.requestCreate(`/v1/maps/${encodeURIComponent(mapId)}/layers`, input, idempotencyKey);
   }
 
-  addFeatures(mapId: string, layerId: string, features: unknown[]) {
-    return this.request(
-      "POST",
+  addFeatures(mapId: string, layerId: string, features: unknown[], idempotencyKey?: string) {
+    return this.requestCreate(
       `/v1/maps/${encodeURIComponent(mapId)}/layers/${encodeURIComponent(layerId)}/features`,
       { type: "FeatureCollection", features },
+      idempotencyKey,
     );
   }
 
@@ -128,7 +145,26 @@ export class LalGeoApi {
     return this.request("POST", `/v1/maps/${encodeURIComponent(mapId)}/open-links`, { expires_in: 600 });
   }
 
-  private async request(method: string, path: string, body?: JsonObject, maxResponseBytes?: number) {
+  private async requestCreate(path: string, body: JsonObject, idempotencyKey?: string): Promise<IdempotentCreateResult> {
+    const { payload, response } = await this.requestResult("POST", path, body, { idempotencyKey });
+    if (!idempotencyKey) return { payload, idempotency: null };
+
+    const replayed = response.headers.get("idempotency-replayed");
+    const expiresAt = response.headers.get("idempotency-key-expires-at");
+    if ((replayed !== "true" && replayed !== "false") || !expiresAt || !Number.isFinite(Date.parse(expiresAt))) {
+      throw new LalGeoApiError(502, INVALID_RESPONSE, response.headers.get("x-request-id"));
+    }
+    return {
+      payload,
+      idempotency: { replayed: replayed === "true", expires_at: expiresAt },
+    };
+  }
+
+  private async request(method: string, path: string, body?: JsonObject, options: RequestOptions = {}) {
+    return (await this.requestResult(method, path, body, options)).payload;
+  }
+
+  private async requestResult(method: string, path: string, body?: JsonObject, options: RequestOptions = {}) {
     const response = await fetch(new URL(path, this.baseUrl), {
       method,
       redirect: "error",
@@ -136,13 +172,14 @@ export class LalGeoApi {
       headers: {
         Authorization: `Bearer ${this.apiKey}`,
         ...(body ? { "Content-Type": "application/json" } : {}),
+        ...(options.idempotencyKey ? { "Idempotency-Key": options.idempotencyKey } : {}),
       },
       ...(body ? { body: JSON.stringify(body) } : {}),
     });
-    const payload: unknown = await readJson(response, maxResponseBytes).catch(() => INVALID_RESPONSE);
+    const payload: unknown = await readJson(response, options.maxResponseBytes).catch(() => INVALID_RESPONSE);
     if (!response.ok) {
       throw new LalGeoApiError(response.status, payload, response.headers.get("x-request-id"));
     }
-    return payload;
+    return { payload, response };
   }
 }

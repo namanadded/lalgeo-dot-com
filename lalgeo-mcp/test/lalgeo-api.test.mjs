@@ -12,6 +12,7 @@ beforeEach(() => {
       method: init.method,
       url: `${url.pathname}${url.search}`,
       authorization: init.headers.Authorization,
+      ...(init.headers["Idempotency-Key"] ? { idempotencyKey: init.headers["Idempotency-Key"] } : {}),
       body: init.body ? JSON.parse(init.body) : undefined,
     });
     if (url.pathname === "/v1/maps/fail/export") {
@@ -26,7 +27,13 @@ beforeEach(() => {
         expires_at: "2026-09-22T06:10:00.000Z",
       }, { status: 201 });
     }
-    return Response.json({ ok: true }, { status: init.method === "POST" ? 201 : 200 });
+    return Response.json({ ok: true }, {
+      status: init.method === "POST" ? 201 : 200,
+      headers: init.headers["Idempotency-Key"] ? {
+        "Idempotency-Replayed": "false",
+        "Idempotency-Key-Expires-At": "2026-10-27T07:00:00.000Z",
+      } : {},
+    });
   };
 });
 
@@ -34,9 +41,11 @@ afterEach(() => { globalThis.fetch = originalFetch; });
 
 test("the adapter forwards authoring writes and export to the authenticated API", async () => {
   const api = new LalGeoApi("secret-key", "https://api.example.test");
-  await api.createMap({ id: "map_1", name: "Map" });
-  await api.createLayer("map/with slash", { id: "layer_1", name: "Sites", geometry_type: "Point" });
-  await api.addFeatures("map_1", "layer_1", [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }]);
+  const created = await Promise.all([
+    api.createMap({ id: "map_1", name: "Map" }, "map-create-key-0001"),
+    api.createLayer("map/with slash", { id: "layer_1", name: "Sites", geometry_type: "Point" }, "layer-create-key-0001"),
+    api.addFeatures("map_1", "layer_1", [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }], "feature-create-key-0001"),
+  ]);
   await api.updateMap("map_1", { name: "Updated" });
   await api.exportMap("map_1");
 
@@ -48,9 +57,62 @@ test("the adapter forwards authoring writes and export to the authenticated API"
     ["GET", "/v1/maps/map_1/export"],
   ]);
   assert.ok(requests.every((request) => request.authorization === "Bearer secret-key"));
+  assert.deepEqual(requests.slice(0, 3).map((request) => request.idempotencyKey), [
+    "map-create-key-0001",
+    "layer-create-key-0001",
+    "feature-create-key-0001",
+  ]);
   assert.deepEqual(requests[2].body, {
     type: "FeatureCollection",
     features: [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }],
+  });
+  assert.deepEqual(created, Array.from({ length: 3 }, () => ({
+    payload: { ok: true },
+    idempotency: { replayed: false, expires_at: "2026-10-27T07:00:00.000Z" },
+  })));
+});
+
+test("keyed creates preserve validated replay metadata without echoing the key", async () => {
+  const api = new LalGeoApi("secret-key", "https://api.example.test");
+  globalThis.fetch = async () => Response.json({ map: { id: "map_1" } }, {
+    status: 201,
+    headers: {
+      "Idempotency-Replayed": "true",
+      "Idempotency-Key-Expires-At": "2026-10-27T07:00:00.000Z",
+      "X-Request-Id": "request-replay",
+    },
+  });
+
+  assert.deepEqual(await api.createMap({ id: "map_1", name: "Map" }, "map-create-key-0001"), {
+    payload: { map: { id: "map_1" } },
+    idempotency: { replayed: true, expires_at: "2026-10-27T07:00:00.000Z" },
+  });
+
+  for (const headers of [
+    { "Idempotency-Key-Expires-At": "2026-10-27T07:00:00.000Z" },
+    { "Idempotency-Replayed": "false" },
+    { "Idempotency-Replayed": "sometimes", "Idempotency-Key-Expires-At": "2026-10-27T07:00:00.000Z" },
+    { "Idempotency-Replayed": "false", "Idempotency-Key-Expires-At": "not-a-date" },
+  ]) {
+    globalThis.fetch = async () => Response.json({ map: { id: "map_1" } }, {
+      status: 201,
+      headers: { ...headers, "X-Request-Id": "request-invalid-replay" },
+    });
+    await assert.rejects(api.createMap({ id: "map_1", name: "Map" }, "map-create-key-0001"), (error) => {
+      assert.ok(error instanceof LalGeoApiError);
+      assert.equal(error.status, 502);
+      assert.equal(error.requestId, "request-invalid-replay");
+      assert.deepEqual(error.payload, {
+        error: { code: "INVALID_RESPONSE", message: "LalGeo API returned an invalid response." },
+      });
+      return true;
+    });
+  }
+
+  globalThis.fetch = async () => Response.json({ map: { id: "map_2" } }, { status: 201 });
+  assert.deepEqual(await api.createMap({ id: "map_2", name: "Unkeyed" }), {
+    payload: { map: { id: "map_2" } },
+    idempotency: null,
   });
 });
 
