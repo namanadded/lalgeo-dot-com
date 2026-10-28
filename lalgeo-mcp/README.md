@@ -28,7 +28,21 @@ resource IDs as well so an older resource or a retry after the receipt expires c
 still be inspected explicitly. The create tools remain conservatively advertised
 as non-idempotent because the key is optional. When a key is supplied, the result
 context reports whether the API committed or replayed the create and the exact
-receipt expiry; it never returns the raw key.
+receipt expiry with `confirmed: true`; it never returns the raw key. Before a
+keyed write, the adapter calls the API's public, non-mutating idempotency
+readiness probe without the bearer key. An older runtime or missing migration
+therefore fails before any create request is sent. If a deployment changes in
+the narrow interval after that probe and a successful create omits the replay
+headers, the tool returns the successful payload with `confirmed: false` and a
+warning to preserve the returned IDs and inspect before retrying; it never turns
+a committed create into an error that invites a duplicate write.
+
+The adapter accepts a create as successful only when the API returns exact HTTP
+`201`, JSON content, and the expected map, layer, or FeatureCollection envelope.
+A website fallback, malformed body, wrong resource shape, or other successful
+status returns `CREATE_OUTCOME_UNCONFIRMED` with the request ID and explicit
+do-not-retry guidance. Inspect a supplied stable ID before deciding what to do;
+never treat an ambiguous upstream response as proof that a resource was created.
 
 `inspect_map` reads the complete current map through the Authoring API's portable-project export and stored-layer listing. It does not create a map-open link, so it is advertised as read-only and idempotent. Use it to reconcile an unkeyed or expired create: after a timeout or `409 ID_CONFLICT`, inspect the map and compare the stable ID and content instead of blindly repeating the write. An API map with no stored layers includes the documented virtual `empty_points` layer in its portable view. The result context reports authoritative `stored_layer_ids`, so an empty list distinguishes that compatibility layer from a stored resource with the same ID.
 
@@ -97,6 +111,8 @@ Authorization: Bearer <caller LalGeo Authoring API key>
 ```
 
 The hosted adapter validates the key with a bounded, read-only Authoring API request before servicing MCP, then uses that same key for owner-scoped map calls. It never falls back to a shared server-side `LALGEO_API_KEY`. Authoring API calls time out after 10 seconds, refuse redirects, and accept only HTTPS upstreams (or loopback HTTP for local verification). The serverless transport uses finite JSON responses over `POST`; it rejects the optional long-lived `GET` event stream with `405`. `https://mcp.lalgeo.com/health` stays public for process checks; health does not authenticate a caller or grant map access.
+
+Deploy the 1.3.0 Authoring API runtime and `map_idempotency_keys` migration before deploying MCP 0.6.0. The keyed-create readiness preflight makes the reverse order fail closed before mutation, but it does not replace the deployment verifier or owner-key acceptance journey.
 
 Store the key only in the MCP client's protected connection settings. Never put it in a prompt, log, issue, map property, or tool argument.
 

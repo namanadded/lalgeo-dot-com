@@ -12,7 +12,12 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
       calls.push(["create_map", input, idempotencyKey]);
       return {
         payload: { map: { id: "map_1" } },
-        idempotency: { replayed: true, expires_at: "2026-10-27T07:00:00.000Z" },
+        idempotency: {
+          confirmed: false,
+          replayed: null,
+          expires_at: null,
+          warning: "The create succeeded, but replay metadata was unavailable. Inspect before retrying.",
+        },
       };
     },
     createLayer: async () => ({}),
@@ -80,9 +85,16 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
       data: { map: { id: "map_1" } },
       context: {
         requested_map: { name: "Agent map" },
-        idempotency: { replayed: true, expires_at: "2026-10-27T07:00:00.000Z" },
+        idempotency: {
+          confirmed: false,
+          replayed: null,
+          expires_at: null,
+          warning: "The create succeeded, but replay metadata was unavailable. Inspect before retrying.",
+        },
       },
     });
+    assert.match(response.content[0].text, /replay metadata was unavailable/);
+    assert.match(response.content[0].text, /"confirmed": false/);
     assert.deepEqual(calls, [["create_map", { name: "Agent map" }, "tool-map-create-0001"]]);
   } finally {
     await client.close();
@@ -117,21 +129,21 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
       calls.push(["create_map", input, idempotencyKey]);
       return {
         payload: { map: { id: "calgary_map", name: input.name, center: input.center } },
-        idempotency: { replayed: false, expires_at: "2026-10-27T07:00:00.000Z" },
+        idempotency: { confirmed: true, replayed: false, expires_at: "2026-10-27T07:00:00.000Z" },
       };
     },
     createLayer: async (mapId, input, idempotencyKey) => {
       calls.push(["create_layer", mapId, input, idempotencyKey]);
       return {
         payload: { layer: { id: "calgary_places", map_id: mapId, ...input } },
-        idempotency: { replayed: true, expires_at: "2026-10-27T07:00:01.000Z" },
+        idempotency: { confirmed: true, replayed: true, expires_at: "2026-10-27T07:00:01.000Z" },
       };
     },
     addFeatures: async (mapId, layerId, features, idempotencyKey) => {
       calls.push(["add_features", mapId, layerId, features, idempotencyKey]);
       return {
         payload: { type: "FeatureCollection", features },
-        idempotency: { replayed: false, expires_at: "2026-10-27T07:00:02.000Z" },
+        idempotency: { confirmed: true, replayed: false, expires_at: "2026-10-27T07:00:02.000Z" },
       };
     },
     updateMap: async () => ({}),
@@ -157,10 +169,12 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
       ["add_features", "calgary_map", "calgary_places", features, "calgary-feature-create-0001"],
     ]);
     assert.deepEqual(mapResponse.structuredContent.context.idempotency, {
+      confirmed: true,
       replayed: false,
       expires_at: "2026-10-27T07:00:00.000Z",
     });
     assert.deepEqual(layerResponse.structuredContent.context.idempotency, {
+      confirmed: true,
       replayed: true,
       expires_at: "2026-10-27T07:00:01.000Z",
     });
@@ -171,7 +185,7 @@ test('end-to-end example: "Create a map of Calgary and add these GeoJSON feature
         map_id: "calgary_map",
         layer_id: "calgary_places",
         features,
-        idempotency: { replayed: false, expires_at: "2026-10-27T07:00:02.000Z" },
+        idempotency: { confirmed: true, replayed: false, expires_at: "2026-10-27T07:00:02.000Z" },
       },
     });
 

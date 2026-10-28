@@ -34,10 +34,10 @@ function uiMeta(invoking: string, invoked: string) {
   };
 }
 
-function result(operation: string, payload: unknown, context: JsonObject = {}) {
+function result(operation: string, payload: unknown, context: JsonObject = {}, modelPayload: unknown = payload) {
   return {
     structuredContent: { operation, data: payload, context },
-    content: [{ type: "text" as const, text: JSON.stringify(payload, null, 2) }],
+    content: [{ type: "text" as const, text: JSON.stringify(modelPayload, null, 2) }],
   };
 }
 
@@ -71,10 +71,14 @@ async function call(name: string, context: JsonObject, operation: () => Promise<
 async function createCall(name: string, context: JsonObject, operation: () => Promise<IdempotentCreateResult>) {
   try {
     const created = await operation();
-    return result(name, created.payload, {
+    const resultContext = {
       ...context,
       ...(created.idempotency ? { idempotency: created.idempotency } : {}),
-    });
+    };
+    const modelPayload = created.idempotency?.confirmed === false
+      ? { data: created.payload, idempotency: created.idempotency }
+      : created.payload;
+    return result(name, created.payload, resultContext, modelPayload);
   } catch (error) {
     return failure(error);
   }
