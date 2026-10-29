@@ -90,6 +90,10 @@ The fragment carries a random 256-bit, single-use capability. Browsers do not se
 
 This is a handoff, not a write-through session: edits and exports in Maps do not change the API map. A redeemed, expired, malformed, or unknown capability returns the same non-disclosing `404 OPEN_LINK_UNAVAILABLE`. Request a new link after the first is consumed or expires. Treat an unredeemed link like a temporary secret and do not put it in logs, analytics, issues, or chat.
 
+## Client quickstarts
+
+The [TypeScript and Python quickstarts](examples/README.md) run the complete create-map, typed-layer, GeoJSON, and one-time Maps handoff journey. They use environment-only credentials, stable resource IDs, bounded requests, request-ID diagnostics, and contract-aware retry behavior, with offline regression coverage for both the current reconciliation flow and durable idempotent creates.
+
 ## Deployment
 
 [`DEPLOYMENT.md`](DEPLOYMENT.md) is the owner-only migration, deployment, acceptance, and rollback runbook for the combined Worker. Do not apply remote migrations, publish the Worker, change credentials, or alter production infrastructure from automated runs.
