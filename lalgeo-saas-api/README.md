@@ -5,7 +5,7 @@ This Cloudflare Worker is the shared production artifact for two surfaces:
 - `https://api.lalgeo.com`: the agent-facing Maps API, using bearer keys and the `/v1/maps` contract imported from `../lalgeo-maps-api`;
 - `lalgeo-saas-api.namanadded.workers.dev`: the existing Survey/SaaS routes used by the Netlify-hosted `survey/app/*` application.
 
-Both surfaces use the existing `lalgeo-business` D1 database configured in `wrangler.jsonc`. Maps tables are additive and begin in `migrations/0004_maps.sql`; the one-time map-open capability table is added by `migrations/0005_map_open_links.sql`. Do not create a second Maps Worker or D1 database for production.
+Both surfaces use the existing `lalgeo-business` D1 database configured in `wrangler.jsonc`. Maps tables are additive and begin in `migrations/0004_maps.sql`; the one-time map-open capability table is added by `migrations/0005_map_open_links.sql`, owner-scoped create receipts by `migrations/0006_map_idempotency_keys.sql`, and the bounded owner quota counter by `migrations/0007_map_rate_limits.sql`. Do not create a second Maps Worker or D1 database for production.
 
 ## Repository checks
 
@@ -18,7 +18,7 @@ npm run verify:maps-local
 
 - `check` type-checks the combined Worker, including the imported Maps implementation.
 - `deploy:dry-run` builds the exact Worker entry point without publishing it.
-- `verify:maps-local` applies this directory's complete migration chain to disposable local state and runs the Maps API create/open-link/redeem/export/delete journey through the combined Worker, including one-use rejection and project-import validation. It uses only a synthetic local bearer key and never contacts Cloudflare production.
+- `verify:maps-local` applies this directory's complete migration chain to disposable local state and runs the Maps API rate-limit, idempotent create/replay, and open-link/redeem/export/delete journeys through the combined Worker. It proves exact concurrent quota admission, replay, mismatched-key rejection, one-use handoff rejection, and project-import validation using only synthetic local keys and state; it never contacts Cloudflare production.
 
 ## Authentication boundaries
 
@@ -27,7 +27,7 @@ The two API surfaces deliberately use separate secrets:
 - `D1_API_KEY` protects the existing non-Maps routes through `X-LalGeo-API-Key`; its raw value is mirrored to Netlify as `LALGEO_SAAS_API_KEY`.
 - `LALGEO_MAPS_API_KEYS` protects Maps data routes through `Authorization: Bearer <key>`. Its value is a JSON object mapping SHA-256 key hashes to descriptors with a trimmed, non-empty `owner_id`, required `maps:read`, optional `maps:write`, and a future RFC3339 `expires_at`. The supported profiles are read-only and read/write; write-only fails closed because updates and map handoffs can return existing data. Legacy hash-to-owner strings remain full-access compatibility entries for controlled rotation. Raw Maps keys must stay in the owner's password manager and must never be committed or uploaded as plain text.
 
-Health and OpenAPI discovery on `api.lalgeo.com` are public. `POST /v1/map-open/redeem` is also public, but accepts only a random 256-bit capability issued by a `maps:write` key through `POST /v1/maps/{mapId}/open-links`. The bearer key is never placed in the Maps URL or sent to the redemption route; only the capability's SHA-256 hash is stored, and a capability expires within 15 minutes and can succeed once. Maps resources remain owner-scoped. Missing, invalid, and expired keys return the same `401`; insufficient scopes return `403`; matched malformed descriptors fail closed with `503`. Changing one secret must not overwrite or weaken the other authentication path.
+Health and OpenAPI discovery on `api.lalgeo.com` are public. `POST /v1/map-open/redeem` is also public, but accepts only a random 256-bit capability issued by a `maps:write` key through `POST /v1/maps/{mapId}/open-links`. The bearer key is never placed in the Maps URL or sent to the redemption route; only the capability's SHA-256 hash is stored, and a capability expires within 15 minutes and can succeed once. Optional `Idempotency-Key` headers on create routes are likewise stored only as owner-scoped SHA-256 hashes and retain successful response receipts for 24 hours. Protected operations share one 300-request fixed-minute counter per owner across all of that owner's keys; the counter stores no key material. Maps resources remain owner-scoped. Missing, invalid, and expired keys return the same `401`; insufficient scopes return `403`; matched malformed descriptors, unavailable idempotency storage, and unavailable quota storage fail closed with `503`. Changing one secret must not overwrite or weaken the other authentication path.
 
 ## Production changes
 

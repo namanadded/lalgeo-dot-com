@@ -72,7 +72,7 @@
     <p class="eyebrow">Private authoring API · v1</p>
     <h1>Maps that agents<br>can keep building.</h1>
     <p class="lede">Privately create and revise an owner-scoped map, organize it into geometry-safe layers, add standard GeoJSON, and open an editable copy in LalGeo Maps without sharing the bearer key.</p>
-    <div class="status"><span class="dot"></span>Scoped, expiring authoring keys + one-time handoff</div>
+    <div class="status"><span class="dot"></span>Scoped keys + durable retries + clear backoff</div>
 
     <div class="grid">
       <div>
@@ -101,8 +101,12 @@
           <ol><li>Create a map.</li><li>Add a <code>Point</code>, <code>LineString</code>, or <code>Polygon</code> layer.</li><li>Post GeoJSON features to that layer.</li><li>Create a one-time link to open an editable local copy in Maps.</li></ol>
           <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/health
 
+# Keep this value in the same shell for an exact retry.
+: "${MAP_CREATE_KEY:=$(openssl rand -hex 16)}"
+
 curl --fail-with-body https://api.lalgeo.com/v1/maps \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $MAP_CREATE_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "id": "calgary_field_map",
@@ -115,8 +119,13 @@ curl --fail-with-body https://api.lalgeo.com/v1/maps \
         <section>
           <h2>Add real geography</h2>
           <p>Features use ordinary GeoJSON: longitude first, latitude second. A layer enforces one geometry type so agent mistakes fail early and clearly.</p>
-          <pre><code>curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/layers \
+          <pre><code># Keep these values in the same shell for exact retries.
+: "${MAP_LAYER_KEY:=$(openssl rand -hex 16)}"
+: "${MAP_FEATURES_KEY:=$(openssl rand -hex 16)}"
+
+curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/layers \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $MAP_LAYER_KEY" \
   -H "Content-Type: application/json" \
   -d '{
     "id": "places",
@@ -127,6 +136,7 @@ curl --fail-with-body https://api.lalgeo.com/v1/maps \
 curl --fail-with-body https://api.lalgeo.com/v1/maps/calgary_field_map/\
 layers/places/features \
   -H "Authorization: Bearer $LALGEO_API_KEY" \
+  -H "Idempotency-Key: $MAP_FEATURES_KEY" \
   -H "Content-Type: application/geo+json" \
   -d '{
     "type": "Feature",
@@ -137,7 +147,8 @@ layers/places/features \
     },
     "properties": {"name": "Central Library"}
   }'</code></pre>
-          <p class="note">Always send stable IDs. If a request times out, read that ID before retrying. A duplicate returns <code>409 ID_CONFLICT</code> instead of silently duplicating data; automatic <code>Idempotency-Key</code> replay is not available yet.</p>
+          <p class="note"><strong>Safe retries:</strong> use a new <code>Idempotency-Key</code> for each intended create, then reuse it only with the exact same path and JSON body after a timeout. Successful results replay for 24 hours; changing a retained request returns <code>422 IDEMPOTENCY_KEY_REUSED</code>. Stable IDs remain useful for inspection and long-term reconciliation.</p>
+          <p class="note"><strong>Clear backoff:</strong> each owner gets 300 protected requests per fixed minute. Read <code>RateLimit-Remaining</code> and <code>RateLimit-Reset</code> on admitted responses and <code>429 RATE_LIMITED</code>. After a 429, wait for <code>Retry-After</code>; changing keys does not bypass the shared owner limit.</p>
         </section>
 
         <section>
@@ -150,7 +161,7 @@ layers/places/features \
   --data '{"expires_in":600}'</code></pre>
           <p>The response contains <code>open_url</code> and <code>expires_at</code>. Open the URL, then choose <strong>Open editable copy</strong> in Maps. Only that explicit click redeems it. If the link expired or was already used, request a new one.</p>
           <p class="note"><strong>Secure handoff:</strong> the URL fragment contains a random 256-bit capability, not the bearer key. Browsers exclude fragments from HTTP requests and referrer headers. The API stores only the capability's SHA-256 hash, Maps removes it from the address bar before showing the confirmation, and invalid, expired, or reused links all return the same non-disclosing error.</p>
-          <p class="note"><strong>Deployment check:</strong> a green health response proves service identity, not handoff storage. Operators must also pass the repository's credential-free map-open readiness check and one owner-key synthetic handoff before declaring this journey ready.</p>
+          <p class="note"><strong>Deployment check:</strong> a green health response proves service identity, not handoff storage, create-replay storage, or quota storage. Operators must also pass the repository's credential-free idempotency, rate-limit, and map-open readiness checks, then one owner-key synthetic handoff, before declaring this journey ready.</p>
           <p>For a file workflow, <code>GET /v1/maps/{mapId}/export</code> still downloads a portable project. If the API map has no layers, either kind of copy starts with an editable <strong>Points</strong> layer without changing the API map.</p>
         </section>
 
@@ -168,7 +179,7 @@ layers/places/features \
 
         <section>
           <h2>Designed for safe automation</h2>
-          <p>New authoring keys are operator-provisioned, scoped, and expiring, and every authoring route enforces HTTPS. Every scoped key includes <code>maps:read</code> for protected GET requests and export; add <code>maps:write</code> only when the key must POST, PATCH, DELETE, or create a one-time open link. Write access is never issued without read access because update responses and map handoffs contain existing map data. Existing full-access keys remain compatible during controlled rotation. Missing, invalid, and expired keys share the same <code>401</code> response. A read-only key used for a write receives <code>403 INSUFFICIENT_SCOPE</code>. The public redemption route accepts only a short-lived, single-use map capability; the bearer key never reaches Maps or the link. The service stores only SHA-256 hashes, each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Errors return stable codes and a browser-readable request ID.</p>
+          <p>New authoring keys are operator-provisioned, scoped, and expiring, and every authoring route enforces HTTPS. Every scoped key includes <code>maps:read</code> for protected GET requests and export; add <code>maps:write</code> only when the key must POST, PATCH, DELETE, or create a one-time open link. Write access is never issued without read access because update responses and map handoffs contain existing map data. Existing full-access keys remain compatible during controlled rotation. Missing, invalid, and expired keys share the same <code>401</code> response. A read-only key used for a write receives <code>403 INSUFFICIENT_SCOPE</code>. The public redemption route accepts only a short-lived, single-use map capability; the bearer key never reaches Maps or the link. Create receipts and capabilities store only SHA-256 hashes. Idempotency keys are owner-scoped and replay the original successful result for 24 hours without another mutation. One bounded counter per owner gives every valid key the same 300-request-per-minute budget without storing key material. Each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Errors return stable codes and a browser-readable request ID.</p>
         </section>
       </div>
 
@@ -179,7 +190,7 @@ layers/places/features \
           <p>New authoring keys are provisioned by LalGeo, bound to one owner-scoped workspace, limited to read-only or read/write access, and issued with an expiry. Request access, then give your agent the versioned contract.</p>
           <a class="button" href="mailto:lalgeospatial@outlook.com?subject=LalGeo%20Maps%20Authoring%20API%20access">Request an authoring key&nbsp; →</a>
           <a class="secondary-link" href="https://api.lalgeo.com/v1/openapi.json">Open API specification&nbsp; →</a>
-          <p class="note">Discovery is proven only when this URL returns JSON over valid TLS and health reports <code>lalgeo-maps-api</code>. Handoff readiness additionally requires the repository verifier and an owner-key synthetic journey; a website, fallback page, or health response alone does not count.</p>
+          <p class="note">Discovery is proven only when this URL returns JSON over valid TLS and health reports <code>lalgeo-maps-api</code>. Idempotency, rate-limit, and handoff storage additionally require all three repository readiness probes. A complete handoff still requires an owner-key synthetic journey; a website, fallback page, or health response alone does not count.</p>
           <h3>Base URL</h3><code>https://api.lalgeo.com</code>
           <h3>Authentication</h3><code>Authorization: Bearer &lt;scoped-key&gt;</code>
         </div>

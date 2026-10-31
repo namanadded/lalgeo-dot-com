@@ -10,6 +10,25 @@ type JsonObject = Record<string, unknown>;
 type GeometryType = "Point" | "LineString" | "Polygon";
 type ApiScope = "maps:read" | "maps:write";
 type Auth = { ownerId: string; scopes: ReadonlySet<ApiScope> };
+type IdempotencyRecord = {
+  operation: string;
+  request_fingerprint: string;
+  response_status: number;
+  response_json: string;
+  expires_at: string;
+};
+type IdempotencyContext = {
+  ownerId: string;
+  keyHash: string;
+  operation: string;
+  fingerprint: string;
+  createdAt: string;
+  expiresAt: string;
+};
+type RateLimitState = {
+  window_start: number;
+  request_count: number;
+};
 
 class ApiError extends Error {
   constructor(
@@ -26,14 +45,22 @@ class ApiError extends Error {
 const MAX_BODY_BYTES = 2_000_000;
 const MAX_OPEN_REDEEM_BODY_BYTES = 512;
 const MAX_FEATURE_BATCH = 1_000;
+const MAX_FEATURE_INSERT_JSON_BYTES = 1_900_000;
 const DEFAULT_OPEN_LINK_TTL_SECONDS = 600;
 const MIN_OPEN_LINK_TTL_SECONDS = 60;
 const MAX_OPEN_LINK_TTL_SECONDS = 900;
+const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
+const MAX_IDEMPOTENCY_RESPONSE_BYTES = 1_900_000;
+const RATE_LIMIT_MAX_REQUESTS = 300;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
+const IDEMPOTENCY_KEY_PATTERN = /^[!-~]{8,128}$/;
 const OPEN_LINK_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
 const MAP_OPEN_READINESS_TOKEN = "__lalgeo_map_open_store_probe_v1__";
 const MAP_OPEN_READINESS_HEADER = "X-LalGeo-Readiness-Probe";
 const MAP_OPEN_READINESS_VALUE = "map-open-store-v1";
+const IDEMPOTENCY_READINESS_VALUE = "map-idempotency-store-v1";
+const RATE_LIMIT_READINESS_VALUE = "rate-limit-store-v1";
 const CANONICAL_HOSTNAME = "api.lalgeo.com";
 const MAPS_OPEN_URL = "https://maps.lalgeo.com/maps";
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
@@ -72,6 +99,14 @@ function id(prefix: string) { return `${prefix}_${crypto.randomUUID().replaceAll
 function parseJson(value: unknown, fallback: unknown = {}) {
   if (typeof value !== "string") return fallback;
   try { return JSON.parse(value); } catch { return fallback; }
+}
+
+function canonicalJson(value: unknown): string {
+  if (Array.isArray(value)) return `[${value.map(canonicalJson).join(",")}]`;
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value as JsonObject).sort().map((key) => `${JSON.stringify(key)}:${canonicalJson((value as JsonObject)[key])}`).join(",")}}`;
+  }
+  return JSON.stringify(value) ?? "null";
 }
 
 function jsonObject(value: unknown, label: string): JsonObject {
@@ -158,6 +193,231 @@ async function body(req: Request, maxBytes = MAX_BODY_BYTES): Promise<JsonObject
 async function sha256(value: string) {
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(value));
   return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function idempotencyStoreUnavailable(): never {
+  throw new ApiError(
+    503,
+    "IDEMPOTENCY_NOT_CONFIGURED",
+    "Idempotent creates are temporarily unavailable. The request was not applied.",
+  );
+}
+
+async function loadIdempotencyRecord(db: D1Database, ownerId: string, keyHash: string) {
+  return db.prepare(`
+    SELECT operation,request_fingerprint,response_status,response_json,expires_at
+    FROM map_idempotency_keys
+    WHERE owner_id=?1 AND key_hash=?2
+  `).bind(ownerId, keyHash).first<IdempotencyRecord>();
+}
+
+function replayIdempotency(context: IdempotencyContext, record: IdempotencyRecord) {
+  if (record.operation !== context.operation || record.request_fingerprint !== context.fingerprint) {
+    throw new ApiError(
+      422,
+      "IDEMPOTENCY_KEY_REUSED",
+      "That Idempotency-Key was already used for a different create request. Use a new key.",
+    );
+  }
+
+  let payload: unknown;
+  try { payload = JSON.parse(record.response_json); }
+  catch { throw new Error("Stored idempotency response is invalid JSON."); }
+  return response(payload, record.response_status, {
+    "Idempotency-Replayed": "true",
+    "Idempotency-Key-Expires-At": record.expires_at,
+  });
+}
+
+async function beginIdempotentCreate(
+  req: Request,
+  db: D1Database,
+  auth: Auth,
+  operation: string,
+  requestInput: unknown,
+): Promise<IdempotencyContext | Response | null> {
+  const key = req.headers.get("idempotency-key");
+  if (key === null) return null;
+  if (!IDEMPOTENCY_KEY_PATTERN.test(key)) {
+    throw new ApiError(
+      400,
+      "INVALID_IDEMPOTENCY_KEY",
+      "Idempotency-Key must contain 8 to 128 visible ASCII characters without spaces.",
+    );
+  }
+
+  const createdAt = now();
+  const context: IdempotencyContext = {
+    ownerId: auth.ownerId,
+    keyHash: await sha256(key),
+    operation,
+    fingerprint: await sha256(canonicalJson({ operation, request: requestInput })),
+    createdAt,
+    expiresAt: new Date(Date.now() + IDEMPOTENCY_TTL_SECONDS * 1_000).toISOString(),
+  };
+  let existing: IdempotencyRecord | null;
+  try { existing = await loadIdempotencyRecord(db, context.ownerId, context.keyHash); }
+  catch { idempotencyStoreUnavailable(); }
+  if (existing && existing.expires_at > createdAt) return replayIdempotency(context, existing);
+  return context;
+}
+
+async function commitCreate(
+  db: D1Database,
+  context: IdempotencyContext | null,
+  statements: D1PreparedStatement[],
+  payload: unknown,
+) {
+  if (!context) {
+    await db.batch(statements);
+    return response(payload, 201);
+  }
+
+  const responseJson = JSON.stringify(payload);
+  if (new TextEncoder().encode(responseJson).byteLength > MAX_IDEMPOTENCY_RESPONSE_BYTES) {
+    throw new ApiError(
+      413,
+      "BODY_TOO_LARGE",
+      "The response for this idempotent create is too large to retain. Reduce the batch or omit Idempotency-Key.",
+    );
+  }
+
+  try {
+    await db.batch([
+      db.prepare(`
+        DELETE FROM map_idempotency_keys
+        WHERE rowid IN (
+          SELECT rowid FROM map_idempotency_keys
+          WHERE expires_at<=?1
+          ORDER BY expires_at
+          LIMIT 100
+        )
+      `).bind(context.createdAt),
+      db.prepare("DELETE FROM map_idempotency_keys WHERE owner_id=?1 AND key_hash=?2 AND expires_at<=?3")
+        .bind(context.ownerId, context.keyHash, context.createdAt),
+      ...statements,
+      db.prepare(`
+        INSERT INTO map_idempotency_keys
+          (owner_id,key_hash,operation,request_fingerprint,response_status,response_json,created_at,expires_at)
+        VALUES (?1,?2,?3,?4,201,?5,?6,?7)
+      `).bind(
+        context.ownerId,
+        context.keyHash,
+        context.operation,
+        context.fingerprint,
+        responseJson,
+        context.createdAt,
+        context.expiresAt,
+      ),
+    ]);
+  } catch (error) {
+    let existing: IdempotencyRecord | null;
+    try { existing = await loadIdempotencyRecord(db, context.ownerId, context.keyHash); }
+    catch {
+      throw new ApiError(
+        500,
+        "INTERNAL_ERROR",
+        "The create outcome could not be confirmed. Retry the exact request with the same Idempotency-Key.",
+      );
+    }
+    if (existing && existing.expires_at > now()) return replayIdempotency(context, existing);
+    throw error;
+  }
+
+  return response(payload, 201, {
+    "Idempotency-Replayed": "false",
+    "Idempotency-Key-Expires-At": context.expiresAt,
+  });
+}
+
+async function assertIdempotencyStoreReady(db: D1Database) {
+  try {
+    await db.prepare(`
+      SELECT owner_id,key_hash,operation,request_fingerprint,response_status,response_json,created_at,expires_at
+      FROM map_idempotency_keys
+      WHERE owner_id=?1 AND key_hash=?2
+    `).bind("readiness:not-an-owner", "readiness:not-a-sha256").first();
+  } catch {
+    idempotencyStoreUnavailable();
+  }
+}
+
+function rateLimitStoreUnavailable(): never {
+  throw new ApiError(
+    503,
+    "RATE_LIMIT_NOT_CONFIGURED",
+    "Rate limiting is temporarily unavailable. The request was not applied.",
+  );
+}
+
+function rateLimitHeaders(requestCount: number, resetSeconds: number) {
+  return {
+    "RateLimit-Limit": String(RATE_LIMIT_MAX_REQUESTS),
+    "RateLimit-Remaining": String(Math.max(0, RATE_LIMIT_MAX_REQUESTS - requestCount)),
+    "RateLimit-Reset": String(resetSeconds),
+  };
+}
+
+function rateLimitWindowStart() {
+  const currentSecond = Math.floor(Date.now() / 1_000);
+  return currentSecond - (currentSecond % RATE_LIMIT_WINDOW_SECONDS);
+}
+
+function rateLimitResetSeconds(windowStart: number) {
+  const currentSecond = Math.floor(Date.now() / 1_000);
+  return Math.max(1, Math.min(RATE_LIMIT_WINDOW_SECONDS, windowStart + RATE_LIMIT_WINDOW_SECONDS - currentSecond));
+}
+
+async function consumeRateLimit(db: D1Database, ownerId: string) {
+  const windowStart = rateLimitWindowStart();
+  let state: RateLimitState | null;
+  try {
+    state = await db.prepare(`
+      INSERT INTO map_rate_limits (owner_id,window_start,request_count)
+      VALUES (?1,?2,1)
+      ON CONFLICT(owner_id) DO UPDATE SET
+        window_start=excluded.window_start,
+        request_count=CASE
+          WHEN map_rate_limits.window_start=excluded.window_start
+          THEN map_rate_limits.request_count+1
+          ELSE 1
+        END
+      WHERE map_rate_limits.window_start < excluded.window_start
+        OR (map_rate_limits.window_start=excluded.window_start
+          AND map_rate_limits.request_count < ?3)
+      RETURNING window_start,request_count
+    `).bind(ownerId, windowStart, RATE_LIMIT_MAX_REQUESTS).first<RateLimitState>();
+  } catch {
+    rateLimitStoreUnavailable();
+  }
+
+  if (!state) {
+    const resetSeconds = rateLimitResetSeconds(windowStart);
+    throw new ApiError(
+      429,
+      "RATE_LIMITED",
+      "The owner rate limit was reached. The request was not applied; retry after the current window resets.",
+      { retry_after_seconds: resetSeconds },
+      { ...rateLimitHeaders(RATE_LIMIT_MAX_REQUESTS, resetSeconds), "Retry-After": String(resetSeconds) },
+    );
+  }
+  if (state.window_start !== windowStart || !Number.isInteger(state.request_count) ||
+      state.request_count < 1 || state.request_count > RATE_LIMIT_MAX_REQUESTS) {
+    rateLimitStoreUnavailable();
+  }
+  return rateLimitHeaders(state.request_count, rateLimitResetSeconds(state.window_start));
+}
+
+async function assertRateLimitStoreReady(db: D1Database) {
+  try {
+    await db.prepare(`
+      SELECT owner_id,window_start,request_count
+      FROM map_rate_limits
+      WHERE 0
+    `).first();
+  } catch {
+    rateLimitStoreUnavailable();
+  }
 }
 
 function rfc3339Millis(value: unknown) {
@@ -260,9 +520,9 @@ function cors(req: Request, env: Env): Record<string, string> {
   if (!allowed.includes(origin)) return { Vary: "Origin" };
   return {
     "Access-Control-Allow-Origin": origin,
-    "Access-Control-Allow-Headers": "Authorization, Content-Type",
+    "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
+    "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
@@ -329,6 +589,37 @@ function featureInput(value: unknown, expected: GeometryType) {
   const properties = input.properties === null || input.properties === undefined ? {} : input.properties;
   if (!properties || typeof properties !== "object" || Array.isArray(properties)) throw new ApiError(400, "VALIDATION_ERROR", "Feature properties must be an object.");
   return { id: safeId(input.id, "feature"), geometry: validateGeometry(input.geometry, expected), properties: properties as JsonObject };
+}
+
+function featureInsertGroups(items: ReturnType<typeof featureInput>[]) {
+  const encoder = new TextEncoder();
+  const groups: Array<{ chunk: string } | { item: ReturnType<typeof featureInput> }> = [];
+  let current: string[] = [];
+  let currentBytes = 2;
+  const flush = () => {
+    if (!current.length) return;
+    groups.push({ chunk: `[${current.join(",")}]` });
+    current = [];
+    currentBytes = 2;
+  };
+
+  for (const item of items) {
+    const serialized = JSON.stringify(item);
+    const bytes = encoder.encode(serialized).byteLength;
+    if (bytes + 2 > MAX_FEATURE_INSERT_JSON_BYTES) {
+      flush();
+      groups.push({ item });
+      continue;
+    }
+    const separatorBytes = current.length ? 1 : 0;
+    if (current.length && currentBytes + separatorBytes + bytes > MAX_FEATURE_INSERT_JSON_BYTES) {
+      flush();
+    }
+    current.push(serialized);
+    currentBytes += (current.length > 1 ? 1 : 0) + bytes;
+  }
+  flush();
+  return groups;
 }
 
 function mapView(row: Record<string, unknown>) {
@@ -469,9 +760,6 @@ async function redeemOpenLink(req: Request, env: Env) {
 
 async function route(req: Request, env: Env, auth: Auth, url: URL) {
   const path = url.pathname;
-  const operation = protectedOperation(req.method, path);
-  if (!operation) throw new ApiError(404, "NOT_FOUND", "Endpoint not found.");
-  requireScope(auth, PROTECTED_OPERATION_SCOPES[operation]);
   const mapMatch = path.match(/^\/v1\/maps\/([^/]+)$/);
   const exportMatch = path.match(/^\/v1\/maps\/([^/]+)\/export$/);
   const openLinkMatch = path.match(/^\/v1\/maps\/([^/]+)\/open-links$/);
@@ -481,11 +769,29 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
   const featureMatch = path.match(/^\/v1\/maps\/([^/]+)\/layers\/([^/]+)\/features\/([^/]+)$/);
 
   if (path === "/v1/maps" && req.method === "POST") {
-    const input = await body(req); const created = now(); const mapId = safeId(input.id, "map");
+    const input = await body(req);
+    const idempotency = await beginIdempotentCreate(req, env.DB, auth, "createMap", input);
+    if (idempotency instanceof Response) return idempotency;
+    const created = now(); const mapId = safeId(input.id, "map");
     const center = input.center === undefined ? { latitude: null, longitude: null } : mapCenter(input.center);
-    await env.DB.prepare("INSERT INTO maps (id,owner_id,name,description,center_lat,center_lng,zoom,map_type,show_basemap_pois,metadata_json,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)")
-      .bind(mapId, auth.ownerId, requiredName(input.name), description(input.description), center.latitude, center.longitude, numberInRange(input.zoom, 0, 24, "zoom"), input.map_type === undefined ? "standard" : mapType(input.map_type), input.show_basemap_pois === undefined ? 1 : showBasemapPois(input.show_basemap_pois), JSON.stringify(jsonObject(input.metadata, "metadata")), created).run();
-    return response({ map: mapView(await requireMap(env.DB, auth.ownerId, mapId)) }, 201);
+    const map = {
+      id: mapId,
+      owner_id: auth.ownerId,
+      name: requiredName(input.name),
+      description: description(input.description),
+      center_lat: center.latitude,
+      center_lng: center.longitude,
+      zoom: numberInRange(input.zoom, 0, 24, "zoom"),
+      map_type: input.map_type === undefined ? "standard" : mapType(input.map_type),
+      show_basemap_pois: input.show_basemap_pois === undefined ? 1 : showBasemapPois(input.show_basemap_pois),
+      metadata_json: JSON.stringify(jsonObject(input.metadata, "metadata")),
+      created_at: created,
+      updated_at: created,
+    };
+    return commitCreate(env.DB, idempotency, [
+      env.DB.prepare("INSERT INTO maps (id,owner_id,name,description,center_lat,center_lng,zoom,map_type,show_basemap_pois,metadata_json,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?9,?10,?11,?11)")
+        .bind(map.id, map.owner_id, map.name, map.description, map.center_lat, map.center_lng, map.zoom, map.map_type, map.show_basemap_pois, map.metadata_json, created),
+    ], { map: mapView(map) });
   }
   if (path === "/v1/maps" && req.method === "GET") {
     const { limit, offset } = paging(url);
@@ -513,11 +819,31 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
     }
   }
   if (layersMatch) {
-    const mapId = decodeURIComponent(layersMatch[1]); await requireMap(env.DB, auth.ownerId, mapId);
-    if (req.method === "GET") { const rows = (await env.DB.prepare("SELECT * FROM layers WHERE map_id=?1 AND owner_id=?2 ORDER BY position,id").bind(mapId, auth.ownerId).all<Record<string, unknown>>()).results || []; return response({ layers: rows.map(layerView) }); }
-    if (req.method === "POST") { const input = await body(req); const layerId = safeId(input.id, "layer"); const created = now(); const type = geometryType(input.geometry_type); const position = input.position === undefined ? 0 : layerPosition(input.position);
-      await env.DB.prepare("INSERT INTO layers (id,map_id,owner_id,name,geometry_type,style_json,position,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?8)").bind(layerId, mapId, auth.ownerId, requiredName(input.name), type, JSON.stringify(jsonObject(input.style, "style")), position, created).run();
-      await env.DB.prepare("UPDATE maps SET updated_at=?1 WHERE id=?2 AND owner_id=?3").bind(created, mapId, auth.ownerId).run(); return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) }, 201); }
+    const mapId = decodeURIComponent(layersMatch[1]);
+    if (req.method === "GET") { await requireMap(env.DB, auth.ownerId, mapId); const rows = (await env.DB.prepare("SELECT * FROM layers WHERE map_id=?1 AND owner_id=?2 ORDER BY position,id").bind(mapId, auth.ownerId).all<Record<string, unknown>>()).results || []; return response({ layers: rows.map(layerView) }); }
+    if (req.method === "POST") {
+      const input = await body(req);
+      const idempotency = await beginIdempotentCreate(req, env.DB, auth, "createLayer", { map_id: mapId, body: input });
+      if (idempotency instanceof Response) return idempotency;
+      await requireMap(env.DB, auth.ownerId, mapId);
+      const layerId = safeId(input.id, "layer"); const created = now(); const type = geometryType(input.geometry_type); const position = input.position === undefined ? 0 : layerPosition(input.position);
+      const layer = {
+        id: layerId,
+        map_id: mapId,
+        owner_id: auth.ownerId,
+        name: requiredName(input.name),
+        geometry_type: type,
+        style_json: JSON.stringify(jsonObject(input.style, "style")),
+        position,
+        created_at: created,
+        updated_at: created,
+      };
+      return commitCreate(env.DB, idempotency, [
+        env.DB.prepare("INSERT INTO layers (id,map_id,owner_id,name,geometry_type,style_json,position,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?8,?8)")
+          .bind(layer.id, layer.map_id, layer.owner_id, layer.name, layer.geometry_type, layer.style_json, layer.position, created),
+        env.DB.prepare("UPDATE maps SET updated_at=?1 WHERE id=?2 AND owner_id=?3").bind(created, mapId, auth.ownerId),
+      ], { layer: layerView(layer) });
+    }
   }
   if (layerMatch) {
     const mapId = decodeURIComponent(layerMatch[1]); const layerId = decodeURIComponent(layerMatch[2]);
@@ -527,11 +853,30 @@ async function route(req: Request, env: Env, auth: Auth, url: URL) {
       await env.DB.prepare("UPDATE layers SET name=?1,style_json=?2,position=?3,updated_at=?4 WHERE id=?5 AND map_id=?6 AND owner_id=?7").bind(name, JSON.stringify(style || {}), position, updated, layerId, mapId, auth.ownerId).run(); return response({ layer: layerView(await requireLayer(env.DB, auth.ownerId, mapId, layerId)) }); }
   }
   if (featuresMatch) {
-    const mapId = decodeURIComponent(featuresMatch[1]); const layerId = decodeURIComponent(featuresMatch[2]); const layer = await requireLayer(env.DB, auth.ownerId, mapId, layerId); const expected = geometryType(layer.geometry_type);
-    if (req.method === "GET") { const { limit, offset } = paging(url); const rows = (await env.DB.prepare("SELECT * FROM features WHERE layer_id=?1 AND map_id=?2 AND owner_id=?3 ORDER BY created_at,id LIMIT ?4 OFFSET ?5").bind(layerId, mapId, auth.ownerId, limit, offset).all<Record<string, unknown>>()).results || []; return response({ type: "FeatureCollection", features: rows.map(featureView), pagination: { limit, offset, count: rows.length } }); }
-    if (req.method === "POST") { const input = await body(req); const items = input.type === "FeatureCollection" ? input.features : [input]; if (!Array.isArray(items) || !items.length) throw new ApiError(400, "VALIDATION_ERROR", "Provide a GeoJSON Feature or a non-empty FeatureCollection."); if (items.length > MAX_FEATURE_BATCH) throw new ApiError(413, "BATCH_TOO_LARGE", "A batch may contain at most 1,000 features."); const parsed = items.map((item) => featureInput(item, expected)); const created = now();
-      await env.DB.batch(parsed.map((item) => env.DB.prepare("INSERT INTO features (id,layer_id,map_id,owner_id,geometry_json,properties_json,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?7)").bind(item.id, layerId, mapId, auth.ownerId, JSON.stringify(item.geometry), JSON.stringify(item.properties), created)));
-      await env.DB.prepare("UPDATE maps SET updated_at=?1 WHERE id=?2 AND owner_id=?3").bind(created, mapId, auth.ownerId).run(); return response({ type: "FeatureCollection", features: parsed.map((item) => ({ type: "Feature", ...item })) }, 201); }
+    const mapId = decodeURIComponent(featuresMatch[1]); const layerId = decodeURIComponent(featuresMatch[2]);
+    if (req.method === "GET") { await requireLayer(env.DB, auth.ownerId, mapId, layerId); const { limit, offset } = paging(url); const rows = (await env.DB.prepare("SELECT * FROM features WHERE layer_id=?1 AND map_id=?2 AND owner_id=?3 ORDER BY created_at,id LIMIT ?4 OFFSET ?5").bind(layerId, mapId, auth.ownerId, limit, offset).all<Record<string, unknown>>()).results || []; return response({ type: "FeatureCollection", features: rows.map(featureView), pagination: { limit, offset, count: rows.length } }); }
+    if (req.method === "POST") {
+      const input = await body(req);
+      const idempotency = await beginIdempotentCreate(req, env.DB, auth, "createFeatures", { map_id: mapId, layer_id: layerId, body: input });
+      if (idempotency instanceof Response) return idempotency;
+      const layer = await requireLayer(env.DB, auth.ownerId, mapId, layerId); const expected = geometryType(layer.geometry_type);
+      const items = input.type === "FeatureCollection" ? input.features : [input]; if (!Array.isArray(items) || !items.length) throw new ApiError(400, "VALIDATION_ERROR", "Provide a GeoJSON Feature or a non-empty FeatureCollection."); if (items.length > MAX_FEATURE_BATCH) throw new ApiError(413, "BATCH_TOO_LARGE", "A batch may contain at most 1,000 features."); const parsed = items.map((item) => featureInput(item, expected)); const created = now();
+      const payload = { type: "FeatureCollection", features: parsed.map((item) => ({ type: "Feature", ...item })) };
+      const insertGroups = featureInsertGroups(parsed);
+      return commitCreate(env.DB, idempotency, [
+        ...insertGroups.map((group) => "chunk" in group
+          ? env.DB.prepare(`
+              INSERT INTO features (id,layer_id,map_id,owner_id,geometry_json,properties_json,created_at,updated_at)
+              SELECT
+                json_extract(value, '$.id'), ?1, ?2, ?3,
+                json_extract(value, '$.geometry'), json_extract(value, '$.properties'), ?4, ?4
+              FROM json_each(?5)
+            `).bind(layerId, mapId, auth.ownerId, created, group.chunk)
+          : env.DB.prepare("INSERT INTO features (id,layer_id,map_id,owner_id,geometry_json,properties_json,created_at,updated_at) VALUES (?1,?2,?3,?4,?5,?6,?7,?7)")
+              .bind(group.item.id, layerId, mapId, auth.ownerId, JSON.stringify(group.item.geometry), JSON.stringify(group.item.properties), created)),
+        env.DB.prepare("UPDATE maps SET updated_at=?1 WHERE id=?2 AND owner_id=?3").bind(created, mapId, auth.ownerId),
+      ], payload);
+    }
   }
   if (featureMatch) {
     const mapId = decodeURIComponent(featureMatch[1]); const layerId = decodeURIComponent(featureMatch[2]); const featureId = decodeURIComponent(featureMatch[3]); const existing = await requireFeature(env.DB, auth.ownerId, mapId, layerId, featureId);
@@ -554,36 +899,54 @@ export default {
         : {}),
       "X-Request-Id": requestId,
     };
+    let appliedRateLimitHeaders: Record<string, string> = {};
     try {
       const redirect = httpsRedirect(url, headers);
       if (redirect) return redirect;
       if (req.method === "OPTIONS") return new Response(null, { status: 204, headers });
       if (url.pathname === "/v1/health" && (req.method === "GET" || req.method === "HEAD")) {
-        const result = response({ ok: true, service: "lalgeo-maps-api", version: "v1" }, 200, headers);
+        const readinessHeaders: Record<string, string> = {};
+        if (req.method === "GET" && req.headers.get(MAP_OPEN_READINESS_HEADER) === IDEMPOTENCY_READINESS_VALUE) {
+          await assertIdempotencyStoreReady(env.DB);
+          readinessHeaders[MAP_OPEN_READINESS_HEADER] = IDEMPOTENCY_READINESS_VALUE;
+        } else if (req.method === "GET" && req.headers.get(MAP_OPEN_READINESS_HEADER) === RATE_LIMIT_READINESS_VALUE) {
+          await assertRateLimitStoreReady(env.DB);
+          readinessHeaders[MAP_OPEN_READINESS_HEADER] = RATE_LIMIT_READINESS_VALUE;
+        }
+        const result = response({ ok: true, service: "lalgeo-maps-api", version: "v1" }, 200, { ...headers, ...readinessHeaders });
         return req.method === "HEAD" ? withoutBody(result) : result;
       }
       if (url.pathname === "/v1/openapi.json" && (req.method === "GET" || req.method === "HEAD")) {
         const result = response(openapi, 200, { ...headers, "Cache-Control": "public, max-age=300" });
         return req.method === "HEAD" ? withoutBody(result) : result;
       }
-      const result = url.pathname === "/v1/map-open/redeem" && req.method === "POST"
-        ? await redeemOpenLink(req, env)
-        : await route(req, env, await authenticate(req, env), url);
-      const outgoing = new Headers(result.headers); Object.entries(headers).forEach(([key, value]) => outgoing.set(key, value));
+      let result: Response;
+      if (url.pathname === "/v1/map-open/redeem" && req.method === "POST") {
+        result = await redeemOpenLink(req, env);
+      } else {
+        const auth = await authenticate(req, env);
+        const operation = protectedOperation(req.method, url.pathname);
+        if (!operation) throw new ApiError(404, "NOT_FOUND", "Endpoint not found.");
+        requireScope(auth, PROTECTED_OPERATION_SCOPES[operation]);
+        appliedRateLimitHeaders = await consumeRateLimit(env.DB, auth.ownerId);
+        result = await route(req, env, auth, url);
+      }
+      const outgoing = new Headers(result.headers);
+      Object.entries({ ...headers, ...appliedRateLimitHeaders }).forEach(([key, value]) => outgoing.set(key, value));
       return new Response(result.body, { status: result.status, headers: outgoing });
     } catch (error) {
       if (error instanceof ApiError) {
         const requiredScope = (error.details as { required_scope?: string } | undefined)?.required_scope;
         const errorHeaders = error.status === 401
-          ? { ...headers, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}"` }
+          ? { ...headers, ...appliedRateLimitHeaders, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}"` }
           : error.status === 403 && requiredScope
-            ? { ...headers, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}", error="insufficient_scope", scope="${requiredScope}"` }
-            : { ...headers, ...error.responseHeaders };
+            ? { ...headers, ...appliedRateLimitHeaders, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}", error="insufficient_scope", scope="${requiredScope}"` }
+            : { ...headers, ...appliedRateLimitHeaders, ...error.responseHeaders };
         return response({ error: { code: error.code, message: error.message, details: error.details }, request_id: requestId }, error.status, errorHeaders);
       }
-      if (error instanceof Error && /UNIQUE constraint failed/.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, headers);
+      if (error instanceof Error && /UNIQUE constraint failed: (?:maps|layers|features)\./.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, { ...headers, ...appliedRateLimitHeaders });
       console.error(error);
-      return response({ error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." }, request_id: requestId }, 500, headers);
+      return response({ error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." }, request_id: requestId }, 500, { ...headers, ...appliedRateLimitHeaders });
     }
   },
 };

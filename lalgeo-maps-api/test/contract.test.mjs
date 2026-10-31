@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import test from "node:test";
 import {
   MAP_OPEN_READINESS_TOKEN,
+  RATE_LIMIT_READINESS_VALUE,
   REQUIRED_ERROR_RESPONSES,
   REQUIRED_OPERATION_SCOPES,
   validateOpenApi,
@@ -13,15 +14,20 @@ const worker = await readFile(new URL("../src/index.ts", import.meta.url), "utf8
 const migration = await readFile(new URL("../migrations/0001_maps.sql", import.meta.url), "utf8");
 const openLinkMigration = await readFile(new URL("../migrations/0002_map_open_links.sql", import.meta.url), "utf8");
 const combinedOpenLinkMigration = await readFile(new URL("../../lalgeo-saas-api/migrations/0005_map_open_links.sql", import.meta.url), "utf8");
+const idempotencyMigration = await readFile(new URL("../migrations/0003_map_idempotency_keys.sql", import.meta.url), "utf8");
+const combinedIdempotencyMigration = await readFile(new URL("../../lalgeo-saas-api/migrations/0006_map_idempotency_keys.sql", import.meta.url), "utf8");
+const rateLimitMigration = await readFile(new URL("../migrations/0004_map_rate_limits.sql", import.meta.url), "utf8");
+const combinedRateLimitMigration = await readFile(new URL("../../lalgeo-saas-api/migrations/0007_map_rate_limits.sql", import.meta.url), "utf8");
 const developerGuide = await readFile(new URL("../../developers/index.html", import.meta.url), "utf8");
 const readme = await readFile(new URL("../README.md", import.meta.url), "utf8");
+const errorGuide = await readFile(new URL("../ERRORS.md", import.meta.url), "utf8");
 
 test("OpenAPI exposes the complete canonical operation set", () => {
   assert.deepEqual(validateOpenApi(spec), {
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 97,
+    errorResponseCount: 118,
   });
   const ids = Object.values(spec.paths).flatMap((path) => Object.values(path).map((operation) => operation?.operationId).filter(Boolean));
   assert.equal(new Set(ids).size, ids.length);
@@ -34,7 +40,7 @@ test("OpenAPI exposes the complete canonical operation set", () => {
 
 test("authoring discovery distinguishes API privacy and provides a key access path", () => {
   assert.equal(spec.info.title, "LalGeo Maps Authoring API");
-  assert.equal(spec.info.version, "1.2.0");
+  assert.equal(spec.info.version, "1.4.0");
   assert.match(spec.info.description, /owner-scoped/);
   assert.match(spec.info.description, /bearer-authenticated authoring API/);
   assert.match(spec.info.description, /https:\/\/maps\.lalgeo\.com\/api-docs/);
@@ -207,7 +213,7 @@ test("one-time map-open contract keeps bearer credentials out of the browser han
   assert.doesNotMatch(readinessImplementation, /\b(?:INSERT|UPDATE|DELETE)\b/);
   assert.match(developerGuide, /fragment/);
   assert.match(developerGuide, /editable local copy/);
-  assert.match(developerGuide, /health response proves service identity, not handoff storage/);
+  assert.match(developerGuide, /health response proves service identity[^.]+quota storage/);
   assert.match(readme, /only its SHA-256 hash/);
   assert.match(readme, /never reaches LalGeo Maps/);
 });
@@ -240,6 +246,110 @@ test("standalone and combined migrations store only owner-scoped capability hash
     assert.match(sql, /FOREIGN KEY \(owner_id, map_id\) REFERENCES maps\(owner_id, id\) ON DELETE CASCADE/);
     assert.doesNotMatch(sql, /\btoken\b TEXT/);
   }
+});
+
+test("idempotent creates are owner-scoped, hash-only, bounded, and fully documented", () => {
+  assert.equal(combinedIdempotencyMigration.trim(), idempotencyMigration.trim());
+  for (const sql of [idempotencyMigration, combinedIdempotencyMigration]) {
+    assert.match(sql, /CREATE TABLE map_idempotency_keys/);
+    assert.match(sql, /owner_id TEXT NOT NULL/);
+    assert.match(sql, /key_hash TEXT NOT NULL CHECK \(length\(key_hash\) = 64\)/);
+    assert.match(sql, /request_fingerprint TEXT NOT NULL CHECK \(length\(request_fingerprint\) = 64\)/);
+    assert.match(sql, /response_status INTEGER NOT NULL CHECK \(response_status = 201\)/);
+    assert.match(sql, /PRIMARY KEY \(owner_id, key_hash\)/);
+    assert.match(sql, /CREATE INDEX map_idempotency_keys_expiry ON map_idempotency_keys\(expires_at\)/);
+    assert.doesNotMatch(sql, /\bidempotency_key\b/);
+  }
+
+  const parameter = spec.components.parameters.IdempotencyKey;
+  assert.equal(parameter.name, "Idempotency-Key");
+  assert.equal(parameter.in, "header");
+  assert.equal(parameter.required, false);
+  assert.deepEqual(parameter.schema, {
+    type: "string",
+    pattern: "^[!-~]{8,128}$",
+    minLength: 8,
+    maxLength: 128,
+  });
+  assert.match(parameter.description, /24 hours/);
+  assert.match(parameter.description, /Failed attempts do not consume/);
+  assert.match(developerGuide, /Safe retries/);
+  assert.match(developerGuide, /422 IDEMPOTENCY_KEY_REUSED/);
+  assert.match(readme, /Retry creates safely/);
+  assert.match(errorGuide, /Idempotency-Replayed: true/);
+  assert.match(errorGuide, /IDEMPOTENCY_NOT_CONFIGURED/);
+
+  for (const operation of [
+    spec.paths["/v1/maps"].post,
+    spec.paths["/v1/maps/{mapId}/layers"].post,
+    spec.paths["/v1/maps/{mapId}/layers/{layerId}/features"].post,
+  ]) {
+    assert.deepEqual(operation.parameters, [{ $ref: "#/components/parameters/IdempotencyKey" }]);
+    assert.equal(operation.responses["201"].headers["Idempotency-Replayed"].$ref, "#/components/headers/IdempotencyReplayed");
+    assert.equal(operation.responses["201"].headers["Idempotency-Key-Expires-At"].$ref, "#/components/headers/IdempotencyKeyExpiresAt");
+    assert.equal(operation.responses["422"].$ref, "#/components/responses/IdempotencyKeyReused");
+  }
+
+  assert.match(worker, /keyHash: await sha256\(key\)/);
+  assert.match(worker, /request_fingerprint,response_status,response_json,expires_at/);
+  assert.match(worker, /LIMIT 100/);
+  assert.match(worker, /FROM json_each\(\?5\)/);
+  assert.match(worker, /"Idempotency-Replayed": "true"/);
+  assert.match(worker, /"Idempotency-Replayed": "false"/);
+  assert.match(worker, /IDEMPOTENCY_NOT_CONFIGURED/);
+  assert.match(worker, /Access-Control-Allow-Headers["']?: ["']Authorization, Content-Type, Idempotency-Key/);
+  assert.match(worker, /Idempotency-Replayed, Idempotency-Key-Expires-At/);
+});
+
+test("rate limiting is atomic, owner-scoped, bounded, and agent-readable", () => {
+  assert.equal(RATE_LIMIT_READINESS_VALUE, "rate-limit-store-v1");
+  assert.equal(combinedRateLimitMigration.trim(), rateLimitMigration.trim());
+  for (const sql of [rateLimitMigration, combinedRateLimitMigration]) {
+    assert.match(sql, /CREATE TABLE map_rate_limits/);
+    assert.match(sql, /owner_id TEXT NOT NULL/);
+    assert.match(sql, /window_start INTEGER NOT NULL/);
+    assert.match(sql, /request_count INTEGER NOT NULL/);
+    assert.match(sql, /PRIMARY KEY \(owner_id\)/);
+    assert.doesNotMatch(sql, /key_hash|api_key|raw_key/i);
+  }
+
+  const protectedOperations = Object.values(spec.paths)
+    .flatMap((pathItem) => Object.values(pathItem))
+    .filter((operation) => operation?.["x-lalgeo-required-scope"]);
+  assert.equal(protectedOperations.length, 17);
+  for (const operation of protectedOperations) {
+    assert.equal(operation.responses["429"].$ref, "#/components/responses/TooManyRequests");
+    const success = Object.entries(operation.responses).find(([status]) => /^2\d\d$/.test(status))?.[1];
+    assert.equal(success.headers["RateLimit-Limit"].$ref, "#/components/headers/RateLimitLimit");
+    assert.equal(success.headers["RateLimit-Remaining"].$ref, "#/components/headers/RateLimitRemaining");
+    assert.equal(success.headers["RateLimit-Reset"].$ref, "#/components/headers/RateLimitReset");
+  }
+  for (const operationId of ["getHealth", "headHealth", "getOpenApi", "headOpenApi", "redeemMapOpenLink"]) {
+    const operation = Object.values(spec.paths).flatMap((pathItem) => Object.values(pathItem))
+      .find((candidate) => candidate?.operationId === operationId);
+    assert.equal(Object.hasOwn(operation.responses, "429"), false, operationId);
+  }
+  const tooMany = spec.components.responses.TooManyRequests;
+  assert.equal(tooMany.headers["Retry-After"].$ref, "#/components/headers/RetryAfter");
+  assert.equal(tooMany.headers["RateLimit-Limit"].$ref, "#/components/headers/RateLimitLimit");
+  assert.equal(tooMany.headers["RateLimit-Remaining"].$ref, "#/components/headers/RateLimitRemaining");
+  assert.equal(tooMany.headers["RateLimit-Reset"].$ref, "#/components/headers/RateLimitReset");
+  assert.ok(spec.components.schemas.Error.properties.error.properties.code.enum.includes("RATE_LIMITED"));
+  assert.match(worker, /RATE_LIMIT_READINESS_VALUE = ["']rate-limit-store-v1["']/);
+  assert.match(worker, /RATE_LIMIT_MAX_REQUESTS = 300/);
+  assert.match(worker, /ON CONFLICT\s*\(owner_id\)/);
+  assert.match(worker, /map_rate_limits\.window_start\s*<\s*excluded\.window_start/);
+  assert.match(worker, /map_rate_limits\.window_start=excluded\.window_start\s+AND map_rate_limits\.request_count\s*<\s*\?\d/);
+  assert.doesNotMatch(worker, /map_rate_limits\.window_start\s*<>\s*excluded\.window_start/);
+  assert.match(worker, /if \(!state\)\s*{\s*const resetSeconds = rateLimitResetSeconds\(windowStart\)/);
+  assert.match(worker, /request_count\s*<\s*\?\d/);
+  assert.match(worker, /SELECT owner_id,window_start,request_count\s+FROM map_rate_limits\s+WHERE 0/);
+  assert.doesNotMatch(worker, /FROM map_rate_limits\s+WHERE owner_id=\?\d[\s\S]*readiness:not-an-owner/);
+  assert.match(worker, /RATE_LIMIT_NOT_CONFIGURED/);
+  assert.match(worker, /"Retry-After"/);
+  assert.match(worker, /"RateLimit-Remaining"/);
+  assert.match(readme, /300 requests to protected routes/i);
+  assert.match(errorGuide, /Retry-After/);
 });
 
 test("scoped authentication is exhaustive, expiring, and backward compatible", () => {
@@ -309,7 +419,7 @@ test("agent safety limits and portable export remain part of the contract", () =
 });
 
 test("every fallible route advertises its actual errors and every response has a request ID", () => {
-  assert.equal(Object.keys(REQUIRED_ERROR_RESPONSES).length, 18);
+  assert.equal(Object.keys(REQUIRED_ERROR_RESPONSES).length, 19);
   const documented = new Set();
   for (const pathItem of Object.values(spec.paths)) {
     for (const operation of Object.values(pathItem)) {
@@ -329,7 +439,8 @@ test("every fallible route advertises its actual errors and every response has a
       }
     }
   }
-  assert.equal(documented.size, 97);
-  assert.equal(spec.components.responses.Conflict.description.includes("Idempotency-Key replay is not supported"), true);
-  assert.equal(Object.hasOwn(spec.components.responses, "TooManyRequests"), false);
+  assert.equal(documented.size, 118);
+  assert.equal(spec.components.responses.Conflict.description.includes("Idempotency-Key replay is not supported"), false);
+  assert.match(spec.components.responses.IdempotencyKeyReused.description, /IDEMPOTENCY_KEY_REUSED/);
+  assert.match(spec.components.responses.TooManyRequests.description, /RATE_LIMITED/);
 });

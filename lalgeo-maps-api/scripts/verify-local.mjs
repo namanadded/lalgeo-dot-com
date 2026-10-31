@@ -10,9 +10,11 @@ import Ajv2020 from "ajv/dist/2020.js";
 import addFormats from "ajv-formats";
 import { loadLalGeoProjectContract } from "../../maps/scripts/lib/lalgeo-project-contract.mjs";
 import {
+  IDEMPOTENCY_READINESS_VALUE,
   MAP_OPEN_READINESS_HEADER,
   MAP_OPEN_READINESS_TOKEN,
   MAP_OPEN_READINESS_VALUE,
+  RATE_LIMIT_READINESS_VALUE,
   verifyMapOpenReadiness,
   verifyProduction,
 } from "./verify-production.mjs";
@@ -21,6 +23,7 @@ export const DEFAULT_WORKER_DIRECTORY = path.resolve(path.dirname(fileURLToPath(
 export const DEFAULT_DATABASE = "lalgeo-maps";
 export const DEFAULT_REQUEST_HOSTNAME = null;
 const localApiKey = "lalgeo_synthetic_runtime_key";
+const localSecondOwnerApiKey = "lalgeo_synthetic_second_owner_key";
 const localReadApiKey = "lalgeo_synthetic_read_key";
 const localLegacyApiKey = "lalgeo_synthetic_legacy_key";
 const localExpiredApiKey = "lalgeo_synthetic_expired_key";
@@ -32,7 +35,12 @@ const localInvalidTimeApiKey = "lalgeo_synthetic_invalid_time_key";
 const localWhitespaceOwnerApiKey = "lalgeo_synthetic_whitespace_owner_key";
 const localLowercaseExpiryApiKey = "lalgeo_synthetic_lowercase_expiry_key";
 const localLeapSecondExpiryApiKey = "lalgeo_synthetic_leap_second_expiry_key";
+const localRateLimitApiKey = "lalgeo_synthetic_rate_limit_key";
+const localRateLimitReadApiKey = "lalgeo_synthetic_rate_limit_read_key";
+const localRateLimitLegacyApiKey = "lalgeo_synthetic_rate_limit_legacy_key";
 const localOwner = "owner_synthetic_runtime";
+const localSecondOwner = "owner_synthetic_second_runtime";
+const localRateLimitOwner = "owner_synthetic_rate_limit";
 const allowedOrigin = "https://maps.lalgeo.com";
 const checks = [];
 const HTTP_METHODS = new Set(["get", "put", "post", "delete", "options", "head", "patch", "trace"]);
@@ -224,6 +232,33 @@ function run(command, args, options = {}) {
   });
 }
 
+function runJson(command, args, options = {}) {
+  return new Promise((resolve, reject) => {
+    const child = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env || process.env,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    let stdout = "";
+    let stderr = "";
+    child.stdout.on("data", (chunk) => { stdout += chunk; });
+    child.stderr.on("data", (chunk) => { stderr += chunk; });
+    child.on("error", reject);
+    child.on("close", (code) => {
+      if (code !== 0) {
+        reject(commandFailure(command, args, code, `${stdout}${stderr}`));
+        return;
+      }
+      try { resolve(JSON.parse(stdout)); }
+      catch (error) { reject(new Error(`${command} returned invalid JSON.\n${stdout}\n${stderr}`, { cause: error })); }
+    });
+  });
+}
+
+function sqlString(value) {
+  return `'${String(value).replaceAll("'", "''")}'`;
+}
+
 async function requireWorkerTarget(workerDirectory, wrangler) {
   const workerStats = await stat(workerDirectory).catch(() => null);
   assert.ok(workerStats?.isDirectory(), `Worker directory does not exist: ${workerDirectory}`);
@@ -271,6 +306,14 @@ async function successJson(response, responseContract, operationId) {
 
 async function errorJson(response, errorContract, operationId) {
   return errorContract.validate(operationId, response);
+}
+
+function assertRateLimitHeaders(response, expectedRemaining) {
+  assert.equal(response.headers.get("ratelimit-limit"), "300");
+  assert.equal(response.headers.get("ratelimit-remaining"), String(expectedRemaining));
+  const reset = Number(response.headers.get("ratelimit-reset"));
+  assert.ok(Number.isInteger(reset) && reset >= 1 && reset <= 60, `invalid RateLimit-Reset: ${reset}`);
+  return reset;
 }
 
 async function waitForWorker(baseUrl, child, logs, expectedStatus = 200) {
@@ -330,6 +373,7 @@ async function main({ workerDirectory, database, requestHostname }) {
   const futureExpiry = "2099-12-31T23:59:59Z";
   const bindings = JSON.stringify({
     [keyHash(localApiKey)]: { owner_id: localOwner, scopes: ["maps:read", "maps:write"], expires_at: futureExpiry },
+    [keyHash(localSecondOwnerApiKey)]: { owner_id: localSecondOwner, scopes: ["maps:read", "maps:write"], expires_at: futureExpiry },
     [keyHash(localReadApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: futureExpiry },
     [keyHash(localLegacyApiKey)]: localOwner,
     [keyHash(localExpiredApiKey)]: { owner_id: localOwner, scopes: ["maps:read", "maps:write"], expires_at: "2000-01-01T00:00:00Z" },
@@ -341,18 +385,75 @@ async function main({ workerDirectory, database, requestHostname }) {
     [keyHash(localWhitespaceOwnerApiKey)]: { owner_id: ` ${localOwner}`, scopes: ["maps:read"], expires_at: futureExpiry },
     [keyHash(localLowercaseExpiryApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: "2099-12-31t23:59:59z" },
     [keyHash(localLeapSecondExpiryApiKey)]: { owner_id: localOwner, scopes: ["maps:read"], expires_at: "2099-12-31T23:59:60Z" },
+    [keyHash(localRateLimitApiKey)]: { owner_id: localRateLimitOwner, scopes: ["maps:read", "maps:write"], expires_at: futureExpiry },
+    [keyHash(localRateLimitReadApiKey)]: { owner_id: localRateLimitOwner, scopes: ["maps:read"], expires_at: futureExpiry },
+    [keyHash(localRateLimitLegacyApiKey)]: localRateLimitOwner,
   });
   const childEnvironment = {
     ...process.env,
     CI: "true",
     WRANGLER_LOG_PATH: logPath,
   };
+  const expiredReceiptReuseKey = "synthetic-expired-receipt-reuse-0001";
+  const expiredReceiptReuseHash = keyHash(expiredReceiptReuseKey);
+  const laterExpiredReceiptHash = keyHash("synthetic-later-expired-receipt-0001");
+  const liveReceiptHash = keyHash("synthetic-live-receipt-0001");
+  const earlyExpiredCreatedAt = "1999-01-01T00:00:00.000Z";
+  const receiptFixtures = [
+    ...Array.from({ length: 100 }, (_, index) => ({
+      keyHash: keyHash(`synthetic-early-expired-receipt-${String(index).padStart(3, "0")}`),
+      fingerprint: keyHash(`synthetic-early-expired-fingerprint-${String(index).padStart(3, "0")}`),
+      response: { fixture: "early-expired", index },
+      createdAt: earlyExpiredCreatedAt,
+      expiresAt: "2000-01-01T00:00:00.000Z",
+    })),
+    {
+      keyHash: laterExpiredReceiptHash,
+      fingerprint: keyHash("synthetic-later-expired-fingerprint-0001"),
+      response: { fixture: "later-expired" },
+      createdAt: "1999-01-02T00:00:00.000Z",
+      expiresAt: "2001-01-01T00:00:00.000Z",
+    },
+    {
+      keyHash: expiredReceiptReuseHash,
+      fingerprint: keyHash("synthetic-expired-reuse-old-fingerprint-0001"),
+      response: { map: { id: "expired_receipt_old_result" } },
+      createdAt: "1999-01-03T00:00:00.000Z",
+      expiresAt: "2002-01-01T00:00:00.000Z",
+    },
+    {
+      keyHash: liveReceiptHash,
+      fingerprint: keyHash("synthetic-live-fingerprint-0001"),
+      response: { fixture: "unrelated-live" },
+      createdAt: "2026-01-01T00:00:00.000Z",
+      expiresAt: futureExpiry,
+    },
+  ];
   let devServer;
   let serverLogs = "";
 
   try {
     await run(wrangler, ["d1", "migrations", "apply", database, "--local", "--persist-to", stateDirectory], { cwd: workerDirectory, env: childEnvironment });
     record("fresh D1 migrations apply locally");
+
+    const receiptFixtureSql = `
+      INSERT INTO map_idempotency_keys
+        (owner_id,key_hash,operation,request_fingerprint,response_status,response_json,created_at,expires_at)
+      VALUES ${receiptFixtures.map((fixture) => `(
+        ${sqlString(localOwner)},
+        ${sqlString(fixture.keyHash)},
+        'createMap',
+        ${sqlString(fixture.fingerprint)},
+        201,
+        ${sqlString(JSON.stringify(fixture.response))},
+        ${sqlString(fixture.createdAt)},
+        ${sqlString(fixture.expiresAt)}
+      )`).join(",")}
+    `;
+    await run(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory,
+      "--command", receiptFixtureSql,
+    ], { cwd: workerDirectory, env: childEnvironment });
 
     await run(wrangler, ["deploy", "--dry-run", "--outdir", bundleDirectory], { cwd: workerDirectory, env: childEnvironment });
     record("Worker deployment bundle builds without publishing");
@@ -361,6 +462,107 @@ async function main({ workerDirectory, database, requestHostname }) {
     const secureHostnameArguments = requestHostname
       ? ["--host", requestHostname, "--upstream-protocol", "https"]
       : [];
+    const startDevServer = () => {
+      const server = spawn(wrangler, [
+        "dev",
+        "--local",
+        ...secureHostnameArguments,
+        "--ip", "127.0.0.1",
+        "--port", String(port),
+        "--persist-to", stateDirectory,
+        "--log-level", "error",
+        "--var", `LALGEO_MAPS_API_KEYS:${bindings}`,
+        "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
+      ], {
+        cwd: workerDirectory,
+        env: childEnvironment,
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      server.stdout.on("data", (chunk) => { serverLogs += chunk; });
+      server.stderr.on("data", (chunk) => { serverLogs += chunk; });
+      return server;
+    };
+
+    serverLogs = "";
+    devServer = startDevServer();
+    let replacementPayload;
+    let replacementExpiry;
+    const replacementIssuedAt = Date.now();
+    try {
+      await waitForWorker(baseUrl, devServer, () => serverLogs);
+      const replacementResponse = await request(baseUrl, "/v1/maps", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${localApiKey}`,
+          "Content-Type": "application/json",
+          "Idempotency-Key": expiredReceiptReuseKey,
+        },
+        body: JSON.stringify({
+          id: "expired_receipt_replacement_map",
+          name: "Expired receipt replacement fixture",
+        }),
+      });
+      assert.equal(replacementResponse.status, 201);
+      assert.equal(replacementResponse.headers.get("idempotency-replayed"), "false");
+      replacementExpiry = replacementResponse.headers.get("idempotency-key-expires-at");
+      assert.ok(Date.parse(replacementExpiry) > replacementIssuedAt + 23 * 60 * 60 * 1_000);
+      assert.ok(Date.parse(replacementExpiry) <= replacementIssuedAt + 25 * 60 * 60 * 1_000);
+      replacementPayload = await successJson(replacementResponse, responseContract, "createMap");
+      assert.equal(replacementPayload.map?.id, "expired_receipt_replacement_map");
+      const replacementDelete = await request(baseUrl, "/v1/maps/expired_receipt_replacement_map", {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${localApiKey}` },
+      });
+      assert.equal(replacementDelete.status, 204);
+    } finally {
+      await stop(devServer);
+    }
+
+    const receiptStateSql = `
+      SELECT
+        (SELECT COUNT(*) FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND created_at=${sqlString(earlyExpiredCreatedAt)})
+          AS early_expired_remaining,
+        (SELECT COUNT(*) FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND key_hash=${sqlString(laterExpiredReceiptHash)})
+          AS later_expired_remaining,
+        (SELECT COUNT(*) FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND key_hash=${sqlString(liveReceiptHash)})
+          AS live_receipt_remaining,
+        (SELECT COUNT(*) FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND key_hash=${sqlString(expiredReceiptReuseHash)})
+          AS replacement_receipt_count,
+        (SELECT created_at FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND key_hash=${sqlString(expiredReceiptReuseHash)})
+          AS replacement_created_at,
+        (SELECT expires_at FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND key_hash=${sqlString(expiredReceiptReuseHash)})
+          AS replacement_expires_at,
+        (SELECT response_json FROM map_idempotency_keys
+          WHERE owner_id=${sqlString(localOwner)} AND key_hash=${sqlString(expiredReceiptReuseHash)})
+          AS replacement_response_json
+    `;
+    const receiptStateOutput = await runJson(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory,
+      "--json", "--command", receiptStateSql,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    const receiptStateRows = (Array.isArray(receiptStateOutput) ? receiptStateOutput : [receiptStateOutput])
+      .flatMap((result) => result.results || []);
+    assert.equal(receiptStateRows.length, 1);
+    const [receiptState] = receiptStateRows;
+    assert.equal(receiptState.early_expired_remaining, 0);
+    assert.equal(receiptState.later_expired_remaining, 1);
+    assert.equal(receiptState.live_receipt_remaining, 1);
+    assert.equal(receiptState.replacement_receipt_count, 1);
+    assert.ok(Date.parse(receiptState.replacement_created_at) >= replacementIssuedAt - 1_000);
+    assert.equal(receiptState.replacement_expires_at, replacementExpiry);
+    assert.deepEqual(JSON.parse(receiptState.replacement_response_json), replacementPayload);
+    await run(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory,
+      "--command", `DELETE FROM map_idempotency_keys WHERE owner_id=${sqlString(localOwner)}`,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    record("expired idempotency keys accept a new intent while cleanup removes exactly 100 old receipts and preserves unrelated live state");
+
     if (requestHostname) {
       const redirectPort = await availablePort();
       assert.ok(redirectPort, "could not reserve a transport-probe port");
@@ -412,23 +614,8 @@ async function main({ workerDirectory, database, requestHostname }) {
       }
     }
 
-    devServer = spawn(wrangler, [
-      "dev",
-      "--local",
-      ...secureHostnameArguments,
-      "--ip", "127.0.0.1",
-      "--port", String(port),
-      "--persist-to", stateDirectory,
-      "--log-level", "error",
-      "--var", `LALGEO_MAPS_API_KEYS:${bindings}`,
-      "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
-    ], {
-      cwd: workerDirectory,
-      env: childEnvironment,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    devServer.stdout.on("data", (chunk) => { serverLogs += chunk; });
-    devServer.stderr.on("data", (chunk) => { serverLogs += chunk; });
+    serverLogs = "";
+    devServer = startDevServer();
     await waitForWorker(baseUrl, devServer, () => serverLogs);
 
     const publicVerification = await verifyProduction({
@@ -440,7 +627,7 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(publicVerification.operationCount, 22);
     assert.equal(publicVerification.successSchemaCount, 17);
     assert.equal(publicVerification.bodylessSuccessCount, 5);
-    assert.equal(publicVerification.errorResponseCount, 97);
+    assert.equal(publicVerification.errorResponseCount, 118);
     const healthSchemaResponse = await request(baseUrl, "/v1/health");
     assert.equal(healthSchemaResponse.status, 200);
     if (requestHostname) assert.equal(healthSchemaResponse.headers.get("strict-transport-security"), "max-age=31536000");
@@ -452,9 +639,10 @@ async function main({ workerDirectory, database, requestHostname }) {
       const sharedPathResponse = await request(baseUrl, "/v1/transport-probe?surface=shared", { redirect: "manual" });
       assert.equal(sharedPathResponse.headers.get("strict-transport-security"), "max-age=31536000");
     }
-    record(`strict health, OpenAPI, auth, bounded CORS, and map-open readiness checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
+    record(`strict health, OpenAPI, auth, bounded CORS, idempotency, rate-limit, and map-open readiness checks pass locally${requestHostname ? ` through ${requestHostname}` : ""}`);
 
     const authorization = { Authorization: `Bearer ${localApiKey}` };
+    const secondOwnerAuthorization = { Authorization: `Bearer ${localSecondOwnerApiKey}` };
     const readAuthorization = { Authorization: `Bearer ${localReadApiKey}` };
     const legacyAuthorization = { Authorization: `Bearer ${localLegacyApiKey}` };
     const unauthenticatedMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map");
@@ -497,6 +685,148 @@ async function main({ workerDirectory, database, requestHostname }) {
     });
     assert.equal(legacyDeleteResponse.status, 204);
     record("scoped descriptors require read access, accept RFC3339 variants, enforce expiry, and fail closed while legacy owner entries retain full access");
+
+    const rateAuthorization = { Authorization: `Bearer ${localRateLimitApiKey}` };
+    const rateReadAuthorization = { Authorization: `Bearer ${localRateLimitReadApiKey}` };
+    const rateLegacyAuthorization = { Authorization: `Bearer ${localRateLimitLegacyApiKey}` };
+    const rejectedRateWrite = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...rateReadAuthorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "rate_scope_must_not_exist", name: "Rejected scope fixture" }),
+    });
+    assert.equal(rejectedRateWrite.status, 403);
+    assert.equal(rejectedRateWrite.headers.get("ratelimit-limit"), null);
+    const unknownRateRoute = await request(baseUrl, "/v1/maps/not/a/real/operation", { headers: rateAuthorization });
+    assert.equal(unknownRateRoute.status, 404);
+    assert.equal(unknownRateRoute.headers.get("ratelimit-limit"), null);
+    const firstRateRead = await request(baseUrl, "/v1/maps", { headers: { ...rateAuthorization, Origin: allowedOrigin } });
+    assert.equal(firstRateRead.status, 200);
+    assertRateLimitHeaders(firstRateRead, 299);
+    const exposedRateHeaders = (firstRateRead.headers.get("access-control-expose-headers") || "").toLowerCase();
+    for (const header of ["ratelimit-limit", "ratelimit-remaining", "ratelimit-reset", "retry-after"]) {
+      assert.ok(exposedRateHeaders.split(",").map((value) => value.trim()).includes(header));
+    }
+    const legacyRateRead = await request(baseUrl, "/v1/maps", { headers: rateLegacyAuthorization });
+    assert.equal(legacyRateRead.status, 200);
+    assertRateLimitHeaders(legacyRateRead, 298);
+    const scopedRateRead = await request(baseUrl, "/v1/maps", { headers: rateReadAuthorization });
+    assert.equal(scopedRateRead.status, 200);
+    assertRateLimitHeaders(scopedRateRead, 297);
+    const admittedRateFailure = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...rateAuthorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "rate_invalid_map", name: "Rejected after admission", metadata: [] }),
+    });
+    assert.equal(admittedRateFailure.status, 400);
+    assertRateLimitHeaders(admittedRateFailure, 296);
+    assert.equal((await errorJson(admittedRateFailure, errorContract, "createMap")).error?.code, "VALIDATION_ERROR");
+    const rateReplayHeaders = {
+      ...rateAuthorization,
+      "Content-Type": "application/json",
+      "Idempotency-Key": "rate-limit-replay-fixture-0001",
+    };
+    const rateReplayBody = JSON.stringify({ id: "rate_replay_fixture", name: "Rate replay fixture" });
+    const firstRateReplay = await request(baseUrl, "/v1/maps", {
+      method: "POST", headers: rateReplayHeaders, body: rateReplayBody,
+    });
+    assert.equal(firstRateReplay.status, 201);
+    assert.equal(firstRateReplay.headers.get("idempotency-replayed"), "false");
+    assertRateLimitHeaders(firstRateReplay, 295);
+    const firstRateReplayPayload = await successJson(firstRateReplay, responseContract, "createMap");
+    const repeatedRateReplay = await request(baseUrl, "/v1/maps", {
+      method: "POST", headers: rateReplayHeaders, body: rateReplayBody,
+    });
+    assert.equal(repeatedRateReplay.status, 201);
+    assert.equal(repeatedRateReplay.headers.get("idempotency-replayed"), "true");
+    assertRateLimitHeaders(repeatedRateReplay, 294);
+    assert.deepEqual(await successJson(repeatedRateReplay, responseContract, "createMap"), firstRateReplayPayload);
+    const publicRateHealth = await request(baseUrl, "/v1/health");
+    assert.equal(publicRateHealth.status, 200);
+    assert.equal(publicRateHealth.headers.get("ratelimit-limit"), null);
+    record("valid scoped and legacy keys share one owner quota, admitted validation failures and exact replays consume it, and pre-admission or public requests do not");
+
+    await stop(devServer);
+    const millisecondsIntoRateWindow = Date.now() % 60_000;
+    if (millisecondsIntoRateWindow > 40_000) {
+      await new Promise((resolve) => setTimeout(resolve, 60_100 - millisecondsIntoRateWindow));
+    }
+    const seededRateWindow = Math.floor(Date.now() / 60_000) * 60;
+    await run(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory,
+      "--command", `INSERT INTO map_rate_limits (owner_id,window_start,request_count) VALUES (${sqlString(localRateLimitOwner)},${seededRateWindow},299) ON CONFLICT(owner_id) DO UPDATE SET window_start=excluded.window_start,request_count=excluded.request_count`,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    serverLogs = "";
+    devServer = startDevServer();
+    await waitForWorker(baseUrl, devServer, () => serverLogs);
+
+    const boundaryInputs = [
+      { id: "rate_boundary_a", name: "Rate boundary A" },
+      { id: "rate_boundary_b", name: "Rate boundary B" },
+    ];
+    const boundaryResponses = await Promise.all(boundaryInputs.map((input) => request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...rateAuthorization, "Content-Type": "application/json", Origin: allowedOrigin },
+      body: JSON.stringify(input),
+    })));
+    assert.deepEqual(boundaryResponses.map((response) => response.status).sort(), [201, 429]);
+    const admittedBoundary = boundaryResponses.find((response) => response.status === 201);
+    const rejectedBoundary = boundaryResponses.find((response) => response.status === 429);
+    assertRateLimitHeaders(admittedBoundary, 0);
+    const rejectedReset = assertRateLimitHeaders(rejectedBoundary, 0);
+    assert.equal(rejectedBoundary.headers.get("retry-after"), String(rejectedReset));
+    const rejectedBoundaryPayload = await errorJson(rejectedBoundary, errorContract, "createMap");
+    assert.equal(rejectedBoundaryPayload.error?.code, "RATE_LIMITED");
+    assert.equal(rejectedBoundaryPayload.error?.details?.retry_after_seconds, rejectedReset);
+    assert.equal(rejectedBoundaryPayload.request_id, rejectedBoundary.headers.get("x-request-id"));
+
+    await stop(devServer);
+    const rateBoundaryState = await runJson(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory, "--json",
+      "--command", `SELECT (SELECT COUNT(*) FROM maps WHERE owner_id=${sqlString(localRateLimitOwner)} AND id IN ('rate_boundary_a','rate_boundary_b')) AS created_maps,(SELECT request_count FROM map_rate_limits WHERE owner_id=${sqlString(localRateLimitOwner)}) AS request_count`,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    const [rateBoundaryRow] = (Array.isArray(rateBoundaryState) ? rateBoundaryState : [rateBoundaryState]).flatMap((result) => result.results || []);
+    assert.equal(rateBoundaryRow.created_maps, 1);
+    assert.equal(rateBoundaryRow.request_count, 300);
+    await run(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory,
+      "--command", `DELETE FROM maps WHERE owner_id=${sqlString(localRateLimitOwner)}; UPDATE map_rate_limits SET window_start=${seededRateWindow - 60},request_count=300 WHERE owner_id=${sqlString(localRateLimitOwner)}`,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    serverLogs = "";
+    devServer = startDevServer();
+    await waitForWorker(baseUrl, devServer, () => serverLogs);
+    const resetRateRead = await request(baseUrl, "/v1/maps", { headers: rateAuthorization });
+    assert.equal(resetRateRead.status, 200);
+    assertRateLimitHeaders(resetRateRead, 299);
+    record("atomic D1 admission accepts exactly one concurrent boundary request, returns actionable 429 metadata without a second mutation, and resets in the next fixed window");
+
+    await stop(devServer);
+    const newerRateWindow = seededRateWindow + 60;
+    assert.ok(Math.floor(Date.now() / 1_000) < newerRateWindow, "stale-window probe crossed into its seeded future window");
+    await run(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory,
+      "--command", `UPDATE map_rate_limits SET window_start=${newerRateWindow},request_count=12 WHERE owner_id=${sqlString(localRateLimitOwner)}`,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    serverLogs = "";
+    devServer = startDevServer();
+    await waitForWorker(baseUrl, devServer, () => serverLogs);
+    const staleWindowResponse = await request(baseUrl, "/v1/maps", { headers: rateAuthorization });
+    assert.equal(staleWindowResponse.status, 429);
+    const staleReset = assertRateLimitHeaders(staleWindowResponse, 0);
+    assert.equal(staleWindowResponse.headers.get("retry-after"), String(staleReset));
+    assert.equal((await errorJson(staleWindowResponse, errorContract, "listMaps")).error?.code, "RATE_LIMITED");
+    await stop(devServer);
+    const staleWindowState = await runJson(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", stateDirectory, "--json",
+      "--command", `SELECT window_start,request_count FROM map_rate_limits WHERE owner_id=${sqlString(localRateLimitOwner)}`,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    const [staleWindowRow] = (Array.isArray(staleWindowState) ? staleWindowState : [staleWindowState]).flatMap((result) => result.results || []);
+    assert.equal(staleWindowRow.window_start, newerRateWindow);
+    assert.equal(staleWindowRow.request_count, 12);
+    serverLogs = "";
+    devServer = startDevServer();
+    await waitForWorker(baseUrl, devServer, () => serverLogs);
+    record("a stale prior-window request fails closed without rolling a newer owner quota window backward");
+
     const invalidMetadataMapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
       headers: { ...authorization, "Content-Type": "application/json" },
@@ -510,19 +840,95 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal((await errorJson(invalidMetadataMapResponse, errorContract, "createMap")).error?.code, "VALIDATION_ERROR");
     record("protected routes challenge missing keys with the documented error envelope");
 
+    const invalidIdempotencyKeyResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": "short" },
+      body: JSON.stringify({ name: "Invalid idempotency key" }),
+    });
+    assert.equal(invalidIdempotencyKeyResponse.status, 400);
+    assert.equal((await errorJson(invalidIdempotencyKeyResponse, errorContract, "createMap")).error?.code, "INVALID_IDEMPOTENCY_KEY");
+
+    const mapIdempotencyKey = "synthetic-map-create-00000001";
+    const mapCreateInput = {
+      id: "synthetic_runtime_map",
+      name: "Synthetic runtime map",
+      center: { latitude: 51.0447, longitude: -114.0719 },
+      zoom: 12,
+    };
     const mapResponse = await request(baseUrl, "/v1/maps", {
       method: "POST",
-      headers: { ...authorization, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        id: "synthetic_runtime_map",
-        name: "Synthetic runtime map",
-        center: { latitude: 51.0447, longitude: -114.0719 },
-        zoom: 12,
-      }),
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": mapIdempotencyKey },
+      body: JSON.stringify(mapCreateInput),
     });
     assert.equal(mapResponse.status, 201);
-    assert.equal((await successJson(mapResponse, responseContract, "createMap")).map?.id, "synthetic_runtime_map");
-    record("authenticated client creates a synthetic map");
+    assert.equal(mapResponse.headers.get("idempotency-replayed"), "false");
+    const mapIdempotencyExpiry = mapResponse.headers.get("idempotency-key-expires-at");
+    assert.ok(Date.parse(mapIdempotencyExpiry) > Date.now() + 23 * 60 * 60 * 1_000);
+    const createdMapPayload = await successJson(mapResponse, responseContract, "createMap");
+    assert.equal(createdMapPayload.map?.id, "synthetic_runtime_map");
+
+    const replayedMapResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": mapIdempotencyKey },
+      body: JSON.stringify({ zoom: 12, center: mapCreateInput.center, name: mapCreateInput.name, id: mapCreateInput.id }),
+    });
+    assert.equal(replayedMapResponse.status, 201);
+    assert.equal(replayedMapResponse.headers.get("idempotency-replayed"), "true");
+    assert.equal(replayedMapResponse.headers.get("idempotency-key-expires-at"), mapIdempotencyExpiry);
+    assert.deepEqual(await successJson(replayedMapResponse, responseContract, "createMap"), createdMapPayload);
+
+    const reusedMapKeyResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": mapIdempotencyKey },
+      body: JSON.stringify({ ...mapCreateInput, name: "Changed while reusing key" }),
+    });
+    assert.equal(reusedMapKeyResponse.status, 422);
+    assert.equal((await errorJson(reusedMapKeyResponse, errorContract, "createMap")).error?.code, "IDEMPOTENCY_KEY_REUSED");
+    const crossOperationKeyResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": mapIdempotencyKey },
+      body: JSON.stringify({ id: "must_not_exist", name: "Wrong operation", geometry_type: "Point" }),
+    });
+    assert.equal(crossOperationKeyResponse.status, 422);
+    assert.equal((await errorJson(crossOperationKeyResponse, errorContract, "createLayer")).error?.code, "IDEMPOTENCY_KEY_REUSED");
+
+    const secondOwnerMapResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...secondOwnerAuthorization, "Content-Type": "application/json", "Idempotency-Key": mapIdempotencyKey },
+      body: JSON.stringify(mapCreateInput),
+    });
+    assert.equal(secondOwnerMapResponse.status, 201);
+    assert.equal(secondOwnerMapResponse.headers.get("idempotency-replayed"), "false");
+    const secondOwnerMap = (await successJson(secondOwnerMapResponse, responseContract, "createMap")).map;
+    assert.deepEqual(
+      { id: secondOwnerMap.id, name: secondOwnerMap.name, center: secondOwnerMap.center, zoom: secondOwnerMap.zoom },
+      { id: mapCreateInput.id, name: mapCreateInput.name, center: mapCreateInput.center, zoom: mapCreateInput.zoom },
+    );
+    const secondOwnerDeleteResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", {
+      method: "DELETE", headers: secondOwnerAuthorization,
+    });
+    assert.equal(secondOwnerDeleteResponse.status, 204);
+
+    const validationRetryKey = "synthetic-validation-retry-0001";
+    const failedValidationResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": validationRetryKey },
+      body: JSON.stringify({ id: "validated_after_retry", name: "" }),
+    });
+    assert.equal(failedValidationResponse.status, 400);
+    assert.equal((await errorJson(failedValidationResponse, errorContract, "createMap")).error?.code, "VALIDATION_ERROR");
+    const correctedValidationResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": validationRetryKey },
+      body: JSON.stringify({ id: "validated_after_retry", name: "Validated after retry" }),
+    });
+    assert.equal(correctedValidationResponse.status, 201);
+    assert.equal(correctedValidationResponse.headers.get("idempotency-replayed"), "false");
+    const validationRetryDeleteResponse = await request(baseUrl, "/v1/maps/validated_after_retry", {
+      method: "DELETE", headers: authorization,
+    });
+    assert.equal(validationRetryDeleteResponse.status, 204);
+    record("authenticated creates validate owner-scoped keys, do not consume keys on failed validation, and replay exact results for 24 hours");
 
     const requestValidators = createRequestValidators(openApiSpec);
     const rejectInvalidInput = async (pathname, method, schema, payload, code = "VALIDATION_ERROR") => {
@@ -563,7 +969,26 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(generatedMap.zoom, null);
     const generatedMapDelete = await request(baseUrl, `/v1/maps/${generatedMap.id}`, { method: "DELETE", headers: authorization });
     assert.equal(generatedMapDelete.status, 204);
-    record("invalid map fields and explicit IDs fail without creating a map");
+    const concurrentMapKey = "synthetic-concurrent-map-0001";
+    const concurrentMapRequest = () => request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": concurrentMapKey },
+      body: JSON.stringify({ name: "Concurrent idempotency fixture" }),
+    });
+    const concurrentMapResponses = await Promise.all([concurrentMapRequest(), concurrentMapRequest()]);
+    assert.deepEqual(concurrentMapResponses.map((result) => result.status), [201, 201]);
+    assert.deepEqual(
+      concurrentMapResponses.map((result) => result.headers.get("idempotency-replayed")).sort(),
+      ["false", "true"],
+    );
+    const concurrentMapPayloads = await Promise.all(
+      concurrentMapResponses.map((result) => successJson(result, responseContract, "createMap")),
+    );
+    assert.deepEqual(concurrentMapPayloads[0], concurrentMapPayloads[1]);
+    const concurrentMapId = concurrentMapPayloads[0].map.id;
+    const concurrentMapDelete = await request(baseUrl, `/v1/maps/${concurrentMapId}`, { method: "DELETE", headers: authorization });
+    assert.equal(concurrentMapDelete.status, 204);
+    record("invalid map fields fail without mutation and concurrent keyed retries create exactly one generated map");
 
     const initialMapResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map", { headers: authorization });
     const initialMap = (await successJson(initialMapResponse, responseContract, "getMap")).map;
@@ -660,13 +1085,25 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(invalidStyleLayerResponse.status, 400);
     assert.equal((await errorJson(invalidStyleLayerResponse, errorContract, "createLayer")).error?.code, "VALIDATION_ERROR");
 
+    const placesLayerInput = { id: "places", name: "Places", geometry_type: "Point" };
+    const placesLayerKey = "synthetic-layer-create-000001";
     const layerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
       method: "POST",
-      headers: { ...authorization, "Content-Type": "application/json" },
-      body: JSON.stringify({ id: "places", name: "Places", geometry_type: "Point" }),
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": placesLayerKey },
+      body: JSON.stringify(placesLayerInput),
     });
     assert.equal(layerResponse.status, 201);
-    assert.equal((await successJson(layerResponse, responseContract, "createLayer")).layer?.id, "places");
+    assert.equal(layerResponse.headers.get("idempotency-replayed"), "false");
+    const createdLayerPayload = await successJson(layerResponse, responseContract, "createLayer");
+    assert.equal(createdLayerPayload.layer?.id, "places");
+    const replayedLayerResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json", "Idempotency-Key": placesLayerKey },
+      body: JSON.stringify(placesLayerInput),
+    });
+    assert.equal(replayedLayerResponse.status, 201);
+    assert.equal(replayedLayerResponse.headers.get("idempotency-replayed"), "true");
+    assert.deepEqual(await successJson(replayedLayerResponse, responseContract, "createLayer"), createdLayerPayload);
 
     for (const position of [null, "2", 1.5, 9007199254740992]) {
       await rejectInvalidInput("/v1/maps/synthetic_runtime_map/layers", "POST", "LayerInput", {
@@ -770,25 +1207,37 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(extraDimensionResponse.status, 400);
     assert.equal((await errorJson(extraDimensionResponse, errorContract, "createFeatures")).error?.code, "INVALID_GEOMETRY");
 
+    const centralLibraryInput = {
+      type: "Feature",
+      id: "central_library",
+      geometry: { type: "Point", coordinates: [-114.051, 51.0453, 1048.5] },
+      properties: {
+        name: "Central Library · Bibliothèque 🌐",
+        source: "synthetic",
+        nullable_note: null,
+        field_01: "A01", field_02: "A02", field_03: "A03", field_04: "A04",
+        field_05: "A05", field_06: "A06", field_07: "A07", field_08: "A08",
+        field_09: "A09", field_10: "A10", field_11: "A11", field_12: "A12",
+      },
+    };
+    const featuresIdempotencyKey = "synthetic-feature-create-0001";
     const featureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
       method: "POST",
-      headers: { ...authorization, "Content-Type": "application/geo+json" },
-      body: JSON.stringify({
-        type: "Feature",
-        id: "central_library",
-        geometry: { type: "Point", coordinates: [-114.051, 51.0453, 1048.5] },
-        properties: {
-          name: "Central Library · Bibliothèque 🌐",
-          source: "synthetic",
-          nullable_note: null,
-          field_01: "A01", field_02: "A02", field_03: "A03", field_04: "A04",
-          field_05: "A05", field_06: "A06", field_07: "A07", field_08: "A08",
-          field_09: "A09", field_10: "A10", field_11: "A11", field_12: "A12",
-        },
-      }),
+      headers: { ...authorization, "Content-Type": "application/geo+json", "Idempotency-Key": featuresIdempotencyKey },
+      body: JSON.stringify(centralLibraryInput),
     });
     assert.equal(featureResponse.status, 201);
-    assert.equal((await successJson(featureResponse, responseContract, "createFeatures")).features?.[0]?.id, "central_library");
+    assert.equal(featureResponse.headers.get("idempotency-replayed"), "false");
+    const createdFeaturesPayload = await successJson(featureResponse, responseContract, "createFeatures");
+    assert.equal(createdFeaturesPayload.features?.[0]?.id, "central_library");
+    const replayedFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json", "Idempotency-Key": featuresIdempotencyKey },
+      body: JSON.stringify(centralLibraryInput),
+    });
+    assert.equal(replayedFeatureResponse.status, 201);
+    assert.equal(replayedFeatureResponse.headers.get("idempotency-replayed"), "true");
+    assert.deepEqual(await successJson(replayedFeatureResponse, responseContract, "createFeatures"), createdFeaturesPayload);
 
     const routeFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/routes/features", {
       method: "POST",
@@ -873,6 +1322,99 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(afterOversizedBatchResponse.status, 200);
     assert.deepEqual((await successJson(afterOversizedBatchResponse, responseContract, "listFeatures")).features.map((feature) => feature.id), ["central_library"]);
     record("oversized feature batches return the documented 413 without partial inserts");
+
+    const nearLimitFeature = {
+      type: "Feature",
+      id: "near_limit_feature",
+      geometry: { type: "Point", coordinates: [-114.05, 51.04] },
+      properties: { payload: "x".repeat(1_920_000) },
+    };
+    const nearLimitFeatureBody = JSON.stringify(nearLimitFeature);
+    const nearLimitFeatureBytes = new TextEncoder().encode(nearLimitFeatureBody).byteLength;
+    assert.ok(nearLimitFeatureBytes > 1_900_000 && nearLimitFeatureBytes < 2_000_000);
+    const nearLimitFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json" },
+      body: nearLimitFeatureBody,
+    });
+    assert.equal(nearLimitFeatureResponse.status, 201);
+    assert.equal((await successJson(nearLimitFeatureResponse, responseContract, "createFeatures")).features[0].id, "near_limit_feature");
+    const nearLimitFeatureDelete = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/near_limit_feature", {
+      method: "DELETE", headers: authorization,
+    });
+    assert.equal(nearLimitFeatureDelete.status, 204);
+
+    const keyedNearLimitFeatureBody = JSON.stringify({ ...nearLimitFeature, id: "keyed_near_limit_feature" });
+    const keyedNearLimitFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features", {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/geo+json",
+        "Idempotency-Key": "synthetic-near-limit-feature-0001",
+      },
+      body: keyedNearLimitFeatureBody,
+    });
+    assert.equal(keyedNearLimitFeatureResponse.status, 413);
+    assert.equal((await errorJson(keyedNearLimitFeatureResponse, errorContract, "createFeatures")).error?.code, "BODY_TOO_LARGE");
+    const missingKeyedNearLimitFeature = await request(baseUrl, "/v1/maps/synthetic_runtime_map/layers/places/features/keyed_near_limit_feature", {
+      headers: authorization,
+    });
+    assert.equal(missingKeyedNearLimitFeature.status, 404);
+    assert.equal((await errorJson(missingKeyedNearLimitFeature, errorContract, "getFeature")).error?.code, "FEATURE_NOT_FOUND");
+    record("unkeyed near-limit features retain the 2 MB body contract while oversized replay receipts fail before mutation");
+
+    const bulkMapResponse = await request(baseUrl, "/v1/maps", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "synthetic_bulk_map", name: "Synthetic 1,000 feature fixture" }),
+    });
+    assert.equal(bulkMapResponse.status, 201);
+    await successJson(bulkMapResponse, responseContract, "createMap");
+    const bulkLayerResponse = await request(baseUrl, "/v1/maps/synthetic_bulk_map/layers", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/json" },
+      body: JSON.stringify({ id: "bulk_points", name: "Bulk points", geometry_type: "Point" }),
+    });
+    assert.equal(bulkLayerResponse.status, 201);
+    await successJson(bulkLayerResponse, responseContract, "createLayer");
+    const thousandFeaturesInput = {
+      type: "FeatureCollection",
+      features: Array.from({ length: 1_000 }, (_, index) => ({
+        type: "Feature",
+        id: `bulk_${String(index).padStart(4, "0")}`,
+        geometry: { type: "Point", coordinates: [-114 + index / 100_000, 51] },
+        properties: { index },
+      })),
+    };
+    const bulkIdempotencyKey = "synthetic-feature-batch-1000";
+    const bulkFeatureResponse = await request(baseUrl, "/v1/maps/synthetic_bulk_map/layers/bulk_points/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json", "Idempotency-Key": bulkIdempotencyKey },
+      body: JSON.stringify(thousandFeaturesInput),
+    });
+    assert.equal(bulkFeatureResponse.status, 201);
+    assert.equal(bulkFeatureResponse.headers.get("idempotency-replayed"), "false");
+    const bulkFeaturePayload = await successJson(bulkFeatureResponse, responseContract, "createFeatures");
+    assert.equal(bulkFeaturePayload.features.length, 1_000);
+    const bulkReplayResponse = await request(baseUrl, "/v1/maps/synthetic_bulk_map/layers/bulk_points/features", {
+      method: "POST",
+      headers: { ...authorization, "Content-Type": "application/geo+json", "Idempotency-Key": bulkIdempotencyKey },
+      body: JSON.stringify(thousandFeaturesInput),
+    });
+    assert.equal(bulkReplayResponse.status, 201);
+    assert.equal(bulkReplayResponse.headers.get("idempotency-replayed"), "true");
+    assert.deepEqual(await successJson(bulkReplayResponse, responseContract, "createFeatures"), bulkFeaturePayload);
+    const storedBulkIds = [];
+    for (let offset = 0; offset < 1_000; offset += 100) {
+      const page = await request(baseUrl, `/v1/maps/synthetic_bulk_map/layers/bulk_points/features?limit=100&offset=${offset}`, { headers: authorization });
+      assert.equal(page.status, 200);
+      storedBulkIds.push(...(await successJson(page, responseContract, "listFeatures")).features.map((feature) => feature.id));
+    }
+    assert.equal(storedBulkIds.length, 1_000);
+    assert.equal(new Set(storedBulkIds).size, 1_000);
+    const bulkMapDeleteResponse = await request(baseUrl, "/v1/maps/synthetic_bulk_map", { method: "DELETE", headers: authorization });
+    assert.equal(bulkMapDeleteResponse.status, 204);
+    record("the documented 1,000-feature batch commits atomically and replays without duplicate rows");
 
     const readOperations = [
       ["listMaps", "/v1/maps"],
@@ -1163,13 +1705,78 @@ async function main({ workerDirectory, database, requestHostname }) {
     assert.equal(missingOpenLinkTableError.error?.code, "INTERNAL_ERROR");
     assert.equal(missingOpenLinkTableError.error?.message, "An unexpected error occurred.");
     assert.equal(Object.hasOwn(missingOpenLinkTableError.error, "details"), false);
+    const missingIdempotencyTableReadiness = await request(unmigratedBaseUrl, "/v1/health", {
+      headers: { Origin: allowedOrigin, [MAP_OPEN_READINESS_HEADER]: IDEMPOTENCY_READINESS_VALUE },
+    });
+    assert.equal(missingIdempotencyTableReadiness.status, 503);
+    assert.equal(missingIdempotencyTableReadiness.headers.get(MAP_OPEN_READINESS_HEADER), null);
+    assert.equal(
+      (await errorJson(missingIdempotencyTableReadiness, errorContract, "getHealth")).error?.code,
+      "IDEMPOTENCY_NOT_CONFIGURED",
+    );
+    const missingRateLimitTableReadiness = await request(unmigratedBaseUrl, "/v1/health", {
+      headers: { Origin: allowedOrigin, [MAP_OPEN_READINESS_HEADER]: RATE_LIMIT_READINESS_VALUE },
+    });
+    assert.equal(missingRateLimitTableReadiness.status, 503);
+    assert.equal(missingRateLimitTableReadiness.headers.get(MAP_OPEN_READINESS_HEADER), null);
+    assert.equal(
+      (await errorJson(missingRateLimitTableReadiness, errorContract, "getHealth")).error?.code,
+      "RATE_LIMIT_NOT_CONFIGURED",
+    );
+    const missingRateLimitTableRequest = await request(unmigratedBaseUrl, "/v1/maps", { headers: authorization });
+    assert.equal(missingRateLimitTableRequest.status, 503);
+    assert.equal(missingRateLimitTableRequest.headers.get("ratelimit-limit"), null);
+    assert.equal(
+      (await errorJson(missingRateLimitTableRequest, errorContract, "listMaps")).error?.code,
+      "RATE_LIMIT_NOT_CONFIGURED",
+    );
+
+    await stop(devServer);
+    const rateLimitMigrationFile = path.join(
+      workerDirectory,
+      "migrations",
+      requestHostname ? "0007_map_rate_limits.sql" : "0004_map_rate_limits.sql",
+    );
+    await run(wrangler, [
+      "d1", "execute", database, "--local", "--persist-to", path.join(stateDirectory, "unmigrated"),
+      "--file", rateLimitMigrationFile,
+    ], { cwd: workerDirectory, env: childEnvironment });
+    serverLogs = "";
+    devServer = spawn(wrangler, [
+      "dev", "--local", ...secureHostnameArguments,
+      "--ip", "127.0.0.1", "--port", String(unmigratedPort),
+      "--persist-to", path.join(stateDirectory, "unmigrated"), "--log-level", "error",
+      "--var", `LALGEO_MAPS_API_KEYS:${bindings}`,
+      "--var", `CORS_ALLOWED_ORIGINS:${allowedOrigin}`,
+    ], {
+      cwd: workerDirectory,
+      env: childEnvironment,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    devServer.stdout.on("data", (chunk) => { serverLogs += chunk; });
+    devServer.stderr.on("data", (chunk) => { serverLogs += chunk; });
+    await waitForWorker(unmigratedBaseUrl, devServer, () => serverLogs);
+    const missingIdempotencyTableCreate = await request(unmigratedBaseUrl, "/v1/maps", {
+      method: "POST",
+      headers: {
+        ...authorization,
+        "Content-Type": "application/json",
+        "Idempotency-Key": "unmigrated-create-probe-0001",
+      },
+      body: JSON.stringify({ id: "must_not_commit", name: "Must not commit" }),
+    });
+    assert.equal(missingIdempotencyTableCreate.status, 503);
+    assert.equal(
+      (await errorJson(missingIdempotencyTableCreate, errorContract, "createMap")).error?.code,
+      "IDEMPOTENCY_NOT_CONFIGURED",
+    );
     const missingTableResponse = await request(unmigratedBaseUrl, "/v1/maps", { headers: authorization });
     assert.equal(missingTableResponse.status, 500);
     const missingTableError = await errorJson(missingTableResponse, errorContract, "listMaps");
     assert.equal(missingTableError.error?.code, "INTERNAL_ERROR");
     assert.equal(missingTableError.error?.message, "An unexpected error occurred.");
     assert.equal(Object.hasOwn(missingTableError.error, "details"), false);
-    record("reserved map-open readiness and authenticated reads return documented 500s against unmigrated disposable D1 without leaking details");
+    record("unmigrated disposable D1 proves rate-limit readiness and protected calls fail closed before body/resource work, then preserves idempotency 503 and generic 500 diagnostics after the additive rate migration");
 
     process.stdout.write(`\nMaps API local release gate passed ${checks.length}/${checks.length}. No production resources were contacted.\n`);
   } finally {

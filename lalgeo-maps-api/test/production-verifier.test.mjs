@@ -7,9 +7,11 @@ import test from "node:test";
 import {
   DEFAULT_BASE_URL,
   DEFAULT_ORIGIN,
+  IDEMPOTENCY_READINESS_VALUE,
   MAP_OPEN_READINESS_HEADER,
   MAP_OPEN_READINESS_TOKEN,
   MAP_OPEN_READINESS_VALUE,
+  RATE_LIMIT_READINESS_VALUE,
   VerificationError,
   assertTlsSafety,
   normalizeBaseUrl,
@@ -17,8 +19,10 @@ import {
   parseArguments,
   usage,
   validateOpenApi,
+  verifyIdempotencyReadiness,
   verifyMapOpenReadiness,
   verifyProduction,
+  verifyRateLimitReadiness,
   verifySyntheticInvalidBearer,
 } from "../scripts/verify-production.mjs";
 
@@ -101,7 +105,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 97,
+    errorResponseCount: 118,
   });
 
   const wrongVersion = structuredClone(openApiFixture());
@@ -132,7 +136,7 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   staleIdentityVersion.info.version = "1.0.0";
   assert.throws(
     () => validateOpenApi(staleIdentityVersion),
-    /info\.version must match the repository contract; expected 1\.2\.0, received 1\.0\.0/,
+    /info\.version must match the repository contract; expected 1\.4\.0, received 1\.0\.0/,
   );
 
   const missingBearer = structuredClone(openApiFixture());
@@ -158,6 +162,30 @@ test("OpenAPI validation enforces the canonical 3.1 bearer contract and operatio
   const missingWriteScope = structuredClone(openApiFixture());
   delete missingWriteScope.paths["/v1/maps/{mapId}/open-links"].post["x-lalgeo-required-scope"];
   assert.throws(() => validateOpenApi(missingWriteScope), /createMapOpenLink must require maps:write/);
+
+  const missingIdempotencyParameter = structuredClone(openApiFixture());
+  delete missingIdempotencyParameter.paths["/v1/maps"].post.parameters;
+  assert.throws(() => validateOpenApi(missingIdempotencyParameter), /createMap must document the Idempotency-Key header/);
+
+  const missingReplayHeader = structuredClone(openApiFixture());
+  delete missingReplayHeader.paths["/v1/maps"].post.responses["201"].headers["Idempotency-Replayed"];
+  assert.throws(() => validateOpenApi(missingReplayHeader), /createMap must document idempotency replay and expiry response headers/);
+
+  const missingRateLimitError = structuredClone(openApiFixture());
+  delete missingRateLimitError.paths["/v1/maps"].get.responses["429"];
+  assert.throws(() => validateOpenApi(missingRateLimitError), /listMaps must define exactly these error responses/);
+
+  const publicRateLimitError = structuredClone(openApiFixture());
+  publicRateLimitError.paths["/v1/map-open/redeem"].post.responses["429"] = { $ref: "#/components/responses/TooManyRequests" };
+  assert.throws(() => validateOpenApi(publicRateLimitError), /redeemMapOpenLink must define exactly these error responses/);
+
+  const missingSuccessRateHeader = structuredClone(openApiFixture());
+  delete missingSuccessRateHeader.paths["/v1/maps"].get.responses["200"].headers["RateLimit-Remaining"];
+  assert.throws(() => validateOpenApi(missingSuccessRateHeader), /listMaps 200 response must document RateLimit-Remaining/);
+
+  const missingRetryAfter = structuredClone(openApiFixture());
+  delete missingRetryAfter.components.responses.TooManyRequests.headers["Retry-After"];
+  assert.throws(() => validateOpenApi(missingRetryAfter), /listMaps 429 response must document Retry-After/);
 
   const wrongReadScope = structuredClone(openApiFixture());
   wrongReadScope.paths["/v1/maps"].get["x-lalgeo-required-scope"] = "maps:write";
@@ -275,9 +303,9 @@ test("OpenAPI validation rejects missing or misleading failure contracts", () =>
   delete missingAuth.paths["/v1/maps/{mapId}/layers"].get.responses["401"];
   assert.throws(() => validateOpenApi(missingAuth), /listLayers must define exactly these error responses/);
 
-  const fictionalRateLimit = openApiFixture();
-  fictionalRateLimit.paths["/v1/maps"].get.responses["429"] = { $ref: "#/components/responses/TooManyRequests" };
-  assert.throws(() => validateOpenApi(fictionalRateLimit), /listMaps must define exactly these error responses/);
+  const missingRateLimit = openApiFixture();
+  delete missingRateLimit.paths["/v1/maps"].get.responses["429"];
+  assert.throws(() => validateOpenApi(missingRateLimit), /listMaps must define exactly these error responses/);
 
   const missingConflict = openApiFixture();
   delete missingConflict.paths["/v1/maps/{mapId}/layers/{layerId}/features"].post.responses["409"];
@@ -331,7 +359,7 @@ test("production verification never sends the readiness POST before the exact ru
         throw new Error(`Unexpected request: ${init.method} ${url.pathname}`);
       },
     }),
-    /info\.version must match the repository contract; expected 1\.2\.0, received 1\.1\.0/,
+    /info\.version must match the repository contract; expected 1\.4\.0, received 1\.1\.0/,
   );
   assert.deepEqual(calls, [
     ["GET", "/v1/health"],
@@ -354,7 +382,16 @@ test("production verification sends no usable credential and only the reserved n
       });
 
       if (request.method === "GET" && request.url === "/v1/health") {
-        response.writeHead(200, jsonHeaders("request_health", { "Cache-Control": "no-store" }));
+        const readiness = request.headers[MAP_OPEN_READINESS_HEADER.toLowerCase()];
+        const readinessRequest = [IDEMPOTENCY_READINESS_VALUE, RATE_LIMIT_READINESS_VALUE].includes(readiness);
+        response.writeHead(200, jsonHeaders(readinessRequest ? `request_${readiness}` : "request_health", {
+          "Cache-Control": "no-store",
+          ...(readinessRequest ? {
+            "Access-Control-Allow-Origin": origin,
+            "Access-Control-Expose-Headers": "X-Request-Id",
+            [MAP_OPEN_READINESS_HEADER]: readiness,
+          } : {}),
+        }));
         response.end(JSON.stringify({ ok: true, service: "lalgeo-maps-api", version: "v1" }));
       } else if (request.method === "GET" && request.url === "/v1/openapi.json") {
         response.writeHead(200, jsonHeaders("request_openapi", { "Cache-Control": "public, max-age=300" }));
@@ -372,7 +409,7 @@ test("production verification sends no usable credential and only the reserved n
           "Cache-Control": "no-store",
           "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
           "Access-Control-Allow-Origin": origin,
-          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
           Vary: "Origin",
         }));
         response.end(JSON.stringify({
@@ -383,9 +420,9 @@ test("production verification sends no usable credential and only the reserved n
         response.writeHead(204, {
           "X-Request-Id": "request_cors",
           "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Headers": "Authorization, Content-Type",
+          "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key",
           "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         });
@@ -427,11 +464,13 @@ test("production verification sends no usable credential and only the reserved n
     operationCount: 22,
     successSchemaCount: 17,
     bodylessSuccessCount: 5,
-    errorResponseCount: 97,
+    errorResponseCount: 118,
   });
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],
     ["GET", "/v1/openapi.json"],
+    ["GET", "/v1/health"],
+    ["GET", "/v1/health"],
     ["HEAD", "/v1/health"],
     ["HEAD", "/v1/openapi.json"],
     ["GET", "/v1/maps"],
@@ -446,22 +485,26 @@ test("production verification sends no usable credential and only the reserved n
     } else {
       assert.equal(request.body, "");
     }
-    if (index === 5) assert.match(request.headers.authorization, /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/);
+    if (index === 7) assert.match(request.headers.authorization, /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/);
     else assert.equal(request.headers.authorization, undefined);
     assert.equal(request.headers.cookie, undefined);
     assert.equal(request.headers["proxy-authorization"], undefined);
     assert.equal(request.headers["x-api-key"], undefined);
     assert.equal(request.headers["x-lalgeo-api-key"], undefined);
   }
-  assert.equal(requests[4].headers.origin, origin);
-  assert.equal(requests[5].headers.origin, origin);
+  assert.equal(requests[2].headers.origin, origin);
+  assert.equal(requests[2].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], IDEMPOTENCY_READINESS_VALUE);
+  assert.equal(requests[3].headers.origin, origin);
+  assert.equal(requests[3].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], RATE_LIMIT_READINESS_VALUE);
   assert.equal(requests[6].headers.origin, origin);
-  assert.equal(requests[6].headers["access-control-request-method"], "GET");
-  assert.equal(requests[6].headers["access-control-request-headers"], "Authorization, Content-Type");
-  assert.equal(requests[7].headers.origin, "https://cors-probe.invalid");
+  assert.equal(requests[7].headers.origin, origin);
   assert.equal(requests[8].headers.origin, origin);
-  assert.equal(requests[8].headers["content-type"], "application/json");
-  assert.equal(requests[8].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
+  assert.equal(requests[8].headers["access-control-request-method"], "GET");
+  assert.equal(requests[8].headers["access-control-request-headers"], "Authorization, Content-Type, Idempotency-Key");
+  assert.equal(requests[9].headers.origin, "https://cors-probe.invalid");
+  assert.equal(requests[10].headers.origin, origin);
+  assert.equal(requests[10].headers["content-type"], "application/json");
+  assert.equal(requests[10].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
   assert.match(logs.at(-1), /PASS production verifier/);
 });
 
@@ -485,9 +528,22 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
       });
     }
     if (init.method === "GET" && url.pathname === "/v1/health") {
+      const readiness = init.headers.get(MAP_OPEN_READINESS_HEADER);
+      const readinessRequest = [IDEMPOTENCY_READINESS_VALUE, RATE_LIMIT_READINESS_VALUE].includes(readiness);
       return jsonResponse(
         { ok: true, service: "lalgeo-maps-api", version: "v1" },
-        { requestId: "request_health", headers: { ...secureHeaders, "Cache-Control": "no-store" } },
+        {
+          requestId: readinessRequest ? `request_${readiness}` : "request_health",
+          headers: {
+            ...secureHeaders,
+            "Cache-Control": "no-store",
+            ...(readinessRequest ? {
+              "Access-Control-Allow-Origin": origin,
+              "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
+              [MAP_OPEN_READINESS_HEADER]: readiness,
+            } : {}),
+          },
+        },
       );
     }
     if (init.method === "GET" && url.pathname === "/v1/transport-probe") {
@@ -521,7 +577,7 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
             "Cache-Control": "no-store",
             "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
             "Access-Control-Allow-Origin": origin,
-            "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
+            "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
           },
         },
       );
@@ -533,9 +589,9 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
           ...secureHeaders,
           "X-Request-Id": "request_cors",
           "Access-Control-Allow-Origin": origin,
-          "Access-Control-Allow-Headers": "Authorization, Content-Type",
+          "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key",
           "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate",
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
           "Access-Control-Max-Age": "86400",
           Vary: "Origin",
         },
@@ -574,6 +630,8 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
     ["GET", "http://api.lalgeo.com/v1/transport-probe?surface=shared"],
     ["GET", "https://api.lalgeo.com/v1/transport-probe?surface=shared"],
     ["GET", "https://api.lalgeo.com/v1/openapi.json"],
+    ["GET", "https://api.lalgeo.com/v1/health"],
+    ["GET", "https://api.lalgeo.com/v1/health"],
     ["HEAD", "https://api.lalgeo.com/v1/health"],
     ["HEAD", "https://api.lalgeo.com/v1/openapi.json"],
     ["GET", "https://api.lalgeo.com/v1/maps"],
@@ -588,6 +646,10 @@ test("canonical verification requires exact HTTPS redirect, HSTS, and public HEA
   for (const call of calls) {
     assert.equal(call.headers.cookie, undefined);
   }
+  assert.equal(calls[5].headers.origin, origin);
+  assert.equal(calls[5].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], IDEMPOTENCY_READINESS_VALUE);
+  assert.equal(calls[6].headers.origin, origin);
+  assert.equal(calls[6].headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], RATE_LIMIT_READINESS_VALUE);
   assert.equal(calls.at(-1).body, JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN }));
   assert.equal(calls.at(-1).headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], MAP_OPEN_READINESS_VALUE);
 });
@@ -617,6 +679,54 @@ test("synthetic-invalid bearer verification catches global authentication miscon
   assert.equal(request.redirect, "manual");
   assert.match(request.headers.authorization, /^Bearer lalgeo_synthetic_invalid_[0-9a-f]{32}$/);
   assert.equal(request.headers.cookie, undefined);
+});
+
+test("rate-limit readiness reports the exact shared D1 migration and requires acknowledgement", async () => {
+  let request;
+  await assert.rejects(
+    verifyRateLimitReadiness({
+      baseUrl: "http://127.0.0.1:8787",
+      origin: DEFAULT_ORIGIN,
+      timeoutMs: 100,
+      verifyTransport: false,
+      fetchImpl: async (target, init) => {
+        request = { target: String(target), ...init, headers: Object.fromEntries(init.headers) };
+        return jsonResponse(
+          { error: { code: "RATE_LIMIT_NOT_CONFIGURED", message: "Rate limiting is temporarily unavailable." }, request_id: "request_broken_rate_store" },
+          { status: 503, requestId: "request_broken_rate_store", headers: { "Cache-Control": "no-store" } },
+        );
+      },
+    }),
+    /lalgeo-business D1 map_rate_limits migration may be missing or incompatible.*0007_map_rate_limits\.sql.*request_broken_rate_store/i,
+  );
+  assert.equal(request.target, "http://127.0.0.1:8787/v1/health");
+  assert.equal(request.method, "GET");
+  assert.equal(request.body, undefined);
+  assert.equal(request.credentials, "omit");
+  assert.equal(request.redirect, "manual");
+  assert.equal(request.headers.authorization, undefined);
+  assert.equal(request.headers[MAP_OPEN_READINESS_HEADER.toLowerCase()], RATE_LIMIT_READINESS_VALUE);
+
+  await assert.rejects(
+    verifyRateLimitReadiness({
+      baseUrl: "http://127.0.0.1:8787",
+      origin: DEFAULT_ORIGIN,
+      timeoutMs: 100,
+      verifyTransport: false,
+      fetchImpl: async () => jsonResponse(
+        { ok: true, service: "lalgeo-maps-api", version: "v1" },
+        {
+          requestId: "request_old_rate_runtime",
+          headers: {
+            "Cache-Control": "no-store",
+            "Access-Control-Allow-Origin": DEFAULT_ORIGIN,
+            "Access-Control-Expose-Headers": "X-Request-Id",
+          },
+        },
+      ),
+    }),
+    /must acknowledge the reserved read-only probe; deploy the matching Worker runtime/,
+  );
 });
 
 test("map-open readiness reports the exact shared D1 migration action on runtime failure", async () => {
@@ -732,6 +842,32 @@ test("verification rejects an inexact health payload and a missing Bearer challe
       requestId: "request_openapi",
       headers: { "Cache-Control": "public, max-age=300" },
     }),
+    jsonResponse(
+      { ok: true, service: "lalgeo-maps-api", version: "v1" },
+      {
+        requestId: "request_idempotency_readiness",
+        headers: {
+          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin": DEFAULT_ORIGIN,
+          "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At",
+          "X-LalGeo-Readiness-Probe": IDEMPOTENCY_READINESS_VALUE,
+          Vary: "Origin",
+        },
+      },
+    ),
+    jsonResponse(
+      { ok: true, service: "lalgeo-maps-api", version: "v1" },
+      {
+        requestId: "request_rate_limit_readiness",
+        headers: {
+          "Cache-Control": "no-store",
+          "Access-Control-Allow-Origin": DEFAULT_ORIGIN,
+          "Access-Control-Expose-Headers": "X-Request-Id",
+          "X-LalGeo-Readiness-Probe": RATE_LIMIT_READINESS_VALUE,
+          Vary: "Origin",
+        },
+      },
+    ),
     headResponse({ requestId: "request_health_head", headers: { "Cache-Control": "no-store" } }),
     headResponse({ requestId: "request_openapi_head", headers: { "Cache-Control": "public, max-age=300" } }),
     jsonResponse(
@@ -756,6 +892,32 @@ test("verification rejects an inexact health payload and a missing Bearer challe
       logger: { log() {} },
     }),
     /WWW-Authenticate Bearer challenge/,
+  );
+});
+
+test("verification requires idempotency response headers to be browser-readable", async () => {
+  await assert.rejects(
+    verifySyntheticInvalidBearer({
+      baseUrl: "http://127.0.0.1:8787",
+      origin: DEFAULT_ORIGIN,
+      timeoutMs: 100,
+      verifyTransport: false,
+      fetchImpl: async () => jsonResponse(
+        { error: { code: "UNAUTHORIZED", message: "Invalid key" }, request_id: "request_invalid_auth" },
+        {
+          status: 401,
+          requestId: "request_invalid_auth",
+          headers: {
+            "Cache-Control": "no-store",
+            "WWW-Authenticate": "Bearer realm=\"lalgeo-maps-api\"",
+            "Access-Control-Allow-Origin": DEFAULT_ORIGIN,
+            "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Key-Expires-At",
+            Vary: "Origin",
+          },
+        },
+      ),
+    }),
+    /must expose idempotency-replayed to browser clients/,
   );
 });
 
