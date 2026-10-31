@@ -20,6 +20,7 @@ export const MAP_OPEN_READINESS_TOKEN = "__lalgeo_map_open_store_probe_v1__";
 export const MAP_OPEN_READINESS_HEADER = "X-LalGeo-Readiness-Probe";
 export const MAP_OPEN_READINESS_VALUE = "map-open-store-v1";
 export const IDEMPOTENCY_READINESS_VALUE = "map-idempotency-store-v1";
+export const RATE_LIMIT_READINESS_VALUE = "rate-limit-store-v1";
 
 export const REQUIRED_OPERATIONS = Object.freeze({
   "/v1/health": Object.freeze({ get: "getHealth", head: "headHealth" }),
@@ -87,7 +88,6 @@ const RESOURCE_OPERATIONS = new Set(PROTECTED_OPERATIONS.filter((id) => !["listM
 const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createMapOpenLink", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
 const CREATE_OPERATIONS = new Set(["createMap", "createLayer", "createFeatures"]);
 
-// Only advertise errors the Worker emits today. There is no 429 rate limiter yet.
 export const REQUIRED_ERROR_RESPONSES = Object.freeze({
   getHealth: Object.freeze({ "503": "ServiceUnavailable" }),
   ...Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
@@ -98,6 +98,7 @@ export const REQUIRED_ERROR_RESPONSES = Object.freeze({
     ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
     ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
     ["422", CREATE_OPERATIONS.has(id) ? "IdempotencyKeyReused" : undefined],
+    ["429", "TooManyRequests"],
     ["500", "InternalServerError"],
     ["503", "ServiceUnavailable"],
   ].filter(([, component]) => component)))])),
@@ -118,6 +119,11 @@ const SAFE_REQUEST_METHODS = new Set(["GET", "HEAD", "OPTIONS"]);
 const FORBIDDEN_CREDENTIAL_HEADERS = ["authorization", "cookie", "proxy-authorization", "x-api-key", "x-lalgeo-api-key"];
 const MAP_OPEN_READINESS_BODY = JSON.stringify({ token: MAP_OPEN_READINESS_TOKEN });
 const SYNTHETIC_INVALID_API_KEY_PATTERN = /^lalgeo_synthetic_invalid_[0-9a-f]{32}$/;
+const RATE_LIMIT_RESPONSE_HEADERS = Object.freeze({
+  "RateLimit-Limit": "RateLimitLimit",
+  "RateLimit-Remaining": "RateLimitRemaining",
+  "RateLimit-Reset": "RateLimitReset",
+});
 
 export class VerificationError extends Error {
   constructor(message) {
@@ -326,7 +332,7 @@ export function usage() {
     `  --origin <url>    Allowed browser origin to verify (default: ${DEFAULT_ORIGIN})`,
     "  --help            Show this help",
     "",
-    "The verifier sends public and unauthenticated GET, HEAD, and OPTIONS requests, one read-only GET with a randomized synthetic-invalid bearer, one reserved idempotency-store readiness GET, and one reserved map-open readiness POST.",
+    "The verifier sends public and unauthenticated GET, HEAD, and OPTIONS requests, one read-only GET with a randomized synthetic-invalid bearer, reserved idempotency and rate-limit store readiness GETs, and one reserved map-open readiness POST.",
   ].join("\n");
 }
 
@@ -463,6 +469,25 @@ function expectIdempotencyHeadersExposed(response, label) {
   const exposed = headerTokens(response, "access-control-expose-headers");
   for (const header of ["idempotency-replayed", "idempotency-key-expires-at"]) {
     check(exposed.includes(header), `${label} must expose ${header} to browser clients.`);
+  }
+}
+
+function expectRateLimitHeadersExposed(response, label) {
+  const exposed = headerTokens(response, "access-control-expose-headers");
+  for (const header of ["ratelimit-limit", "ratelimit-remaining", "ratelimit-reset", "retry-after"]) {
+    check(exposed.includes(header), `${label} must expose ${header} to browser clients.`);
+  }
+}
+
+function expectRateLimitHeadersDocumented(headers, label, includeRetryAfter = false) {
+  for (const [name, component] of Object.entries(RATE_LIMIT_RESPONSE_HEADERS)) {
+    check(
+      headers?.[name]?.$ref === `#/components/headers/${component}`,
+      `${label} must document ${name}.`,
+    );
+  }
+  if (includeRetryAfter) {
+    check(headers?.["Retry-After"]?.$ref === "#/components/headers/RetryAfter", `${label} must document Retry-After.`);
   }
 }
 
@@ -644,6 +669,7 @@ export function validateOpenApi(spec) {
             `${label} must document the scoped bearer challenge.`,
           );
         }
+        if (status === "429") expectRateLimitHeadersDocumented(resolved.headers, label, true);
         errorResponseCount += 1;
       }
 
@@ -653,6 +679,9 @@ export function validateOpenApi(spec) {
         const resolvedResponse = resolveReference(spec, documentedResponse, label);
         check(isObject(resolvedResponse), `${label} must be an object.`);
         check(resolvedResponse.headers?.["X-Request-Id"]?.$ref === "#/components/headers/RequestId", `${label} must document the X-Request-Id header.`);
+        if (PROTECTED_OPERATIONS.includes(operation.operationId)) {
+          expectRateLimitHeadersDocumented(resolvedResponse.headers, label);
+        }
         if (REQUIRED_BODYLESS_SUCCESSES.includes(successKey)) {
           check(!Object.hasOwn(resolvedResponse, "content"), `${label} must remain bodyless and omit content.`);
           documentedSuccesses.add(successKey);
@@ -701,7 +730,7 @@ export function validateOpenApi(spec) {
     canonicalJson(spec.components.parameters?.IdempotencyKey) === canonicalJson(repositorySpec.components.parameters.IdempotencyKey),
     "OpenAPI Idempotency-Key parameter must match the repository contract.",
   );
-  for (const header of ["IdempotencyReplayed", "IdempotencyKeyExpiresAt"]) {
+  for (const header of ["IdempotencyReplayed", "IdempotencyKeyExpiresAt", ...Object.values(RATE_LIMIT_RESPONSE_HEADERS), "RetryAfter"]) {
     check(
       canonicalJson(spec.components.headers?.[header]) === canonicalJson(repositorySpec.components.headers[header]),
       `OpenAPI ${header} header must match the repository contract.`,
@@ -788,6 +817,7 @@ async function verifyBearerRejection(options, {
   expectVaryOrigin(result, label);
   expectRequestIdExposed(result, label);
   expectIdempotencyHeadersExposed(result, label);
+  expectRateLimitHeadersExposed(result, label);
   check(headerTokens(result, "access-control-expose-headers").includes("www-authenticate"), `${label} must expose WWW-Authenticate to browser clients.`);
 
   const payload = parseJsonResponse(result, label);
@@ -866,6 +896,7 @@ async function verifyCors(options) {
   expectVaryOrigin(result, "CORS preflight");
   expectRequestIdExposed(result, "CORS preflight");
   expectIdempotencyHeadersExposed(result, "CORS preflight");
+  expectRateLimitHeadersExposed(result, "CORS preflight");
 
   const rejected = await request(options.baseUrl, "/v1/maps", {
     method: "OPTIONS",
@@ -923,6 +954,52 @@ export async function verifyIdempotencyReadiness(options) {
   expectRequestIdExposed(result, label);
   check(
     result.headers.get(MAP_OPEN_READINESS_HEADER) === IDEMPOTENCY_READINESS_VALUE,
+    `${label} must acknowledge the reserved read-only probe; deploy the matching Worker runtime before relying on this check.`,
+  );
+  const payload = parseJsonResponse(result, label);
+  check(
+    canonicalJson(payload) === canonicalJson({ ok: true, service: "lalgeo-maps-api", version: "v1" }),
+    `${label} must preserve the exact health response.`,
+  );
+}
+
+export async function verifyRateLimitReadiness(options) {
+  const label = "Rate-limit datastore readiness probe";
+  const result = await request(options.baseUrl, "/v1/health", {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Origin: options.origin,
+      [MAP_OPEN_READINESS_HEADER]: RATE_LIMIT_READINESS_VALUE,
+    },
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+  });
+
+  if (result.status !== 200) {
+    let reportedCode = "";
+    try {
+      const payload = JSON.parse(result.text);
+      if (typeof payload?.error?.code === "string") reportedCode = ` ${payload.error.code}`;
+    } catch {
+      // Status and request ID remain actionable when an intermediary did not return JSON.
+    }
+    const requestId = result.headers.get("x-request-id")?.trim();
+    throw new VerificationError(
+      `${label} returned HTTP ${result.status}${reportedCode}; expected 200. ` +
+      "The shared lalgeo-business D1 map_rate_limits migration may be missing or incompatible; inspect and apply 0007_map_rate_limits.sql before deploying. " +
+      `Request ID: ${requestId || "missing"}.`,
+    );
+  }
+
+  expectRequestId(result, label);
+  expectNoStore(result, label);
+  expectVaryOrigin(result, label);
+  if (options.verifyTransport) expectHsts(result, label);
+  check(result.headers.get("access-control-allow-origin") === options.origin, `${label} must allow origin ${options.origin}.`);
+  expectRequestIdExposed(result, label);
+  check(
+    result.headers.get(MAP_OPEN_READINESS_HEADER) === RATE_LIMIT_READINESS_VALUE,
     `${label} must acknowledge the reserved read-only probe; deploy the matching Worker runtime before relying on this check.`,
   );
   const payload = parseJsonResponse(result, label);
@@ -1025,6 +1102,8 @@ export async function verifyProduction({
   logger.log(`PASS OpenAPI: private authoring identity, durable create replay, one-time handoff contract, ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes (capability not redeemed)`);
   await verifyIdempotencyReadiness(normalized);
   logger.log("PASS idempotency readiness: reserved non-mutating probe reached the shared D1 schema");
+  await verifyRateLimitReadiness(normalized);
+  logger.log("PASS rate-limit readiness: reserved non-mutating probe reached the shared D1 schema");
   await verifyPublicHead(normalized);
   logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);
