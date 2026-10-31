@@ -25,6 +25,10 @@ type IdempotencyContext = {
   createdAt: string;
   expiresAt: string;
 };
+type RateLimitState = {
+  window_start: number;
+  request_count: number;
+};
 
 class ApiError extends Error {
   constructor(
@@ -47,6 +51,8 @@ const MIN_OPEN_LINK_TTL_SECONDS = 60;
 const MAX_OPEN_LINK_TTL_SECONDS = 900;
 const IDEMPOTENCY_TTL_SECONDS = 24 * 60 * 60;
 const MAX_IDEMPOTENCY_RESPONSE_BYTES = 1_900_000;
+const RATE_LIMIT_MAX_REQUESTS = 300;
+const RATE_LIMIT_WINDOW_SECONDS = 60;
 const ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9_-]{0,127}$/;
 const IDEMPOTENCY_KEY_PATTERN = /^[!-~]{8,128}$/;
 const OPEN_LINK_TOKEN_PATTERN = /^[a-f0-9]{64}$/;
@@ -54,6 +60,7 @@ const MAP_OPEN_READINESS_TOKEN = "__lalgeo_map_open_store_probe_v1__";
 const MAP_OPEN_READINESS_HEADER = "X-LalGeo-Readiness-Probe";
 const MAP_OPEN_READINESS_VALUE = "map-open-store-v1";
 const IDEMPOTENCY_READINESS_VALUE = "map-idempotency-store-v1";
+const RATE_LIMIT_READINESS_VALUE = "rate-limit-store-v1";
 const CANONICAL_HOSTNAME = "api.lalgeo.com";
 const MAPS_OPEN_URL = "https://maps.lalgeo.com/maps";
 const STRICT_TRANSPORT_SECURITY = "max-age=31536000";
@@ -335,6 +342,84 @@ async function assertIdempotencyStoreReady(db: D1Database) {
   }
 }
 
+function rateLimitStoreUnavailable(): never {
+  throw new ApiError(
+    503,
+    "RATE_LIMIT_NOT_CONFIGURED",
+    "Rate limiting is temporarily unavailable. The request was not applied.",
+  );
+}
+
+function rateLimitHeaders(requestCount: number, resetSeconds: number) {
+  return {
+    "RateLimit-Limit": String(RATE_LIMIT_MAX_REQUESTS),
+    "RateLimit-Remaining": String(Math.max(0, RATE_LIMIT_MAX_REQUESTS - requestCount)),
+    "RateLimit-Reset": String(resetSeconds),
+  };
+}
+
+function rateLimitWindowStart() {
+  const currentSecond = Math.floor(Date.now() / 1_000);
+  return currentSecond - (currentSecond % RATE_LIMIT_WINDOW_SECONDS);
+}
+
+function rateLimitResetSeconds(windowStart: number) {
+  const currentSecond = Math.floor(Date.now() / 1_000);
+  return Math.max(1, Math.min(RATE_LIMIT_WINDOW_SECONDS, windowStart + RATE_LIMIT_WINDOW_SECONDS - currentSecond));
+}
+
+async function consumeRateLimit(db: D1Database, ownerId: string) {
+  const windowStart = rateLimitWindowStart();
+  let state: RateLimitState | null;
+  try {
+    state = await db.prepare(`
+      INSERT INTO map_rate_limits (owner_id,window_start,request_count)
+      VALUES (?1,?2,1)
+      ON CONFLICT(owner_id) DO UPDATE SET
+        window_start=excluded.window_start,
+        request_count=CASE
+          WHEN map_rate_limits.window_start=excluded.window_start
+          THEN map_rate_limits.request_count+1
+          ELSE 1
+        END
+      WHERE map_rate_limits.window_start < excluded.window_start
+        OR (map_rate_limits.window_start=excluded.window_start
+          AND map_rate_limits.request_count < ?3)
+      RETURNING window_start,request_count
+    `).bind(ownerId, windowStart, RATE_LIMIT_MAX_REQUESTS).first<RateLimitState>();
+  } catch {
+    rateLimitStoreUnavailable();
+  }
+
+  if (!state) {
+    const resetSeconds = rateLimitResetSeconds(windowStart);
+    throw new ApiError(
+      429,
+      "RATE_LIMITED",
+      "The owner rate limit was reached. The request was not applied; retry after the current window resets.",
+      { retry_after_seconds: resetSeconds },
+      { ...rateLimitHeaders(RATE_LIMIT_MAX_REQUESTS, resetSeconds), "Retry-After": String(resetSeconds) },
+    );
+  }
+  if (state.window_start !== windowStart || !Number.isInteger(state.request_count) ||
+      state.request_count < 1 || state.request_count > RATE_LIMIT_MAX_REQUESTS) {
+    rateLimitStoreUnavailable();
+  }
+  return rateLimitHeaders(state.request_count, rateLimitResetSeconds(state.window_start));
+}
+
+async function assertRateLimitStoreReady(db: D1Database) {
+  try {
+    await db.prepare(`
+      SELECT owner_id,window_start,request_count
+      FROM map_rate_limits
+      WHERE 0
+    `).first();
+  } catch {
+    rateLimitStoreUnavailable();
+  }
+}
+
 function rfc3339Millis(value: unknown) {
   if (typeof value !== "string") return null;
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})[Tt](\d{2}):(\d{2}):(\d{2})(?:\.\d+)?([Zz]|[+-](\d{2}):(\d{2}))$/);
@@ -437,7 +522,7 @@ function cors(req: Request, env: Env): Record<string, string> {
     "Access-Control-Allow-Origin": origin,
     "Access-Control-Allow-Headers": "Authorization, Content-Type, Idempotency-Key",
     "Access-Control-Allow-Methods": "GET, HEAD, POST, PATCH, DELETE, OPTIONS",
-    "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At",
+    "Access-Control-Expose-Headers": "X-Request-Id, WWW-Authenticate, Idempotency-Replayed, Idempotency-Key-Expires-At, RateLimit-Limit, RateLimit-Remaining, RateLimit-Reset, Retry-After",
     "Access-Control-Max-Age": "86400",
     Vary: "Origin",
   };
@@ -675,9 +760,6 @@ async function redeemOpenLink(req: Request, env: Env) {
 
 async function route(req: Request, env: Env, auth: Auth, url: URL) {
   const path = url.pathname;
-  const operation = protectedOperation(req.method, path);
-  if (!operation) throw new ApiError(404, "NOT_FOUND", "Endpoint not found.");
-  requireScope(auth, PROTECTED_OPERATION_SCOPES[operation]);
   const mapMatch = path.match(/^\/v1\/maps\/([^/]+)$/);
   const exportMatch = path.match(/^\/v1\/maps\/([^/]+)\/export$/);
   const openLinkMatch = path.match(/^\/v1\/maps\/([^/]+)\/open-links$/);
@@ -817,6 +899,7 @@ export default {
         : {}),
       "X-Request-Id": requestId,
     };
+    let appliedRateLimitHeaders: Record<string, string> = {};
     try {
       const redirect = httpsRedirect(url, headers);
       if (redirect) return redirect;
@@ -826,6 +909,9 @@ export default {
         if (req.method === "GET" && req.headers.get(MAP_OPEN_READINESS_HEADER) === IDEMPOTENCY_READINESS_VALUE) {
           await assertIdempotencyStoreReady(env.DB);
           readinessHeaders[MAP_OPEN_READINESS_HEADER] = IDEMPOTENCY_READINESS_VALUE;
+        } else if (req.method === "GET" && req.headers.get(MAP_OPEN_READINESS_HEADER) === RATE_LIMIT_READINESS_VALUE) {
+          await assertRateLimitStoreReady(env.DB);
+          readinessHeaders[MAP_OPEN_READINESS_HEADER] = RATE_LIMIT_READINESS_VALUE;
         }
         const result = response({ ok: true, service: "lalgeo-maps-api", version: "v1" }, 200, { ...headers, ...readinessHeaders });
         return req.method === "HEAD" ? withoutBody(result) : result;
@@ -834,24 +920,33 @@ export default {
         const result = response(openapi, 200, { ...headers, "Cache-Control": "public, max-age=300" });
         return req.method === "HEAD" ? withoutBody(result) : result;
       }
-      const result = url.pathname === "/v1/map-open/redeem" && req.method === "POST"
-        ? await redeemOpenLink(req, env)
-        : await route(req, env, await authenticate(req, env), url);
-      const outgoing = new Headers(result.headers); Object.entries(headers).forEach(([key, value]) => outgoing.set(key, value));
+      let result: Response;
+      if (url.pathname === "/v1/map-open/redeem" && req.method === "POST") {
+        result = await redeemOpenLink(req, env);
+      } else {
+        const auth = await authenticate(req, env);
+        const operation = protectedOperation(req.method, url.pathname);
+        if (!operation) throw new ApiError(404, "NOT_FOUND", "Endpoint not found.");
+        requireScope(auth, PROTECTED_OPERATION_SCOPES[operation]);
+        appliedRateLimitHeaders = await consumeRateLimit(env.DB, auth.ownerId);
+        result = await route(req, env, auth, url);
+      }
+      const outgoing = new Headers(result.headers);
+      Object.entries({ ...headers, ...appliedRateLimitHeaders }).forEach(([key, value]) => outgoing.set(key, value));
       return new Response(result.body, { status: result.status, headers: outgoing });
     } catch (error) {
       if (error instanceof ApiError) {
         const requiredScope = (error.details as { required_scope?: string } | undefined)?.required_scope;
         const errorHeaders = error.status === 401
-          ? { ...headers, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}"` }
+          ? { ...headers, ...appliedRateLimitHeaders, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}"` }
           : error.status === 403 && requiredScope
-            ? { ...headers, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}", error="insufficient_scope", scope="${requiredScope}"` }
-            : { ...headers, ...error.responseHeaders };
+            ? { ...headers, ...appliedRateLimitHeaders, ...error.responseHeaders, "WWW-Authenticate": `Bearer realm="${BEARER_REALM}", error="insufficient_scope", scope="${requiredScope}"` }
+            : { ...headers, ...appliedRateLimitHeaders, ...error.responseHeaders };
         return response({ error: { code: error.code, message: error.message, details: error.details }, request_id: requestId }, error.status, errorHeaders);
       }
-      if (error instanceof Error && /UNIQUE constraint failed: (?:maps|layers|features)\./.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, headers);
+      if (error instanceof Error && /UNIQUE constraint failed: (?:maps|layers|features)\./.test(error.message)) return response({ error: { code: "ID_CONFLICT", message: "That ID already exists. Reuse the existing resource or choose another ID." }, request_id: requestId }, 409, { ...headers, ...appliedRateLimitHeaders });
       console.error(error);
-      return response({ error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." }, request_id: requestId }, 500, headers);
+      return response({ error: { code: "INTERNAL_ERROR", message: "An unexpected error occurred." }, request_id: requestId }, 500, { ...headers, ...appliedRateLimitHeaders });
     }
   },
 };

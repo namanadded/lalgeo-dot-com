@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LalGeo Maps Authoring API",
-    "version": "1.3.0",
-    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, with durable 24-hour Idempotency-Key replay for create requests, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
+    "version": "1.4.0",
+    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, with durable 24-hour Idempotency-Key replay for create requests and an owner-scoped 300-request-per-minute limit, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
     "contact": {
       "name": "LalGeo Maps API access",
       "url": "https://lalgeo.com/developers/",
@@ -79,10 +79,16 @@
         "responses": {
           "200": {
             "description": "Maps",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapListResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -102,7 +108,10 @@
             "headers": {
               "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
               "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" },
-              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" }
+              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
             },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
           },
@@ -112,6 +121,7 @@
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "422": { "$ref": "#/components/responses/IdempotencyKeyReused" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -126,11 +136,17 @@
         "responses": {
           "200": {
             "description": "Map",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -146,7 +162,12 @@
         "responses": {
           "200": {
             "description": "Updated map",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -154,6 +175,7 @@
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -165,11 +187,17 @@
         "responses": {
           "204": {
             "description": "Deleted",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -185,11 +213,17 @@
         "responses": {
           "200": {
             "description": "Portable LalGeo project",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LalGeoExportResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -209,7 +243,12 @@
         "responses": {
           "201": {
             "description": "One-time map-open link created",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapOpenLinkResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -217,6 +256,7 @@
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -254,11 +294,17 @@
         "responses": {
           "200": {
             "description": "Layers",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerListResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -278,7 +324,10 @@
             "headers": {
               "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
               "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" },
-              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" }
+              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
             },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
           },
@@ -289,6 +338,7 @@
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "422": { "$ref": "#/components/responses/IdempotencyKeyReused" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -303,11 +353,17 @@
         "responses": {
           "200": {
             "description": "Layer",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -323,7 +379,12 @@
         "responses": {
           "200": {
             "description": "Updated layer",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -331,6 +392,7 @@
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -342,11 +404,17 @@
         "responses": {
           "204": {
             "description": "Deleted",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -362,11 +430,17 @@
         "responses": {
           "200": {
             "description": "GeoJSON FeatureCollection",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/FeatureListResponse" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -389,7 +463,10 @@
             "headers": {
               "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
               "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" },
-              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" }
+              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
             },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatedFeatureCollection" } } }
           },
@@ -400,6 +477,7 @@
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
           "422": { "$ref": "#/components/responses/IdempotencyKeyReused" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -414,11 +492,17 @@
         "responses": {
           "200": {
             "description": "Feature",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoredFeature" } } }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -434,7 +518,12 @@
         "responses": {
           "200": {
             "description": "Updated feature",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/StoredFeature" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -442,6 +531,7 @@
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -453,11 +543,17 @@
         "responses": {
           "204": {
             "description": "Deleted",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } }
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+              "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+              "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" }
+            }
           },
           "401": { "$ref": "#/components/responses/Unauthorized" },
           "403": { "$ref": "#/components/responses/Forbidden" },
           "404": { "$ref": "#/components/responses/NotFound" },
+          "429": { "$ref": "#/components/responses/TooManyRequests" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -498,6 +594,22 @@
       "IdempotencyKeyExpiresAt": {
         "description": "Time after which this owner may reuse the key for a new request.",
         "schema": { "$ref": "#/components/schemas/Timestamp" }
+      },
+      "RateLimitLimit": {
+        "description": "Maximum protected requests allowed for this owner in each fixed 60-second UTC window.",
+        "schema": { "type": "integer", "const": 300 }
+      },
+      "RateLimitRemaining": {
+        "description": "Protected requests remaining for this owner in the current window.",
+        "schema": { "type": "integer", "minimum": 0, "maximum": 299 }
+      },
+      "RateLimitReset": {
+        "description": "Whole seconds until the current fixed window resets.",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 60 }
+      },
+      "RetryAfter": {
+        "description": "Whole seconds to wait before retrying after RATE_LIMITED.",
+        "schema": { "type": "integer", "minimum": 1, "maximum": 60 }
       }
     },
     "responses": {
@@ -553,13 +665,24 @@
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
+      "TooManyRequests": {
+        "description": "This owner has used all 300 protected requests in the current fixed 60-second UTC window (RATE_LIMITED). The rejected request was not applied. Wait for Retry-After, then retry once.",
+        "headers": {
+          "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+          "RateLimit-Limit": { "$ref": "#/components/headers/RateLimitLimit" },
+          "RateLimit-Remaining": { "$ref": "#/components/headers/RateLimitRemaining" },
+          "RateLimit-Reset": { "$ref": "#/components/headers/RateLimitReset" },
+          "Retry-After": { "$ref": "#/components/headers/RetryAfter" }
+        },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
       "InternalServerError": {
         "description": "Unexpected server or database error (INTERNAL_ERROR). Provide request_id when reporting it; do not blindly replay writes.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "ServiceUnavailable": {
-        "description": "API authentication configuration is invalid (AUTH_NOT_CONFIGURED), or Idempotency-Key storage is unavailable and the create was rolled back (IDEMPOTENCY_NOT_CONFIGURED). Retry only after an operator resolves the configuration.",
+        "description": "API authentication configuration is invalid (AUTH_NOT_CONFIGURED), Idempotency-Key storage is unavailable and the create was rolled back (IDEMPOTENCY_NOT_CONFIGURED), or owner quota storage is unavailable and protected work was not admitted (RATE_LIMIT_NOT_CONFIGURED). Retry only after an operator resolves the configuration.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       }
@@ -1006,7 +1129,7 @@
                   "INVALID_JSON", "INVALID_ID", "VALIDATION_ERROR", "INVALID_GEOMETRY", "GEOMETRY_TYPE_MISMATCH",
                   "UNAUTHORIZED", "INSUFFICIENT_SCOPE", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
                   "ID_CONFLICT", "INVALID_IDEMPOTENCY_KEY", "IDEMPOTENCY_KEY_REUSED", "BODY_TOO_LARGE", "BATCH_TOO_LARGE",
-                  "OPEN_LINK_UNAVAILABLE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED", "IDEMPOTENCY_NOT_CONFIGURED"
+                  "RATE_LIMITED", "OPEN_LINK_UNAVAILABLE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED", "IDEMPOTENCY_NOT_CONFIGURED", "RATE_LIMIT_NOT_CONFIGURED"
                 ]
               },
               "message": { "type": "string", "minLength": 1 },
