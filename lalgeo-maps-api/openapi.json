@@ -2,8 +2,8 @@
   "openapi": "3.1.0",
   "info": {
     "title": "LalGeo Maps Authoring API",
-    "version": "1.2.0",
-    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
+    "version": "1.3.0",
+    "description": "Privately create and manage owner-scoped maps, typed layers, and GeoJSON features, with durable 24-hour Idempotency-Key replay for create requests, then export or open any map as an editable local LalGeo project. This bearer-authenticated authoring API is distinct from the anonymous-create Snapshot API at https://maps.lalgeo.com/api-docs, which publishes immutable maps readable by anyone with the link and returns a private revocation token.",
     "contact": {
       "name": "LalGeo Maps API access",
       "url": "https://lalgeo.com/developers/",
@@ -27,7 +27,8 @@
             "description": "Healthy",
             "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/HealthResponse" } } }
-          }
+          },
+          "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
       },
       "head": {
@@ -90,6 +91,7 @@
         "operationId": "createMap",
         "x-lalgeo-required-scope": "maps:write",
         "summary": "Create a map",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapInput" } } }
@@ -97,7 +99,11 @@
         "responses": {
           "201": {
             "description": "Map created",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" },
+              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/MapResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -105,6 +111,7 @@
           "403": { "$ref": "#/components/responses/Forbidden" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "422": { "$ref": "#/components/responses/IdempotencyKeyReused" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -260,6 +267,7 @@
         "operationId": "createLayer",
         "x-lalgeo-required-scope": "maps:write",
         "summary": "Create a typed layer",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
         "requestBody": {
           "required": true,
           "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerInput" } } }
@@ -267,7 +275,11 @@
         "responses": {
           "201": {
             "description": "Layer created",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" },
+              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/LayerResponse" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -276,6 +288,7 @@
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "422": { "$ref": "#/components/responses/IdempotencyKeyReused" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -362,6 +375,7 @@
         "operationId": "createFeatures",
         "x-lalgeo-required-scope": "maps:write",
         "summary": "Add one Feature or up to 1,000 features in a FeatureCollection",
+        "parameters": [{ "$ref": "#/components/parameters/IdempotencyKey" }],
         "requestBody": {
           "required": true,
           "content": {
@@ -372,7 +386,11 @@
         "responses": {
           "201": {
             "description": "Features created",
-            "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+            "headers": {
+              "X-Request-Id": { "$ref": "#/components/headers/RequestId" },
+              "Idempotency-Replayed": { "$ref": "#/components/headers/IdempotencyReplayed" },
+              "Idempotency-Key-Expires-At": { "$ref": "#/components/headers/IdempotencyKeyExpiresAt" }
+            },
             "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CreatedFeatureCollection" } } }
           },
           "400": { "$ref": "#/components/responses/BadRequest" },
@@ -381,6 +399,7 @@
           "404": { "$ref": "#/components/responses/NotFound" },
           "409": { "$ref": "#/components/responses/Conflict" },
           "413": { "$ref": "#/components/responses/PayloadTooLarge" },
+          "422": { "$ref": "#/components/responses/IdempotencyKeyReused" },
           "500": { "$ref": "#/components/responses/InternalServerError" },
           "503": { "$ref": "#/components/responses/ServiceUnavailable" }
         }
@@ -457,6 +476,13 @@
       "mapId": { "name": "mapId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
       "layerId": { "name": "layerId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
       "featureId": { "name": "featureId", "in": "path", "required": true, "schema": { "$ref": "#/components/schemas/ResourceId" } },
+      "IdempotencyKey": {
+        "name": "Idempotency-Key",
+        "in": "header",
+        "required": false,
+        "description": "Recommended for every create. Send a new UUID-like value, then reuse it only when retrying the exact same operation, path, and JSON body. Successful results are retained for 24 hours per owner; JSON object key order does not affect matching. A different request with the same retained key returns 422. Failed attempts do not consume the key.",
+        "schema": { "type": "string", "pattern": "^[!-~]{8,128}$", "minLength": 8, "maxLength": 128 }
+      },
       "limit": { "name": "limit", "in": "query", "schema": { "type": "integer", "minimum": 1, "maximum": 100, "default": 50 } },
       "offset": { "name": "offset", "in": "query", "schema": { "type": "integer", "minimum": 0, "default": 0 } }
     },
@@ -464,11 +490,19 @@
       "RequestId": {
         "description": "Request identifier to include when reporting an API error. Also returned in JSON error responses as request_id.",
         "schema": { "type": "string", "minLength": 1 }
+      },
+      "IdempotencyReplayed": {
+        "description": "Present when Idempotency-Key was supplied. false means this request committed the create; true means the stored result was replayed without another mutation.",
+        "schema": { "type": "string", "enum": ["false", "true"] }
+      },
+      "IdempotencyKeyExpiresAt": {
+        "description": "Time after which this owner may reuse the key for a new request.",
+        "schema": { "$ref": "#/components/schemas/Timestamp" }
       }
     },
     "responses": {
       "BadRequest": {
-        "description": "Invalid JSON, ID, input, or geometry (INVALID_JSON, INVALID_ID, VALIDATION_ERROR, INVALID_GEOMETRY, or GEOMETRY_TYPE_MISMATCH).",
+        "description": "Invalid JSON, ID, Idempotency-Key, input, or geometry (INVALID_JSON, INVALID_ID, INVALID_IDEMPOTENCY_KEY, VALIDATION_ERROR, INVALID_GEOMETRY, or GEOMETRY_TYPE_MISMATCH).",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
@@ -505,12 +539,17 @@
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "Conflict": {
-        "description": "A client-supplied map, layer, or feature ID already exists in its owner-scoped collection (ID_CONFLICT). Reconcile with GET before retrying a timed-out create; Idempotency-Key replay is not supported.",
+        "description": "A client-supplied map, layer, or feature ID already exists in its owner-scoped collection (ID_CONFLICT). Read and compare the existing resource before choosing another ID.",
+        "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
+        "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
+      },
+      "IdempotencyKeyReused": {
+        "description": "The owner already used this retained Idempotency-Key for a different operation, resource path, or JSON body (IDEMPOTENCY_KEY_REUSED). Use a new key; do not change a request while retaining its key.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "PayloadTooLarge": {
-        "description": "The request body exceeds 2 MB on an authoring route or 512 bytes on capability redemption (BODY_TOO_LARGE), or a feature batch exceeds 1,000 items (BATCH_TOO_LARGE).",
+        "description": "The request body exceeds 2 MB on an authoring route, the retained result for an idempotent create exceeds 1.9 MB, or capability redemption exceeds 512 bytes (BODY_TOO_LARGE); or a feature batch exceeds 1,000 items (BATCH_TOO_LARGE).",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
@@ -520,7 +559,7 @@
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       },
       "ServiceUnavailable": {
-        "description": "API authentication configuration is invalid (AUTH_NOT_CONFIGURED). Retry only after an operator resolves the configuration.",
+        "description": "API authentication configuration is invalid (AUTH_NOT_CONFIGURED), or Idempotency-Key storage is unavailable and the create was rolled back (IDEMPOTENCY_NOT_CONFIGURED). Retry only after an operator resolves the configuration.",
         "headers": { "X-Request-Id": { "$ref": "#/components/headers/RequestId" } },
         "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Error" } } }
       }
@@ -966,7 +1005,8 @@
                 "enum": [
                   "INVALID_JSON", "INVALID_ID", "VALIDATION_ERROR", "INVALID_GEOMETRY", "GEOMETRY_TYPE_MISMATCH",
                   "UNAUTHORIZED", "INSUFFICIENT_SCOPE", "MAP_NOT_FOUND", "LAYER_NOT_FOUND", "FEATURE_NOT_FOUND", "NOT_FOUND",
-                  "ID_CONFLICT", "BODY_TOO_LARGE", "BATCH_TOO_LARGE", "OPEN_LINK_UNAVAILABLE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED"
+                  "ID_CONFLICT", "INVALID_IDEMPOTENCY_KEY", "IDEMPOTENCY_KEY_REUSED", "BODY_TOO_LARGE", "BATCH_TOO_LARGE",
+                  "OPEN_LINK_UNAVAILABLE", "INTERNAL_ERROR", "AUTH_NOT_CONFIGURED", "IDEMPOTENCY_NOT_CONFIGURED"
                 ]
               },
               "message": { "type": "string", "minLength": 1 },

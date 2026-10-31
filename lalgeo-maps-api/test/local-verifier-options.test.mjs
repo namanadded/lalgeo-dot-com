@@ -33,6 +33,7 @@ test("local gate validates documented error bodies and matching request IDs", as
     },
   });
   assert.equal((await errors.validate("createMap", reply(409, "ID_CONFLICT"))).error.code, "ID_CONFLICT");
+  assert.equal((await errors.validate("createMap", reply(422, "IDEMPOTENCY_KEY_REUSED"))).error.code, "IDEMPOTENCY_KEY_REUSED");
   await assert.rejects(errors.validate("createMap", reply(409, "UNKNOWN_ERROR")), /does not match OpenAPI/);
   await assert.rejects(errors.validate("createMap", reply(409, "ID_CONFLICT", "different_id")), /request_id/);
   await assert.rejects(errors.validate("listMaps", reply(409, "ID_CONFLICT")), /No documented error response/);

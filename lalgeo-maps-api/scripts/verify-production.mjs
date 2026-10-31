@@ -19,6 +19,7 @@ export const API_ACCESS_EMAIL = "lalgeospatial@outlook.com";
 export const MAP_OPEN_READINESS_TOKEN = "__lalgeo_map_open_store_probe_v1__";
 export const MAP_OPEN_READINESS_HEADER = "X-LalGeo-Readiness-Probe";
 export const MAP_OPEN_READINESS_VALUE = "map-open-store-v1";
+export const IDEMPOTENCY_READINESS_VALUE = "map-idempotency-store-v1";
 
 export const REQUIRED_OPERATIONS = Object.freeze({
   "/v1/health": Object.freeze({ get: "getHealth", head: "headHealth" }),
@@ -86,9 +87,9 @@ const RESOURCE_OPERATIONS = new Set(PROTECTED_OPERATIONS.filter((id) => !["listM
 const BODY_OPERATIONS = new Set(["createMap", "updateMap", "createMapOpenLink", "createLayer", "updateLayer", "createFeatures", "updateFeature"]);
 const CREATE_OPERATIONS = new Set(["createMap", "createLayer", "createFeatures"]);
 
-// Only advertise errors the Worker emits today. In particular, there is no 429 rate limiter
-// or Idempotency-Key replay yet; agents should reconcile uncertain writes with GET.
+// Only advertise errors the Worker emits today. There is no 429 rate limiter yet.
 export const REQUIRED_ERROR_RESPONSES = Object.freeze({
+  getHealth: Object.freeze({ "503": "ServiceUnavailable" }),
   ...Object.fromEntries(PROTECTED_OPERATIONS.map((id) => [id, Object.freeze(Object.fromEntries([
     ["400", BODY_OPERATIONS.has(id) ? "BadRequest" : undefined],
     ["401", "Unauthorized"],
@@ -96,6 +97,7 @@ export const REQUIRED_ERROR_RESPONSES = Object.freeze({
     ["404", RESOURCE_OPERATIONS.has(id) ? "NotFound" : undefined],
     ["409", CREATE_OPERATIONS.has(id) ? "Conflict" : undefined],
     ["413", BODY_OPERATIONS.has(id) ? "PayloadTooLarge" : undefined],
+    ["422", CREATE_OPERATIONS.has(id) ? "IdempotencyKeyReused" : undefined],
     ["500", "InternalServerError"],
     ["503", "ServiceUnavailable"],
   ].filter(([, component]) => component)))])),
@@ -324,7 +326,7 @@ export function usage() {
     `  --origin <url>    Allowed browser origin to verify (default: ${DEFAULT_ORIGIN})`,
     "  --help            Show this help",
     "",
-    "The verifier sends public and unauthenticated GET, HEAD, and OPTIONS requests, one read-only GET with a randomized synthetic-invalid bearer, and one reserved, read-only map-open readiness POST.",
+    "The verifier sends public and unauthenticated GET, HEAD, and OPTIONS requests, one read-only GET with a randomized synthetic-invalid bearer, one reserved idempotency-store readiness GET, and one reserved map-open readiness POST.",
   ].join("\n");
 }
 
@@ -455,6 +457,13 @@ function expectRequestIdExposed(response, label) {
     headerTokens(response, "access-control-expose-headers").includes("x-request-id"),
     `${label} must expose X-Request-Id to browser clients.`,
   );
+}
+
+function expectIdempotencyHeadersExposed(response, label) {
+  const exposed = headerTokens(response, "access-control-expose-headers");
+  for (const header of ["idempotency-replayed", "idempotency-key-expires-at"]) {
+    check(exposed.includes(header), `${label} must expose ${header} to browser clients.`);
+  }
 }
 
 function verifiesCanonicalTransport(baseUrl) {
@@ -674,6 +683,30 @@ export function validateOpenApi(spec) {
     canonicalJson(spec.components.headers?.RequestId) === canonicalJson(repositorySpec.components.headers.RequestId),
     "OpenAPI RequestId header must match the repository contract.",
   );
+  for (const operationId of CREATE_OPERATIONS) {
+    const operation = Object.values(spec.paths).flatMap((pathItem) => Object.values(pathItem))
+      .find((candidate) => candidate?.operationId === operationId);
+    check(
+      operation?.parameters?.some((parameter) => parameter?.$ref === "#/components/parameters/IdempotencyKey"),
+      `OpenAPI ${operationId} must document the Idempotency-Key header.`,
+    );
+    const headers = operation?.responses?.["201"]?.headers;
+    check(
+      headers?.["Idempotency-Replayed"]?.$ref === "#/components/headers/IdempotencyReplayed" &&
+        headers?.["Idempotency-Key-Expires-At"]?.$ref === "#/components/headers/IdempotencyKeyExpiresAt",
+      `OpenAPI ${operationId} must document idempotency replay and expiry response headers.`,
+    );
+  }
+  check(
+    canonicalJson(spec.components.parameters?.IdempotencyKey) === canonicalJson(repositorySpec.components.parameters.IdempotencyKey),
+    "OpenAPI Idempotency-Key parameter must match the repository contract.",
+  );
+  for (const header of ["IdempotencyReplayed", "IdempotencyKeyExpiresAt"]) {
+    check(
+      canonicalJson(spec.components.headers?.[header]) === canonicalJson(repositorySpec.components.headers[header]),
+      `OpenAPI ${header} header must match the repository contract.`,
+    );
+  }
   check(
     canonicalJson(spec.components.schemas) === canonicalJson(repositorySpec.components.schemas),
     "OpenAPI components.schemas must match the repository contract.",
@@ -754,6 +787,7 @@ async function verifyBearerRejection(options, {
   check(result.headers.get("access-control-allow-origin") === options.origin, `${label} must allow origin ${options.origin}.`);
   expectVaryOrigin(result, label);
   expectRequestIdExposed(result, label);
+  expectIdempotencyHeadersExposed(result, label);
   check(headerTokens(result, "access-control-expose-headers").includes("www-authenticate"), `${label} must expose WWW-Authenticate to browser clients.`);
 
   const payload = parseJsonResponse(result, label);
@@ -808,7 +842,7 @@ async function verifyCors(options) {
       Accept: "application/json",
       Origin: options.origin,
       "Access-Control-Request-Method": "GET",
-      "Access-Control-Request-Headers": "Authorization, Content-Type",
+      "Access-Control-Request-Headers": "Authorization, Content-Type, Idempotency-Key",
     },
     fetchImpl: options.fetchImpl,
     timeoutMs: options.timeoutMs,
@@ -825,12 +859,13 @@ async function verifyCors(options) {
     check(methods.includes(method), `CORS preflight must allow ${method.toUpperCase()}.`);
   }
   const headers = headerTokens(result, "access-control-allow-headers");
-  for (const header of ["authorization", "content-type"]) {
+  for (const header of ["authorization", "content-type", "idempotency-key"]) {
     check(headers.includes(header), `CORS preflight must allow the ${header} header.`);
   }
   check(result.headers.get("access-control-max-age") === "86400", "CORS preflight must return Access-Control-Max-Age: 86400.");
   expectVaryOrigin(result, "CORS preflight");
   expectRequestIdExposed(result, "CORS preflight");
+  expectIdempotencyHeadersExposed(result, "CORS preflight");
 
   const rejected = await request(options.baseUrl, "/v1/maps", {
     method: "OPTIONS",
@@ -849,6 +884,52 @@ async function verifyCors(options) {
   if (options.verifyTransport) expectHsts(rejected, "Disallowed CORS preflight");
   check(!rejected.headers.has("access-control-allow-origin"), "Disallowed CORS preflight must not return Access-Control-Allow-Origin.");
   check(!rejected.headers.has("access-control-allow-credentials"), "Disallowed CORS preflight must not return Access-Control-Allow-Credentials.");
+}
+
+export async function verifyIdempotencyReadiness(options) {
+  const label = "Idempotency datastore readiness probe";
+  const result = await request(options.baseUrl, "/v1/health", {
+    method: "GET",
+    headers: {
+      Accept: "application/json",
+      Origin: options.origin,
+      [MAP_OPEN_READINESS_HEADER]: IDEMPOTENCY_READINESS_VALUE,
+    },
+    fetchImpl: options.fetchImpl,
+    timeoutMs: options.timeoutMs,
+  });
+
+  if (result.status !== 200) {
+    let reportedCode = "";
+    try {
+      const payload = JSON.parse(result.text);
+      if (typeof payload?.error?.code === "string") reportedCode = ` ${payload.error.code}`;
+    } catch {
+      // Status and request ID remain actionable when an intermediary did not return JSON.
+    }
+    const requestId = result.headers.get("x-request-id")?.trim();
+    throw new VerificationError(
+      `${label} returned HTTP ${result.status}${reportedCode}; expected 200. ` +
+      "The shared lalgeo-business D1 map_idempotency_keys migration may be missing or incompatible; inspect and apply 0006_map_idempotency_keys.sql before deploying. " +
+      `Request ID: ${requestId || "missing"}.`,
+    );
+  }
+
+  expectRequestId(result, label);
+  expectNoStore(result, label);
+  expectVaryOrigin(result, label);
+  if (options.verifyTransport) expectHsts(result, label);
+  check(result.headers.get("access-control-allow-origin") === options.origin, `${label} must allow origin ${options.origin}.`);
+  expectRequestIdExposed(result, label);
+  check(
+    result.headers.get(MAP_OPEN_READINESS_HEADER) === IDEMPOTENCY_READINESS_VALUE,
+    `${label} must acknowledge the reserved read-only probe; deploy the matching Worker runtime before relying on this check.`,
+  );
+  const payload = parseJsonResponse(result, label);
+  check(
+    canonicalJson(payload) === canonicalJson({ ok: true, service: "lalgeo-maps-api", version: "v1" }),
+    `${label} must preserve the exact health response.`,
+  );
 }
 
 export async function verifyMapOpenReadiness(options) {
@@ -941,7 +1022,9 @@ export async function verifyProduction({
     logger.log("PASS shared transport: redirect and HSTS cover non-Maps routes on the canonical host");
   }
   const openApi = await verifyOpenApi(normalized);
-  logger.log(`PASS OpenAPI: private authoring identity, one-time handoff contract, ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes (capability not redeemed)`);
+  logger.log(`PASS OpenAPI: private authoring identity, durable create replay, one-time handoff contract, ${openApi.operationCount} unique operations, ${openApi.successSchemaCount} JSON success schemas, and ${openApi.bodylessSuccessCount} bodyless successes (capability not redeemed)`);
+  await verifyIdempotencyReadiness(normalized);
+  logger.log("PASS idempotency readiness: reserved non-mutating probe reached the shared D1 schema");
   await verifyPublicHead(normalized);
   logger.log("PASS public HEAD: health and OpenAPI are reachable without response bodies");
   await verifyUnauthorized(normalized);

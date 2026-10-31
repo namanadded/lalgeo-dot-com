@@ -208,7 +208,7 @@ test("the hosted MCP boundary is public only for health and uses each caller's k
     assert.equal(response.statusCode, 200);
     assert.equal(response.headers["cache-control"], "no-store");
     assert.match(response.headers["content-type"], /^application\/json/);
-    assert.deepEqual(body(response).result.serverInfo, { name: "lalgeo", version: "0.5.0" });
+    assert.deepEqual(body(response).result.serverInfo, { name: "lalgeo", version: "0.6.0" });
 
     const toolsResponse = await handler(event({
       headers: { ...event().headers, authorization: "Bearer caller-owner-key" },
