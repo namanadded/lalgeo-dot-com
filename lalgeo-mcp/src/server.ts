@@ -43,11 +43,21 @@ function result(operation: string, payload: unknown, context: JsonObject = {}, m
 
 function failure(error: unknown) {
   if (error instanceof LalGeoApiError) {
+    const retry = error.rateLimit ? {
+      safe: true,
+      after_seconds: error.rateLimit.retry_after_seconds,
+      instruction: "The API confirmed this request was not applied. Wait, then retry the same tool call once.",
+    } : undefined;
     return {
       isError: true,
       content: [{
         type: "text" as const,
-        text: JSON.stringify({ status: error.status, request_id: error.requestId, response: error.payload }, null, 2),
+        text: JSON.stringify({
+          status: error.status,
+          request_id: error.requestId,
+          response: error.payload,
+          ...(error.rateLimit ? { rate_limit: error.rateLimit, retry } : {}),
+        }, null, 2),
       }],
     };
   }
@@ -89,7 +99,7 @@ function without<T extends JsonObject>(input: T, keys: string[]) {
 }
 
 export function createServer(api: LalGeoApi, geocoder: Geocoder) {
-  const server = new McpServer({ name: "lalgeo", version: "0.6.0" });
+  const server = new McpServer({ name: "lalgeo", version: "0.6.1" });
 
   server.registerResource("lalgeo-map", MAP_WIDGET_URI, {}, async () => ({
     contents: [{
@@ -208,10 +218,11 @@ export function createServer(api: LalGeoApi, geocoder: Geocoder) {
     annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false, openWorldHint: true },
   }, async (input) => {
     try {
-      const [payload, openLink] = await Promise.all([
-        api.exportMap(input.map_id),
-        api.createMapOpenLink(input.map_id) as Promise<{ open_url?: unknown; expires_at?: unknown }>,
-      ]);
+      // Read first so a failed or rate-limited export never creates an unused
+      // single-use capability. If link creation is then rate-limited, the API
+      // rejects it before mutation and the caller gets exact backoff guidance.
+      const payload = await api.exportMap(input.map_id);
+      const openLink = await api.createMapOpenLink(input.map_id) as { open_url?: unknown; expires_at?: unknown };
       return {
         ...result("export_map", payload, { map_id: input.map_id }),
         _meta: {

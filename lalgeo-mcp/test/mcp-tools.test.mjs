@@ -33,7 +33,7 @@ test("MCP discovery exposes side-effect-free inspection separately from opening 
 
   await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
   try {
-    assert.deepEqual(client.getServerVersion(), { name: "lalgeo", version: "0.6.0" });
+    assert.deepEqual(client.getServerVersion(), { name: "lalgeo", version: "0.6.1" });
     const discovered = await client.listTools();
     assert.deepEqual(discovered.tools.map((tool) => tool.name).sort(), [
       "add_features", "create_layer", "create_map", "export_map", "geocode", "inspect_map", "update_map",
@@ -320,6 +320,65 @@ test("inspection labels the virtual empty-map layer without issuing a handoff", 
       ["list_layer_ids", "empty_map"],
     ]);
     assert.equal(inspected._meta?.["lalgeo/openUrl"], undefined);
+  } finally {
+    await client.close();
+    await server.close();
+  }
+});
+
+test("a rate-limited export reports exact safe backoff without creating an unused link", async () => {
+  const calls = [];
+  const payload = {
+    error: {
+      code: "RATE_LIMITED",
+      message: "The owner rate limit was reached. The request was not applied.",
+      details: { retry_after_seconds: 11 },
+    },
+    request_id: "request-rate-limit",
+  };
+  const api = {
+    createMap: async () => ({}),
+    createLayer: async () => ({}),
+    addFeatures: async () => ({}),
+    updateMap: async () => ({}),
+    exportMap: async (mapId) => {
+      calls.push(["export_map", mapId]);
+      throw new LalGeoApiError(429, payload, "request-rate-limit", {
+        limit: 300,
+        remaining: 0,
+        reset_after_seconds: 11,
+        retry_after_seconds: 11,
+      });
+    },
+    createMapOpenLink: async (mapId) => { calls.push(["create_open_link", mapId]); return {}; },
+  };
+  const geocoder = { geocode: async () => { throw new Error("unexpected geocode call"); } };
+  const server = createServer(api, geocoder);
+  const client = new Client({ name: "rate-limit-test", version: "0.1.0" });
+  const [clientTransport, serverTransport] = InMemoryTransport.createLinkedPair();
+
+  await Promise.all([server.connect(serverTransport), client.connect(clientTransport)]);
+  try {
+    const response = await client.callTool({ name: "export_map", arguments: { map_id: "field_map" } });
+    assert.equal(response.isError, true);
+    const error = JSON.parse(response.content[0].text);
+    assert.deepEqual(error, {
+      status: 429,
+      request_id: "request-rate-limit",
+      response: payload,
+      rate_limit: {
+        limit: 300,
+        remaining: 0,
+        reset_after_seconds: 11,
+        retry_after_seconds: 11,
+      },
+      retry: {
+        safe: true,
+        after_seconds: 11,
+        instruction: "The API confirmed this request was not applied. Wait, then retry the same tool call once.",
+      },
+    });
+    assert.deepEqual(calls, [["export_map", "field_map"]]);
   } finally {
     await client.close();
     await server.close();

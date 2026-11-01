@@ -5,6 +5,55 @@ import { LalGeoApi, LalGeoApiError } from "../src/lalgeo-api.ts";
 const originalFetch = globalThis.fetch;
 let requests;
 
+function futureExpiry(seconds = 600) {
+  return new Date(Date.now() + seconds * 1_000).toISOString();
+}
+
+function portableProject(mapId = "map_1", withFeature = true) {
+  const layer = withFeature ? {
+    id: "sites",
+    name: "Sites",
+    geometryType: "point",
+    selectable: true,
+    styleDefaults: {},
+    schema: [{ name: "name", type: "text", options: [], locked: false }],
+    features: [{
+      id: "site_1",
+      geometry: { type: "Point", lat: 51, lng: -114 },
+      attributes: { name: "Synthetic site" },
+      version: 1,
+    }],
+  } : {
+    id: "empty_points",
+    name: "Points",
+    geometryType: "point",
+    selectable: true,
+    styleDefaults: {},
+    schema: [],
+    features: [],
+  };
+  return {
+    project: {
+      id: mapId,
+      name: "Map",
+      description: "",
+      type: "API project",
+      storageSource: "LalGeo Maps API",
+      source: { type: "lalgeo-maps-api", mapId },
+      mapOptions: { showBasemapPOIs: true, mapType: "standard" },
+      metadata: {
+        createdAt: "2026-11-01T00:00:00.000Z",
+        updatedAt: "2026-11-01T00:00:00.000Z",
+        reflectedCredential: "secret-key",
+      },
+      layers: [layer],
+      activeLayerId: layer.id,
+    },
+    activeLayerId: layer.id,
+    survey: null,
+  };
+}
+
 beforeEach(() => {
   requests = [];
   globalThis.fetch = async (url, init) => {
@@ -36,8 +85,12 @@ beforeEach(() => {
     if (url.pathname.endsWith("/open-links")) {
       return Response.json({
         open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
-        expires_at: "2026-09-22T06:10:00.000Z",
+        expires_at: futureExpiry(),
       }, { status: 201 });
+    }
+    if (url.pathname.endsWith("/export")) {
+      const mapId = decodeURIComponent(url.pathname.split("/").at(-2));
+      return Response.json(portableProject(mapId));
     }
     const payload = init.method !== "POST"
       ? { ok: true }
@@ -66,7 +119,7 @@ test("the adapter forwards authoring writes and export to the authenticated API"
     api.addFeatures("map_1", "layer_1", [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }], "feature-create-key-0001"),
   ]);
   await api.updateMap("map_1", { name: "Updated" });
-  await api.exportMap("map_1");
+  const exported = await api.exportMap("map_1");
 
   assert.deepEqual(requests.map(({ method, url }) => [method, url]), [
     ["GET", "/v1/health"],
@@ -88,6 +141,7 @@ test("the adapter forwards authoring writes and export to the authenticated API"
     type: "FeatureCollection",
     features: [{ type: "Feature", geometry: { type: "Point", coordinates: [-114, 51] } }],
   });
+  assert.equal(exported.project.metadata.reflectedCredential, "[REDACTED]");
   assert.deepEqual(created, [
     {
       payload: { map: { id: "map_1" } },
@@ -364,6 +418,150 @@ test("API errors retain the existing response and request ID", async () => {
     assert.deepEqual(error.payload, { error: { code: "MAP_NOT_FOUND" } });
     return true;
   });
+});
+
+test("verified rate-limit errors retain exact bounded backoff metadata", async () => {
+  const api = new LalGeoApi("secret-key", "https://api.example.test");
+  globalThis.fetch = async () => Response.json({
+    error: {
+      code: "RATE_LIMITED",
+      message: "The owner rate limit was reached for reflected secret-key.",
+      details: { retry_after_seconds: 17 },
+    },
+    request_id: "request-rate-limit",
+    reflected: { credential: "secret-key" },
+  }, {
+    status: 429,
+    headers: {
+      "X-Request-Id": "request-rate-limit",
+      "RateLimit-Limit": "300",
+      "RateLimit-Remaining": "0",
+      "RateLimit-Reset": "17",
+      "Retry-After": "17",
+      "X-Untrusted-Upstream-Header": "must-not-propagate",
+    },
+  });
+
+  await assert.rejects(api.exportMap("map_1"), (error) => {
+    assert.ok(error instanceof LalGeoApiError);
+    assert.equal(error.status, 429);
+    assert.equal(error.requestId, "request-rate-limit");
+    assert.deepEqual(error.rateLimit, {
+      limit: 300,
+      remaining: 0,
+      reset_after_seconds: 17,
+      retry_after_seconds: 17,
+    });
+    assert.doesNotMatch(JSON.stringify(error.payload), /secret-key/);
+    assert.equal(error.payload.reflected.credential, "[REDACTED]");
+    return true;
+  });
+});
+
+test("malformed or mismatched 429 responses never invent trusted backoff metadata", async () => {
+  const cases = [
+    {
+      payloadRequestId: "different-request",
+      headers: { "RateLimit-Limit": "300", "RateLimit-Remaining": "0", "RateLimit-Reset": "17", "Retry-After": "17" },
+    },
+    {
+      payloadRequestId: "request-rate-limit",
+      headers: { "RateLimit-Limit": "300", "RateLimit-Remaining": "301", "RateLimit-Reset": "17", "Retry-After": "17" },
+    },
+    {
+      payloadRequestId: "request-rate-limit",
+      headers: { "RateLimit-Limit": "300", "RateLimit-Remaining": "0", "RateLimit-Reset": "17", "Retry-After": "18" },
+    },
+    {
+      payloadRequestId: "request-rate-limit",
+      headers: { "RateLimit-Limit": "300", "RateLimit-Remaining": "0", "RateLimit-Reset": "17" },
+    },
+  ];
+
+  for (const { payloadRequestId, headers } of cases) {
+    globalThis.fetch = async () => Response.json({
+      error: {
+        code: "RATE_LIMITED",
+        message: "The owner rate limit was reached.",
+        details: { retry_after_seconds: 17 },
+      },
+      request_id: payloadRequestId,
+    }, {
+      status: 429,
+      headers: { "X-Request-Id": "request-rate-limit", ...headers },
+    });
+    const api = new LalGeoApi("secret-key", "https://api.example.test");
+    await assert.rejects(api.exportMap("map_1"), (error) => {
+      assert.ok(error instanceof LalGeoApiError);
+      assert.equal(error.status, 429);
+      assert.equal(error.rateLimit, null);
+      return true;
+    });
+  }
+});
+
+test("portable exports and one-time links reject unverified successful responses", async () => {
+  const api = new LalGeoApi("secret-key", "https://api.example.test");
+  const exportCases = [
+    new Response("<!doctype html><title>Website fallback</title>", {
+      status: 200,
+      headers: { "Content-Type": "text/html", "X-Request-Id": "request-export-html" },
+    }),
+    Response.json({ ok: true }, { headers: { "X-Request-Id": "request-export-shape" } }),
+    Response.json(portableProject("different_map"), { headers: { "X-Request-Id": "request-export-map" } }),
+    Response.json(portableProject("map_1"), { status: 201, headers: { "X-Request-Id": "request-export-status" } }),
+  ];
+  for (const response of exportCases) {
+    globalThis.fetch = async () => response;
+    await assert.rejects(api.exportMap("map_1"), (error) => {
+      assert.ok(error instanceof LalGeoApiError);
+      assert.equal(error.status, 502);
+      assert.equal(error.payload?.error?.code, "EXPORT_RESPONSE_UNCONFIRMED");
+      assert.match(error.payload?.error?.message, /No map-open link was requested/);
+      return true;
+    });
+  }
+
+  const openCases = [
+    Response.json({
+      open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
+      expires_at: futureExpiry(),
+    }, { status: 200, headers: { "X-Request-Id": "request-open-status" } }),
+    Response.json({
+      open_url: "https://example.test/maps#open=" + "a".repeat(64),
+      expires_at: futureExpiry(),
+    }, { status: 201, headers: { "X-Request-Id": "request-open-origin" } }),
+    Response.json({
+      open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
+      expires_at: "2026-02-30T01:00:00.000Z",
+    }, { status: 201, headers: { "X-Request-Id": "request-open-date" } }),
+    Response.json({
+      open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
+      expires_at: "2026-11-01",
+    }, { status: 201, headers: { "X-Request-Id": "request-open-date-only" } }),
+    Response.json({
+      open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
+      expires_at: new Date(Date.now() - 1_000).toISOString(),
+    }, { status: 201, headers: { "X-Request-Id": "request-open-expired" } }),
+    Response.json({
+      open_url: "https://maps.lalgeo.com/maps#open=" + "a".repeat(64),
+      expires_at: futureExpiry(1_200),
+    }, { status: 201, headers: { "X-Request-Id": "request-open-too-long" } }),
+    new Response("<!doctype html><title>Website fallback</title>", {
+      status: 201,
+      headers: { "Content-Type": "text/html", "X-Request-Id": "request-open-html" },
+    }),
+  ];
+  for (const response of openCases) {
+    globalThis.fetch = async () => response;
+    await assert.rejects(api.createMapOpenLink("map_1"), (error) => {
+      assert.ok(error instanceof LalGeoApiError);
+      assert.equal(error.status, 502);
+      assert.equal(error.payload?.error?.code, "OPEN_LINK_OUTCOME_UNCONFIRMED");
+      assert.match(error.payload?.error?.message, /Do not retry automatically/);
+      return true;
+    });
+  }
 });
 
 test("the generated LalGeo open URL is requested for the correct map", async () => {
