@@ -14,6 +14,8 @@ The server does not implement storage, ownership, geometry validation, or export
 
 New Authoring API keys are expiring and always include `maps:read`; add `maps:write` for `create_map`, `create_layer`, `add_features`, `update_map`, and `export_map`. A read-only key can use `inspect_map`, while `geocode` uses the separate Apple Maps credential. `export_map` requires write access because it creates a new single-use handoff capability after reading the project. The adapter forwards the caller's key unchanged and preserves the API's `401` expired-or-invalid and `403 INSUFFICIENT_SCOPE` responses. Legacy full-access keys remain supported only for controlled rotation.
 
+The Authoring API limits each owner to 300 protected requests per fixed minute. A verified `429 RATE_LIMITED` tool error includes bounded `rate_limit` metadata and a `retry` instruction; wait for `after_seconds`, then repeat the same tool call once. The adapter does not sleep or retry on the caller's behalf. It trusts backoff metadata only when the API's JSON error, request ID, `RateLimit-*`, and `Retry-After` values agree.
+
 `geocode` accepts a place name or address and delegates to the Apple Maps search service already used by LalGeo's browser map and address components. It returns the best match's latitude and longitude together with the original matched place fields; the MCP adapter does not implement geocoding or spatial matching.
 
 ## ChatGPT map component
@@ -44,9 +46,17 @@ status returns `CREATE_OUTCOME_UNCONFIRMED` with the request ID and explicit
 do-not-retry guidance. Inspect a supplied stable ID before deciding what to do;
 never treat an ambiguous upstream response as proof that a resource was created.
 
+Portable export and map-open handoff responses are checked just as strictly. An
+export must be exact HTTP `200` JSON for the requested map and contain the
+portable LalGeo project identity and layer envelope. A link must be exact HTTP
+`201` JSON with a canonical `https://maps.lalgeo.com/maps#open=…` capability and
+a valid expiry. Website fallbacks, wrong success statuses, and malformed shapes
+fail closed with the upstream request ID. An unverified link response is never
+retried automatically because the first request may have created a capability.
+
 `inspect_map` reads the complete current map through the Authoring API's portable-project export and stored-layer listing. It does not create a map-open link, so it is advertised as read-only and idempotent. Use it to reconcile an unkeyed or expired create: after a timeout or `409 ID_CONFLICT`, inspect the map and compare the stable ID and content instead of blindly repeating the write. An API map with no stored layers includes the documented virtual `empty_points` layer in its portable view. The result context reports authoritative `stored_layer_ids`, so an empty list distinguishes that compatibility layer from a stored resource with the same ID.
 
-The widget's **Open in LalGeo** action calls the existing `export_map` MCP tool for the current map ID. The adapter requests the Developer API's short-lived `/v1/maps/{mapId}/open-links` handoff and passes that URL to the widget as hidden tool-result metadata. LalGeo Maps redeems the handoff and opens the API's complete project copy, so every persisted layer and feature is included without sending project data through the widget or adding another MCP tool. Because each call issues a new single-use capability, the tool is intentionally advertised as neither read-only nor idempotent.
+The widget's **Open in LalGeo** action calls the existing `export_map` MCP tool for the current map ID. The adapter verifies the portable project first, then requests the Developer API's short-lived `/v1/maps/{mapId}/open-links` handoff and passes that URL to the widget as hidden tool-result metadata. This sequence prevents a failed or rate-limited export from leaving an undisclosed capability behind. LalGeo Maps redeems the handoff and opens the API's complete project copy, so every persisted layer and feature is included without sending project data through the widget or adding another MCP tool. Because each call issues a new single-use capability, the tool is intentionally advertised as neither read-only nor idempotent.
 
 The component uses the standard `_meta.ui.resourceUri`, `text/html;profile=mcp-app`, and `ui/notifications/tool-result` conventions. The `openai/outputTemplate` and `window.openai.toolOutput` compatibility aliases are also present for ChatGPT hosts that still use them. It has no external runtime assets or network access.
 
@@ -110,9 +120,9 @@ Do not expose this process directly to the public internet: the tunnel is the ac
 Authorization: Bearer <caller LalGeo Authoring API key>
 ```
 
-The hosted adapter validates the key with a bounded, read-only Authoring API request before servicing MCP, then uses that same key for owner-scoped map calls. It never falls back to a shared server-side `LALGEO_API_KEY`. Authoring API calls time out after 10 seconds, refuse redirects, and accept only HTTPS upstreams (or loopback HTTP for local verification). The serverless transport uses finite JSON responses over `POST`; it rejects the optional long-lived `GET` event stream with `405`. `https://mcp.lalgeo.com/health` stays public for process checks; health does not authenticate a caller or grant map access.
+The hosted adapter validates the key with a bounded, read-only Authoring API request before servicing each MCP `POST`, then uses that same key for owner-scoped map calls. That credential check consumes one owner request, including for initialize and tool discovery. It never falls back to a shared server-side `LALGEO_API_KEY`. If the check reaches the owner limit, the hosted boundary returns exact HTTP `429` plus only the verified `RateLimit-*` and `Retry-After` values; malformed or mismatched upstream backoff fails closed as `503`. Authoring API calls time out after 10 seconds, refuse redirects, and accept only HTTPS upstreams (or loopback HTTP for local verification). The serverless transport uses finite JSON responses over `POST`; it rejects the optional long-lived `GET` event stream with `405`. `https://mcp.lalgeo.com/health` stays public for process checks; health does not authenticate a caller or grant map access.
 
-Deploy the 1.3.0 Authoring API runtime and `map_idempotency_keys` migration before deploying MCP 0.6.0. The keyed-create readiness preflight makes the reverse order fail closed before mutation, but it does not replace the deployment verifier or owner-key acceptance journey.
+Deploy the 1.4.0 Authoring API runtime and both `map_idempotency_keys` and `map_rate_limits` migrations before deploying MCP 0.6.1. The keyed-create readiness preflight makes missing idempotency storage fail before mutation, while the API makes every protected request fail closed when quota storage is unavailable. Neither behavior replaces the deployment verifier or owner-key acceptance journey.
 
 Store the key only in the MCP client's protected connection settings. Never put it in a prompt, log, issue, map property, or tool argument.
 
