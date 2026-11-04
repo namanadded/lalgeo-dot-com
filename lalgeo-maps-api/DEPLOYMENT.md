@@ -109,7 +109,7 @@ Skip this step when the current keys remain valid. The Worker secret cannot be r
 Generate a raw key only in a secure owner terminal:
 
 ```sh
-LALGEO_NEW_RAW_KEY="$(openssl rand -hex 32)"
+LALGEO_NEW_RAW_KEY="lalgeo_maps_$(openssl rand -hex 32)"
 LALGEO_NEW_KEY_HASH="$(printf %s "$LALGEO_NEW_RAW_KEY" | shasum -a 256 | awk '{print $1}')"
 printf 'raw key: %s\nhash: %s\n' "$LALGEO_NEW_RAW_KEY" "$LALGEO_NEW_KEY_HASH"
 ```
@@ -127,6 +127,33 @@ Store the raw key in the password manager. Add only its hash to the complete exi
 ```
 
 `owner_id` must be non-empty and have no leading or trailing whitespace. `scopes` must be either `["maps:read"]` for read-only access or `["maps:read", "maps:write"]` for read/write access, without duplicates. `expires_at` must be a future RFC3339 timestamp. `maps:read` permits protected `GET` routes, including export. `maps:write` additionally permits protected `POST`, `PATCH`, and `DELETE` routes, including one-time open-link issuance. Write-only descriptors fail closed because update responses and map-open handoffs can reveal existing map data. Health, OpenAPI discovery, and capability redemption remain public.
+
+For a descriptor-only document, validate the complete proposed document offline before any upload. The validator reads only the supplied local file or standard input, never contacts Cloudflare or production, and reports counts without printing owner IDs, document values, or complete hashes:
+
+```sh
+cd "$(git rev-parse --show-toplevel)/lalgeo-maps-api"
+npm run keys:validate -- --document /secure/path/proposed-keys.json
+```
+
+`keys:validate` intentionally rejects every legacy entry because one document alone cannot prove that a legacy key was retained rather than newly issued. If the current document still contains a legacy entry, use the stage planner below instead; it validates both complete documents and permits only legacy entries retained unchanged.
+
+Use the two-phase planner for a rotation. **Stage** adds one or more new scoped keys while retaining every current entry unchanged. After the new key passes the owner acceptance journey, **retire** removes the old key while proving that another retained key preserves the same owner's read/write coverage:
+
+```sh
+npm run keys:plan -- \
+  --phase stage \
+  --current /secure/path/current-keys.json \
+  --proposed /secure/path/staged-keys.json
+
+npm run keys:plan -- \
+  --phase retire \
+  --current /secure/path/staged-keys.json \
+  --proposed /secure/path/retired-keys.json
+```
+
+Keep these files outside the repository with owner-only permissions even though they contain hashes rather than raw bearer keys. The planner rejects partial stage documents, new legacy entries, in-place owner/scope/expiry changes, unsafe retirement, duplicate JSON fields, noncanonical hashes, new noncanonical descriptors, and newly added expired keys. It may retain an already-expired or otherwise runtime-compatible noncanonical entry unchanged during staging so recovery never requires an add-and-remove secret update; it warns until that entry is replaced or retired in the second phase. It also warns about retained legacy keys and expiries within 14 days. `--json` provides the same redacted result for an operator-controlled automation.
+
+This check proves document structure and rotation intent only. It cannot prove that a hash matches the password-manager raw key, that the unreadable Cloudflare secret equals either file, or that a key authenticates against production. The `lalgeo_maps_` prefix makes a newly generated raw key visibly different from its 64-character hash and lets the validator reject a prefixed raw key pasted as a property name. Older 64-hex raw keys are lexically indistinguishable from hashes, so always copy the hash—not the raw value—from the password-manager record. The credential-free readiness verifier and the owner-key synthetic acceptance below remain mandatory. Never pass a raw bearer key to this tool.
 
 Legacy `"<hash>": "owner_id"` entries retain full read/write access during migration. Do not issue new legacy entries; replace them with scoped descriptors during a controlled rotation. Save the complete proposed document in the password manager, then clear the terminal variables:
 
