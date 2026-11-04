@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "check": "tsc --noEmit && node --test test/*.test.mjs",
+    "keys:validate": "node scripts/key-document.mjs validate",
+    "keys:plan": "node scripts/key-document.mjs plan",
     "verify:local": "node scripts/verify-local.mjs",
     "verify:production": "node scripts/verify-production.mjs",
     "dev": "wrangler dev --local",
