@@ -178,6 +178,99 @@ test("the hosted MCP boundary is public only for health and uses each caller's k
     assert.equal(fetches, 1);
   });
 
+  await t.test("an exact owner rate limit preserves only verified backoff at the hosted boundary", async () => {
+    process.env.LALGEO_API_BASE_URL = "https://api.example.test";
+    process.env.MAPKIT_TOKEN = "synthetic-mapkit-token";
+    let fetches = 0;
+    globalThis.fetch = async () => {
+      fetches += 1;
+      return Response.json({
+        error: {
+          code: "RATE_LIMITED",
+          message: "The owner rate limit was reached.",
+          details: { retry_after_seconds: 13 },
+        },
+        request_id: "request-rate-limit",
+      }, {
+        status: 429,
+        headers: {
+          "X-Request-Id": "request-rate-limit",
+          "RateLimit-Limit": "300",
+          "RateLimit-Remaining": "0",
+          "RateLimit-Reset": "13",
+          "Retry-After": "13",
+          "X-Upstream-Secret": "must-not-propagate",
+        },
+      });
+    };
+
+    const response = await handler(event({
+      headers: { ...event().headers, authorization: "Bearer caller-owner-key" },
+    }));
+
+    assert.equal(response.statusCode, 429);
+    assert.equal(response.headers["cache-control"], "no-store");
+    assert.equal(response.headers["retry-after"], "13");
+    assert.equal(response.headers["ratelimit-limit"], "300");
+    assert.equal(response.headers["ratelimit-remaining"], "0");
+    assert.equal(response.headers["ratelimit-reset"], "13");
+    assert.equal(response.headers["x-upstream-secret"], undefined);
+    assert.deepEqual(body(response), {
+      jsonrpc: "2.0",
+      error: {
+        code: -32002,
+        message: "The LalGeo owner request limit was reached. Retry this MCP request after 13 seconds.",
+        data: {
+          request_id: "request-rate-limit",
+          rate_limit: {
+            limit: 300,
+            remaining: 0,
+            reset_after_seconds: 13,
+            retry_after_seconds: 13,
+          },
+        },
+      },
+      id: null,
+    });
+    assert.doesNotMatch(response.body, /caller-owner-key/);
+    assert.equal(fetches, 1);
+  });
+
+  await t.test("a malformed upstream 429 fails closed without forwarding claimed quota headers", async () => {
+    process.env.LALGEO_API_BASE_URL = "https://api.example.test";
+    process.env.MAPKIT_TOKEN = "synthetic-mapkit-token";
+    globalThis.fetch = async () => Response.json({
+      error: {
+        code: "RATE_LIMITED",
+        message: "The owner rate limit was reached.",
+        details: { retry_after_seconds: 13 },
+      },
+      request_id: "request-rate-limit",
+    }, {
+      status: 429,
+      headers: {
+        "X-Request-Id": "different-request-id",
+        "RateLimit-Limit": "300",
+        "RateLimit-Remaining": "0",
+        "RateLimit-Reset": "13",
+        "Retry-After": "13",
+      },
+    });
+
+    const response = await handler(event({
+      headers: { ...event().headers, authorization: "Bearer caller-owner-key" },
+    }));
+
+    assert.equal(response.statusCode, 503);
+    assert.equal(response.headers["retry-after"], undefined);
+    assert.equal(response.headers["ratelimit-limit"], undefined);
+    assert.deepEqual(body(response), {
+      jsonrpc: "2.0",
+      error: { code: -32603, message: "The hosted LalGeo MCP service is unavailable." },
+      id: null,
+    });
+  });
+
   await t.test("a valid caller key is verified read-only and remains the key used by map tools", async () => {
     process.env.LALGEO_API_BASE_URL = "https://api.example.test";
     process.env.MAPKIT_TOKEN = "synthetic-mapkit-token";
@@ -208,7 +301,7 @@ test("the hosted MCP boundary is public only for health and uses each caller's k
     assert.equal(response.statusCode, 200);
     assert.equal(response.headers["cache-control"], "no-store");
     assert.match(response.headers["content-type"], /^application\/json/);
-    assert.deepEqual(body(response).result.serverInfo, { name: "lalgeo", version: "0.6.0" });
+    assert.deepEqual(body(response).result.serverInfo, { name: "lalgeo", version: "0.6.1" });
 
     const toolsResponse = await handler(event({
       headers: { ...event().headers, authorization: "Bearer caller-owner-key" },

@@ -78,6 +78,28 @@ function serviceUnavailable() {
   });
 }
 
+function rateLimited(error: LalGeoApiError) {
+  const rateLimit = error.rateLimit;
+  if (!rateLimit) return serviceUnavailable();
+  return jsonResponse(429, {
+    jsonrpc: "2.0",
+    error: {
+      code: -32002,
+      message: `The LalGeo owner request limit was reached. Retry this MCP request after ${rateLimit.retry_after_seconds} seconds.`,
+      data: {
+        request_id: error.requestId,
+        rate_limit: rateLimit,
+      },
+    },
+    id: null,
+  }, {
+    "ratelimit-limit": String(rateLimit.limit),
+    "ratelimit-remaining": String(rateLimit.remaining),
+    "ratelimit-reset": String(rateLimit.reset_after_seconds),
+    "retry-after": String(rateLimit.retry_after_seconds),
+  });
+}
+
 function requestHeaders(headers: EventHeaders) {
   const output = new Headers();
   for (const [name, value] of Object.entries(headers)) {
@@ -137,6 +159,7 @@ export async function handler(event: NetlifyMcpEvent): Promise<NetlifyMcpRespons
     if (error instanceof LalGeoApiError && error.status === 401) {
       return authenticationRequired("The LalGeo Authoring API key is invalid.");
     }
+    if (error instanceof LalGeoApiError && error.status === 429) return rateLimited(error);
     return serviceUnavailable();
   }
 

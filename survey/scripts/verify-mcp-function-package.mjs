@@ -107,7 +107,7 @@ try {
   assert.equal(initialize.headers["cache-control"], "no-store");
 
   const payload = JSON.parse(decodeNetlifyBody(initialize));
-  assert.deepEqual(payload.result?.serverInfo, { name: "lalgeo", version: "0.6.0" });
+  assert.deepEqual(payload.result?.serverInfo, { name: "lalgeo", version: "0.6.1" });
   assert.equal(requests.length, 1);
   assert.match(requests[0].url, /^https:\/\/api\.example\.test\/v1\/maps\/mcp_credential_probe_[a-f0-9]{32}$/);
   assert.equal(requests[0].authorization, "Bearer synthetic-caller-key");
