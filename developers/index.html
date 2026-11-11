@@ -177,6 +177,12 @@ layers/places/features \
           <div class="endpoint"><span class="method">POST</span><span class="path">/v1/map-open/redeem</span></div>
         </section>
 
+        <section aria-labelledby="client-quickstarts">
+          <h2 id="client-quickstarts">Prefer a complete client?</h2>
+          <p>Run the dependency-light TypeScript or Python quickstart for the full private map, typed layer, GeoJSON, and one-time Maps handoff journey. Each example uses stable IDs, bounded requests, request-ID diagnostics, and only enables automatic create retries when the live OpenAPI contract advertises durable idempotency.</p>
+          <a class="choice-link" href="https://github.com/namanadded/lalgeo-dot-com/tree/main/lalgeo-maps-api/examples">Open TypeScript and Python quickstarts&nbsp; →</a>
+        </section>
+
         <section>
           <h2>Designed for safe automation</h2>
           <p>New authoring keys are operator-provisioned, scoped, and expiring, and every authoring route enforces HTTPS. Every scoped key includes <code>maps:read</code> for protected GET requests and export; add <code>maps:write</code> only when the key must POST, PATCH, DELETE, or create a one-time open link. Write access is never issued without read access because update responses and map handoffs contain existing map data. Existing full-access keys remain compatible during controlled rotation. Missing, invalid, and expired keys share the same <code>401</code> response. A read-only key used for a write receives <code>403 INSUFFICIENT_SCOPE</code>. The public redemption route accepts only a short-lived, single-use map capability; the bearer key never reaches Maps or the link. Create receipts and capabilities store only SHA-256 hashes. Idempotency keys are owner-scoped and replay the original successful result for 24 hours without another mutation. One bounded counter per owner gives every valid key the same 300-request-per-minute budget without storing key material. Each key sees only its own maps, batches are limited to 1,000 features, bodies to 2 MB, and list responses are paginated. Errors return stable codes and a browser-readable request ID.</p>
