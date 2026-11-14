@@ -29,3 +29,8 @@
   from = "/health"
   to = "/.netlify/functions/mcp/health"
   status = 200
+
+[[redirects]]
+  from = "/.well-known/oauth-protected-resource"
+  to = "/.netlify/functions/mcp/.well-known/oauth-protected-resource"
+  status = 200

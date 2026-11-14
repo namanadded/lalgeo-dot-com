@@ -126,6 +126,10 @@ Deploy the 1.4.0 Authoring API runtime and both `map_idempotency_keys` and `map_
 
 Store the key only in the MCP client's protected connection settings. Never put it in a prompt, log, issue, map property, or tool argument.
 
+## Hosted ChatGPT OAuth
+
+The hosted ChatGPT connection uses Auth0 OAuth. Configure `AUTH0_ISSUER`, `AUTH0_AUDIENCE`, and `AUTH0_OWNER_SUB` in Netlify. Keep `LALGEO_API_KEY` server-side; ChatGPT users do not enter it. The protected-resource metadata endpoint is `/.well-known/oauth-protected-resource`, and tool calls require the Auth0 `maps:read` or `maps:write` scope.
+
 ChatGPT cannot attach a custom API key to a public MCP connection. OpenAI's [MCP authentication guidance](https://developers.openai.com/plugins/build/auth) requires OAuth 2.1 for user-authenticated hosted tools, and LalGeo does not advertise that flow yet. Use the localhost + Secure MCP Tunnel path above for ChatGPT. Do not configure the hosted endpoint as an unauthenticated ChatGPT connection.
 
 ## Verify
