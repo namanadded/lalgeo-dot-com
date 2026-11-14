@@ -31,6 +31,11 @@ jobs:
             lalgeo-saas-api/package-lock.json
             lalgeo-mcp/package-lock.json
 
+      - name: Set up Python for API quickstarts
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
       - name: Validate static entry points
         run: |
           test -f index.html
