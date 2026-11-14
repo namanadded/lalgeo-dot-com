@@ -2,6 +2,7 @@ import { WebStandardStreamableHTTPServerTransport } from "@modelcontextprotocol/
 import { AppleMapsGeocoder } from "./geocoder.js";
 import { LalGeoApi, LalGeoApiError } from "./lalgeo-api.js";
 import { createServer } from "./server.js";
+import { auth0OwnerId, protectedResourceMetadata, verifyAuth0Token } from "./auth0.js";
 
 type EventHeaders = Record<string, string | string[] | undefined>;
 
@@ -26,6 +27,7 @@ const JSON_HEADERS: Record<string, string> = {
   "content-type": "application/json; charset=utf-8",
 };
 const BEARER_CHALLENGE = 'Bearer realm="lalgeo-mcp"';
+const OAUTH_BEARER_CHALLENGE = 'Bearer resource_metadata="https://mcp.lalgeo.com/.well-known/oauth-protected-resource"';
 const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
 function header(headers: EventHeaders, name: string) {
@@ -62,12 +64,12 @@ function jsonResponse(
   };
 }
 
-function authenticationRequired(message = "A valid LalGeo Authoring API key is required.") {
+function authenticationRequired(message = "A valid LalGeo Authoring API key is required.", oauth = false) {
   return jsonResponse(401, {
     jsonrpc: "2.0",
     error: { code: -32001, message },
     id: null,
-  }, { "www-authenticate": BEARER_CHALLENGE });
+  }, { "www-authenticate": oauth ? OAUTH_BEARER_CHALLENGE : BEARER_CHALLENGE });
 }
 
 function serviceUnavailable() {
@@ -126,6 +128,9 @@ async function responseFromWeb(response: Response): Promise<NetlifyMcpResponse> 
 
 export async function handler(event: NetlifyMcpEvent): Promise<NetlifyMcpResponse> {
   const method = event.httpMethod.toUpperCase();
+  if (event.path.endsWith("/.well-known/oauth-protected-resource")) {
+    return jsonResponse(200, protectedResourceMetadata());
+  }
   if (event.path.endsWith("/health")) {
     if (method !== "GET" && method !== "HEAD") {
       return jsonResponse(405, { error: "Method not allowed." }, { allow: "GET, HEAD" });
@@ -147,8 +152,29 @@ export async function handler(event: NetlifyMcpEvent): Promise<NetlifyMcpRespons
     }, { allow: "POST" });
   }
 
-  const apiKey = extractBearerApiKey(event.headers);
-  if (!apiKey) return authenticationRequired();
+  const callerToken = extractBearerApiKey(event.headers);
+  const oauthEnabled = Boolean(process.env.AUTH0_OWNER_SUB && process.env.AUTH0_ISSUER && process.env.AUTH0_AUDIENCE);
+  const bodyText = event.body ? Buffer.from(event.body, event.isBase64Encoded ? "base64" : "utf8").toString("utf8") : "{}";
+  let parsedBody: { id?: unknown; method?: string; params?: { name?: string } };
+  try { parsedBody = JSON.parse(bodyText); } catch { return jsonResponse(400, { jsonrpc: "2.0", error: { code: -32700, message: "Invalid JSON." }, id: null }); }
+  const discovery = parsedBody.method === "initialize" || parsedBody.method === "notifications/initialized" || parsedBody.method === "tools/list";
+  let apiKey: string | null = null;
+  if (oauthEnabled) {
+    if (!discovery) {
+      if (!callerToken) return authenticationRequired("OAuth authorization is required.", true);
+      try {
+        const payload = await verifyAuth0Token(callerToken, parsedBody.params?.name === "geocode" ? "maps:read" : "maps:write");
+        auth0OwnerId(payload);
+      } catch (error) {
+        return authenticationRequired(error instanceof Error ? error.message : "OAuth authorization required.", true);
+      }
+    }
+    apiKey = process.env.LALGEO_API_KEY || null;
+  } else {
+    apiKey = callerToken;
+    if (!apiKey) return authenticationRequired();
+  }
+  if (!apiKey) return serviceUnavailable();
 
   const apiBaseUrl = authoringApiBaseUrl(process.env.LALGEO_API_BASE_URL || "https://api.lalgeo.com");
   if (!apiBaseUrl) return serviceUnavailable();

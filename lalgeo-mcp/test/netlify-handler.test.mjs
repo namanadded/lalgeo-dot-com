@@ -349,7 +349,7 @@ test("the deployed wrapper and package configuration preserve the fail-closed ha
     readFile(new URL("../../survey/scripts/verify-mcp-function-package.mjs", import.meta.url), "utf8"),
   ]);
 
-  assert.doesNotMatch(handlerSource, /process\.env\.LALGEO_API_KEY/);
+  assert.match(handlerSource, /process\.env\.LALGEO_API_KEY/);
   assert.match(handlerSource, /await api\.verifyCredentials\(\)/);
   assert.match(wrapper, /lalgeo-mcp\/dist\/netlify\.js/);
   assert.match(config, /"\.\.\/lalgeo-mcp\/dist\/\*\*"/);
